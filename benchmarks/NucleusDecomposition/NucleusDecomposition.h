@@ -91,8 +91,9 @@ inline sequence<size_t> NucleusDecompositionVerificationRunner(Graph& GA, Direct
 }
 
 template <class Graph, class DirectedGraph, class Table>
-inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG, size_t r, size_t s, Table& table, 
-  size_t max_deg, sequence<uintE>& rank) {
+inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
+  size_t r, size_t s, Table& table, 
+  size_t max_deg, sequence<uintE>& rank, bool efficient = true) {
 
   //std::cout << "Start count" << std::endl;
   timer t; t.start();
@@ -104,7 +105,7 @@ inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   std::cout << "### Num " << s << " cliques = " << count << "\n";
 
   timer t2; t2.start();
-  auto peel = Peel<std::size_t>(GA, DG, r, s, &table, rank);
+  auto peel = Peel<std::size_t>(GA, DG, r, s, &table, rank, efficient);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
 
@@ -128,7 +129,8 @@ inline sequence<size_t> runner_verify(Graph& GA, Graph2& DG, size_t r, size_t s,
 
 template <class T, class H, class Graph, class Graph2>
 inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
-  bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor) {
+  bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
+  bool efficient = true) {
   timer t; 
   sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
@@ -142,26 +144,26 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
       multitable::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
-      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
     } else {
       auto rank_func = std::less<uintE>();
       multitable::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
-      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
     }
   } else if (table_type == 2) {
     t.start();
     twotable::TwolevelHash<T, H> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
-    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
   } else if (table_type == 1) {
     t.start();
     onetable::OnelevelHash<T, H> table(r, DG, max_deg, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
-    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
   } else if (table_type == 4) {
     // Num levels matches, e.g., 2 for two level
     num_levels -= 1;
@@ -170,27 +172,27 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
       multitable_nosearch::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
-      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
     } else {
       auto rank_func = std::less<uintE>();
       multitable_nosearch::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
-      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+      count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
     }
   } else if (table_type == 5) {
     t.start();
     twotable_nosearch::TwolevelHash<T, H> table(r, DG, max_deg, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
-    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
+    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank, efficient);
   } 
   return count;
 }
 
 template <class Graph>
 inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
-  bool relabel, bool contiguous_space, bool verify) {
+  bool relabel, bool contiguous_space, bool verify, bool efficient) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
 
@@ -245,7 +247,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
     // unsigned__int128
   if (!verify)
     count = runner<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor);
+      max_deg, rank, shift_factor, efficient);
   else
     count = runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);

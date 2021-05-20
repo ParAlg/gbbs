@@ -239,7 +239,7 @@ t1.stop();
 
 template <typename bucket_t, class Graph, class Graph2, class T>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k, 
-  T* cliques, sequence<uintE> &rank,
+  T* cliques, sequence<uintE> &rank, bool efficient=true,
   size_t num_buckets=16) {
     k--; r--;
   timer t2; t2.start();
@@ -255,7 +255,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
   auto per_processor_counts = sequence<double>(num_entries , static_cast<double>(0));
   
-  list_buffer count_idxs(num_entries);
+  list_buffer count_idxs(num_entries, efficient);
 
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
