@@ -231,6 +231,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
 
 t1.start();
+using W = typename Graph::weight_type;
   // Clique count updates
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
@@ -264,7 +265,7 @@ t1.start();
       auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
         intersect_arr[vv]++;
       };
-      DG.get_vertex(vert).mapOutNgh(vert, map_f, false);
+      G.get_vertex(vert).mapOutNgh(vert, map_f, false);
     }
     for (size_t j = 0; j < G.n; j++) {
       if (intersect_arr[j] == r + 1) {
