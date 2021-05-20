@@ -70,12 +70,6 @@ namespace gbbs {
     k--; r--;
     timer t2; t2.start();
 
-    /*auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
-      pbbs::fetch_and_add(ct, (long)1);
-    };*/
-// Nested hash tables where the first level you hash the first vertex, second level you hash the second, etc.
-// Saves space if cliques share vertices
-// Renumber vert by which is in the most r-cliques
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
     };
@@ -88,13 +82,10 @@ namespace gbbs {
           induced->setup(DG, k, i);
           auto base = sequence<uintE>(k + 1);
           base[0] = i;
-          //auto base_f2 = [&](uintE vtx, size_t _count) {};
-          //tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f2, 0);
           tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base);
         } else tots[i] = 0;
     }, 1, false);
     double tt2 = t2.stop();
-    //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
     return pbbslib::reduce_add(tots);
   }
@@ -198,7 +189,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
   // Set up space for clique counting
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->turn_on_check(); induced->alloc(max_deg, k-r, G.n, true, true, true); };
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
   // Mark every vertex in the active set
@@ -207,23 +198,6 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     still_active[index] = 1;
     }, 2048);
 
-  // Hash table to contain clique count updates
-  //size_t edge_table_size = (size_t) (n);
-  //auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(0, false), hashtup());
-
-  // Function that dictates which edges to consider in first level of recursion
-  //auto ignore_f = [&](const uintE& u, const uintE& v) {
-  //  return true;
-    //auto index_u = cliques->find_index(u);
-    //auto index_v = cliques->find_index(v);
-    //auto status_u = still_active[index_u]; auto status_v = still_active[index_v];
-    //if (status_u == 2 || status_v == 2) return false; // deleted edge
-    //if (status_v == 0) return true; // non-deleted, non-active edge
-    //return rank[u] < rank[v]; // orient edges if in active set
-  //};
-
-  // Collate clique counts by processor
-  //count_idxs[0] = 0;
   auto is_active = [&](size_t index) {
     return still_active[index] == 1;
   };
@@ -231,26 +205,10 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     return still_active[index] == 2;
   };
   auto update_d = [&](sequence<uintE>& base){
-    // check that base[0] to base[k+1] are all edges
-    /*for (int i = 0; i < k + 1; i++) {
-      int i1 = (i + 1) % (k + 1);
-      if (!is_edge(G, base[i], base[i1])) {
-        std::cout << "Flip: " << is_edge(G, base[i1], base[i]) << std::endl;
-        std::cout << "i: " << i << ", i1: " << i1 << ", base i: "<< base[i] << ", base i1: " << base[i1] << std::endl;
-        fflush(stdout);
-      }
-      assert(is_edge(G, base[i], base[i1]));
-
-    }*/
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
-        //std::cout << "Index: "<< index << ", Val: "<< val << std::endl;
-        /*if (per_processor_counts[index] == 0) {
-          std::cout << "Val: " << val << std::endl; fflush(stdout);
-        }*/
-        //assert(per_processor_counts[index] != 0);
       }
     }, r, k);
   };
@@ -265,73 +223,24 @@ t1.start();
     HybridSpace_lw* induced = new HybridSpace_lw();
     init_induced(induced);*/
 
-    // TODO: THIS PART IS WRONG
-    // you wanna start from the clique given by vert
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
-    // Fill base[k] ... base[k-r+2] and base[0]
-    //assert(induced->worker_in_use == worker_id());
+    // Fill base[k] ... base[k-r+1] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
-
-    //assert(induced->checked);
-    //assert(induced->worker_in_use == worker_id());
-
-    /*for (std::size_t xx = 0; xx < induced->nn; xx++) {
-      if (induced->relabel[xx] != UINT_E_MAX) {
-        if(!(is_edge(G, base[0], induced->relabel[xx]))) {
-          std::cout << "outside_setup base0: " << base[0] << ", relabel: " << induced->relabel[xx] << std::endl;
-          std::cout << "i: " << xx << std::endl; fflush(stdout);
-        }
-        assert(is_edge(G, base[0], induced->relabel[xx]));
-      }
-    }
-    assert(induced->worker_in_use == worker_id());*/
-
-    // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
-
-    induced->worker_in_use = UINT_E_MAX;
-    //finish_induced(induced);
   }, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
-  // Extract all vertices with changed clique counts
-  //auto changed_vtxs = edge_table.entries();
-  //edge_table.del();
-
-  // Aggregate the updated counts across all worker's local arrays, as specified by update
-  /*parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-    size_t nthreads = num_workers();
-    uintE v = std::get<0>(changed_vtxs[i]);
-    auto index = cliques->find_index(v);
-    for (size_t j=0; j<nthreads; j++) {
-      update(per_processor_counts, j, index);
-    }
-  }, 128);*/
-
   // Perform update_changed on each vertex with changed clique counts
   std::size_t num_count_idxs = 0;
-  //if (do_update_changed) {
-    /*parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      auto index = cliques->find_index(std::get<0>(changed_vtxs[i]));
-      update_changed(per_processor_counts, i, index);
-    });*/
-      num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
-      count_idxs.reset();
-    /*
-    parallel_for(0, num_count_idxs, [&] (size_t i) {//count_idxs[0]
-      //assert(count_idxs[i+1] < n);
-      //assert(per_processor_counts[count_idxs[i+1]] > 0);
-      update_changed(per_processor_counts, i, count_idxs.pack[i]);//count_idxs[i + 1]
-    });*/
-    
-  //}
+  num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
+  count_idxs.reset();
 
   // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {
-    auto index = get_active(j); //cliques->find_index(get_active(j));
+    auto index = get_active(j); 
     still_active[index] = 2;}, 2048);
 
   return num_count_idxs; //count_idxs[0];
@@ -343,13 +252,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   size_t num_buckets=16) {
     k--; r--;
   timer t2; t2.start();
-// Here's the mistake: You're thinking that get_active should return the key,
-// which is the concatenation of vertices. That's wrong. get_active should
-// return an index into cliques->table, which we can then convert to the
-// appropriate key. When we bucket, we only maintain indices into
-// cliques->table, and we transfer to the key as necessary.
 
-  //sequence<std::tuple<__int128 unsigned, long int> > entries = cliques->entries;
   size_t num_entries = cliques->return_total();
   auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
@@ -362,8 +265,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   auto per_processor_counts = sequence<double>(num_entries , static_cast<double>(0));
   
   list_buffer count_idxs(num_entries);
-  //auto count_idxs = sequence<size_t>(num_entries + 1 + 
-  //  count_buffer * num_workers(), static_cast<size_t>(0));
 
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
@@ -390,7 +291,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     cur_bkt = bkt.id;
     t_extract.stop();
 
-    auto get_active = [&](size_t j) -> unsigned __int128 { //return (bkt.identifiers)[j]; };
+    auto get_active = [&](size_t j) -> unsigned __int128 { 
       return active[j]; }; //active.vtx(j); };
 
     if (active_size == 0) continue;
@@ -409,39 +310,26 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
     iter++;
-    //std::cout << "PEEL" << std::endl;
-    //fflush(stdout);
-    //std::cout << "1469207: " << D[1469207] << std::endl; fflush(stdout); 
+
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
 
     size_t filter_size = 0;
 
       auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
-        /* Update the clique count for v, and zero out first worker's count */
-        //auto index = cliques->find_index(v);
-        //auto val = std::get<1>((cliques->table)[index]) - ppc[v];
-    //(cliques->table)[index] = std::make_tuple(std::get<0>((cliques->table)[index]), val);
-        //cliques[v] -= ppc[v];
+
         if (v == UINT_E_MAX) {
           D_filter[i] = std::make_tuple(num_entries + 1, 0);
           return;
         }
-        //double intpart;
-        //if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
-        //assert(std::modf(ppc[v], &intpart) == 0.0);
+    
         assert(ppc[v] != 0);
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else {
-          
           bucket_t deg = D[v];
           //bucket_t deg = cliques->get_count(v);
-          /*if (deg <= cur_bkt) {
-            std::cout << "Deg: " << deg << ", bkt: " << cur_bkt << std::endl;
-          }*/
           assert(deg > cur_bkt);
           auto val = cliques->update_count(v, (size_t) ppc[v]);
           if (deg > cur_bkt) {
-            
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
             // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
@@ -476,8 +364,6 @@ t_update.start();
       //cliques[active.vtx(j)] = 0;
       }, 2048);*/
       t_update.stop();
-
-    //active.del();
 
     rounds++;
   }
