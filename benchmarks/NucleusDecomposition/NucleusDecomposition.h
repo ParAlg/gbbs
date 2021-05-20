@@ -325,7 +325,7 @@ t1.stop();
       update_changed(per_processor_counts, i, index);
     });*/
       num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
-      count_idxs.reset();
+      
     /*
     parallel_for(0, num_count_idxs, [&] (size_t i) {//count_idxs[0]
       //assert(count_idxs[i+1] < n);
@@ -470,6 +470,11 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
 t_update.start();
     b.update_buckets(apply_f, filter_size);
+
+    count_idxs.reset();
+    for (size_t i = 0 ; i < per_processor_counts.size(); i++) {
+      per_processor_counts[i] = 0;
+    }
 
     /*parallel_for (0, active_size, [&] (size_t j) {
       auto index = get_active(j);
