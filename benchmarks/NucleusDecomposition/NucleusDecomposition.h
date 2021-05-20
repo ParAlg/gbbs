@@ -76,21 +76,23 @@ namespace gbbs {
 // Nested hash tables where the first level you hash the first vertex, second level you hash the second, etc.
 // Saves space if cliques share vertices
 // Renumber vert by which is in the most r-cliques
-    auto base_f = [&](sequence<uintE>& base){
-      table->insert(base, r, k);
-    };
+
     auto tots = sequence<size_t>(DG.n, size_t{0});
 
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+
+    auto base_f = [&](sequence<uintE>& base){
+      table->insert(base, r, k);
+    };
         if (DG.get_vertex(i).getOutDegree() != 0) {
           induced->setup(DG, k, i);
-          auto base = sequence<uintE>(k + 1);
-          base[0] = i;
+          auto base2 = sequence<uintE>(k + 1);
+          base2[0] = i;
           //auto base_f2 = [&](uintE vtx, size_t _count) {};
           //tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f2, 0);
-          tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base);
+          tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
         } else tots[i] = 0;
     }, 1, false);
     double tt2 = t2.stop();
