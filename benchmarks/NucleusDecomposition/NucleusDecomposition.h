@@ -188,10 +188,6 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   bool do_update_changed, I update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
-  // Set up space for clique counting
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true, true); };
-  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {
     auto index = get_active(j); //cliques->find_index(get_active(j));
@@ -213,15 +209,19 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     }, r, k);
   };
 
+  // Set up space for clique counting
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true, true); };
+  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+
 t1.start();
   // Clique count updates
   //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
-  //assert(k-r == 1);
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-                                     [&](size_t i, HybridSpace_lw* induced) {
-  /*parallel_for(0, active_size, [&](size_t i){
+
+  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+  //                                   [&](size_t i, HybridSpace_lw* induced) {
+  for(size_t i =0; i < active_size; i++) {
     HybridSpace_lw* induced = new HybridSpace_lw();
-    init_induced(induced);*/
+    init_induced(induced);
 
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
@@ -229,7 +229,7 @@ t1.start();
     // Fill base[k] ... base[k-r+1] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
-  }, 1, true); //granularity
+  }//, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
