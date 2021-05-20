@@ -53,6 +53,7 @@ struct HybridSpace_lw {
 
   size_t worker_in_use = UINT_E_MAX;
   bool to_check = false;
+  size_t nx;
   HybridSpace_lw () {}
 
   void turn_on_check() {
@@ -67,6 +68,7 @@ struct HybridSpace_lw {
   }
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
+    nx = n;
     use_old_labels = _use_old_labels;
     use_base = _use_base;
     free_relabel = _free_relabel;
@@ -269,24 +271,22 @@ struct HybridSpace_lw {
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
+
   // Perform first level recursion, using linear space to intersect
   template <class Graph, class Graph2, class F>
   void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
+    assert(DG.n == nx);
     using W = typename Graph::weight_type;
-
-    if (to_check) assert(worker_in_use == worker_id());
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     nn = DG.get_vertex(i).getOutDegree();
-    //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-    
     num_induced[0] = nn;
     //parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
     for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
 
-    if (to_check) assert(worker_in_use == worker_id());
-
     size_t o = 0;
+    assert(old_labels != nullptr);
+  
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Return if edge is invalid
       if (!f(src, ngh)) {
@@ -294,12 +294,16 @@ struct HybridSpace_lw {
         o++;
         return;
       }
+      std::cout << "ngh: " << ngh << std::endl; fflush(stdout);
       // Set up label for intersection
+      assert(ngh < DG.n);
       old_labels[ngh] = o + 1;
       // Set up relabeling if counting per vertex
       if (use_base) { relabel[o] = ngh; }
       o++;
     };
+    assert(i < DG.n);
+    std::cout << "i: " << i << std::endl; fflush(stdout);
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
 
     if (to_check) assert(worker_in_use == worker_id());
