@@ -260,7 +260,7 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                      A* alloc = allocs[id];
                      init_alloc(alloc);
                      f(i, alloc);
-                     taken[id] = 0;
+                     while (!charCAS(&(taken[id]), 1, 0)){}
                      break;
                    }
                  }
