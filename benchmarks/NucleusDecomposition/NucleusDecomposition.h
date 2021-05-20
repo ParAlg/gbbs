@@ -125,7 +125,6 @@ class list_buffer {
       //std::cout << "Add: " << index << std::endl; fflush(stdout);
       size_t use_next = pbbs::fetch_and_add(&next, 1);
       list[use_next] = index;
-      assert(per_processor_counts[index] != 0);
       /*size_t worker = worker_id();
       list[starts[worker]] = index;
       starts[worker]++;
@@ -139,6 +138,8 @@ class list_buffer {
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
 
       parallel_for(0, next, [&](size_t worker) {
+        assert(list[worker] != UINT_E_MAX);
+        assert(per_processor_counts[list[worker]] != 0);
         update_changed(per_processor_counts, worker, list[worker]);
       });
       return next;
