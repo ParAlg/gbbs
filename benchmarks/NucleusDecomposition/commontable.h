@@ -58,6 +58,21 @@ namespace gbbs {
     return max_deg;
   }
 
+template <class Graph>
+bool is_edge3(Graph& DG, uintE v, uintE u) {
+  using W = typename Graph::weight_type;
+  bool is = false;
+  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+    if (vv == u) is = true;
+  };
+  DG.get_vertex(v).mapOutNgh(v, map_f, false);
+  auto map_f2 = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+    if (vv == v) is = true;
+  };
+  DG.get_vertex(u).mapOutNgh(u, map_f2, false);
+  return is;
+}
+
   template <class Graph, class F>
   inline size_t NKCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced, F& base_f,
   sequence<uintE>& base) {
@@ -72,6 +87,15 @@ namespace gbbs {
         assert(vtx == i);
         base[k] = induced->relabel[vtx];
         if (base[k] != UINT_E_MAX) {
+          for (int i = 0; i < k + 1; i++) {
+            int i1 = (i + 1) % (k + 1);
+            if (!is_edge3(DG, base[i], base[i1])) {
+              std::cout << "Flip: " << is_edge3(DG, base[i1], base[i]) << std::endl;
+              std::cout << "i: " << i << ", i1: " << i1 << ", base i: "<< base[i] << ", base i1: " << base[i1] << std::endl;
+              fflush(stdout);
+            }
+            assert(is_edge3(DG, base[i], base[i1]));
+          }
           //std::cout << "Exists base" << std::endl; fflush(stdout);
           base_f(base);
           tmp_counts++;
