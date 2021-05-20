@@ -213,7 +213,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
   // Set up space for clique counting
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->turn_on_check(); induced->alloc(max_deg, k-r, G.n, true, true, true); };
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true, true); };
+  //induced->turn_on_check(); 
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
   // Mark every vertex in the active set
