@@ -259,11 +259,11 @@ t1.start();
   // Clique count updates
   std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
   assert(k-r == 1);
-  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-  //                                   [&](size_t i, HybridSpace_lw* induced) {
-  parallel_for(0, active_size, [&](size_t i){
+  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+                                     [&](size_t i, HybridSpace_lw* induced) {
+  /*parallel_for(0, active_size, [&](size_t i){
     HybridSpace_lw* induced = new HybridSpace_lw();
-    init_induced(induced);
+    init_induced(induced);*/
 
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
@@ -287,7 +287,7 @@ t1.start();
 
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
-    finish_induced(induced);
+    //finish_induced(induced);
   }, granularity, false);
   std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
