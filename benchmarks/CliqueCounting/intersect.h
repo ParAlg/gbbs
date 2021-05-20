@@ -94,7 +94,7 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
-    std::cout << "setup nucleus" << std::endl; fflush(stdout);
+    //std::cout << "setup nucleus" << std::endl; fflush(stdout);
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)

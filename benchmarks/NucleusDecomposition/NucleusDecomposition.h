@@ -257,6 +257,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
 t1.start();
   // Clique count updates
+  std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
     // TODO: THIS PART IS WRONG
@@ -269,6 +270,7 @@ t1.start();
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
   }, granularity, false);
+  std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
   // Extract all vertices with changed clique counts
