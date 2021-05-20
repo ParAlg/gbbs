@@ -78,9 +78,9 @@ struct HybridSpace_lw {
     use_base = _use_base;
     free_relabel = _free_relabel;
     if (induced == nullptr) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
-    if (free_relabel && induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
-    if (labels == nullptr) labels = (char*) calloc(max_induced, sizeof(char));
-    if (free_relabel && induced_edges == nullptr)
+    if (k > 1 && free_relabel && induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
+    if (k > 1 && labels == nullptr) labels = (char*) calloc(max_induced, sizeof(char));
+    if (k > 1 && free_relabel && induced_edges == nullptr)
       induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     if (num_induced == nullptr) num_induced = (uintE*) malloc(sizeof(uintE)*k);
     if (free_relabel && use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
@@ -203,7 +203,7 @@ struct HybridSpace_lw {
 
     nn = o;
     //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-    for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
+    
     num_induced[0] = nn;
     //parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
     for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
@@ -230,6 +230,8 @@ struct HybridSpace_lw {
       num_edges = 0;
       return;
     }
+
+    for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -336,7 +338,7 @@ struct HybridSpace_lw {
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     nn = DG.get_vertex(i).getOutDegree();
     //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-    for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
+    
     num_induced[0] = nn;
     //parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
     for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
@@ -366,6 +368,8 @@ struct HybridSpace_lw {
       num_edges = 0;
       return;
     }
+
+    for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
