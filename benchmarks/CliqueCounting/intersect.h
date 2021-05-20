@@ -19,13 +19,13 @@ bool is_edge2(Graph& DG, uintE v, uintE u) {
   bool is = false;
   auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
     if (vv == u) is = true;
-    };
-    DG.get_vertex(v).mapOutNgh(v, map_f, false);
+  };
+  DG.get_vertex(v).mapOutNgh(v, map_f, false);
   auto map_f2 = [&] (const uintE& src, const uintE& vv, const W& wgh) {
     if (vv == v) is = true;
-    };
-    DG.get_vertex(u).mapOutNgh(u, map_f2, false);
-    return is;
+  };
+  DG.get_vertex(u).mapOutNgh(u, map_f2, false);
+  return is;
 }
 
 struct HybridSpace_lw {
@@ -94,6 +94,7 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
+    std::cout << "setup nucleus" << std::endl; fflush(stdout);
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
@@ -268,6 +269,7 @@ struct HybridSpace_lw {
   // Perform first level recursion, using linear space to intersect
   template <class Graph, class Graph2, class F>
   void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
+    std::cout << "S" << std::endl; fflush(stdout);
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
