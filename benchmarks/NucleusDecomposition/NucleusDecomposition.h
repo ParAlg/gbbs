@@ -79,14 +79,17 @@ namespace gbbs {
 
     auto tots = sequence<size_t>(DG.n, size_t{0});
 
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-    //parallel_for(0, DG.n, [&](size_t i){
-    auto base_f = [&](sequence<uintE>& base){
-      table->insert(base, r, k);
-    };
-      induced->turn_on_check(); 
+    //auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
+    //auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+    //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+    HybridSpace_lw* induced;
+    for (std::size_t i = 0; i < DG.n; i++) {
+      init_induced(induced);
+      
+      auto base_f = [&](sequence<uintE>& base){
+        table->insert(base, r, k);
+      };
+      //induced->turn_on_check(); 
 
         if (DG.get_vertex(i).getOutDegree() != 0) {
   //HybridSpace_lw* induced = new HybridSpace_lw();
@@ -101,7 +104,8 @@ namespace gbbs {
         } else tots[i] = 0;
 
         induced->worker_in_use = UINT_E_MAX;
-    }, 1, true);
+    }//, 1, true);
+    finish_induced(induced);
     double tt2 = t2.stop();
     //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
@@ -234,8 +238,12 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 t1.start();
 using W = typename Graph::weight_type;
   // Clique count updates
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-                                     [&](size_t i, HybridSpace_lw* induced) {
+  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+  //                                   [&](size_t i, HybridSpace_lw* induced) {
+  HybridSpace_lw* induced;
+  for (std::size_t i = 0; i < active_size; i++) {
+    init_induced(induced);
+
     auto update_d = [&](sequence<uintE>& base){
       cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
@@ -245,14 +253,15 @@ using W = typename Graph::weight_type;
       }, r, k);
     };
 
-    induced->turn_on_check();
+    //induced->turn_on_check();
 
     auto x = get_active(i);
     auto base2 = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
 
     // This fills base[0] and base[k]...base[k-r+1] (inclusive) with vertices
     cliques->extract_clique(x, base2, G, k);
-    assert(k-r == 1);
+    
+    /*assert(k-r == 1);
     assert(r + 1 == k);
 
     assert(induced->worker_in_use == worker_id());
@@ -280,15 +289,16 @@ using W = typename Graph::weight_type;
         update_d(base2);
       }
       intersect_arr[j] = 0;
-    }
+    }*/
     
     // Fill base[1] with the intersection, and call update_d
-    /*induced->setup_nucleus(G, DG, k, base2, r);
+    induced->setup_nucleus(G, DG, k, base2, r);
     assert(induced->worker_in_use == worker_id());
-    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);*/
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
 
     induced->worker_in_use = UINT_E_MAX;
-  }, 1, true); //granularity
+  }//, 1, true); //granularity
+  finish_induced(induced);
 t1.stop();
 
   // Perform update_changed on each vertex with changed clique counts
