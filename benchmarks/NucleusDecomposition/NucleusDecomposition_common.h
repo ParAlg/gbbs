@@ -306,9 +306,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else {
           bucket_t deg = D[v];
-          //bucket_t deg = cliques->get_count(v);
           assert(deg > cur_bkt);
-          auto val = cliques->update_count(v, (size_t) ppc[v]);
+          auto val = cliques->get_count(v) - std::round(ppc[v]);
+          cliques->set_count(v, val);
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
