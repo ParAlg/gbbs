@@ -275,7 +275,7 @@ t1.start();
           std::cout << "outside_setup base0: " << base[0] << ", relabel: " << induced->relabel[xx] << std::endl;
           std::cout << "i: " << xx << std::endl; fflush(stdout);
         }
-        assert(is_edge2(G, base[0], induced->relabel[xx]));
+        assert(is_edge(G, base[0], induced->relabel[xx]));
       }
     }
 
