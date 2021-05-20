@@ -51,9 +51,11 @@ struct HybridSpace_lw {
   bool use_base = false; // if true, counting per vertex
 
   bool checked = false;
+  size_t minduced = 0;
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
+    minduced = max_induced;
     use_old_labels = _use_old_labels;
     use_base = _use_base;
     free_relabel = _free_relabel;
@@ -147,6 +149,8 @@ struct HybridSpace_lw {
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
 
+    assert(o <= minduced);
+
     for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
         if(!(is_edge2(DG2, base[0], relabel[x]))) {
@@ -165,7 +169,7 @@ struct HybridSpace_lw {
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
-    for (std::size_t x = 0; x < o; x++) {
+    for (std::size_t x = 0; x < nn; x++) {
       if (relabel[x] != UINT_E_MAX) {
         if(!(is_edge2(DG2, base[0], relabel[x]))) {
           std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
