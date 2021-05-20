@@ -141,7 +141,7 @@ class list_buffer {
       for (size_t worker = 0; worker < next; worker++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
-        update_changed(per_processor_counts, worker, list[worker]);
+        update_changed(per_processor_counts, worker, worker); //list[worker]
       }//);
       return ss;
 /*
