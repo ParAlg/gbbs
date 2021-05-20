@@ -173,7 +173,7 @@ class list_buffer {
       for (size_t i = 0; i < next; i++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
-        list[worker] = UINT_E_MAX;
+        list[i] = UINT_E_MAX;
       }//);
       /*parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
