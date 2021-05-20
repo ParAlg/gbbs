@@ -55,6 +55,7 @@ struct HybridSpace_lw {
   bool checked = false;
   bool to_check = false;
   size_t minduced = 0;
+  size_t nnx;
   HybridSpace_lw () {}
 
   void turn_on_check() {
@@ -69,6 +70,8 @@ struct HybridSpace_lw {
       }
       assert(checking);
     }
+
+    nnx = n;
     
     minduced = max_induced;
     use_old_labels = _use_old_labels;
@@ -129,7 +132,8 @@ struct HybridSpace_lw {
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
-        //assert(ngh < DG.n);
+        assert(ngh < DG.n);
+        assert(ngh < nnx);
         if (j == 0) old_labels[ngh] = nn0 + 1;
         else if (old_labels[ngh] > 0) old_labels[ngh]++;
         //else if (old_labels[ngh] == nn0 + j) old_labels[ngh]++;
