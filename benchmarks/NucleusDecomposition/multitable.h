@@ -249,6 +249,22 @@ namespace multitable {
       return table_sizes[next_mtable_index] + next->extract_indices(base, next_idx, r, k, bitmask);
     }
 
+    Y extract_indices_check(uintE* base, int curr_idx, int r) {
+      if (lvl == max_lvl) {
+        Y key = 0;
+        for (int i = curr_idx; i < static_cast<int>(r)+1; ++i) {
+          key = key << nd_global_shift_factor;
+          key |= static_cast<int>(base[i]);
+        }
+        return end_table.find_index(key);
+      }
+      int next_idx = curr_idx + 1;
+      auto next_mtable_index = mtable.find_index(base[curr_idx]);
+      auto next = std::get<1>(mtable.table[next_mtable_index]);
+      assert(next != nullptr);
+      return table_sizes[next_mtable_index] + next->extract_indices_check(base, next_idx, r);
+    }
+
     template<class I, class HH>
     void extract_indices(uintE* base, I func, int r, int k, HH& h_func) {
       std::string bitmask(r+1, 1); // K leading 1's
@@ -582,6 +598,18 @@ namespace multitable {
           *loc = std::make_tuple(std::get<0>(*loc), update);
         };
         mtable.find_table_loc(index, func);
+      }
+
+      Y extract_indices_check(sequence<uintE>& base2, int r) {
+        // Size of base2 should be r + 1
+        uintE base[10];
+        assert(10 > r + 1);
+        for(std::size_t i = 0; i < r + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + r + 1,std::less<uintE>());
+
+        return mtable.extract_indices_check(base, 0, r);
       }
 
       template<class HH, class HG, class I>

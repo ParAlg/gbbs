@@ -299,6 +299,33 @@ namespace twotable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), update);
       }
 
+      Y extract_indices_check(sequence<uintE>& base2, int r) {
+        // Size of base2 should be r + 1
+        uintE base[10];
+        assert(10 > r + 1);
+        for(std::size_t i = 0; i < r + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + r + 1,std::less<uintE>());
+
+        bool use_vtx = false;
+        uintE vtx = 0;
+        Y key = 0;
+        for (int i = 0; i < static_cast<int>(r)+1; ++i) {
+          if (!use_vtx) {
+            use_vtx = true;
+            vtx = base[i];
+          } else {
+            key = key << shift_factor;
+            key |= static_cast<int>(base[i]);
+          }
+        }
+        EndTableY* end_table = top_table.arr[vtx];
+        auto prefix = top_table_sizes[vtx];
+        auto index = (end_table->table).find_index(key);
+        return prefix + index;
+      }
+
       template<class HH, class HG, class I>
       void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base

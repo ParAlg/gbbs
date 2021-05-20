@@ -45,6 +45,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   long num_levels = P.getOptionLongValue("-nl", 2); // only for multi, # levels
   bool relabel = P.getOptionValue("-relabel"); // for true, relabel graph
   bool contiguous_space = P.getOptionValue("-contig"); // for true, contiguous space
+  bool verify = P.getOptionValue("-verify"); // for testing
 
   std::cout << "### Application: Nucleus Decomposition" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -57,7 +58,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
 
-  auto count = NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space);
+  auto count = NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify);
 
   double tt = t.stop();
 

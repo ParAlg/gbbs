@@ -141,6 +141,25 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),update);
       }
 
+      Y extract_indices_check(sequence<uintE>& base2, int r) {
+        // Size of base2 should be r + 1
+        uintE base[10];
+        assert(10 > r + 1);
+        for(std::size_t i = 0; i < r + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + r + 1,std::less<uintE>());
+
+        Y key = 0;
+        for (int i = 0; i < static_cast<int>(r)+1; ++i) {
+          key = key << shift_factor;
+          key |= static_cast<int>(base[i]);
+        }
+        auto index = table.find_index(key);
+        assert(index < table.m);
+        return index;
+      }
+
       template<class HH, class HG, class I>
       void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
