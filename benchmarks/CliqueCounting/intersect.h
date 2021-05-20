@@ -165,8 +165,19 @@ struct HybridSpace_lw {
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
+    for (std::size_t x = 0; x < nn; x++) {
+      if (relabel[x] != UINT_E_MAX) {
+        if(!(is_edge2(DG2, base[0], relabel[x]))) {
+          std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
+          std::cout << "i: " << x << std::endl; fflush(stdout);
+        }
+        assert(is_edge2(DG2, base[0], relabel[x]));
+      }
+    }
+
+    checked = true;
+
     if (k-r == 1) {
-      checked = true;
       // Reset the array used for intersecting
       auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
         old_labels[ngh] = 0;

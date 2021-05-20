@@ -267,6 +267,7 @@ t1.start();
 
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
+     assert(!induced->checked);
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
@@ -274,6 +275,8 @@ t1.start();
     induced->setup_nucleus(G, DG, k, base, r);
 
     assert(induced->checked);
+
+    induced->checked = false;
 
     for (std::size_t xx = 0; xx < induced->nn; xx++) {
       if (induced->relabel[xx] != UINT_E_MAX) {
