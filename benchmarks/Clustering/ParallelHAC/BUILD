@@ -8,8 +8,8 @@ cc_library(
 )
 
 cc_library(
-  name = "ParallelUPGMA",
-  hdrs = ["ParallelUPGMA.h"],
+  name = "ParallelHAC",
+  hdrs = ["ParallelHAC.h"],
   deps = [
   ":ClusteredGraph",
   "//gbbs:gbbs",

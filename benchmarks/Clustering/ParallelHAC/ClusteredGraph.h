@@ -162,7 +162,7 @@ struct clustered_graph {
     parallel_for(0, n, [&] (size_t i) {
       auto orig = G.get_vertex(i);
       clusters[i] = clustered_vertex(i, orig, weights);
-    });
+    }, 1);
     debug(std::cout << "Built all vertices" << std::endl;);
   }
 
