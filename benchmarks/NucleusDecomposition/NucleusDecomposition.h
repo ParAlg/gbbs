@@ -79,23 +79,24 @@ namespace gbbs {
 
     auto tots = sequence<size_t>(DG.n, size_t{0});
 
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->turn_on_check(); induced->alloc(max_deg, k, DG.n, true, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
-    //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-    parallel_for(0, DG.n, [&](size_t i){
+    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+    //parallel_for(0, DG.n, [&](size_t i){
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
     };
+    induced->worker_in_use = UINT_E_MAX;
         if (DG.get_vertex(i).getOutDegree() != 0) {
-  HybridSpace_lw* induced = new HybridSpace_lw();
-  init_induced(induced);
+  //HybridSpace_lw* induced = new HybridSpace_lw();
+  //init_induced(induced);
           induced->setup(DG, k, i);
           auto base2 = sequence<uintE>(k + 1);
           base2[0] = i;
           //auto base_f2 = [&](uintE vtx, size_t _count) {};
           //tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f2, 0);
           tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
-    finish_induced(induced);
+    //finish_induced(induced);
         } else tots[i] = 0;
     }, 1, true);
     double tt2 = t2.stop();
@@ -233,10 +234,10 @@ t1.start();
   // Clique count updates
   //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
   //assert(k-r == 1);
-  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-  //                                   [&](size_t i, HybridSpace_lw* induced) {
-  parallel_for(0, active_size, [&](size_t i){
-  HybridSpace_lw* induced = new HybridSpace_lw();
+  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+                                     [&](size_t i, HybridSpace_lw* induced) {
+  //parallel_for(0, active_size, [&](size_t i){
+  //HybridSpace_lw* induced = new HybridSpace_lw();
   //for (std::size_t i = 0; i < active_size; i++ ){
 
     auto update_d = [&](sequence<uintE>& base){
@@ -263,8 +264,6 @@ t1.start();
       }
     }, r, k);
   };
-    
-    init_induced(induced);
 
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
@@ -276,7 +275,7 @@ t1.start();
     induced->setup_nucleus(G, DG, k, base2, r);
 
     //assert(induced->checked);
-    //assert(induced->worker_in_use == worker_id());
+    assert(induced->worker_in_use == worker_id());
 
     /*for (std::size_t xx = 0; xx < induced->nn; xx++) {
       if (induced->relabel[xx] != UINT_E_MAX) {
@@ -293,7 +292,6 @@ t1.start();
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
 
     induced->worker_in_use = UINT_E_MAX;
-finish_induced(induced);
   }, 1, true); //granularity
   
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);

@@ -52,10 +52,7 @@ struct HybridSpace_lw {
 
 
   size_t worker_in_use = UINT_E_MAX;
-  //bool checked = false;
   bool to_check = false;
-  //size_t minduced = 0;
-  //size_t nnx;
   HybridSpace_lw () {}
 
   void turn_on_check() {
@@ -63,13 +60,13 @@ struct HybridSpace_lw {
   }
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
-    /*if (to_check) {
+    if (to_check) {
       bool checking = pbbslib::CAS(&worker_in_use, static_cast<size_t>(UINT_E_MAX), static_cast<size_t>(worker_id()));
       if (!checking) {
         std::cout << "ParForAlloc Thread err" << std::endl; fflush(stdout);
       }
       assert(checking);
-    }*/
+    }
 
     //nnx = n;
     
@@ -116,7 +113,7 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
-    //assert(worker_in_use == worker_id());
+    if (to_check) assert(worker_in_use == worker_id());
     //assert(r == 1);
     //assert(k == 2);
     //std::cout << "setup nucleus" << std::endl; fflush(stdout);
@@ -128,7 +125,7 @@ struct HybridSpace_lw {
       old_labels[ngh] = nn0 + 1;
     };
     DG.get_vertex(base[k]).mapOutNgh(base[k], kmap_label_f, true);*/
-    //assert(worker_in_use == worker_id());
+    if (to_check) assert(worker_in_use == worker_id());
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
@@ -146,7 +143,7 @@ struct HybridSpace_lw {
       assert(base[k-j] < DG.n);
       DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, false);
     }
-    //assert(worker_in_use == worker_id());
+    if (to_check) assert(worker_in_use == worker_id());
 
     assert(base[0] < DG.n);
     size_t o = 0;
@@ -173,7 +170,7 @@ struct HybridSpace_lw {
     auto i = base[0];
     assert(o < nn0 + 1);
 
-    //assert(worker_in_use == worker_id());
+    if (to_check) assert(worker_in_use == worker_id());
 
     /*for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
@@ -208,6 +205,8 @@ struct HybridSpace_lw {
 
     assert(induced_degs != nullptr);
     assert(induced_edges != nullptr);
+
+    if (to_check) assert(worker_in_use == worker_id());
 
     for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
 
@@ -317,6 +316,8 @@ struct HybridSpace_lw {
   void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
 
+    if (to_check) assert(worker_in_use == worker_id());
+
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     nn = DG.get_vertex(i).getOutDegree();
     //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
@@ -324,6 +325,8 @@ struct HybridSpace_lw {
     num_induced[0] = nn;
     //parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
     for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
+
+    if (to_check) assert(worker_in_use == worker_id());
 
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -341,6 +344,8 @@ struct HybridSpace_lw {
     };
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
 
+    if (to_check) assert(worker_in_use == worker_id());
+
     if (k == 1) {
       // Reset the array used for intersecting
       auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -352,6 +357,8 @@ struct HybridSpace_lw {
     }
 
     for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
+
+    if (to_check) assert(worker_in_use == worker_id());
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
