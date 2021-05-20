@@ -134,6 +134,7 @@ struct HybridSpace_lw {
       // Set up label for intersection
         assert(ngh < DG.n);
         assert(ngh < nnx);
+        assert(old_labels != nullptr);
         if (j == 0) {
           old_labels[ngh] = nn0 + 1;
         }
