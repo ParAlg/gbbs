@@ -297,6 +297,7 @@ struct HybridSpace_lw {
         return;
       }
       // Set up label for intersection
+      assert(ngh < DG.n);
       old_labels[ngh] = o + 1;
       // Set up relabeling if counting per vertex
       if (use_base) { relabel[o] = ngh; }

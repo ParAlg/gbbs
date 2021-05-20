@@ -91,19 +91,14 @@ namespace gbbs {
       };
       //induced->turn_on_check(); 
 
-        if (DG.get_vertex(i).getOutDegree() != 0) {
-  //HybridSpace_lw* induced = new HybridSpace_lw();
-  //init_induced(induced);
-          induced->setup(DG, k, i);
-          auto base2 = sequence<uintE>(k + 1);
-          base2[0] = i;
-          //auto base_f2 = [&](uintE vtx, size_t _count) {};
-          //tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f2, 0);
-          tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
-    //finish_induced(induced);
-        } else tots[i] = 0;
+      if (DG.get_vertex(i).getOutDegree() != 0) {
+        induced->setup(DG, k, i);
+        auto base2 = sequence<uintE>(k + 1);
+        base2[0] = i;
+        tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
+      } else tots[i] = 0;
 
-        induced->worker_in_use = UINT_E_MAX;
+      induced->worker_in_use = UINT_E_MAX;
     }//, 1, true);
     finish_induced(induced);
     double tt2 = t2.stop();
