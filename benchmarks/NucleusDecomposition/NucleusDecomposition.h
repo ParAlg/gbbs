@@ -246,9 +246,10 @@ t1.start();
     auto x = get_active(i);
     auto base2 = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
 
-    // This fills base[0] and base[k]...base[k-r+1] with vertices
+    // This fills base[0] and base[k]...base[k-r+1] (inclusive) with vertices
     cliques->extract_clique(x, base2, G, k);
     assert(k-r == 1);
+    assert(r == k + 1);
 
     sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
     for (size_t j = 0; j <= r; j++) {
