@@ -227,7 +227,7 @@ template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity,
                                bool conservative) {
-  static thread_local A* alloc = new A();
+  thread_local A* alloc = new A();
   parallel_for(start, end,
                [&](long i) {
                  init_alloc(alloc);
