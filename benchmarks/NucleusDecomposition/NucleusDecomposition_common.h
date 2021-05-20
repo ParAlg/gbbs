@@ -463,7 +463,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
     iter++;
 
     // Verify active set
-    for (size_t i = 0; i < active_size; i++) {
+    /*for (size_t i = 0; i < active_size; i++) {
       auto vtx = get_active(i);
       // Check that vtx exists in cliques2
       sequence<uintE> base(k + 1);
@@ -511,7 +511,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       for (size_t j = 0; j < r + 1; j++) {
         assert(actual_base[j] == actual_base2[j]);
       }
-    }
+    }*/
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
 
@@ -601,10 +601,6 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
 
       // Check that the clique counts match up
       assert(cliques->get_count(vtx) == cliques2->get_count(vtx2));
-      // On first round, degree should be 1
-      if (iter == 1) {
-        assert(cliques->get_count(vtx) == 1);
-      }
 
       // Check that cliques and cliques2 are thinking about the same clique
       pbbslib::sample_sort_inplace (actual_base.slice(), [&](const uintE& u, const uintE&  v) {
