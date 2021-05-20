@@ -260,13 +260,17 @@ struct HybridSpace_lw {
     DG.get_vertex(base[k]).mapOutNgh(base[k], map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    //auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = 0; //pbbslib::reduce_add(deg_seq);
+    for (size_t x = 0; x < nn; x++) {
+      num_edges += induced_degs[x];
+    }
   }
 
   // Perform first level recursion, using space-efficient intersection
   template <class Graph, class Graph2, class F>
   void setup_intersect(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
+    assert(false);
     using W = typename Graph::weight_type;
 
     // Set up relabeling if counting per vertex
@@ -402,8 +406,11 @@ struct HybridSpace_lw {
     DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    //auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = 0; //pbbslib::reduce_add(deg_seq);
+    for (size_t x = 0; x < nn; x++) {
+      num_edges += induced_degs[x];
+    }
   }
 
 
