@@ -88,7 +88,7 @@ namespace gbbs {
           tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base);
         } else tots[i] = 0;
       finish_induced(induced);
-    }, 1, false);
+    }//, 1, false);
     double tt2 = t2.stop();
 
     return pbbslib::reduce_add(tots);
