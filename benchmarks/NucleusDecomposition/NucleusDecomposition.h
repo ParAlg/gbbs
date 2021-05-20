@@ -331,7 +331,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_extract.start();
     // Retrieve next bucket
     auto bkt = b.next_bucket();
-    auto active = vertexSubset(num_entries, bkt.identifiers);
+    auto active = bkt.identifiers; //vertexSubset(num_entries, bkt.identifiers);
     auto active_size = active.size();
     cur_bkt = bkt.id;
     t_extract.stop();
@@ -347,7 +347,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     if (cur_bkt == 0 || finished == num_entries) {
       parallel_for (0, active_size, [&] (size_t j) {
         auto index = get_active(j);
-        cliques->clear_count(index);
+        cliques->set_count(index, UINT_E_MAX);
       }, 2048);
       continue;
     }
