@@ -271,9 +271,11 @@ t1.start();
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
+    assert(induced->worker_in_use == worker_id());
     induced->setup_nucleus(G, DG, k, base, r);
 
     //assert(induced->checked);
+    assert(induced->worker_in_use == worker_id());
 
     for (std::size_t xx = 0; xx < induced->nn; xx++) {
       if (induced->relabel[xx] != UINT_E_MAX) {
@@ -284,9 +286,12 @@ t1.start();
         assert(is_edge(G, base[0], induced->relabel[xx]));
       }
     }
+    assert(induced->worker_in_use == worker_id());
 
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
+
+    induced->worker_in_use = UINT_E_MAX;
     //finish_induced(induced);
   }, 1, true); //granularity
   std::cout << "End setup nucleus" << std::endl; fflush(stdout);

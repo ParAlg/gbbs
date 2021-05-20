@@ -50,11 +50,14 @@ struct HybridSpace_lw {
   uintE* relabel = nullptr; // if counting per vertex, must undo local relabeling for 0 to alpha indices
   bool use_base = false; // if true, counting per vertex
 
+
+  size_t worker_in_use = UINT_E_MAX;
   bool checked = false;
   size_t minduced = 0;
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
+    worker_in_use = worker_id();
     minduced = max_induced;
     use_old_labels = _use_old_labels;
     use_base = _use_base;
@@ -98,6 +101,7 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
+    assert(worker_in_use == worker_id());
     assert(r == 1);
     assert(k == 2);
     //std::cout << "setup nucleus" << std::endl; fflush(stdout);
@@ -129,6 +133,8 @@ struct HybridSpace_lw {
     //if (base[0] >= DG.n) {
     //  std::cout << "Base0: " << base[0] << ", n: " << DG.n << std::endl;
     //}
+    assert(worker_in_use == worker_id());
+
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
@@ -154,6 +160,8 @@ struct HybridSpace_lw {
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
 
+    assert(worker_in_use == worker_id());
+
     assert(o <= minduced);
     //sequence<uintE> save_induced(o, [&](size_t l){ return relabel[l]; });
 
@@ -170,6 +178,7 @@ struct HybridSpace_lw {
     //std::cout << "o: "<< o << std::endl; fflush(stdout);
 
     assert(o < nn0 + 1);
+    assert(worker_in_use == worker_id());
 
     nn = o;
     //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
