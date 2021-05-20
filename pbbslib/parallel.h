@@ -231,7 +231,10 @@ template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity,
                                bool conservative) {
-  sequence<A*> allocs(num_workers(), [](size_t i){ return new A(); });
+  A** allocs = (A**) malloc(num_workers() * sizeof(A*));
+  for (std::size_t i = 0; i < num_workers(); i++) {
+    allocs[i] = new A();
+  }
   parallel_for(start, end,
                [&](long i) {
                  A* alloc = allocs[worker_id()];
