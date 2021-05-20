@@ -365,6 +365,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     if (cur_bkt == 0 || finished == num_entries) {
       parallel_for (0, active_size, [&] (size_t j) {
         auto index = get_active(j);
+        still_active[index] = 2;
         cliques->set_count(index, UINT_E_MAX);
       }, 2048);
       continue;
