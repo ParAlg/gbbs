@@ -104,7 +104,7 @@ namespace twotable {
         pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
           return std::get<0>(u) < std::get<0>(v);
         });
-        
+
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
@@ -380,7 +380,7 @@ namespace twotable {
         }
         for (int j = 0; j < rr - 1; ++j) {
           uintE mask = (1UL << shift_factor) - 1;
-          uintE extract = (uintE) vert & mask; // vert & mask
+          uintE extract = (int) vert; // & mask; // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
             std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
           }*/

@@ -295,7 +295,7 @@ namespace multitable {
         // TOOD: make sure this calc is correct
         for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
           uintE mask = (1UL << nd_global_shift_factor) - 1;
-          uintE extract = (uintE) vert & mask; // vert & mask
+          uintE extract = (int) vert;// & mask; // vert & mask
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);
           vert = vert >> nd_global_shift_factor;
