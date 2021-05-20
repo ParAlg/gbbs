@@ -261,7 +261,7 @@ t1.start();
       intersect_arr[vert]++;
     }
     for (size_t j = 0; j < G.n; j++) {
-      if (intersect_arr[j] == r) {
+      if (intersect_arr[j] == r + 1) {
         base2[1] = j;
         update_d(base2);
       }
