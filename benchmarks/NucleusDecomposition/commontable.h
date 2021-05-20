@@ -82,15 +82,15 @@ bool is_edge3(Graph& DG, uintE v, uintE u) {
 
     if (k_idx == k) {
       size_t tmp_counts = 0;
-      assert(num_induced == induced->nn);
+      //assert(num_induced == induced->nn);
       //std::cout << "num_indced: "<< num_induced << std::endl; fflush(stdout);
       for (size_t j=0; j < num_induced; j++) {
         uintE vtx = prev_induced[j];
-        assert(vtx == j);
+        //assert(vtx == j);
         base[k] = induced->relabel[vtx];
         
         if (base[k] != UINT_E_MAX) {
-          for (int i = 0; i < k + 1; i++) {
+          /*for (int i = 0; i < k + 1; i++) {
             int i1 = (i + 1) % (k + 1);
             if (!is_edge3(DG, base[i], base[i1])) {
               std::cout << "Flip: " << is_edge3(DG, base[i1], base[i]) << std::endl;
@@ -98,7 +98,7 @@ bool is_edge3(Graph& DG, uintE v, uintE u) {
               fflush(stdout);
             }
             assert(is_edge3(DG, base[i], base[i1]));
-          }
+          }*/
           //std::cout << "Exists base" << std::endl; fflush(stdout);
           base_f(base);
           tmp_counts++;

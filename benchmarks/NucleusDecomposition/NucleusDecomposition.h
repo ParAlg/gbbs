@@ -232,7 +232,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
   auto update_d = [&](sequence<uintE>& base){
     // check that base[0] to base[k+1] are all edges
-    for (int i = 0; i < k + 1; i++) {
+    /*for (int i = 0; i < k + 1; i++) {
       int i1 = (i + 1) % (k + 1);
       if (!is_edge(G, base[i], base[i1])) {
         std::cout << "Flip: " << is_edge(G, base[i1], base[i]) << std::endl;
@@ -241,16 +241,16 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
       }
       assert(is_edge(G, base[i], base[i1]));
 
-    }
+    }*/
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
         //std::cout << "Index: "<< index << ", Val: "<< val << std::endl;
-        if (per_processor_counts[index] == 0) {
+        /*if (per_processor_counts[index] == 0) {
           std::cout << "Val: " << val << std::endl; fflush(stdout);
-        }
-        assert(per_processor_counts[index] != 0);
+        }*/
+        //assert(per_processor_counts[index] != 0);
       }
     }, r, k);
   };
@@ -258,7 +258,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 t1.start();
   // Clique count updates
   std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
-  assert(k-r == 1);
+  //assert(k-r == 1);
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
   /*parallel_for(0, active_size, [&](size_t i){
@@ -271,13 +271,13 @@ t1.start();
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
-    assert(induced->worker_in_use == worker_id());
+    //assert(induced->worker_in_use == worker_id());
     induced->setup_nucleus(G, DG, k, base, r);
 
     //assert(induced->checked);
-    assert(induced->worker_in_use == worker_id());
+    //assert(induced->worker_in_use == worker_id());
 
-    for (std::size_t xx = 0; xx < induced->nn; xx++) {
+    /*for (std::size_t xx = 0; xx < induced->nn; xx++) {
       if (induced->relabel[xx] != UINT_E_MAX) {
         if(!(is_edge(G, base[0], induced->relabel[xx]))) {
           std::cout << "outside_setup base0: " << base[0] << ", relabel: " << induced->relabel[xx] << std::endl;
@@ -286,7 +286,7 @@ t1.start();
         assert(is_edge(G, base[0], induced->relabel[xx]));
       }
     }
-    assert(induced->worker_in_use == worker_id());
+    assert(induced->worker_in_use == worker_id());*/
 
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
