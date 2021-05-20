@@ -37,7 +37,7 @@ struct HybridSpace_lw {
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
-    use_old_labels = _use_old_labels;
+    use_old_labels = true; //_use_old_labels;
     use_base = _use_base;
     free_relabel = _free_relabel;
     if (induced == nullptr) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
