@@ -525,7 +525,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       else {
         bucket_t deg = D[v];
         assert(deg > cur_bkt);
-        auto val = cliques->get_count(v) - ppc[v];
+        auto val = cliques->get_count(v) - std::round(ppc[v]);
         if (v == 2297107) {
           std::cout << "Val: " << val << ", prev count: " << cliques->get_count(v) << std::endl;
         }
@@ -552,7 +552,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       else {
         bucket_t deg = D2[v];
         assert(deg > cur_bkt2);
-        auto val = cliques2->get_count(v) - ppc[v];
+        auto val = cliques2->get_count(v) - std::round(ppc[v]);
         if (v == 1509298) {
           std::cout << "Val: " << val << ", prev count: " << cliques2->get_count(v) << std::endl;
         }
