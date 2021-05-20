@@ -439,8 +439,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
             std::cout << "Deg: " << deg << ", bkt: " << cur_bkt << std::endl;
           }*/
           assert(deg > cur_bkt);
+          auto val = cliques->update_count(v, (size_t) ppc[v]);
           if (deg > cur_bkt) {
-            auto val = cliques->update_count(v, (size_t) ppc[v]);
+            
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
             // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
