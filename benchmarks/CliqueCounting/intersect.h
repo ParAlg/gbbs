@@ -120,19 +120,19 @@ struct HybridSpace_lw {
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
 
-    nn = o;
+    nn = o - 1;
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     if (k-r == 1) {
       // Reset the array used for intersecting
-    auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      old_labels[ngh] = 0;
-    };
-    DG.get_vertex(base[k]).mapOutNgh(base[k], map_relabel_f, false);
-    num_edges = 0;
-    return;
+      auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+        old_labels[ngh] = 0;
+      };
+      DG.get_vertex(base[k]).mapOutNgh(base[k], map_relabel_f, false);
+      num_edges = 0;
+      return;
     }
 
     size_t j = 0;
@@ -144,7 +144,7 @@ struct HybridSpace_lw {
       // Store the number of edge (degree) in induced_degs[j]
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         // Check if the neighbor of v is also a valid neighbor of i
-        if (old_labels[v_nbhr] > 0 && old_labels[v_nbhr] < nn0) { // && old_labels[v_nbhr] <= nn0
+        if (old_labels[v_nbhr] > 0 && old_labels[v_nbhr] <= nn0) { // && old_labels[v_nbhr] <= nn0
           // Save the neighbor and increment the induced degree on j
           induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
