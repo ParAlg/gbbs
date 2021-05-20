@@ -427,15 +427,15 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
         /* Update the clique count for v, and zero out first worker's count */
         if (v == UINT_E_MAX) {
-          D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
+          D_filter[i] = std::make_tuple(num_entries + 1, 0);
           return;
         }
         //double intpart;
         //if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
         //assert(std::modf(ppc[v], &intpart) == 0.0);
         //assert(ppc[v] != 0);
-        if (ppc[v] == 0) D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
-        else {
+        if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
+        else if (still_active[v] == 0) {
           bucket_t deg = D[v];
           //bucket_t deg = cliques->get_count(v);
           /*if (deg <= cur_bkt) {
@@ -449,7 +449,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
             // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
             //cliques->set_count(v, (size_t) new_deg);
             D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
-          } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
+          } else D_filter[i] = std::make_tuple(num_entries + 1, 0);
         }
         ppc[v] = 0;
       };
@@ -462,7 +462,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
       auto v = std::get<0>(D_filter[i]);
       bucket_t bucket = std::get<1>(D_filter[i]);
-      if (v != UINT_E_MAX) {
+      if (v != num_entries + 1) {
         if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
