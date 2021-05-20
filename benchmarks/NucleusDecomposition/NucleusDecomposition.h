@@ -163,7 +163,7 @@ class list_buffer {
       parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
       });
-      parallel_for (0, ss + buffer2 * num_workers2, [&] (size_t j) {
+      parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
         list[j] = UINT_E_MAX;
       });
       next = num_workers2 * buffer;
