@@ -304,6 +304,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   T* cliques, sequence<uintE> &rank,
   size_t num_buckets=16) {
     k--; r--;
+    std::cout << "k: " << k << ", r: " << r << std::endl; fflush(stdout);
   timer t2; t2.start();
 // Here's the mistake: You're thinking that get_active should return the key,
 // which is the concatenation of vertices. That's wrong. get_active should
