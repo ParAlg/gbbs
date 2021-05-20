@@ -140,17 +140,12 @@ class list_buffer {
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       //std::cout << "Next: "<< next << std::endl;
       //parallel_for(0, ss, [&](size_t worker) {
-      for (size_t i = 0; i < ss; i++) {
-        //assert(list[worker] != UINT_E_MAX);
-        //assert(per_processor_counts[list[worker]] != 0);
-        if (list[i] != UINT_E_MAX) {
-          assert(i < next);
-        } else {
-          assert(i >= next);
-        }
-        update_changed(per_processor_counts, i, i);
+      for (size_t i = 0; i < next; i++) {
+        assert(list[worker] != UINT_E_MAX);
+        assert(per_processor_counts[list[worker]] != 0);
+        update_changed(per_processor_counts, i, list[i]);
       }//);
-      return ss;
+      return next;
 /*
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
@@ -259,9 +254,9 @@ t1.start();
   //assert(k-r == 1);
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
-  parallel_for(0, active_size, [&](size_t i){
+  //parallel_for(0, active_size, [&](size_t i){
   HybridSpace_lw* induced = new HybridSpace_lw();
-  //for (std::size_t i = 0; i < active_size; i++ ){
+  for (std::size_t i = 0; i < active_size; i++ ){
     
     init_induced(induced);
 
@@ -294,7 +289,7 @@ t1.start();
     induced->worker_in_use = UINT_E_MAX;
 
     finish_induced(induced);
-  }, 1, true); //granularity
+  }//, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
