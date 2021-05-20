@@ -76,39 +76,44 @@ class list_buffer {
     size_t next;
     size_t num_workers2;
     size_t ss;
-    list_buffer(size_t s){
-      ss = s;
-      num_workers2 = num_workers();
-      buffer = 64;
-      int buffer2 = 64;
-      list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
-      std::cout << "list size: " << list.size() << std::endl;
-      starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
-      next = num_workers2 * buffer2;
-      to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
-      //list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
-      //next = 0;
+    bool efficient = true;
+
+    list_buffer(size_t s, bool _efficient = true){
+      efficient = _efficient;
+      if (efficient) {
+        ss = s;
+        num_workers2 = num_workers();
+        buffer = 64;
+        int buffer2 = 64;
+        list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
+        std::cout << "list size: " << list.size() << std::endl;
+        starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
+        next = num_workers2 * buffer2;
+        to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
+      } else {
+        list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
+        std::cout << "list size: " << list.size() << std::endl;
+        next = 0;
+      }
     }
     void add(size_t index) {
-      /*size_t use_next = pbbs::fetch_and_add(&next, 1);
-      list[use_next] = index;*/
-      size_t worker = worker_id();
-      list[starts[worker]] = index;
-      starts[worker]++;
-      if (starts[worker] % buffer == 0) {
-        size_t use_next = pbbs::fetch_and_add(&next, buffer);
-        starts[worker] = use_next;
+      if (efficient) {
+        size_t worker = worker_id();
+        list[starts[worker]] = index;
+        starts[worker]++;
+        if (starts[worker] % buffer == 0) {
+          size_t use_next = pbbs::fetch_and_add(&next, buffer);
+          starts[worker] = use_next;
+        }
+      } else {
+        size_t use_next = pbbs::fetch_and_add(&next, 1);
+        list[use_next] = index;
       }
     }
 
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
-      /*parallel_for(0, next, [&](size_t worker) {
-        assert(list[worker] != UINT_E_MAX);
-        assert(per_processor_counts[list[worker]] != 0);
-        update_changed(per_processor_counts, worker, list[worker]);
-      });
-      return next;*/
+      if (efficient) {
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
         for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
@@ -129,9 +134,18 @@ class list_buffer {
         }
       });
       return next;
+      } else {
+        parallel_for(0, next, [&](size_t worker) {
+          assert(list[worker] != UINT_E_MAX);
+          assert(per_processor_counts[list[worker]] != 0);
+          update_changed(per_processor_counts, worker, list[worker]);
+        });
+        return next;
+      }
     }
 
     void reset() {
+      if (efficient) {
       parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
       });
@@ -139,7 +153,9 @@ class list_buffer {
         list[j] = UINT_E_MAX;
       });
       next = num_workers2 * buffer;
-      //next = 0;
+      } else{
+        next = 0;
+      }
     }
 };
 
