@@ -141,8 +141,8 @@ class list_buffer {
       //std::cout << "Next: "<< next << std::endl;
       //parallel_for(0, ss, [&](size_t worker) {
       for (size_t i = 0; i < next; i++) {
-        assert(list[worker] != UINT_E_MAX);
-        assert(per_processor_counts[list[worker]] != 0);
+        assert(list[i] != UINT_E_MAX);
+        assert(per_processor_counts[list[i]] != 0);
         update_changed(per_processor_counts, i, list[i]);
       }//);
       return next;
