@@ -270,10 +270,10 @@ using W = typename Graph::weight_type;
     
     // Fill base[1] with the intersection, and call update_d
     induced->setup_nucleus(G, DG, k, base2, r);
-    assert(induced->worker_in_use == worker_id());
+    //assert(induced->worker_in_use == worker_id());
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
 
-    induced->worker_in_use = UINT_E_MAX;
+    //induced->worker_in_use = UINT_E_MAX;
   }//, 1, true); //granularity
   finish_induced(induced);
 t1.stop();
