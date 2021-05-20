@@ -117,14 +117,18 @@ bool is_edge3(Graph& DG, uintE v, uintE u) {
         uintE* intersect = induced->induced_edges + vtx * induced->nn;
         size_t tmp_counts = 0;
         base[k_idx] = induced->relabel[vtx];
+        if (base[k_idx] != UINT_E_MAX) {
         for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
           if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
             base[k] = induced->relabel[intersect[j]];
-            tmp_counts++;
-            base_f(base);
+            if (base[k] != UINT_E_MAX) {
+              tmp_counts++;
+              base_f(base);
+            }
           }
         }
         counts += tmp_counts;
+        }
       }
       for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
       return counts;
@@ -145,8 +149,10 @@ size_t total_ct = 0;
       induced->num_induced[k_idx] = count;
       if (induced->num_induced[k_idx] > k - k_idx - 1) {
         base[k_idx] = induced->relabel[vtx];
-        auto curr_counts = NKCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced, base_f, base);
-        total_ct += curr_counts;
+        if (base[k_idx] != UINT_E_MAX) {
+          auto curr_counts = NKCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced, base_f, base);
+          total_ct += curr_counts;
+        }
       }
     }
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
