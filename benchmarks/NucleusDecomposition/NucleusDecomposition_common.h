@@ -527,11 +527,11 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
         assert(deg > cur_bkt);
         auto val = cliques->get_count(v) - ppc[v];
         if (v == 2297107) {
-          std::cout << "Val: " << val << ", prev count: " << cliques->get_count[v] << std::endl;
+          std::cout << "Val: " << val << ", prev count: " << cliques->get_count(v) << std::endl;
         }
         cliques->set_count(v, val);
         if (v == 2297107) {
-          std::cout << "new count: " << cliques->get_count[v] << std::endl; fflush(stdout);
+          std::cout << "new count: " << cliques->get_count(v) << std::endl; fflush(stdout);
         }
         //auto val = cliques->update_count(v, (size_t) ppc[v]);
         if (deg > cur_bkt) {
@@ -554,11 +554,11 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
         assert(deg > cur_bkt2);
         auto val = cliques2->get_count(v) - ppc[v];
         if (v == 1509298) {
-          std::cout << "Val: " << val << ", prev count: " << cliques2->get_count[v] << std::endl;
+          std::cout << "Val: " << val << ", prev count: " << cliques2->get_count(v) << std::endl;
         }
         cliques2->set_count(v, val);
         if (v == 1509298) {
-          std::cout << "new count: " << cliques2->get_count[v] << std::endl; fflush(stdout);
+          std::cout << "new count: " << cliques2->get_count(v) << std::endl; fflush(stdout);
         }
         //auto val = cliques2->update_count(v, (size_t) ppc[v]);
         if (deg > cur_bkt2) {
