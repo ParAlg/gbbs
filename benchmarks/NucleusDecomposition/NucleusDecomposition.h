@@ -395,8 +395,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           //double intpart;
           //if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
           //assert(std::modf(ppc[v], &intpart) == 0.0);
-          //bucket_t deg = D[v];
-          bucket_t deg = cliques->get_count(v);
+          bucket_t deg = D[v];
+          //bucket_t deg = cliques->get_count(v);
           if (deg <= cur_bkt) {
             std::cout << "Deg: " << deg << ", bkt: " << cur_bkt << std::endl;
           }
@@ -404,9 +404,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           if (deg > cur_bkt) {
             auto val = cliques->update_count(v, (size_t) ppc[v]);
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
-            //D[v] = new_deg;
+            D[v] = new_deg;
             // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
-            cliques->set_count(v, (size_t) new_deg);
+            //cliques->set_count(v, (size_t) new_deg);
             D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
           } else D_filter[i] = std::make_tuple(num_entries + 1, 0);
         }
