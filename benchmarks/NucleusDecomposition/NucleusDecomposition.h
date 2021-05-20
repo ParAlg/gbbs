@@ -258,6 +258,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 t1.start();
   // Clique count updates
   std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
+  assert(k-r == 1);
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
     // TODO: THIS PART IS WRONG
@@ -267,6 +268,17 @@ t1.start();
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
+
+    for (std::size_t x = 0; x < induced->nn; x++) {
+      if (relabel[x] != UINT_E_MAX) {
+        if(!(is_edge(G, base[0], relabel[x]))) {
+          std::cout << "outside_setup base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
+          std::cout << "i: " << x << std::endl; fflush(stdout);
+        }
+        assert(is_edge2(G, base[0], relabel[x]));
+      }
+    }
+
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
   }, granularity, false);

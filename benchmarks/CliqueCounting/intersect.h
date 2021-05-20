@@ -94,6 +94,8 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
+    assert(r == 1);
+    assert(k == 2);
     //std::cout << "setup nucleus" << std::endl; fflush(stdout);
     using W = typename Graph::weight_type;
 
@@ -129,9 +131,9 @@ struct HybridSpace_lw {
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
         if (use_base) { relabel[o] = ngh; }
-        assert(is_edge2(DG, base[0], base[k]));
-        assert(is_edge2(DG, base[0], ngh));
-        assert(is_edge2(DG, base[k], ngh));
+        assert(is_edge2(DG2, base[0], base[k]));
+        assert(is_edge2(DG2, base[0], ngh));
+        assert(is_edge2(DG2, base[k], ngh));
       } else {
         old_labels[ngh] = 0;
         if (use_base) { relabel[o] = UINT_E_MAX; }
