@@ -100,7 +100,7 @@ namespace gbbs {
 
       induced->worker_in_use = UINT_E_MAX;
     }//, 1, true);
-    finish_induced(induced);
+    //finish_induced(induced);
     double tt2 = t2.stop();
     //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
