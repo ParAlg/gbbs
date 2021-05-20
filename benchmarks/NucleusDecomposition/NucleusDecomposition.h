@@ -86,7 +86,6 @@ namespace gbbs {
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
     };
-    induced->worker_in_use = UINT_E_MAX;
         if (DG.get_vertex(i).getOutDegree() != 0) {
   //HybridSpace_lw* induced = new HybridSpace_lw();
   //init_induced(induced);
@@ -98,6 +97,8 @@ namespace gbbs {
           tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
     //finish_induced(induced);
         } else tots[i] = 0;
+
+        induced->worker_in_use = UINT_E_MAX;
     }, 1, true);
     double tt2 = t2.stop();
     //std::cout << "##### Actual counting: " << tt2 << std::endl;
