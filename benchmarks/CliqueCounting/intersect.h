@@ -143,6 +143,7 @@ struct HybridSpace_lw {
         if (use_base) { relabel[o] = UINT_E_MAX; }
       }
 
+
       if (relabel[o] != UINT_E_MAX) {
         assert(is_edge2(DG2, base[0], relabel[o]));
       }
@@ -154,7 +155,7 @@ struct HybridSpace_lw {
     auto i = base[0];
 
     assert(o <= minduced);
-    sequence<uintE> save_induced(o, [&](size_t l){ return relabel[l]; });
+    //sequence<uintE> save_induced(o, [&](size_t l){ return relabel[l]; });
 
     for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
@@ -176,7 +177,7 @@ struct HybridSpace_lw {
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     for (std::size_t x = 0; x < o; x++) {
-      assert(save_induced[x] == relabel[x]);
+      //assert(save_induced[x] == relabel[x]);
       if (relabel[x] != UINT_E_MAX) {
         if(!(is_edge2(DG2, base[0], relabel[x]))) {
           std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
