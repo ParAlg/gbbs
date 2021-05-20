@@ -245,7 +245,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
-        std::cout << "Index: "<< index << ", Val: "<< val << std::endl;
+        //std::cout << "Index: "<< index << ", Val: "<< val << std::endl;
         if (per_processor_counts[index] == 0) {
           std::cout << "Val: " << val << std::endl; fflush(stdout);
         }
