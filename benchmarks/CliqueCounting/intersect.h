@@ -123,7 +123,7 @@ struct HybridSpace_lw {
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
-    uintE nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
+    uintE nn0 = DG.get_vertex(base[0]).getOutDegree() + 1;
     /*auto kmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = nn0 + 1;
     };
@@ -132,14 +132,12 @@ struct HybridSpace_lw {
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
-        //assert(ngh < DG.n);
-        //assert(ngh < nnx);
+        assert(ngh < DG.n);
         assert(old_labels != nullptr);
         if (j == 0) {
           old_labels[ngh] = nn0 + 1;
         }
-        else if (old_labels[ngh] > 0) old_labels[ngh]++;
-        //else if (old_labels[ngh] == nn0 + j) old_labels[ngh]++;
+        else if (old_labels[ngh] > nn0) old_labels[ngh]++;
       };
       if (base[k-j] >= DG.n) {
         std::cout << "Base: " << base[k-j] << ", n: " << DG.n << ", idx: " << k-j << std::endl;
@@ -150,12 +148,7 @@ struct HybridSpace_lw {
     }
     //assert(worker_in_use == worker_id());
 
-    //assert(base[0] < DG.n);
-    //if (base[0] >= DG.n) {
-    //  std::cout << "Base0: " << base[0] << ", n: " << DG.n << std::endl;
-    //}
-    //assert(worker_in_use == worker_id());
-
+    assert(base[0] < DG.n);
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
@@ -169,8 +162,6 @@ struct HybridSpace_lw {
         old_labels[ngh] = 0;
         if (use_base) { relabel[o] = UINT_E_MAX; }
       }
-
-
       //if (relabel[o] != UINT_E_MAX) {
       //  assert(is_edge2(DG2, base[0], relabel[o]));
       //}
@@ -180,11 +171,9 @@ struct HybridSpace_lw {
     };
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
+    assert(o < nn0 + 1);
 
     //assert(worker_in_use == worker_id());
-
-    //assert(o <= minduced);
-    //sequence<uintE> save_induced(o, [&](size_t l){ return relabel[l]; });
 
     /*for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
@@ -203,23 +192,9 @@ struct HybridSpace_lw {
 
     nn = o;
     //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-    
     num_induced[0] = nn;
     //parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
     for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
-
-    /*for (std::size_t x = 0; x < o; x++) {
-      //assert(save_induced[x] == relabel[x]);
-      if (relabel[x] != UINT_E_MAX) {
-        if(!(is_edge2(DG2, base[0], relabel[x]))) {
-          std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
-          std::cout << "i: " << x << std::endl; fflush(stdout);
-        }
-        assert(is_edge2(DG2, base[0], relabel[x]));
-      }
-    }*/
-
-    //checked = true;
 
     if (k-r == 1) {
       // Reset the array used for intersecting
@@ -230,6 +205,9 @@ struct HybridSpace_lw {
       num_edges = 0;
       return;
     }
+
+    assert(induced_degs != nullptr);
+    assert(induced_edges != nullptr);
 
     for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
 
