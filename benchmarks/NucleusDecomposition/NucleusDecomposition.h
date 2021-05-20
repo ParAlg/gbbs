@@ -79,8 +79,8 @@ namespace gbbs {
 
     auto tots = sequence<size_t>(DG.n, size_t{0});
 
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+    auto init_induced = [&](HybridSpace_lw* induced2) { induced2->alloc(max_deg, k, DG.n, true, true, true); };
+    auto finish_induced = [&](HybridSpace_lw* induced2) { if (induced2 != nullptr) { delete induced2; } }; //induced->del();
     //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
     HybridSpace_lw* induced;
     for (std::size_t i = 0; i < DG.n; i++) {
