@@ -140,12 +140,12 @@ class list_buffer {
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       //std::cout << "Next: "<< next << std::endl;
       //parallel_for(0, ss, [&](size_t worker) {
-      for (size_t i = 0; i < next; i++) {
+      for (size_t i = 0; i < ss; i++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
-        update_changed(per_processor_counts, i, list[i]);
+        update_changed(per_processor_counts, i, i);
       }//);
-      return next;
+      return ss;
 /*
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
