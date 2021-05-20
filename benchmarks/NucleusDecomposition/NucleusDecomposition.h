@@ -240,8 +240,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
     }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-    size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
-    if (ct == 0) count_idxs.add(index);
+      size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+      if (ct == 0) count_idxs.add(index);
     }, r, k);
   };
 
@@ -390,6 +390,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           D_filter[i] = std::make_tuple(num_entries + 1, 0);
           return;
         }
+        assert(ppc[v] != 0);
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else {
           //double intpart;
