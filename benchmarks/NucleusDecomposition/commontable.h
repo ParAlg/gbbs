@@ -90,6 +90,16 @@ bool is_edge3(Graph& DG, uintE v, uintE u) {
         base[k] = induced->relabel[vtx];
         
         if (base[k] != UINT_E_MAX) {
+          /*for (int i = 0; i < k + 1; i++) {
+            int i1 = (i + 1) % (k + 1);
+            if (!is_edge3(DG, base[i], base[i1])) {
+              std::cout << "Flip: " << is_edge3(DG, base[i1], base[i]) << std::endl;
+              std::cout << "i: " << i << ", i1: " << i1 << ", base i: "<< base[i] << ", base i1: " << base[i1] << std::endl;
+              fflush(stdout);
+            }
+            assert(is_edge3(DG, base[i], base[i1]));
+          }*/
+          //std::cout << "Exists base" << std::endl; fflush(stdout);
           base_f(base);
           tmp_counts++;
         }
