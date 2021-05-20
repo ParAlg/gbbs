@@ -438,7 +438,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           /*if (deg <= cur_bkt) {
             std::cout << "Deg: " << deg << ", bkt: " << cur_bkt << std::endl;
           }*/
-          //assert(deg > cur_bkt);
+          assert(deg > cur_bkt);
           if (deg > cur_bkt) {
             auto val = cliques->update_count(v, (size_t) ppc[v]);
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
