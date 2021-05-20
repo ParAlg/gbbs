@@ -494,7 +494,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       assert(check_vtx2 == vtx2);
 
       // Check that the clique counts match up
-      assert(cliques->get_count(vtx) == cliques->get_count(vtx2));
+      assert(cliques->get_count(vtx) == cliques2->get_count(vtx2));
       // On first round, degree should be 1
       if (iter == 1) {
         assert(cliques->get_count(vtx) == 1);
