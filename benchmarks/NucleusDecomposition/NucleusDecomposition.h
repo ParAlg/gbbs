@@ -198,7 +198,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
   // Set up space for clique counting
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true); };
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->turn_on_check(); induced->alloc(max_deg, k-r, G.n, true, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
   // Mark every vertex in the active set
@@ -267,7 +267,6 @@ t1.start();
 
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
-    induced->turn_on_check();
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
