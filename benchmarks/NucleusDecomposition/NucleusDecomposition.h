@@ -241,8 +241,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
     size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
-    //if (ct == 0)
-    count_idxs.add(index);
+    if (ct == 0) count_idxs.add(index);
     }, r, k);
   };
 
@@ -257,6 +256,7 @@ t1.start();
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
+    std::cout << "k-r: "<< k-r << std::endl; fflush(stdout);
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
   }, granularity, false);
