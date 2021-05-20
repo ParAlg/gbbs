@@ -111,8 +111,11 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
-    assert(!to_check);
-    if (to_check) assert(worker_in_use == worker_id());
+    to_check = false;
+    if (to_check) {
+      std::cout << "Check is on: " << to_check << std::endl; fflush(stdout);
+      assert(worker_in_use == worker_id());
+    }
 
     using W = typename Graph::weight_type;
 
