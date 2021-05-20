@@ -67,23 +67,16 @@ namespace gbbs {
 
   template <class Graph, class T>
   inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table) {
-    k--; r--;
     timer t2; t2.start();
-
-    /*auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
-      pbbs::fetch_and_add(ct, (long)1);
-    };*/
-// Nested hash tables where the first level you hash the first vertex, second level you hash the second, etc.
-// Saves space if cliques share vertices
-// Renumber vert by which is in the most r-cliques
 
     auto tots = sequence<size_t>(DG.n, size_t{0});
 
     auto init_induced = [&](HybridSpace_lw* induced2) { induced2->alloc(max_deg, k, DG.n, true, true, true); };
     auto finish_induced = [&](HybridSpace_lw* induced2) { if (induced2 != nullptr) { delete induced2; } }; //induced->del();
     //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-    HybridSpace_lw* induced;
+    
     for (std::size_t i = 0; i < DG.n; i++) {
+      HybridSpace_lw* induced;
       init_induced(induced);
       
       auto base_f = [&](sequence<uintE>& base){
@@ -100,7 +93,7 @@ namespace gbbs {
 
       induced->worker_in_use = UINT_E_MAX;
     }//, 1, true);
-    //finish_induced(induced);
+    finish_induced(induced);
     double tt2 = t2.stop();
     //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
@@ -319,8 +312,6 @@ template <typename bucket_t, class Graph, class Graph2, class T>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank,
   size_t num_buckets=16) {
-    k--; r--;
-    std::cout << "k: " << k << ", r: " << r << std::endl; fflush(stdout);
   timer t2; t2.start();
 // Here's the mistake: You're thinking that get_active should return the key,
 // which is the concatenation of vertices. That's wrong. get_active should
@@ -484,6 +475,9 @@ t_update.start();
 template <class Graph, class DirectedGraph, class Table>
 inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG, size_t r, size_t s, Table& table, 
   size_t max_deg, sequence<uintE>& rank) {
+
+  r--; s--;
+  std::cout << "s: " << s << ", r: " << r << std::endl; fflush(stdout);
 
   //std::cout << "Start count" << std::endl;
   timer t; t.start();
