@@ -132,7 +132,7 @@ class list_buffer {
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
 
-      /*parallel_for(0, ss, [&](size_t worker) {
+     /* parallel_for(0, ss, [&](size_t worker) {
         update_changed(per_processor_counts, worker, list[worker]);
       });
       return ss;*/
@@ -145,7 +145,7 @@ class list_buffer {
       });
       // Pack out 0 to next of list into pack
       parallel_for(0, next, [&] (size_t i) {
-        if (to_pack[i])
+        if (list[i] != UINT_E_MAX)//(to_pack[i])
           update_changed(per_processor_counts, i, list[i]);
         else
           update_changed(per_processor_counts, UINT_E_MAX, UINT_E_MAX);
@@ -163,9 +163,9 @@ class list_buffer {
       parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
       });
-      /*parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
+      parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
         list[j] = UINT_E_MAX;
-      });*/
+      });
       next = num_workers2 * buffer;
     }
 };
