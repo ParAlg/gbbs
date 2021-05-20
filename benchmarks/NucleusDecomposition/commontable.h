@@ -82,10 +82,10 @@ bool is_edge3(Graph& DG, uintE v, uintE u) {
 
     if (k_idx == k) {
       size_t tmp_counts = 0;
-      std::cout << "num_indced: "<< num_induced << std::endl; fflush(stdout);
-      for (size_t i=0; i < num_induced; i++) {
-        uintE vtx = prev_induced[i];
-        assert(vtx == i);
+      //std::cout << "num_indced: "<< num_induced << std::endl; fflush(stdout);
+      for (size_t j=0; j < num_induced; j++) {
+        uintE vtx = prev_induced[j];
+        assert(vtx == j);
         base[k] = induced->relabel[vtx];
         
         if (base[k] != UINT_E_MAX) {

@@ -147,7 +147,7 @@ struct HybridSpace_lw {
         assert(is_edge2(DG, base[0], relabel[x]));
       }
     }
-    std::cout << "o: "<< o << std::endl; fflush(stdout);
+    //std::cout << "o: "<< o << std::endl; fflush(stdout);
 
     assert(o < nn0 + 1);
 
