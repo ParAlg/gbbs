@@ -258,8 +258,11 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                    bool try2 = charCAS(&(taken[id]), 0, 1);
                    if (try2) {
                      A* alloc = allocs[id];
+                     assert(taken[id]);
                      init_alloc(alloc);
+                     assert(taken[id]);
                      f(i, alloc);
+                     assert(taken[id]);
                      while (!charCAS(&(taken[id]), 1, 0)){}
                      break;
                    }
