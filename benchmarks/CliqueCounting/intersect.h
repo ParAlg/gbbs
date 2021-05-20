@@ -193,9 +193,9 @@ struct HybridSpace_lw {
       // Note that v is relabeled to j under the relabeling from 0 to degree of i
       // Store these edges in induced_edges[j*nn]
       // Store the number of edge (degree) in induced_degs[j]
-      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      size_t v_deg = DG2.get_vertex(v).getOutDegree();
       auto i_iter = DG.get_vertex(i).getOutIter(i);
-      auto v_iter = DG.get_vertex(v).getOutIter(v);
+      auto v_iter = DG2.get_vertex(v).getOutIter(v);
       size_t i_iter_idx = 0;
       size_t v_iter_idx = 0;
 
@@ -276,7 +276,7 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
