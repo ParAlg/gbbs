@@ -209,9 +209,9 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       for (int j = 0; j < rr; ++j) {
         unsigned __int128 mask = (1ULL << shift_factor) - 1;
         uintE extract = (int) vert; // & mask; // vert & mask
-        if (static_cast<uintE>(extract) >= G.n) {
+        /*if (static_cast<uintE>(extract) >= G.n) {
           std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
-        }
+        }*/
         //assert(static_cast<uintE>(extract) < G.n);
         if (j == rr - 1) base[0] = static_cast<uintE>(extract);
         else base[k - j] = static_cast<uintE>(extract);
