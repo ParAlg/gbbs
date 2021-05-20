@@ -132,10 +132,10 @@ class list_buffer {
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
 
-     /* parallel_for(0, ss, [&](size_t worker) {
+      parallel_for(0, ss + buffer * num_workers2, [&](size_t worker) {
         update_changed(per_processor_counts, worker, list[worker]);
       });
-      return ss;*/
+      return ss + buffer * num_workers2;
 
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
