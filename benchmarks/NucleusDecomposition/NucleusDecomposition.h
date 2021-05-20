@@ -219,10 +219,9 @@ t1.start();
 
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
+  HybridSpace_lw* induced = new HybridSpace_lw();
   for(size_t i =0; i < active_size; i++) {
-    HybridSpace_lw* induced = new HybridSpace_lw();
     init_induced(induced);
-
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
