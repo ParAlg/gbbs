@@ -138,13 +138,13 @@ namespace twotable {
           end_table->vtx = vtx;
           end_table->table = contiguous_space ? pbbslib::sparse_table<Y, long, H>(
             size, 
-            std::make_tuple<Y, long>(static_cast<Y>(0), static_cast<long>(0)),
+            std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
             H{},
             space + actual_sizes[i]
             ) :
             pbbslib::sparse_table<Y, long, H>(
             size, 
-            std::make_tuple<Y, long>(static_cast<Y>(0), static_cast<long>(0)),
+            std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
             H{}, 1, true);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
@@ -224,7 +224,10 @@ namespace twotable {
       }
 
       long get_count(std::size_t index) {
-        if (contiguous_space) return std::get<1>(space[index]);
+        if (contiguous_space) {
+          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+          return std::get<1>(space[index]);
+        }
         //assert(index < total);
         size_t top_index = get_top_index(index);
         //assert(top_index != top_table_sizes.size());
@@ -253,6 +256,7 @@ namespace twotable {
           fflush(stdout);
         }
         assert(bottom_index < (end_table->table).m);*/
+        if (std::get<0>((end_table->table).table[bottom_index]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
         return std::get<1>((end_table->table).table[bottom_index]);
       }
 

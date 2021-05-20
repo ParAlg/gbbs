@@ -38,6 +38,14 @@ namespace multitable_nosearch {
 #endif*/
   }
 
+  template<class Y>
+  bool is_max_val(Y max_val) {
+    std::size_t max_bit = sizeof(Y) * 8;
+    Y one = 1;
+    Y check_bit = (max_val >> (max_bit - 1)) & 1U;
+    return (check_bit != 0);
+  }
+
   // max_lvl should be set to # levels - 2
   // two level hash is equiv to setting max_level to 0
   template <class Y, class H>
@@ -472,6 +480,7 @@ namespace multitable_nosearch {
       std::size_t return_total() { return mtable.total_size; }
 
       long get_count(std::size_t index) {
+        if (is_max_val(std::get<0>(space[index]))) return UINT_E_MAX;
         return std::get<1>(space[index]);
       }
 

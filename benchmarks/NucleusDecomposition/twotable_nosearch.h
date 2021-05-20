@@ -42,6 +42,14 @@ namespace twotable_nosearch {
     sequence<EndTableY*> arr;
   };
 
+  template<class Y>
+  bool is_max_val(Y max_val) {
+    std::size_t max_bit = sizeof(Y) * 8;
+    Y one = 1;
+    Y check_bit = (max_val >> (max_bit - 1)) & 1U;
+    return (check_bit != 0);
+  }
+
   template<class Y, class S, class EndSpace>
   uintE get_mtable(S index, EndSpace* end_space) {
     using X = std::tuple<Y, long>;
@@ -266,6 +274,7 @@ namespace twotable_nosearch {
       }
 
       long get_count(std::size_t index) {
+        if (is_max_val(std::get<0>(space[index]))) return UINT_E_MAX;
         return std::get<1>(space[index]);
       }
 

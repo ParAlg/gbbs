@@ -532,11 +532,15 @@ namespace multitable {
       std::size_t return_total() { return mtable.total_size; }
 
       long get_count(std::size_t index) {
-        if (contiguous_space) return std::get<1>(space[index]);
+        if (contiguous_space) {
+          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+          return std::get<1>(space[index]);
+        }
 
         long count = 0;
         auto func = [&](std::tuple<Y, long>* loc){
-          count = std::get<1>(*loc);
+          if (std::get<0>(*loc) == std::numeric_limits<Y>::max()) count = UINT_E_MAX;
+          else count = std::get<1>(*loc);
         };
         mtable.find_table_loc(index, func);
         return count;

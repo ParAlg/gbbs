@@ -303,6 +303,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     finished += active_size;
 
+    if (cur_bkt == UINT_E_MAX) continue;
+
     max_bkt = std::max(cur_bkt, max_bkt);
     if (cur_bkt == 0 || finished == num_entries) {
       parallel_for (0, active_size, [&] (size_t j) {
