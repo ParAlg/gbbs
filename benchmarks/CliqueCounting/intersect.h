@@ -296,6 +296,7 @@ struct HybridSpace_lw {
         o++;
         return;
       }
+      std::cout << "ngh: " << ngh << std::endl; fflush(stdout);
       // Set up label for intersection
       assert(ngh < DG.n);
       assert(old_labels != nullptr);
@@ -304,6 +305,8 @@ struct HybridSpace_lw {
       if (use_base) { relabel[o] = ngh; }
       o++;
     };
+    assert(i < DG.n);
+    std::cout << "i: " << i << std::endl; fflush(stdout);
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
 
     if (to_check) assert(worker_in_use == worker_id());
