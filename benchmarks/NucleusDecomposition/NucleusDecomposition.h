@@ -87,7 +87,7 @@ namespace gbbs {
       table->insert(base, r, k);
     };
       induced->turn_on_check(); 
-      
+
         if (DG.get_vertex(i).getOutDegree() != 0) {
   //HybridSpace_lw* induced = new HybridSpace_lw();
   //init_induced(induced);
@@ -255,8 +255,9 @@ using W = typename Graph::weight_type;
     assert(k-r == 1);
     assert(r + 1 == k);
 
-/*
-    sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
+
+    //sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
+    auto intersect_arr = induced->old_labels;
     for (size_t j = 0; j <= r; j++) {
       size_t idx = k - j;
       if (j == r) idx = 0;
@@ -276,12 +277,13 @@ using W = typename Graph::weight_type;
         base2[1] = j;
         update_d(base2);
       }
-    }*/
+      intersect_arr[j] = 0;
+    }
     
     // Fill base[1] with the intersection, and call update_d
-    induced->setup_nucleus(G, DG, k, base2, r);
+    /*induced->setup_nucleus(G, DG, k, base2, r);
     assert(induced->worker_in_use == worker_id());
-    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);*/
 
     induced->worker_in_use = UINT_E_MAX;
   }, 1, true); //granularity
