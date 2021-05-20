@@ -237,89 +237,47 @@ t1.start();
   //assert(k-r == 1);
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
-  //parallel_for(0, active_size, [&](size_t i){
-  //HybridSpace_lw* induced = new HybridSpace_lw();
-  //for (std::size_t i = 0; i < active_size; i++ ){
-
     auto update_d = [&](sequence<uintE>& base){
-    // check that base[0] to base[k+1] are all edges
-    /*for (int i = 0; i < k + 1; i++) {
-      int i1 = (i + 1) % (k + 1);
-      if (!is_edge(G, base[i], base[i1])) {
-        std::cout << "Flip: " << is_edge(G, base[i1], base[i]) << std::endl;
-        std::cout << "i: " << i << ", i1: " << i1 << ", base i: "<< base[i] << ", base i1: " << base[i1] << std::endl;
-        fflush(stdout);
-      }
-      assert(is_edge(G, base[i], base[i1]));
-
-    }*/
-    cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
+      cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
-      if (ct == 0 && val != 0) {
-        count_idxs.add(index);
-        //std::cout << "Index: "<< index << ", Val: "<< val << std::endl;
-        /*if (per_processor_counts[index] == 0) {
-          std::cout << "Val: " << val << std::endl; fflush(stdout);
-        }*/
-        //assert(per_processor_counts[index] != 0);
-      }
-    }, r, k);
-  };
+        if (ct == 0 && val != 0) {
+          count_idxs.add(index);
+        }
+      }, r, k);
+    };
 
-    // TODO: THIS PART IS WRONG
-    // you wanna start from the clique given by vert
     auto x = get_active(i);
     auto base2 = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
+
+    // This fills base[0] and base[k]...base[k-r+2] with vertices
     cliques->extract_clique(x, base2, G, k);
-    // Fill base[k] ... base[k-r+2] and base[0]
-    //assert(induced->worker_in_use == worker_id());
-    induced->setup_nucleus(G, DG, k, base2, r);
 
-    //assert(induced->checked);
-    assert(induced->worker_in_use == worker_id());
-
-    /*for (std::size_t xx = 0; xx < induced->nn; xx++) {
-      if (induced->relabel[xx] != UINT_E_MAX) {
-        if(!(is_edge(G, base[0], induced->relabel[xx]))) {
-          std::cout << "outside_setup base0: " << base[0] << ", relabel: " << induced->relabel[xx] << std::endl;
-          std::cout << "i: " << xx << std::endl; fflush(stdout);
-        }
-        assert(is_edge(G, base[0], induced->relabel[xx]));
+    sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
+    for (size_t j = 0; i <= r - 1; j++) {
+      size_t idx = k - j;
+      if (j == r - 1) idx = 0;
+      auto vert = base[idx];
+      intersect_arr[vert]++;
+    }
+    for (size_t j = 0; j < G.n; j++) {
+      if (intersect_arr[vert] == r) {
+        base[1] = vert;
+        update_d(base);
       }
     }
-    assert(induced->worker_in_use == worker_id());*/
-
-    // Need to fix so that k_idx is 1, but ends as if it was r
-    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
+    
+    // Fill base[1] with the intersection, and call update_d
+    /*induced->setup_nucleus(G, DG, k, base2, r);
+    assert(induced->worker_in_use == worker_id());
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);*/
 
     induced->worker_in_use = UINT_E_MAX;
   }, 1, true); //granularity
-  
-  //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
-
-  // Extract all vertices with changed clique counts
-  //auto changed_vtxs = edge_table.entries();
-  //edge_table.del();
-
-  // Aggregate the updated counts across all worker's local arrays, as specified by update
-  /*parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-    size_t nthreads = num_workers();
-    uintE v = std::get<0>(changed_vtxs[i]);
-    auto index = cliques->find_index(v);
-    for (size_t j=0; j<nthreads; j++) {
-      update(per_processor_counts, j, index);
-    }
-  }, 128);*/
 
   // Perform update_changed on each vertex with changed clique counts
   std::size_t num_count_idxs = 0;
-  //if (do_update_changed) {
-    /*parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      auto index = cliques->find_index(std::get<0>(changed_vtxs[i]));
-      update_changed(per_processor_counts, i, index);
-    });*/
-      num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
+  num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
       
     /*
     parallel_for(0, num_count_idxs, [&] (size_t i) {//count_idxs[0]
@@ -327,15 +285,13 @@ t1.stop();
       //assert(per_processor_counts[count_idxs[i+1]] > 0);
       update_changed(per_processor_counts, i, count_idxs.pack[i]);//count_idxs[i + 1]
     });*/
-    
-  //}
 
   // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {
-    auto index = get_active(j); //cliques->find_index(get_active(j));
+    auto index = get_active(j);
     still_active[index] = 2;}, 2048);
 
-  return num_count_idxs; //count_idxs[0];
+  return num_count_idxs;
 }
 
 template <typename bucket_t, class Graph, class Graph2, class T>
