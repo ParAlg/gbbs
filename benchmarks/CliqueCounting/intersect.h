@@ -248,7 +248,7 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      if (old_labels[v] > 0 && old_labels[v] < nn0) DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      if (old_labels[v] > 0 && old_labels[v] <= nn0) DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
