@@ -253,6 +253,8 @@ t1.start();
       size_t idx = k - j;
       if (j == r - 1) idx = 0;
       auto vert = base2[idx];
+      assert(idx != 1);
+      assert(base2[idx] < G.n);
       intersect_arr[vert]++;
     }
     for (size_t j = 0; j < G.n; j++) {
