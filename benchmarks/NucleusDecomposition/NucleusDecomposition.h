@@ -249,7 +249,7 @@ t1.start();
     cliques->extract_clique(x, base2, G, k);
 
     sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
-    for (size_t j = 0; i <= r; j++) {
+    for (size_t j = 0; j <= r; j++) {
       size_t idx = k - j;
       if (j == r) idx = 0;
       auto vert = base2[idx];
