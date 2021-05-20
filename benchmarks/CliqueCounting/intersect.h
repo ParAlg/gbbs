@@ -21,10 +21,10 @@ bool is_edge2(Graph& DG, uintE v, uintE u) {
     if (vv == u) is = true;
     };
     DG.get_vertex(v).mapOutNgh(v, map_f, false);
-  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+  auto map_f2 = [&] (const uintE& src, const uintE& vv, const W& wgh) {
     if (vv == v) is = true;
     };
-    DG.get_vertex(u).mapOutNgh(u, map_f, false);
+    DG.get_vertex(u).mapOutNgh(u, map_f2, false);
     return is;
 }
 
