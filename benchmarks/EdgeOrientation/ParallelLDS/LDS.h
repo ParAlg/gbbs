@@ -323,7 +323,7 @@ struct LDS {
   LDS(size_t _n, bool _optimized_insertion) : n(_n), optimized_insertion(_optimized_insertion) {
     if (optimized_insertion)
         UpperConstant = 1.1;
-    levels_per_group = ceil(log(n) / 20 * log(OnePlusEps));
+    levels_per_group = ceil(log(n) / 50 * log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(n);
     L = L_seq.begin();
   }
@@ -335,7 +335,7 @@ struct LDS {
         UpperConstant = 1.1;
     else
         UpperConstant = 2 + ((double) 3 / _delta);
-    levels_per_group = ceil(log(n) / 20 * log(OnePlusEps));
+    levels_per_group = ceil(log(n) / 50 * log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(_n);
     L = L_seq.begin();
   }
