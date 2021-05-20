@@ -148,7 +148,7 @@ class list_buffer {
         if (list[i] != UINT_E_MAX)//(to_pack[i])
           update_changed(per_processor_counts, i, list[i]);
         else
-          update_changed(per_processor_counts, UINT_E_MAX, UINT_E_MAX);
+          update_changed(per_processor_counts, i, UINT_E_MAX);
       });
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
