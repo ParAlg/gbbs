@@ -629,10 +629,10 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       }
     }
 
-    parallel_for 0, num_entries, [&](size_t i) {
+    parallel_for(0, num_entries, [&](size_t i) {
       per_processor_counts[i] = 0;
     });
-    parallel_for 0, num_entries2, [&](size_t i) {
+    parallel_for( 0, num_entries2, [&](size_t i) {
       per_processor_counts2[i] = 0;
     });
 
