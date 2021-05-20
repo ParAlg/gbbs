@@ -13,6 +13,17 @@
 
 namespace gbbs {
 
+template <class Graph>
+bool is_edge2(Graph& DG, uintE v, uintE u) {
+  using W = typename Graph::weight_type;
+  bool is = false;
+  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+    if (vv == u) is = true;
+    };
+    DG.get_vertex(v).mapOutNgh(v, map_f, false);
+    return is;
+}
+
 struct HybridSpace_lw {
   // Number of induced neighbors, per recursive level
   uintE* num_induced = nullptr;
@@ -113,6 +124,9 @@ struct HybridSpace_lw {
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
         if (use_base) { relabel[o] = ngh; }
+        assert(is_edge2(DG, base[0], base[k]));
+        assert(is_edge2(DG, base[0], ngh));
+        assert(is_edge2(DG, base[k], ngh));
       } else {
         old_labels[ngh] = 0;
         if (use_base) { relabel[o] = UINT_E_MAX; }
