@@ -245,14 +245,17 @@ t1.start();
     auto x = get_active(i);
     auto base2 = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
 
-    // This fills base[0] and base[k]...base[k-r+2] with vertices
+    // This fills base[0] and base[k]...base[k-r+1] with vertices
     cliques->extract_clique(x, base2, G, k);
 
     sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
-    for (size_t j = 0; i <= r - 1; j++) {
+    for (size_t j = 0; i <= r; j++) {
       size_t idx = k - j;
-      if (j == r - 1) idx = 0;
+      if (j == r) idx = 0;
       auto vert = base2[idx];
+      if (idx == 1) {
+        std::cout << "k: " << k << ", r: " << r << ", j: " << j << std::endl;
+      }
       assert(idx != 1);
       assert(base2[idx] < G.n);
       intersect_arr[vert]++;
