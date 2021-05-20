@@ -248,6 +248,7 @@ t1.start();
 
     // This fills base[0] and base[k]...base[k-r+1] with vertices
     cliques->extract_clique(x, base2, G, k);
+    assert(k-r == 1);
 
     sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
     for (size_t j = 0; j <= r; j++) {
@@ -263,6 +264,7 @@ t1.start();
     }
     for (size_t j = 0; j < G.n; j++) {
       if (intersect_arr[j] == r + 1) {
+        std::cout << "check" << std::endl; fflush(stdout);
         base2[1] = j;
         update_d(base2);
       }
