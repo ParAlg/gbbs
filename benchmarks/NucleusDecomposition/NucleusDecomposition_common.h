@@ -81,37 +81,34 @@ class list_buffer {
       num_workers2 = num_workers();
       buffer = 64;
       int buffer2 = 64;
-      //list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
-      list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
+      list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
       std::cout << "list size: " << list.size() << std::endl;
-      //starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
-      //next = num_workers2 * buffer2;
-      //to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
-      next = 0;
+      starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
+      next = num_workers2 * buffer2;
+      to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
+      //list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
+      //next = 0;
     }
     void add(size_t index) {
-      //std::cout << "Add: " << index << std::endl; fflush(stdout);
-      size_t use_next = pbbs::fetch_and_add(&next, 1);
-      list[use_next] = index;
-      /*size_t worker = worker_id();
+      /*size_t use_next = pbbs::fetch_and_add(&next, 1);
+      list[use_next] = index;*/
+      size_t worker = worker_id();
       list[starts[worker]] = index;
       starts[worker]++;
       if (starts[worker] % buffer == 0) {
         size_t use_next = pbbs::fetch_and_add(&next, buffer);
         starts[worker] = use_next;
-      }*/
+      }
     }
 
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
-      //std::cout << "Next: "<< next << std::endl;
-      parallel_for(0, next, [&](size_t worker) {
+      /*parallel_for(0, next, [&](size_t worker) {
         assert(list[worker] != UINT_E_MAX);
         assert(per_processor_counts[list[worker]] != 0);
         update_changed(per_processor_counts, worker, list[worker]);
       });
-      return next;
-/*
+      return next;*/
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
         for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
@@ -120,7 +117,7 @@ class list_buffer {
       });
       // Pack out 0 to next of list into pack
       parallel_for(0, next, [&] (size_t i) {
-        if (list[i] != UINT_E_MAX)//(to_pack[i])
+        if (to_pack[i])
           update_changed(per_processor_counts, i, list[i]);
         else
           update_changed(per_processor_counts, i, UINT_E_MAX);
@@ -131,18 +128,18 @@ class list_buffer {
           to_pack[j] = true;
         }
       });
-      return next;*/
+      return next;
     }
 
     void reset() {
-      /*parallel_for (0, num_workers2, [&] (size_t j) {
+      parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
       });
       parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
         list[j] = UINT_E_MAX;
       });
-      next = num_workers2 * buffer;*/
-      next = 0;
+      next = num_workers2 * buffer;
+      //next = 0;
     }
 };
 
@@ -296,13 +293,11 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     size_t filter_size = 0;
 
       auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
-
         if (v == UINT_E_MAX) {
           D_filter[i] = std::make_tuple(num_entries + 1, 0);
           return;
         }
-    
-        assert(ppc[v] != 0);
+        //assert(ppc[v] != 0);
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else {
           bucket_t deg = D[v];
