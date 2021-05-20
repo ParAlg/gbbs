@@ -110,78 +110,41 @@ struct HybridSpace_lw {
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
     if (to_check) assert(worker_in_use == worker_id());
-    //assert(r == 1);
-    //assert(k == 2);
-    //std::cout << "setup nucleus" << std::endl; fflush(stdout);
+
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     uintE nn0 = DG.get_vertex(base[0]).getOutDegree() + 1;
-    /*auto kmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      old_labels[ngh] = nn0 + 1;
-    };
-    DG.get_vertex(base[k]).mapOutNgh(base[k], kmap_label_f, true);*/
-    if (to_check) assert(worker_in_use == worker_id());
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
         assert(ngh < DG.n);
         assert(old_labels != nullptr);
-        if (j == 0) {
-          old_labels[ngh] = nn0 + 1;
-        }
+        if (j == 0) old_labels[ngh] = nn0 + 1;
         else if (old_labels[ngh] > nn0) old_labels[ngh]++;
       };
-      if (base[k-j] >= DG.n) {
-        std::cout << "Base: " << base[k-j] << ", n: " << DG.n << ", idx: " << k-j << std::endl;
-        fflush(stdout);
-      }
       assert(base[k-j] < DG.n);
       DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, false);
     }
-    if (to_check) assert(worker_in_use == worker_id());
 
     assert(base[0] < DG.n);
     size_t o = 0;
-    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+    auto map_label_f2 = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
         if (use_base) { relabel[o] = ngh; }
-        //assert(is_edge2(DG2, base[0], base[k]));
-        //assert(is_edge2(DG2, base[0], ngh));
-        //assert(is_edge2(DG2, base[k], ngh));
       } else {
         old_labels[ngh] = 0;
         if (use_base) { relabel[o] = UINT_E_MAX; }
       }
-      //if (relabel[o] != UINT_E_MAX) {
-      //  assert(is_edge2(DG2, base[0], relabel[o]));
-      //}
-      // Set up relabeling if counting per vertex
-      //if (use_base) { relabel[o] = ngh; }
       o++;
     };
-    DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
+    DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f2, false);
     auto i = base[0];
     assert(o < nn0 + 1);
 
     if (to_check) assert(worker_in_use == worker_id());
-
-    /*for (std::size_t x = 0; x < o; x++) {
-      if (relabel[x] != UINT_E_MAX) {
-        if(!(is_edge2(DG2, base[0], relabel[x]))) {
-          std::cout << "o: " << o << std::endl;
-          std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
-          std::cout << "i: " << x << std::endl; fflush(stdout);
-        }
-        assert(is_edge2(DG2, base[0], relabel[x]));
-      }
-    }
-    //std::cout << "o: "<< o << std::endl; fflush(stdout);
-
-    assert(o < nn0 + 1);
-    assert(worker_in_use == worker_id());*/
 
     nn = o;
     //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });

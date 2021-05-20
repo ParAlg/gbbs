@@ -1,5 +1,9 @@
 #pragma once
 
+#include <ctype.h>
+#include <stdlib.h>
+#include <atomic>
+
 namespace pbbs {
 //***************************************
 // All the pbbs library uses only four functions for
@@ -227,20 +231,38 @@ inline int num_workers() { return pbbs::global_scheduler.num_workers(); }
 
 inline int worker_id() { return pbbs::global_scheduler.worker_id(); }
 
+inline bool charCAS(char* a, char oldval, char newval) {
+    uint8_t r_oval, r_nval;
+    std::memcpy(&r_oval, &oldval, sizeof(ET));
+    std::memcpy(&r_nval, &newval, sizeof(ET));
+    return __sync_bool_compare_and_swap(reinterpret_cast<uint8_t*>(a), r_oval,
+                                        r_nval);
+}
+
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity,
                                bool conservative) {
-  /*A** allocs = (A**) malloc(num_workers() * sizeof(A*));
+  A** allocs = (A**) malloc(num_workers() * sizeof(A*));
   for (std::size_t i = 0; i < num_workers(); i++) {
     allocs[i] = new A();
-  }*/
+    init_alloc(alloc[i]);
+  }
+  char* taken = (char*) calloc(num_workers() * sizeof(char));
   parallel_for(start, end,
                [&](long i) {
-                 static thread_local A* alloc = new A();
-                 //A* alloc = allocs[worker_id()];
-                 init_alloc(alloc);
-                 f(i, alloc);
+                 //static thread_local A* alloc = new A();
+                 while(true) {
+                   auto id = worker_id();
+                   bool try = charCAS(&(taken[id]), 0, 1);
+                   if (try) {
+                     A* alloc = allocs[id];
+                     init_alloc(alloc);
+                     f(i, alloc);
+                     taken[id] = 0;
+                     break;
+                   }
+                 }
                },
                granularity, true);
   // finish_alloc(alloc);
