@@ -124,7 +124,9 @@ class list_buffer {
     void add(size_t index) {
       //std::cout << "Add: " << index << std::endl; fflush(stdout);
       size_t use_next = pbbs::fetch_and_add(&next, 1);
+      assert(use_next < ss);
       list[use_next] = index;
+      assert(next > use_next);
       /*size_t worker = worker_id();
       list[starts[worker]] = index;
       starts[worker]++;
@@ -138,12 +140,12 @@ class list_buffer {
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       //std::cout << "Next: "<< next << std::endl;
       //parallel_for(0, ss, [&](size_t worker) {
-      for (size_t worker = 0; worker < ss; worker++) {
+      for (size_t i = 0; i < next; i++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
-        update_changed(per_processor_counts, worker, worker); //list[worker]
+        update_changed(per_processor_counts, i, list[i]);
       }//);
-      return ss;
+      return next;
 /*
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
@@ -168,7 +170,7 @@ class list_buffer {
     }
 
     void reset() {
-      for (size_t worker = 0; worker < ss; worker++) {
+      for (size_t i = 0; i < next; i++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
         list[worker] = UINT_E_MAX;
