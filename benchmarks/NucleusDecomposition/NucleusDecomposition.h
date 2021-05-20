@@ -222,8 +222,6 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     still_active[index] = 1;
     }, 2048);
 
-  // Collate clique counts by processor
-  //count_idxs[0] = 0;
   auto is_active = [&](size_t index) {
     return still_active[index] == 1;
   };
@@ -233,8 +231,6 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
 t1.start();
   // Clique count updates
-  //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
-  //assert(k-r == 1);
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
     auto update_d = [&](sequence<uintE>& base){
@@ -260,8 +256,8 @@ t1.start();
       intersect_arr[vert]++;
     }
     for (size_t j = 0; j < G.n; j++) {
-      if (intersect_arr[vert] == r) {
-        base2[1] = vert;
+      if (intersect_arr[j] == r) {
+        base2[1] = j;
         update_d(base2);
       }
     }
