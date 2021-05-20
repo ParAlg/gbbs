@@ -120,6 +120,8 @@ struct HybridSpace_lw {
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
 
+    assert(o < nn0);
+
     nn = o;
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
