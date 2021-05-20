@@ -230,9 +230,9 @@ t1.start();
   //assert(k-r == 1);
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
-  //parallel_for(0, active_size, [&](size_t i){
+  parallel_for(0, active_size, [&](size_t i){
   HybridSpace_lw* induced = new HybridSpace_lw();
-  for (std::size_t i = 0; i < active_size; i++ ){
+  //for (std::size_t i = 0; i < active_size; i++ ){
 
     auto update_d = [&](sequence<uintE>& base){
     // check that base[0] to base[k+1] are all edges
@@ -288,9 +288,9 @@ t1.start();
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
 
     induced->worker_in_use = UINT_E_MAX;
-
-  }//, 1, true); //granularity
-  finish_induced(induced);
+finish_induced(induced);
+  }, 1, true); //granularity
+  
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
