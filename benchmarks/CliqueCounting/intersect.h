@@ -60,7 +60,7 @@ struct HybridSpace_lw {
     if (to_check) {
       bool checking = pbbslib::CAS(&worker_in_use, static_cast<size_t>(UINT_E_MAX), static_cast<size_t>(worker_id()));
       if (!checking) {
-        std::cout << "ParForAlloc Thread err: " << worker_in_use << ", curr: " << woorker_id() << std::endl; fflush(stdout);
+        std::cout << "ParForAlloc Thread err: " << worker_in_use << ", curr: " << worker_id() << std::endl; fflush(stdout);
       }
       assert(checking);
     }
