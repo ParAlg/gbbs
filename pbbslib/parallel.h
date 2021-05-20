@@ -246,7 +246,7 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   A** allocs = (A**) malloc(num_workers() * sizeof(A*));
   for (std::size_t i = 0; i < num_workers(); i++) {
     allocs[i] = new A();
-    init_alloc(alloc[i]);
+    init_alloc(allocs[i]);
   }
   char* taken = (char*) calloc(num_workers() * sizeof(char));
   parallel_for(start, end,
