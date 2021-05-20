@@ -491,7 +491,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
 
       // Check that extracting a clique from cliques2 and turning it back to an index works
       auto check_vtx2 = cliques2->extract_indices_check(actual_base2, r);
-      assert(check_vtx2 == vtx);
+      assert(check_vtx2 == vtx2);
 
       // Check that the clique counts match up
       assert(cliques->get_count(vtx) == cliques->get_count(vtx2));
