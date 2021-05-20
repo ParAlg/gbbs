@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <atomic>
+#include <cstdint>
+#include <cstring>
 
 namespace pbbs {
 //***************************************
