@@ -168,7 +168,7 @@ class list_buffer {
     }
 
     void reset() {
-      for (size_t worker = 0; worker < next; worker++) {
+      for (size_t worker = 0; worker < ss; worker++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
         list[worker] = UINT_E_MAX;
