@@ -145,7 +145,7 @@ class list_buffer {
       });
       // Pack out 0 to next of list into pack
       parallel_for(0, next, [&] (size_t i) {
-        if (to_pack)
+        if (to_pack[i])
           update_changed(per_processor_counts, i, list[i]);
         else
           update_changed(per_processor_counts, UINT_E_MAX, UINT_E_MAX);
