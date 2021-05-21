@@ -13,8 +13,8 @@ def shellGetOutput(str) :
   process = subprocess.Popen(str,shell=True,stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
   output, err = process.communicate()
-  
-  
+
+
   #if (len(err) > 0):
   #    raise NameError(str+"\n"+output+err)
   return output
@@ -37,20 +37,20 @@ def appendToFile(out, filename):
 def main():
   # Configured for Test 1
   program_dir = "../benchmarks/"
-  programs = ["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
-  program_pres = ["lds", "kcore", "ekcore"]
-  is_dynamic = [True, False, False]
-  files = ["dblp_deletion_edges","livejournal_deletion_edges"]
-  init_files = ["dblp_insertion_edges", "livejournal_insertion_edges"]
-  pres = ["dblp","livejournal"]
+  programs = ["EdgeOrientation/ParallelLDS/LDS"] #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
+  program_pres = ["plds"] #["lds", "kcore", "ekcore"]
+  is_dynamic = [True]
+  files = ["livejournal_insertion_edges"] #["youtube_deletion_edges","orkut_deletion_edges"]
+  init_files = ["livejournal_insertion_edges"] #["youtube_insertion_edges", "orkut_insertion_edges"]#["livejournal_insertion_edges", "orkut_insertion_edges"]#["dblp_insertion_edges", "livejournal_insertion_edges"]
+  pres = ["livejournal"] #["youtube_new", "orkut_new"]#["livejournal_1", "orkut_1"]#["dblp","livejournal"]
   empty = "empty_h"
   stats = ""
   epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   deltas = [3] #[3, 6, 12, 24, 48, 96]
-  batch_sizes = [100]#, 1000, 10000, 100000, 1000000, 10000000]
+  batch_sizes = [1000]#, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 30, 60]
-  read_dir = "/home/jeshi/dynamic_graph/"
-  write_dir = "/home/jeshi/dogfood-out/"
+  read_dir = "/home/qliu19/dynamic_graph/"
+  write_dir = "/home/qliu19/optimized_out/"
   for file_idx, filename in enumerate(files):
     num_lines = sum(1 for line in open(read_dir + filename))
     for program_idx, program in enumerate(programs):
@@ -74,6 +74,7 @@ def main():
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
                 "-rounds " + str(num_rounds) + " -init_graph_file " + read_dir + init_files[file_idx]  + " " + stats + " " + read_dir + empty)
+                print ss
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
                 time += computeTimeout(out)

@@ -15,8 +15,10 @@ def shellGetOutput(str) :
   output, err = process.communicate()
 
 
-  #if (len(err) > 0):
-  #    raise NameError(str+"\n"+output+err)
+  if (len(err) > 0):
+      print(err)
+      print(output)
+      raise NameError(str+"\n"+output+err)
   return output
 
 def appendToFile(out, filename):
@@ -32,16 +34,16 @@ def main():
   #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
   program_pres = ["plds"] #["lds", "kcore", "ekcore"]
   is_dynamic = [True]
-  files = ["dblp_edges", "livejournal_edges"]
-  pres = ["dblp", "livejournal"]
+  files = ["dblp_insertion_edges", "livejournal_insertion_edges"] #["orkut_edges", "twitter_edges"]
+  pres = ["dblp", "livejournal"] #["orkut-single-thread", "twitter-single-thread"]
   empty = "empty_h"
-  stats = "-stats"
-  epss = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
-  deltas = [3, 6, 12, 24, 48, 96]
-  batch_sizes = [100000, 1000000] #[100, 1000, 10000, 100000, 1000000, 10000000]
+  stats = ""
+  epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+  deltas = [3]  #[3, 6, 12, 24, 48, 96]
+  batch_sizes = [100000, 1000000, 10000000, 10000, 1000, 100] #, 1000000, 10000000, 10000000, 1000, 100] #[100, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   read_dir = "/home/qliu19/dynamic_graph/"
-  write_dir = "/home/qliu19/dynamic-graph-out/"
+  write_dir = "/home/qliu19/exp-2/"
   for file_idx, filename in enumerate(files):
     for program_idx, program in enumerate(programs):
       for e in epss:
@@ -58,10 +60,10 @@ def main():
                 if (num_lines % b != 0):
                   batch_commands.append(num_lines)
               for bc in batch_commands:
-                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_dir + program + " -s -i"
+                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
-                "-rounds 1 " + stats + " " + read_dir + empty)
+                "-rounds 3 " + stats + " " + read_dir + empty)
 		print ss
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)

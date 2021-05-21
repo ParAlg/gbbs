@@ -13,17 +13,17 @@ def main():
   program_dir = "../benchmarks/"
   programs = [ "EdgeOrientation/ParallelLDS/LDS"]# , "KCore/JulienneDBS17/KCore"]
   is_dynamic = [True]
-  files = ["dblp_edges"] #["livejournal_edges"]
+  files = ["livejournal_edges"] #["livejournal_edges"]
   program_pres = [ "plds"]
-  pres = ["dblp"]
+  pres = ["livejournal"]
   empty = "empty_h"
   num_rounds = 100000
   e = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   d = [3, 6, 12, 24, 48, 96]
-  batch_sizes = [100000] # 1000000]#[100, 1000, 10000, 100000, 1000000, 10000000]
-  num_workers = [1, 2, 4, 8, 16, 30, 60]
+  batch_sizes = [1000000] # 1000000]#[100, 1000, 10000, 100000, 1000000, 10000000]
+  num_workers = [60] #[1, 2, 4, 8, 16, 30, 60]
   read_dir = "/home/qliu19/dynamic_graph/"
-  write_dir = "/home/qliu19/dynamic-graph-out-workers/"
+  write_dir = "/home/qliu19/dynamic-graph-out-no-stats/"
   actual_batch_size = 1000000
   for file_name in pres:
     for eps in e:
@@ -58,11 +58,11 @@ def main():
                         max_core_error = max(max_core_estimates)
 
                         print(file_name, end = ",")
-                        #print(str(eps), end = ",")
-                        #print(str(l), end = ",")
+                        print(str(eps), end = ",")
+                        print(str(l), end = ",")
                         #print(avg_core_estimate, end = ",")
                         #print(max_core_error, end = ",")
-                        print(worker, end = ",")
+                        #print(worker, end = ",")
                         print(total_runtime, end=",")
                         print(avg_runtime, end = ",")
                         print(max_runtime, end = "\n")
