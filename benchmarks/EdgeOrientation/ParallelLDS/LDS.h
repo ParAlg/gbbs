@@ -1570,18 +1570,6 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl; fflush(stdout);
             std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
             std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
-            delete (cores);
-            delete (max_core);
-            delete (graph);
-            delete (max_core);
-            delete (approximation_error);
-            delete (mult_appx);
-            delete (bad);
-            delete (sum_error);
-            delete (max_error);
-            delete (min_error);
-            delete (denominator);
-            delete (avg_error);
         }
     }
 }
