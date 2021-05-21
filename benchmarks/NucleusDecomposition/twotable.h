@@ -167,6 +167,8 @@ namespace twotable {
           }
         }
         assert(top_table_sizes[0] == 0);*/
+        size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(long);
+        std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
   
       void insert(sequence<uintE>& base2, int r, int k) {

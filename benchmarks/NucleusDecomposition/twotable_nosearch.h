@@ -173,9 +173,9 @@ namespace twotable_nosearch {
             );
           space[actual_sizes[i] + size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
 
-          uintE vtest = get_mtable<Y>(actual_sizes[i], space);
-          vtest = get_mtable<Y>(actual_sizes[i] + size - 1, space);
-          assert(vtest == vtx);
+          //uintE vtest = get_mtable<Y>(actual_sizes[i], space);
+          //vtest = get_mtable<Y>(actual_sizes[i] + size - 1, space);
+          //assert(vtest == vtx);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
           top_table_sizes[l] = end_table->table.m;*/
@@ -200,6 +200,8 @@ namespace twotable_nosearch {
           }
         }
         assert(top_table_sizes[0] == 0);*/
+        size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(long);
+        std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
   
       void insert(sequence<uintE>& base2, int r, int k) {
