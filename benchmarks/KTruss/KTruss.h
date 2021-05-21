@@ -164,6 +164,9 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     return std::make_tuple(truss, id);
   };
 
+  size_t data_structure_size = sizeof(decltype(trussness_multi)) + sizeof(std::tuple<uintE, uintE>) * trussness_multi.big_size;
+  std::cout << "Data Structure Size: " << data_structure_size << std::endl; fflush(stdout);
+
   timer em_t, decrement_t, bt, ct, peeling_t; peeling_t.start();
   size_t finished = 0, k_max = 0;
   size_t iter = 0;
