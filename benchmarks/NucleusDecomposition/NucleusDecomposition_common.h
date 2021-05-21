@@ -177,7 +177,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank) {
+  sequence<uintE>& inverse_rank, bool relabel) {
 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {
@@ -349,7 +349,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
-      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank);
+      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel);
       t_count.stop();
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
@@ -608,11 +608,11 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
     size_t filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
       granularity, still_active, rank, per_processor_counts,
-      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank);
+      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel);
     
     size_t filter_size2 = cliqueUpdate(G, DG, r, k, max_deg, true, get_active2, active_size2, 
       granularity, still_active2, rank, per_processor_counts2,
-      true, update_changed2, cliques2, num_entries2, count_idxs2, t_x, inverse_rank);
+      true, update_changed2, cliques2, num_entries2, count_idxs2, t_x, inverse_rank, relabel);
     t_count.stop();
 
     std::cout << "Finished verifying active set; starting verifying updates" << std::endl;
