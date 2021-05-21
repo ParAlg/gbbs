@@ -78,10 +78,12 @@ namespace onetable {
 
         do {
           Y key = 0;
+          unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
-              key |= static_cast<uintE>(base[i]);
+              assert((base[i] & mask) == base[i]);
+              key |= (base[i] & mask);
             }
           }
           table.insert_f(std::make_tuple(key, (long) 1), add_f);
@@ -151,9 +153,11 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         std::sort(base, base + r + 1,std::less<uintE>());
 
         Y key = 0;
+        unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
         for (int i = 0; i < static_cast<int>(r)+1; ++i) {
           key = key << shift_factor;
-          key |= static_cast<uintE>(base[i]);
+          assert((base[i] & mask) == base[i]);
+          key |= (base[i] & mask);
         }
         auto index = table.find_index(key);
         assert(index < table.m);
@@ -180,10 +184,12 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
 
         do {
           Y key = 0;
+          unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
-              key |= static_cast<uintE>(base[i]);
+              assert((base[i] & mask) == base[i]);
+              key |= (base[i] & mask);
             }
           }
           auto index = table.find_index(key);
@@ -227,7 +233,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       auto vert = std::get<0>(table.table[index]);
       for (int j = 0; j < rr; ++j) {
         unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
-        uintE extract = (uintE) vert & mask; // vert & mask
+        uintE extract = (uintE) (vert & mask); // vert & mask
         /*if (static_cast<uintE>(extract) >= G.n) {
           std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
         }*/
