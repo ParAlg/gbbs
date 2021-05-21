@@ -177,7 +177,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     uintE k = bkt.id;
     finished += rem_edges.size();
     k_max = std::max(k_max, bkt.id);
-    std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
+    //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
 
     if (k == 0 || finished == n_edges) {
       // No triangles incident to these edges. We set their trussness to MAX,
