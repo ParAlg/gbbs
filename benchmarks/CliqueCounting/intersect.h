@@ -93,15 +93,17 @@ struct HybridSpace_lw {
     else setup_intersect(G, DG, k, i, f);
   }
 
-  template <class Graph, class Graph2>
-  void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
+  template <class Graph, class Graph2, class FF, class FG>
+  void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r,
+    FF& g_vert_map, FG& inverse_g_vert_map) {
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
-    uintE nn0 = DG.get_vertex(base[0]).getOutDegree() + 1;
+    uintE nn0 = DG.get_vertex(g_vert_map(base[0])).getOutDegree() + 1;
 
     for (size_t j = 0; j <= r - 1; j++){
-      auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      auto map_label_f = [&] (const uintE& src, const uintE& ngh2, const W& wgh) {
+        uintE ngh = inverse_g_vert_map(ngh2);
       // Set up label for intersection
         assert(ngh < DG.n);
         assert(old_labels != nullptr);
@@ -110,16 +112,17 @@ struct HybridSpace_lw {
         }
         else if (old_labels[ngh] > 0) old_labels[ngh]++;
       };
-      if (base[k-j] >= DG.n) {
+      /*if (base[k-j] >= DG.n) {
         std::cout << "Base: " << base[k-j] << ", n: " << DG.n << ", idx: " << k-j << std::endl;
         fflush(stdout);
-      }
+      }*/
       assert(base[k-j] < DG.n);
-      DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, false);
+      DG.get_vertex(g_vert_map(base[k-j])).mapOutNgh(g_vert_map(base[k-j]), map_label_f, false);
     }
 
     size_t o = 0;
-    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+    auto map_label_f = [&] (const uintE& src, const uintE& ngh2, const W& wgh) {
+      uintE ngh = inverse_g_vert_map(ngh2);
       // Set up label for intersection
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
@@ -131,8 +134,8 @@ struct HybridSpace_lw {
 
       o++;
     };
-    DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
-    auto i = base[0];
+    DG.get_vertex(g_vert_map(base[0])).mapOutNgh(g_vert_map(base[0]), map_label_f, false); //r
+    auto i = g_vert_map(base[0]);
 
     nn = o;
     
@@ -142,9 +145,9 @@ struct HybridSpace_lw {
     if (k-r == 1) {
       // Reset the array used for intersecting
       auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-        old_labels[ngh] = 0;
+        old_labels[inverse_g_vert_map(ngh)] = 0;
       };
-      DG.get_vertex(base[k]).mapOutNgh(base[k], map_relabel_f, false);
+      DG.get_vertex(g_vert_map(base[k])).mapOutNgh(g_vert_map(base[k]), map_relabel_f, false);
       num_edges = 0;
       return;
     }
@@ -152,7 +155,8 @@ struct HybridSpace_lw {
     for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
 
     size_t j = 0;
-    auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+    auto map_f = [&] (const uintE& src, const uintE& v2, const W& wgh) {
+      uintE v = inverse_g_vert_map(v2);
       // For a neighbor v of i, intersect N(v) with N(i)
       // These are the edges adjacent to v in the induced neighborhood of i
       // Note that v is relabeled to j under the relabeling from 0 to degree of i
@@ -173,9 +177,9 @@ struct HybridSpace_lw {
 
     // Reset the array used for intersecting
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      old_labels[ngh] = 0;
+      old_labels[inverse_g_vert_map(ngh)] = 0;
     };
-    DG.get_vertex(base[k]).mapOutNgh(base[k], map_relabel_f, false);
+    DG.get_vertex(g_vert_map(base[k])).mapOutNgh(g_vert_map(base[k]), map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
     //auto deg_seq = pbbslib::make_sequence(induced_degs, nn);

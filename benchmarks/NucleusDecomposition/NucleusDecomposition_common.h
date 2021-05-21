@@ -176,7 +176,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   size_t granularity, char* still_active, sequence<uintE> &rank, 
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I update_changed,
-  T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
+  T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
+  sequence<uintE>& inverse_rank) {
 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {
@@ -217,7 +218,14 @@ t1.start();
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+1] and base[0]
-    induced->setup_nucleus(G, DG, k, base, r);
+    if (relabel) {
+      auto g_vert_map = [&](uintE vert){return rank[vert];};
+      auto inverse_g_vert_map = [&](uintE vert){return inverse_rank[vert];};
+      induced->setup_nucleus(G, DG, k, base, r, g_vert_map, inverse_g_vert_map);
+    } else {
+      auto g_vert_map = [&](uintE vert){return vert;};
+      induced->setup_nucleus(G, DG, k, base, r, g_vert_map, g_vert_map);
+    }
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
   //  finish_induced(induced);
   }, 1, true); //granularity
@@ -239,8 +247,16 @@ t1.stop();
 
 template <typename bucket_t, class Graph, class Graph2, class T>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k, 
-  T* cliques, sequence<uintE> &rank, bool efficient=true,
+  T* cliques, sequence<uintE> &rank, bool efficient, bool relabel, 
   size_t num_buckets=16) {
+  sequence<uintE> inverse_rank;
+  if (relabel) {
+    // This maps a DG vertex to a G vertex
+    inverse_rank = sequence<uintE>(G.n);
+    parallel_for(0, G.n, [&](size_t i){
+      inverse_rank[rank[i]] = i;
+    });
+  }
     k--; r--;
   timer t2; t2.start();
 
@@ -333,7 +349,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
-      true, update_changed, cliques, num_entries, count_idxs, t_x);
+      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank);
       t_count.stop();
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
@@ -345,7 +361,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       return std::nullopt;
     };
 
-t_update.start();
+    t_update.start();
     b.update_buckets(apply_f, filter_size);
 
     /*parallel_for (0, active_size, [&] (size_t j) {
@@ -354,7 +370,7 @@ t_update.start();
       cliques->clear_count(index);
       //cliques[active.vtx(j)] = 0;
       }, 2048);*/
-      t_update.stop();
+    t_update.stop();
 
     rounds++;
   }
@@ -385,6 +401,15 @@ template <typename bucket_t, class Graph, class Graph2, class T, class T2>
 sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, T2* cliques2, sequence<uintE> &rank, size_t num_rounds_verify=2,
   size_t num_buckets=16) {
+  sequence<uintE> inverse_rank;
+  if (relabel) {
+    // This maps a DG vertex to a G vertex
+    inverse_rank = sequence<uintE>(G.n);
+    parallel_for(0, G.n, [&](size_t i){
+      inverse_rank[rank[i]] = i;
+    });
+  }
+
     k--; r--;
   timer t2; t2.start();
 
@@ -583,11 +608,11 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
     size_t filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
       granularity, still_active, rank, per_processor_counts,
-      true, update_changed, cliques, num_entries, count_idxs, t_x);
+      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank);
     
     size_t filter_size2 = cliqueUpdate(G, DG, r, k, max_deg, true, get_active2, active_size2, 
       granularity, still_active2, rank, per_processor_counts2,
-      true, update_changed2, cliques2, num_entries2, count_idxs2, t_x);
+      true, update_changed2, cliques2, num_entries2, count_idxs2, t_x, inverse_rank);
     t_count.stop();
 
     std::cout << "Finished verifying active set; starting verifying updates" << std::endl;
