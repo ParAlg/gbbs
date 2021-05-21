@@ -24,13 +24,13 @@ def appendToFile(out, filename):
 
 def run_pnd():
   pres = ["dblp", "as_skitter", "amazon", "youtube", "lj", "orkut", "friendster"]
-  algs = ["241", "240", "2400", "341", "340", "3400", "723", "734"]
+  algs = ["231", "230", "2300", "341", "340", "3400", "723", "734"]
   read_dir = "/home/jeshi_google_com/snap/"
   write_dir = "/home/jeshi_google_com/nd_exppnd/"
   for file_idx, filename in enumerate(pres):
     for alg in algs:
       for i in range(4):
         out_filename = write_dir + "pnd_" + filename + "_" + alg + ".out"
-        ss = "timeout 6h  ./pnd " + read_dir + "out." + filename + " " + alg
+        ss = "timeout 6h  ./pnd " + read_dir + "out." + filename + " " + alg + " NO"
         out = shellGetOutput(ss)
         appendToFile(out, out_filename)
