@@ -312,8 +312,8 @@ namespace multitable {
         //assert(end_space != nullptr);
         auto vert = std::get<0>(end_table.table[index]); //end_space[index]
         // TOOD: make sure this calc is correct
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
         for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
-          unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
           uintE extract = (uintE) (vert & mask); // vert & mask
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);

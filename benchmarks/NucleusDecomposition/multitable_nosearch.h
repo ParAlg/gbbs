@@ -302,12 +302,11 @@ namespace multitable_nosearch {
           else base_idx++;
         }
         assert(end_space != nullptr);
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
         //auto vert = std::get<0>(end_space[index]);
         // TOOD: make sure this calc is correct
         for (int j = 0; j < rr - lvl; j++) { //rr - 1, base_idx
-          unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
-          uintE extract = (uintE) (vert & mask); // vert & mask
-          //assert(static_cast<uintE>(extract) < G.n);
+          uintE extract = (uintE) (vert & mask);
           base[base_idx] = static_cast<uintE>(extract);
           vert = vert >> nd_global_shift_factor;
 
@@ -564,8 +563,8 @@ namespace multitable_nosearch {
       }
 
       //Fill base[k] ... base[k-r+1] and base[0]
-      template<class S, class Graph>
-      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+      template<class Graph>
+      void extract_clique(Y index, sequence<uintE>& base, Graph& G, int k) {
         auto last_mtable = get_mtable<Y, H>(index, space);
         last_mtable->extract_clique(std::get<0>(space[index]), base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
