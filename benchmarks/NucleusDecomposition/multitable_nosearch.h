@@ -291,8 +291,7 @@ namespace multitable_nosearch {
     }
 
     //Fill base[k] ... base[k-r+1] and base[0]
-    template<class S>
-    void extract_clique(S vert, sequence<uintE>& base, int base_idx, int rr, int k) {
+    void extract_clique(Y vert, sequence<uintE>& base, int base_idx, int rr, int k) {
       if (lvl == max_lvl) {
         base_idx = 0;
         if (lvl != 0) {
@@ -563,8 +562,8 @@ namespace multitable_nosearch {
       }
 
       //Fill base[k] ... base[k-r+1] and base[0]
-      template<class Graph>
-      void extract_clique(Y index, sequence<uintE>& base, Graph& G, int k) {
+      template<class S, class Graph>
+      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         auto last_mtable = get_mtable<Y, H>(index, space);
         last_mtable->extract_clique(std::get<0>(space[index]), base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);

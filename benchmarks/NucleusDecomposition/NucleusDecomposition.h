@@ -238,7 +238,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
   std::cout << "Num bits in n: " << shift_factor << std::endl;
   fflush(stdout);
 
-  if (num_bytes_needed <= 4) {
+  if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     count = runner<unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
