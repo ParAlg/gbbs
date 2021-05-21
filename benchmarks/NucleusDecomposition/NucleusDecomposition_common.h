@@ -401,6 +401,7 @@ template <typename bucket_t, class Graph, class Graph2, class T, class T2>
 sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, T2* cliques2, sequence<uintE> &rank, size_t num_rounds_verify=2,
   size_t num_buckets=16) {
+  bool relabel = false;
   sequence<uintE> inverse_rank;
   if (relabel) {
     // This maps a DG vertex to a G vertex
