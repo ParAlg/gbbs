@@ -226,7 +226,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
   // round_up<int>(((max(1, (r - (num_levels - 1))) * X) + 1), 8)
   // use whichever type is >= bytes than this
 
-  int num_bits_in_n = 32; //pbbslib::log2_up(DG.n + 1);
+  int num_bits_in_n = pbbslib::log2_up(DG.n + 1); //32
   int num_bytes_needed = round_up<int>(((std::max(static_cast<int>(1), 
     static_cast<int>(r - (num_levels - 1))) * num_bits_in_n) + 1), 8);
   int shift_factor = num_bits_in_n; //32
@@ -235,7 +235,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
   std::cout << "Num bits in n: " << shift_factor << std::endl;
   fflush(stdout);
 
-  /*if (num_bytes_needed <= 4) {
+  if (num_bytes_needed <= 4) {
     // unsigned __int32
     count = runner<unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
@@ -243,15 +243,15 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
     // unsigned __int64
     count = runner<unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
-  } else {*/
+  } else {
     // unsigned__int128
-  if (!verify)
-    count = runner<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient);
-  else
-    count = runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor);
-  //}
+    if (!verify)
+      count = runner<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+        max_deg, rank, shift_factor, efficient);
+    else
+      count = runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+        max_deg, rank, shift_factor);
+  }
 
    
 
