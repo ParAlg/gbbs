@@ -226,7 +226,10 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
   // round_up<int>(((max(1, (r - (num_levels - 1))) * X) + 1), 8)
   // use whichever type is >= bytes than this
 
-  int num_bits_in_n = pbbslib::log2_up(DG.n + 1); //32
+  if (table_type == 1) num_levels = 1;
+  else if (table_type == 2 || table_type == 5) num_levels = 2;
+
+  int num_bits_in_n = 1 + pbbslib::log2_up(DG.n + 1); //32
   int num_bytes_needed = round_up<int>(((std::max(static_cast<int>(1), 
     static_cast<int>(r - (num_levels - 1))) * num_bits_in_n) + 1), 8);
   int shift_factor = num_bits_in_n; //32

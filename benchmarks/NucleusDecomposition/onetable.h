@@ -78,7 +78,7 @@ namespace onetable {
 
         do {
           Y key = 0;
-          unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
@@ -153,7 +153,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         std::sort(base, base + r + 1,std::less<uintE>());
 
         Y key = 0;
-        unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
         for (int i = 0; i < static_cast<int>(r)+1; ++i) {
           key = key << shift_factor;
           assert((base[i] & mask) == base[i]);
@@ -184,18 +184,17 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
 
         do {
           Y key = 0;
-          unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
-              assert((base[i] & mask) == base[i]);
               key |= (base[i] & mask);
             }
           }
           auto index = table.find_index(key);
           assert(index < table.m);
  
- 
+ /*
 sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
 extract_clique(index, base3, k, k);
 int base3_idx = 0;
@@ -210,7 +209,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
     base3_idx++;
     if (base3_idx == 1) base3_idx = k - rr + 2;
   }
-}
+}*/
 
 
           indices.push_back(index);
@@ -232,7 +231,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
     void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
       auto vert = std::get<0>(table.table[index]);
       for (int j = 0; j < rr; ++j) {
-        unsigned __int128 mask = (1ULL << (shift_factor + 1)) - 1;
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
         uintE extract = (uintE) (vert & mask); // vert & mask
         /*if (static_cast<uintE>(extract) >= G.n) {
           std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
