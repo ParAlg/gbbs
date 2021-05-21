@@ -31,6 +31,6 @@ def run_pnd():
     for alg in algs:
       for i in range(4):
         out_filename = write_dir + "pnd_" + filename + "_" + alg + ".out"
-        ss = "./pnd " + read_dir + "out." + filename + " " + alg
+        ss = "timeout 6h  ./pnd " + read_dir + "out." + filename + " " + alg
         out = shellGetOutput(ss)
         appendToFile(out, out_filename)
