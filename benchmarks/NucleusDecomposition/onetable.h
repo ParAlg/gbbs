@@ -183,7 +183,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
-              key |= static_cast<uintE(base[i]);
+              key |= static_cast<uintE>(base[i]);
             }
           }
           auto index = table.find_index(key);
