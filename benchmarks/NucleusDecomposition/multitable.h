@@ -188,10 +188,11 @@ namespace multitable {
           pbbs::fetch_and_add(ct, (long)1);
         };
         Y key = 0;
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
         for (int i = curr_idx; i < static_cast<int>(k)+1; ++i) {
           if (bitmask[i]) {
             key = key << nd_global_shift_factor;
-            key |= static_cast<int>(base[i]);
+            key |= (base[i] & mask);
           }
         }
         end_table.insert_f(std::make_tuple(key, (long) 1), add_f);
@@ -228,10 +229,11 @@ namespace multitable {
       int r, int k, std::string& bitmask) {
       if (lvl == max_lvl) {
         Y key = 0;
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
         for (int i = curr_idx; i < static_cast<int>(k)+1; ++i) {
           if (bitmask[i]) {
             key = key << nd_global_shift_factor;
-            key |= static_cast<int>(base[i]);
+            key |= (base[i] & mask);
           }
         }
         return end_table.find_index(key); // end_table.table + 
@@ -252,9 +254,10 @@ namespace multitable {
     Y extract_indices_check(uintE* base, int curr_idx, int r) {
       if (lvl == max_lvl) {
         Y key = 0;
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
         for (int i = curr_idx; i < static_cast<int>(r)+1; ++i) {
           key = key << nd_global_shift_factor;
-          key |= static_cast<int>(base[i]);
+          key |= (base[i] & mask);
         }
         return end_table.find_index(key);
       }
@@ -310,8 +313,8 @@ namespace multitable {
         auto vert = std::get<0>(end_table.table[index]); //end_space[index]
         // TOOD: make sure this calc is correct
         for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
-          uintE mask = (1UL << nd_global_shift_factor) - 1;
-          uintE extract = (int) vert;// & mask; // vert & mask
+          unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+          uintE extract = (uintE) (vert & mask); // vert & mask
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);
           vert = vert >> nd_global_shift_factor;

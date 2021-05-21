@@ -183,6 +183,7 @@ namespace twotable {
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 
         do {
           bool use_vtx = false;
@@ -195,7 +196,7 @@ namespace twotable {
                 vtx = base[i];
               } else {
                 key = key << shift_factor;
-                key |= static_cast<int>(base[i]);
+                key |= (base[i] & mask);
               }
             }
           }
@@ -321,13 +322,14 @@ namespace twotable {
         bool use_vtx = false;
         uintE vtx = 0;
         Y key = 0;
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
         for (int i = 0; i < static_cast<int>(r)+1; ++i) {
           if (!use_vtx) {
             use_vtx = true;
             vtx = base[i];
           } else {
             key = key << shift_factor;
-            key |= static_cast<int>(base[i]);
+            key |= (base[i] & mask);
           }
         }
         EndTableY* end_table = top_table.arr[vtx];
@@ -350,6 +352,7 @@ namespace twotable {
         std::vector<size_t> indices;
         size_t num_active = 0;
         bool use_func = true;
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -364,7 +367,7 @@ namespace twotable {
                 vtx = base[i];
               } else {
                 key = key << shift_factor;
-                key |= static_cast<int>(base[i]);
+                key |= (base[i] & mask);
               }
             }
           }
@@ -411,8 +414,8 @@ namespace twotable {
           vert = std::get<0>(space[index]);
         }
         for (int j = 0; j < rr - 1; ++j) {
-          uintE mask = (1UL << shift_factor) - 1;
-          uintE extract = (int) vert; // & mask; // vert & mask
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+          uintE extract = (uintE) (vert & mask); // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
             std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
           }*/

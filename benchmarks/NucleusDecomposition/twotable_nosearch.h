@@ -216,6 +216,7 @@ namespace twotable_nosearch {
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 
         do {
           bool use_vtx = false;
@@ -228,7 +229,7 @@ namespace twotable_nosearch {
                 vtx = base[i];
               } else {
                 key = key << shift_factor;
-                key |= static_cast<int>(base[i]);
+                key |= (base[i] & mask);
               }
             }
           }
@@ -311,13 +312,14 @@ namespace twotable_nosearch {
         bool use_vtx = false;
         uintE vtx = 0;
         Y key = 0;
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
         for (int i = 0; i < static_cast<int>(r)+1; ++i) {
           if (!use_vtx) {
             use_vtx = true;
             vtx = base[i];
           } else {
             key = key << shift_factor;
-            key |= static_cast<int>(base[i]);
+            key |= (base[i] & mask);
           }
         }
         EndTableY* end_table = top_table.arr[vtx];
@@ -342,6 +344,7 @@ namespace twotable_nosearch {
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
         do {
           bool use_vtx = false;
           uintE vtx = 0;
@@ -353,7 +356,7 @@ namespace twotable_nosearch {
                 vtx = base[i];
               } else {
                 key = key << shift_factor;
-                key |= static_cast<int>(base[i]);
+                key |= (base[i] & mask);
               }
             }
           }
@@ -390,16 +393,16 @@ namespace twotable_nosearch {
 
         assert(v < nx);
 
-        uintE v2 = get_top_index(index); 
+        /*uintE v2 = get_top_index(index); 
         if (v != v2) {
           std::cout << "v: " << v << ", v2: " << v2 << std::endl; fflush(stdout);
         }
-        assert(v == v2);
+        assert(v == v2);*/
         base[0] = v;
         vert = std::get<0>(space[index]);
         for (int j = 0; j < rr - 1; ++j) {
-          uintE mask = (1UL << shift_factor) - 1;
-          uintE extract = (int) vert; // & mask; // vert & mask
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+          uintE extract = (uintE) (vert & mask); // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
             std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
           }*/
