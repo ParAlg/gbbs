@@ -81,7 +81,7 @@ namespace onetable {
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
-              key |= static_cast<int>(base[i]);
+              key |= static_cast<uintE>(base[i]);
             }
           }
           table.insert_f(std::make_tuple(key, (long) 1), add_f);
@@ -153,7 +153,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         Y key = 0;
         for (int i = 0; i < static_cast<int>(r)+1; ++i) {
           key = key << shift_factor;
-          key |= static_cast<int>(base[i]);
+          key |= static_cast<uintE>(base[i]);
         }
         auto index = table.find_index(key);
         assert(index < table.m);
@@ -183,7 +183,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << shift_factor;
-              key |= static_cast<int>(base[i]);
+              key |= static_cast<uintE(base[i]);
             }
           }
           auto index = table.find_index(key);
