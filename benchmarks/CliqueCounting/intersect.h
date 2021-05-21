@@ -95,7 +95,7 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2, class FF, class FG>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r,
-    FF& g_vert_map, FG& inverse_g_vert_map) {
+    FF& inverse_g_vert_map, FG& g_vert_map) {
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
