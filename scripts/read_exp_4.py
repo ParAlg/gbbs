@@ -14,9 +14,9 @@ def main():
   #is_dynamic = [True, False, False]
   #files = ["dblp_edges", "livejournal_edges"]
   program_pres = ["plds"]
-  pres = "twitter"
+  pres = "youtube"
   #empty = "empty_h"
-  num_rounds = 2
+  num_rounds = 3
   e = 0.4
   d = 3
   batch_sizes = [1000000]#[10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]

@@ -19,10 +19,10 @@ def main():
   num_rounds = 3
   e = 0.4
   d = 3
-  batch_sizes = [10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]
+  batch_sizes = [100, 1000, 10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   #read_dir = "/home/jeshi/dynamic_graph/"
-  write_dir = "/home/qliu19/optimized_out/"
+  write_dir = "/home/qliu19/exp-2/"
   actual_batch_size = 10000
   #for b_idx, b in enumerate(batch_sizes):
   for p_idx, p in enumerate(program_pres):

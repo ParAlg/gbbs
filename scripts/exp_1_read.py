@@ -14,15 +14,15 @@ def main():
   #is_dynamic = [True, False, False]
   #files = ["dblp_edges", "livejournal_edges"]
   program_pres = ["plds"]
-  pres = "livejournal"
+  pres = "dblp"
   #empty = "empty_h"
   num_rounds = 3
   e = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   d = [3, 6, 12, 24, 48, 96]
-  batch_sizes = [1000000] #[1000, 10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]
+  batch_sizes = [100000] #[1000, 10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   #read_dir = "/home/jeshi/dynamic_graph/"
-  write_dir = "/home/qliu19/exp-1/"
+  write_dir = "/home/qliu19/exp-1-delete/"
   actual_batch_size = 10000
   #for b_idx, b in enumerate(batch_sizes):
   for p_idx, p in enumerate(program_pres):

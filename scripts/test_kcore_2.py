@@ -34,8 +34,8 @@ def main():
   #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
   program_pres = ["plds"] #["lds", "kcore", "ekcore"]
   is_dynamic = [True]
-  files = ["friendster_insertion_edges"] #["orkut_edges", "twitter_edges"]
-  pres = ["friendster"] #["orkut-single-thread", "twitter-single-thread"]
+  files = ["youtube_insertion_edges", "orkut_insertion_edges"] #["orkut_edges", "twitter_edges"]
+  pres = ["youtube", "orkut"] #["orkut-single-thread", "twitter-single-thread"]
   empty = "empty_h"
   stats = ""
   epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]

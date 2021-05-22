@@ -40,17 +40,17 @@ def main():
   programs = ["EdgeOrientation/ParallelLDS/LDS"] #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
   program_pres = ["plds"] #["lds", "kcore", "ekcore"]
   is_dynamic = [True]
-  files = ["livejournal_insertion_edges"] #["youtube_deletion_edges","orkut_deletion_edges"]
+  files = ["livejournal_deletion_edges"] #["youtube_deletion_edges","orkut_deletion_edges"]
   init_files = ["livejournal_insertion_edges"] #["youtube_insertion_edges", "orkut_insertion_edges"]#["livejournal_insertion_edges", "orkut_insertion_edges"]#["dblp_insertion_edges", "livejournal_insertion_edges"]
   pres = ["livejournal"] #["youtube_new", "orkut_new"]#["livejournal_1", "orkut_1"]#["dblp","livejournal"]
   empty = "empty_h"
-  stats = ""
-  epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
-  deltas = [3] #[3, 6, 12, 24, 48, 96]
-  batch_sizes = [1000]#, 1000, 10000, 100000, 1000000, 10000000]
+  stats = "-stats"
+  epss = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+  deltas = [3, 6, 12, 24, 48, 96]
+  batch_sizes = [1000000]#, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 30, 60]
   read_dir = "/home/qliu19/dynamic_graph/"
-  write_dir = "/home/qliu19/optimized_out/"
+  write_dir = "/home/qliu19/exp-1-delete/"
   for file_idx, filename in enumerate(files):
     num_lines = sum(1 for line in open(read_dir + filename))
     for program_idx, program in enumerate(programs):
@@ -58,7 +58,7 @@ def main():
         for d in deltas:
           for b in batch_sizes:
             for nw in num_workers:
-              num_rounds = 4
+              num_rounds = 3
               time = 0
               out_filename = write_dir + program_pres[program_idx] + "_" + pres[file_idx] + "_" + str(e) + "_" + str(d) + "_" + str(b) + "_" + str(nw) + ".out"
               batch_commands = []
