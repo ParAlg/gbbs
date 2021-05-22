@@ -41,6 +41,7 @@ double LDS_runner(Graph& G, commandLine P) {
   long batch_size = P.getOptionLongValue("-b", 1);
   bool compare_exact = P.getOption("-stats");
   bool optimized_insertion = P.getOption("-ins-opt");
+  bool get_size = P.getOption("-size");
 
   // Options for the approximation algorithm
   double eps = P.getOptionDoubleValue("-eps", 3);
@@ -66,7 +67,7 @@ double LDS_runner(Graph& G, commandLine P) {
 
   // Run LDS
   timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion, offset);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion, offset, get_size);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
