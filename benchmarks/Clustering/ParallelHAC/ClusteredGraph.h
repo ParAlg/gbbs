@@ -53,6 +53,13 @@ struct clustered_graph {
 
     clustered_vertex() {}
 
+
+    clustered_vertex(uintE vtx_id, Graph_vertex& vertex, const Weights& weights, edge* edges) {
+      auto cluster_size = vertex.out_degree();
+      auto combine_w = [&] (W l, W r) { return l; };
+      neighbors = neighbor_map(edges, edges + cluster_size, combine_w);
+    }
+
     clustered_vertex(uintE vtx_id, Graph_vertex& vertex, const Weights& weights) {
       auto cluster_size = vertex.out_degree();
 
@@ -65,7 +72,6 @@ struct clustered_graph {
 
       vertex.out_neighbors().map_with_index(map_f);
 
-      neighbors = neighbor_map(edges);
       auto combine_w = [&] (W l, W r) { return l; };
       neighbors = neighbor_map(edges, combine_w);
     }
@@ -159,11 +165,27 @@ struct clustered_graph {
     clusters = sequence<clustered_vertex>(n);
     dendrogram = sequence<std::pair<uintE, W>>(2*n - 1, std::make_pair(UINT_E_MAX, W()));
 
+    neighbor_map::reserve(G.m);
+
+    auto edges = sequence<edge>::uninitialized(G.m);
+    auto offsets = sequence<size_t>::from_function(G.n, [&] (size_t i) {
+      return G.get_vertex(i).out_degree();
+    });
+    pbbslib::scan_inplace(make_slice(offsets));
+    parallel_for(0, n, [&] (size_t i) {
+      size_t off = offsets[i];
+      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t j) {
+        edges[off + j] = {v, wgh};
+      };
+      G.get_vertex(i).out_neighbors().map_with_index(map_f);
+    });
+
     parallel_for(0, n, [&] (size_t i) {
       auto orig = G.get_vertex(i);
-      clusters[i] = clustered_vertex(i, orig, weights);
+      size_t off = offsets[i];
+      clusters[i] = clustered_vertex(i, orig, weights, edges.begin() + off);
     }, 1);
-    debug(std::cout << "Built all vertices" << std::endl;);
+    std::cout << "Built all vertices" << std::endl;
   }
 
 };

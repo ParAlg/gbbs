@@ -18,8 +18,8 @@ cc_library(
 )
 
 cc_library(
-  name = "HAC_configuration",
-  hdrs = ["HAC_configuration.h"],
+    name = "HACConfiguration",
+  hdrs = ["HACConfiguration.h"],
   deps = [
   "//gbbs:macros",
   ]
@@ -30,7 +30,7 @@ cc_binary(
   srcs = ["ParallelHAC.cc"],
   deps = [
   ":ParallelHAC",
-  ":HAC_configuration",
+  ":HACConfiguration",
   ]
 )
 

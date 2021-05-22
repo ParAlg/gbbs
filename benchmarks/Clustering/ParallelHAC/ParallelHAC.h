@@ -195,6 +195,79 @@ void ProcessEdgesComplete(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, 
 }
 
 
+
+template <class ClusteredGraph, class W>
+void ProcessEdgesUnweightedAverage(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges,
+                                   sequence<size_t>& Colors, parlay::random& rnd) {
+  using edge = std::tuple<uintE, uintE, W>;
+  auto V = sequence<vtx_status>::uninitialized(CG.n);
+  auto edges_2 = sequence<edge>::uninitialized(edges.size());
+
+  // Initialize Colors for vertices active in this round.
+  auto UpdateColors = [&] () {
+    auto latches = sequence<bool>(CG.n, false);
+    auto gen_rand = [&] (const uintE& u) {
+      // test and set
+      if (!latches[u] && pbbslib::atomic_compare_and_swap(&latches[u], false, true)) {
+        Colors[u] = rnd.ith_rand(u);  // TODO: make sure to update rnd outside.
+      }
+    };
+    parallel_for(0, edges.size(), [&] (size_t i) {
+      auto [u, v, wgh] = edges[i];
+      gen_rand(u); gen_rand(v);
+    });
+  };
+  UpdateColors();
+
+  size_t phase = 0;
+  constexpr size_t kPhaseMask = 63;
+
+  auto GetColor = [&] (const uintE& u) -> bool {
+    auto bit = phase & kPhaseMask;
+    auto color = Colors[u];
+    return color & (1 << bit);
+  };
+
+  std::cout << "Edges.size = " << edges.size() << std::endl;
+
+  // Vertices active in this round have non-zero number of edges with weights
+  // that are sufficiently large.
+
+  // Color vertices red and blue.
+
+//  while (edges.size() > 0) {
+//
+//
+//  }
+
+//  // 1. Compute the set of vertices that are active (incident to any edges).
+//  //    This set shrinks over the course of this algorithm.
+//  auto BoolSeq = sequence<bool>(CG.n, false);
+//  parallel_for(0, edges.size(), [&] (size_t i) {
+//    auto [u, v, wgh] = edges[i];
+//    assert(u < CG.n);
+//    assert(v < CG.n);
+//    if (!BoolSeq[u]) BoolSeq[u] = true;
+//    if (!BoolSeq[v]) BoolSeq[v] = true;
+//  });
+//  auto I = pack_index(BoolSeq);
+//
+//  // 2. Select red and blue vertices.
+//  // TODO: use a better source of randomness (fresh per-round).
+//  auto is_red = pbbslib::make_delayed<bool>(I.size(), [&] (size_t i) {
+//    uintE u = I[i];
+//    return (bool)(pbbslib::hash32_3(u) % 2); });
+//  auto Split = parlay::internal::split_two(I, is_red);
+//  auto& S = std::get<0>(Split);
+//  auto R = S.cut(0, std::get<1>(Split));
+//  auto B = S.cut(std::get<1>(Split), S.size());
+//  std::cout << "I size = " << I.size() << " R size = " << R.size() << " B size = " << B.size() << std::endl;
+
+
+}
+
+
+
 template <class Weights,
 // provides get_weight : () -> Weights::weight_type which is the
 // datatype that is stored for each edge incident to a _cluster_. This
@@ -227,12 +300,15 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   double one_plus_eps = 1 + epsilon;
   long rounds = max((size_t)ceil(log(max_weight / min_weight) / log(one_plus_eps)), (size_t)1);
 
+  parlay::random rnd;
+  auto Colors = sequence<size_t>::uninitialized(G.n);
+
   while (rounds > 0) {
-    timer rt; rt.start();
     W lower_threshold = max_weight / one_plus_eps;
 
     std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
 
+    timer rt; rt.start();
     // Map-reduce to figure out the number of edges with weight > threshold.
     auto wgh_degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) {
       // TODO: should only process active clusters
@@ -269,9 +345,11 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     //
     // The stuff above is generic for any linkage, but what comes next is specific
     // to the given linkage function.
-    ProcessEdgesComplete(CG, std::move(edges));
+    //ProcessEdgesComplete(CG, std::move(edges));
+    ProcessEdgesUnweightedAverage(CG, std::move(edges), Colors, rnd);
     rt.next("Process time");
 
+    rnd = rnd.next();
     max_weight /= one_plus_eps;
     rounds--;
   }

@@ -70,6 +70,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.reportTotal("bucket time"););
+  em.del();
   return D;
 }
 

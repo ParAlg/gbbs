@@ -45,8 +45,7 @@ CFLAGS = \
 	$(INTT) \
 	$(INTE) \
 	$(CONCEPTS) \
-	-DAMORTIZEDPD \
-	-DUSEMALLOC
+	-DAMORTIZEDPD
 # Add GCC-specific and Clang-specific flags
 ifeq ($(OS), linux)
   CFLAGS += \
