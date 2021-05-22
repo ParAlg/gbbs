@@ -328,6 +328,31 @@ struct LDS {
   inline uintE group_for_level(uintE level) const {
     return level / levels_per_group;
   }
+
+  size_t get_size() {
+    size_t size = 0;
+    size += sizeof(delta) + sizeof(epsilon) + sizeof(optimized_insertion)
+        + sizeof(levels_per_group) + sizeof(n);
+
+    for (size_t i = 0; i < n; i++) {
+        auto vertex = L[i];
+        size += sizeof(vertex.level);
+        for (size_t j = 0; j < vertex.down.size(); j++) {
+            auto level = vertex.down[j];
+            for (size_t k = 0; k < level.vector.size(); k++)
+                size += sizeof(level.vector[k]);
+            for (const auto& elem: level.set)
+                size += sizeof(elem);
+        }
+
+        auto level = vertex.up;
+        for (size_t k = 0; k < level.vector.size(); k++)
+            size += sizeof(level.vector[k]);
+        for (const auto& elem: level.set)
+            size += sizeof(elem);
+    }
+    return size;
+  }
 };
 
 template <class Graph>
@@ -373,7 +398,7 @@ inline void RunLDS(Graph& G, LDS& layers) {
 
 template <class W>
 inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size,
-  bool compare_exact, LDS& layers, size_t offset) {
+  bool compare_exact, LDS& layers, size_t offset, bool get_size) {
   auto batch = batch_edge_list.edges;
   if (offset != 0) {
     for (size_t i = 0; i < offset; i++) {
@@ -381,7 +406,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size,
       else layers.delete_edge({batch[i].from, batch[i].to});
     }
   }
-  
+
   for (size_t i = offset; i < batch.size(); i += batch_size) {
     timer t; t.start();
     for (size_t j = i; j < std::min(batch.size(), i + batch_size); j++) {
@@ -394,6 +419,10 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size,
     std::cout << "### Batch Num: " <<
       std::min(batch.size(), i + batch_size) - offset << std::endl;
     std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
+    if (get_size) {
+        auto size = layers.get_size();
+        std::cout << "### Size: " << size << std::endl;
+    }
     if (compare_exact) {
       auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list,
         std::min(batch.size(), i + batch_size));
@@ -454,12 +483,12 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size,
 template <class Graph, class W>
 inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list,
   long batch_size, bool compare_exact, double eps, double delta,
-  bool optimized_insertion, size_t offset) {
+  bool optimized_insertion, size_t offset, bool get_size) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
   if (G.n > 0) RunLDS(G, layers);
   if (batch_edge_list.max_vertex > 0)
-    RunLDS(batch_edge_list, batch_size, compare_exact, layers, offset);
+    RunLDS(batch_edge_list, batch_size, compare_exact, layers, offset, get_size);
 }
 
 }  // namespace gbbs
