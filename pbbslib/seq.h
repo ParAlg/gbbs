@@ -262,7 +262,6 @@ struct sequence {
     }
   }
 
- private:
   template <class Seq>
   void copy_here(Seq const& a, size_t an) {
     n = an;
