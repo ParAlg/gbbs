@@ -54,6 +54,14 @@ namespace gbbs {
     k--; r--;
     //timer t2; t2.start();
 
+    if (k == 2) {
+      auto counts = sequence<size_t>(DG.n, [&](size_t i){ return 0; });
+      auto base_f = [&](uintE v1, uintE v2, uintE v3) {
+        table->insert_twothree(v1, v2, v3, r, k);
+      };
+      return CountDirectedBalanced(DG, counts.begin(), base_f);
+    }
+
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
     };

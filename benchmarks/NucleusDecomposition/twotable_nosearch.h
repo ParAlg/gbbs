@@ -203,6 +203,20 @@ namespace twotable_nosearch {
         size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(long);
         std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
+
+      void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
+        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
+          pbbs::fetch_and_add(ct, (long)1);
+        };
+        EndTableY* end_table12 = top_table.arr[std::min(v1, v2)];
+        (end_table12->table).insert_f(std::make_tuple(Y{std::max(v1, v2)}, (long) 1), add_f);
+
+        EndTableY* end_table13 = top_table.arr[std::min(v1, v3)];
+        (end_table13->table).insert_f(std::make_tuple(Y{std::max(v1, v3)}, (long) 1), add_f);
+
+        EndTableY* end_table23 = top_table.arr[std::min(v2, v3)];
+        (end_table23->table).insert_f(std::make_tuple(Y{std::max(v2, v3)}, (long) 1), add_f);
+      }
   
       void insert(sequence<uintE>& base2, int r, int k) {
         auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
@@ -246,13 +260,13 @@ namespace twotable_nosearch {
           assert(vtest1 == vtx);*/
 
           //EndTableY* end_table2 = top_table.arr[vtx];
-          auto prefix = top_table_sizes[vtx];
+          //auto prefix = top_table_sizes[vtx];
           /*if (end_table != nullptr) {
             assert(end_table->vtx == vtx);
             assert((end_table->table).m + 1 == top_table_sizes[vtx + 1] - top_table_sizes[vtx]);
             assert((end_table->table).table == space + prefix);
           }*/
-          auto index = (end_table->table).find_index(key);
+          //auto index = (end_table->table).find_index(key);
           /*uintE vtest = get_mtable<Y>(index + prefix, space);
           assert(vtest == vtx);*/
 

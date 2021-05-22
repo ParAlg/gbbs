@@ -548,6 +548,13 @@ namespace multitable {
         mtable.insert(base, r, k);
       }
 
+      void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
+        uintE base[3];
+        base[0] = v1; base[1] = v2; base[2] = v3;
+        std::sort(base, base + k + 1, sort_func);
+        mtable.insert(base, r, k);
+      }
+
       std::size_t return_total() { return mtable.total_size; }
 
       long get_count(std::size_t index) {
