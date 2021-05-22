@@ -124,18 +124,18 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         };
         unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 
-        Y key12 = std::min(v1, v2);
-        key12 << shift_factor;
+        Y key12 = std::min(v1, v2) & mask;
+        key12  = key12 << shift_factor;
         key12 |= (std::max(v1, v2) & mask);
         table.insert_f(std::make_tuple(key12, (long) 1), add_f);
 
-        Y key13 = std::min(v1, v3);
-        key13 << shift_factor;
+        Y key13 = std::min(v1, v3) & mask;
+        key13 = key13 << shift_factor;
         key13 |= (std::max(v1, v3) & mask);
         table.insert_f(std::make_tuple(key13, (long) 1), add_f);
 
-        Y key23 = std::min(v2, v3);
-        key23 << shift_factor;
+        Y key23 = std::min(v2, v3) & mask;
+        key23 = key23 << shift_factor;
         key23 |= (std::max(v2, v3) & mask);
         table.insert_f(std::make_tuple(key23, (long) 1), add_f);
       }
