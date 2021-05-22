@@ -564,9 +564,38 @@ namespace multitable_nosearch {
       template<class HH, class HG, class I>
       void extract_indices_twothree(uintE v1, uintE v2, uintE v3, HH is_active, 
         HG is_inactive, I func, int r, int k) {
-          uintE base[3];
-          base[0] = v1; base[1] = v2; base[2] = v3;
-          extract_indices(base, is_active, is_inactive, func, r, k); 
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+        size_t index13 = 0;
+        size_t index23 = 0;
+        size_t num_active = 1;
+        // Level 0
+        uintE min13 = sort_func(v1, v3) ? v1 : v3;
+        uintE max13 = sort_func(v1, v3) ? v3 : v1;
+        auto next_mtable_index13 = mtable.mtable.find_index(min13);
+        auto next13 = std::get<1>(mtable.mtable.table[next_mtable_index13]);
+        index13 += mtable.table_sizes[next_mtable_index13];
+
+        // Level 1
+        Y key13 = max13 & mask;
+        index13 += next13->end_table.find_index(key13);
+        if (is_inactive(index13)) return;
+
+        // Level 0
+        uintE min23 = sort_func(v2, v3) ? v2 : v3;
+        uintE max23 = sort_func(v2, v3) ? v3 : v2;
+        auto next_mtable_index23 = mtable.mtable.find_index(min23);
+        auto next23 = std::get<1>(mtable.mtable.table[next_mtable_index23]);
+        index23 += mtable.table_sizes[next_mtable_index23];
+
+        // Level 1
+        Y key23 = max23 & mask;
+        index23 += next23->end_table.find_index(key23);
+        if (is_inactive(index23)) return;
+
+        if (is_active(index13)) num_active++;
+        if (is_active(index23)) num_active++;
+        if (!is_active(index13)) func(index13, 1.0 / (double) num_active);
+        if (!is_active(index23)) func(index23, 1.0 / (double) num_active);
       }
 
       //Fill base[k] ... base[k-r+1] and base[0]

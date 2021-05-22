@@ -117,16 +117,17 @@ class list_buffer {
         buffer = 1024;
         int buffer2 = 1024;
         list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
-        std::cout << "list size: " << list.size() << std::endl;
         starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
+        std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(size_t) * list.size() << std::endl;
         next = num_workers2 * buffer2;
         to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
       } else if (efficient == 0) {
         list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
-        std::cout << "list size: " << list.size() << std::endl;
+        std::cout << "list size: " << sizeof(size_t) * list.size() << std::endl;
         next = 0;
       } else {
         source_table = pbbslib::make_sparse_table<size_t, uintE>(s, std::make_tuple(std::numeric_limits<size_t>::max(), (uintE)0), std::hash<size_t>());
+        std::cout << "list size: " << sizeof(std::tuple<size_t, uintE>) * source_table.m << std::endl;
         use_size = s;
       }
     }

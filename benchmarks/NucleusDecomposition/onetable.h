@@ -118,6 +118,28 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
       }
 
+      void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
+        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
+          pbbs::fetch_and_add(ct, (long)1);
+        };
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+
+        Y key12 = std::min(v1, v2);
+        key12 << shift_factor;
+        key12 |= (std::max(v1, v2) & mask);
+        table.insert_f(std::make_tuple(key12, (long) 1), add_f);
+
+        Y key13 = std::min(v1, v3);
+        key13 << shift_factor;
+        key13 |= (std::max(v1, v3) & mask);
+        table.insert_f(std::make_tuple(key13, (long) 1), add_f);
+
+        Y key23 = std::min(v2, v3);
+        key23 << shift_factor;
+        key23 |= (std::max(v2, v3) & mask);
+        table.insert_f(std::make_tuple(key23, (long) 1), add_f);
+      }
+
       std::size_t return_total() {return table.m;}
       long get_count(std::size_t i) {
         if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
