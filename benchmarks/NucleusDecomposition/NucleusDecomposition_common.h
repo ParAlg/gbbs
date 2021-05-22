@@ -67,6 +67,20 @@ namespace gbbs {
     return pbbslib::reduce_add(tots);
   }
 
+unsigned nChoosek( unsigned n, unsigned k )
+{
+    if (k > n) return 0;
+    if (k * 2 > n) k = n-k;
+    if (k == 0) return 1;
+
+    int result = n;
+    for( int i = 2; i <= k; ++i ) {
+        result *= (n-i+1);
+        result /= i;
+    }
+    return result;
+}
+
 class list_buffer {
   public:
     int buffer;
@@ -76,11 +90,17 @@ class list_buffer {
     size_t next;
     size_t num_workers2;
     size_t ss;
-    bool efficient = true;
+    size_t efficient = 1;
 
-    list_buffer(size_t s, bool _efficient = true){
+    // for hash
+    using STable = pbbslib::sparse_table<size_t, uintE, std::hash<size_t>>;
+    STable source_table;
+    size_t use_size;
+    STable use_table;
+
+    list_buffer(size_t s, size_t _efficient = 1){
       efficient = _efficient;
-      if (efficient) {
+      if (efficient == 1) {
         ss = s;
         num_workers2 = num_workers();
         buffer = 1024;
@@ -90,14 +110,31 @@ class list_buffer {
         starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
         next = num_workers2 * buffer2;
         to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
-      } else {
+      } else if (efficient == 0) {
         list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
         std::cout << "list size: " << list.size() << std::endl;
         next = 0;
+      } else {
+        source_table = pbbslib::make_sparse_table<size_t, uintE>(s, std::make_tuple(std::numeric_limits<size_t>::max(), (uintE)0), std::hash<size_t>());
+        use_size = s;
       }
     }
+
+    void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
+      if (efficient > 1) {
+        use_size = num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt;
+        if (use_size > ss) use_size = ss;
+        size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
+        // (size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
+        use_table = STable(space_required,
+          std::make_tuple(std::numeric_limits<size_t>::max(), (uintE)0),
+          std::hash<size_t>(),
+          source_table.table, false);
+      }
+    }
+
     void add(size_t index) {
-      if (efficient) {
+      if (efficient == 1) {
         size_t worker = worker_id();
         list[starts[worker]] = index;
         starts[worker]++;
@@ -105,15 +142,17 @@ class list_buffer {
           size_t use_next = pbbs::fetch_and_add(&next, buffer);
           starts[worker] = use_next;
         }
-      } else {
+      } else if (efficient == 0) {
         size_t use_next = pbbs::fetch_and_add(&next, 1);
         list[use_next] = index;
+      } else {
+        use_table.insert(std::make_tuple(index, uintE{1}));
       }
     }
 
     template <class I>
     size_t filter(I& update_changed, sequence<double>& per_processor_counts) {
-      if (efficient) {
+      if (efficient == 1) {
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
         for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
@@ -134,18 +173,24 @@ class list_buffer {
         }
       });
       return next;
-      } else {
+      } else if (efficient == 0) {
         parallel_for(0, next, [&](size_t worker) {
           assert(list[worker] != UINT_E_MAX);
           assert(per_processor_counts[list[worker]] != 0);
           update_changed(per_processor_counts, worker, list[worker]);
         });
         return next;
+      } else {
+        auto entries = use_table.entries();
+        parallel_for(0, entries.size(), [&](size_t i) {
+          update_changed(per_processor_counts, i, std::get<0>(entries[i]));
+        });
+        return entries.size();
       }
     }
 
     void reset() {
-      if (efficient) {
+      if (efficient == 1) {
       parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
       });
@@ -153,8 +198,10 @@ class list_buffer {
         list[j] = UINT_E_MAX;
       });*/
       next = num_workers2 * buffer;
-      } else{
+      } else if (efficient == 0) {
         next = 0;
+      } else {
+        use_table.clear();
       }
     }
 };
@@ -332,7 +379,7 @@ t_update_d.stop();
 
 template <typename bucket_t, class Graph, class Graph2, class T>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k, 
-  T* cliques, sequence<uintE> &rank, bool efficient, bool relabel, 
+  T* cliques, sequence<uintE> &rank, size_t efficient, bool relabel, 
   size_t num_buckets=16) {
   sequence<uintE> inverse_rank;
   if (relabel) {
@@ -433,6 +480,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         ppc[v] = 0;
       };
     t_count.start();
+    count_idxs.resize(active_size, k, r, cur_bkt);
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,

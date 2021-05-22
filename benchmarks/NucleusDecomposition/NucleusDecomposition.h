@@ -93,7 +93,7 @@ inline sequence<size_t> NucleusDecompositionVerificationRunner(Graph& GA, Direct
 template <class Graph, class DirectedGraph, class Table>
 inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   size_t r, size_t s, Table& table, 
-  size_t max_deg, sequence<uintE>& rank, bool efficient, bool relabel) {
+  size_t max_deg, sequence<uintE>& rank, size_t efficient, bool relabel) {
 
   //std::cout << "Start count" << std::endl;
   timer t; t.start();
@@ -130,7 +130,7 @@ inline sequence<size_t> runner_verify(Graph& GA, Graph2& DG, size_t r, size_t s,
 template <class T, class H, class Graph, class Graph2>
 inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
-  bool efficient = true) {
+  size_t efficient = 1) {
   timer t; 
   sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
@@ -192,7 +192,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
 
 template <class Graph>
 inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
-  bool relabel, bool contiguous_space, bool verify, bool efficient) {
+  bool relabel, bool contiguous_space, bool verify, size_t efficient) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
 

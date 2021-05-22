@@ -125,7 +125,7 @@ namespace multitable_nosearch {
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
-              tbl->total_size = 1 + ((size_t)1 << pbbslib::log2_up((size_t)(1.5 * tbl->total_size) + 1));
+              tbl->total_size = 1 + ((size_t)1 << pbbslib::log2_up((size_t)(1.1 * tbl->total_size) + 1));
               table_sizes[i] = tbl->total_size;
             }
           });
@@ -171,7 +171,7 @@ namespace multitable_nosearch {
         uintE x = max_val & ~(1UL << (max_bit - 1));
 #endif*/
         mtable = NextMTable(
-          count * 1.5,
+          count * 1.1,
           std::make_tuple<uintE, MTableY*>(uintE{max_val}, static_cast<MTableY*>(nullptr)),
           std::hash<uintE>()
         );
