@@ -127,37 +127,6 @@ struct clustered_graph {
     return ret;
   }
 
-  uintE unite(uintE a, uintE b) {
-    // Identify smaller/larger clusters (will merge smaller -> larger).
-    uintE d_a = clusters[a].size();
-    uintE d_b = clusters[b].size();
-    uintE smaller, larger;
-    if (d_a < d_b) {
-      smaller = a; larger = b;
-    } else {
-      larger = a; smaller = b;
-    }
-
-    // Merge smaller and larger's neighbors.
-    auto smaller_ngh = std::move(clusters[smaller].neighbors);
-    auto larger_ngh = std::move(clusters[larger].neighbors);
-
-    // Some sanity asserts, we are merging an edge incident to both after all.
-    assert(smaller_ngh.size() > 0);
-    assert(larger_ngh.size() > 0);
-
-    // Remove larger's id from smaller, and vice versa.
-    auto smaller_keys = neighbor_map::keys(smaller_ngh);
-
-    auto merged = neighbor_map::map_union(
-        std::move(smaller_ngh),
-        std::move(larger_ngh),
-        Weights::linkage);
-    clusters[larger].neighbors = std::move(merged);
-
-    return larger;
-  }
-
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
     n = G.n;
     last_cluster_id = n;

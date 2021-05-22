@@ -29,6 +29,8 @@
 #include "gbbs/gbbs.h"
 #include "ClusteredGraph.h"
 
+#include "UnweightedAverageLinkage.h"
+
 namespace gbbs {
 namespace clustering {
 
@@ -69,177 +71,19 @@ namespace clustering {
 //
 // So the edges would be stored both in the hash table, and in the trees.
 
-struct vtx_status {
-  vtx_status() {}
 
-  bool is_red() { return red; }
-  bool is_blue() { return !red; }
-
-  bool red;
-};
-
-
-template <class ClusteredGraph, class W>
-void ProcessEdgesCompleteOld(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges) {
-  // using edge = std::tuple<uintE, uintE, W>;
-
-  auto V = sequence<vtx_status>::uninitialized(CG.n);
-
-  // Do we need to sort the edges / construct the graph in CSR format?
-  // - need to sample a random neighbor of a vertex (seems weird to implement
-  //   without sorted edges and offsets (CSR))
-  // - can simulate by using writeMin with random hashes (newly generated
-  //   per-round). Do a write
-
-  // 1. Compute the set of vertices that are active (incident to any edges).
-  //    This set shrinks over the course of this algorithm.
-  auto BoolSeq = sequence<bool>(CG.n, false);
-  parallel_for(0, edges.size(), [&] (size_t i) {
-    auto [u, v, wgh] = edges[i];
-    assert(u < CG.n);
-    assert(v < CG.n);
-    if (!BoolSeq[u]) BoolSeq[u] = true;
-    if (!BoolSeq[v]) BoolSeq[v] = true;
-  });
-  auto I = pack_index(BoolSeq);
-
-  // 2. Select red and blue vertices.
-  // TODO: use a better source of randomness (fresh per-round).
-  auto is_red = pbbslib::make_delayed<bool>(I.size(), [&] (size_t i) {
-    uintE u = I[i];
-    return (bool)(pbbslib::hash32_3(u) % 2); });
-  auto Split = parlay::internal::split_two(I, is_red);
-  auto& S = std::get<0>(Split);
-  auto R = S.cut(0, std::get<1>(Split));
-  auto B = S.cut(std::get<1>(Split), S.size());
-  std::cout << "I size = " << I.size() << " R size = " << R.size() << " B size = " << B.size() << std::endl;
-
-  // Blue vertices select a random red neighbor to try and propose to.
-  // Red vertices compute an MIS on their desired neighbors. Conflict edges are
-  // edges with weight < threshold.
-  //
-  // Idea: just pick local minima (if there are conflict edges).
-
-  // Per vertex array stores:
-  // - red/blue identification
-
-
-  // Need to subsequently filter out edges between (red, blue) vertices where a
-  // bad neighbor of the blue vertex merged with the red vertex. How?
-  // Idea (again use local minima): if we have a conflict edge to our chosen red
-  // vertex, and are not the local minima in the conflict nghood, delete the
-  // edge (mark it).
-
-  // After finding all successful merges, filter the edges array. Need to remove
-  // new self-loops, and edges that are deleted due to conflict. Self-loop can
-  // be done using a map.
-  // Keep iterating util edges.size() == 0.
-
-  // Note that the set of active vertices is also shrinking.
-}
-
-template <class ClusteredGraph, class W>
-void ProcessEdgesComplete(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges) {
-  using edge = std::tuple<uintE, uintE, W>;
-  auto V = sequence<vtx_status>::uninitialized(CG.n);
-  auto edges_2 = sequence<edge>::uninitialized(edges.size());
-
-//  while (edges.size() > 0) {
+//template <class ClusteredGraph, class W>
+//void ProcessEdgesCompleteOld(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges) {
+//  // using edge = std::tuple<uintE, uintE, W>;
 //
+//  auto V = sequence<vtx_status>::uninitialized(CG.n);
 //
-//  }
-
-  // 1. Compute the set of vertices that are active (incident to any edges).
-  //    This set shrinks over the course of this algorithm.
-  auto BoolSeq = sequence<bool>(CG.n, false);
-  parallel_for(0, edges.size(), [&] (size_t i) {
-    auto [u, v, wgh] = edges[i];
-    assert(u < CG.n);
-    assert(v < CG.n);
-    if (!BoolSeq[u]) BoolSeq[u] = true;
-    if (!BoolSeq[v]) BoolSeq[v] = true;
-  });
-  auto I = pack_index(BoolSeq);
-
-  // 2. Select red and blue vertices.
-  // TODO: use a better source of randomness (fresh per-round).
-  auto is_red = pbbslib::make_delayed<bool>(I.size(), [&] (size_t i) {
-    uintE u = I[i];
-    return (bool)(pbbslib::hash32_3(u) % 2); });
-  auto Split = parlay::internal::split_two(I, is_red);
-  auto& S = std::get<0>(Split);
-  auto R = S.cut(0, std::get<1>(Split));
-  auto B = S.cut(std::get<1>(Split), S.size());
-  std::cout << "I size = " << I.size() << " R size = " << R.size() << " B size = " << B.size() << std::endl;
-
-  // Blue vertices select a random red neighbor to try and propose to.
-  // Red vertices compute an MIS on their desired neighbors. Conflict edges are
-  // edges with weight < threshold.
-  //
-  // Idea: just pick local minima (if there are conflict edges).
-
-  // Per vertex array stores:
-  // - red/blue identification
-
-
-  // Need to subsequently filter out edges between (red, blue) vertices where a
-  // bad neighbor of the blue vertex merged with the red vertex. How?
-  // Idea (again use local minima): if we have a conflict edge to our chosen red
-  // vertex, and are not the local minima in the conflict nghood, delete the
-  // edge (mark it).
-
-  // After finding all successful merges, filter the edges array. Need to remove
-  // new self-loops, and edges that are deleted due to conflict. Self-loop can
-  // be done using a map.
-  // Keep iterating util edges.size() == 0.
-}
-
-
-
-template <class ClusteredGraph, class W>
-void ProcessEdgesUnweightedAverage(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges,
-                                   sequence<size_t>& Colors, parlay::random& rnd) {
-  using edge = std::tuple<uintE, uintE, W>;
-  auto V = sequence<vtx_status>::uninitialized(CG.n);
-  auto edges_2 = sequence<edge>::uninitialized(edges.size());
-
-  // Initialize Colors for vertices active in this round.
-  auto UpdateColors = [&] () {
-    auto latches = sequence<bool>(CG.n, false);
-    auto gen_rand = [&] (const uintE& u) {
-      // test and set
-      if (!latches[u] && pbbslib::atomic_compare_and_swap(&latches[u], false, true)) {
-        Colors[u] = rnd.ith_rand(u);  // TODO: make sure to update rnd outside.
-      }
-    };
-    parallel_for(0, edges.size(), [&] (size_t i) {
-      auto [u, v, wgh] = edges[i];
-      gen_rand(u); gen_rand(v);
-    });
-  };
-  UpdateColors();
-
-  size_t phase = 0;
-  constexpr size_t kPhaseMask = 63;
-
-  auto GetColor = [&] (const uintE& u) -> bool {
-    auto bit = phase & kPhaseMask;
-    auto color = Colors[u];
-    return color & (1 << bit);
-  };
-
-  std::cout << "Edges.size = " << edges.size() << std::endl;
-
-  // Vertices active in this round have non-zero number of edges with weights
-  // that are sufficiently large.
-
-  // Color vertices red and blue.
-
-//  while (edges.size() > 0) {
+//  // Do we need to sort the edges / construct the graph in CSR format?
+//  // - need to sample a random neighbor of a vertex (seems weird to implement
+//  //   without sorted edges and offsets (CSR))
+//  // - can simulate by using writeMin with random hashes (newly generated
+//  //   per-round). Do a write
 //
-//
-//  }
-
 //  // 1. Compute the set of vertices that are active (incident to any edges).
 //  //    This set shrinks over the course of this algorithm.
 //  auto BoolSeq = sequence<bool>(CG.n, false);
@@ -262,10 +106,86 @@ void ProcessEdgesUnweightedAverage(ClusteredGraph& CG, sequence<std::tuple<uintE
 //  auto R = S.cut(0, std::get<1>(Split));
 //  auto B = S.cut(std::get<1>(Split), S.size());
 //  std::cout << "I size = " << I.size() << " R size = " << R.size() << " B size = " << B.size() << std::endl;
-
-
-}
-
+//
+//  // Blue vertices select a random red neighbor to try and propose to.
+//  // Red vertices compute an MIS on their desired neighbors. Conflict edges are
+//  // edges with weight < threshold.
+//  //
+//  // Idea: just pick local minima (if there are conflict edges).
+//
+//  // Per vertex array stores:
+//  // - red/blue identification
+//
+//
+//  // Need to subsequently filter out edges between (red, blue) vertices where a
+//  // bad neighbor of the blue vertex merged with the red vertex. How?
+//  // Idea (again use local minima): if we have a conflict edge to our chosen red
+//  // vertex, and are not the local minima in the conflict nghood, delete the
+//  // edge (mark it).
+//
+//  // After finding all successful merges, filter the edges array. Need to remove
+//  // new self-loops, and edges that are deleted due to conflict. Self-loop can
+//  // be done using a map.
+//  // Keep iterating util edges.size() == 0.
+//
+//  // Note that the set of active vertices is also shrinking.
+//}
+//
+//template <class ClusteredGraph, class W>
+//void ProcessEdgesComplete(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges) {
+//  using edge = std::tuple<uintE, uintE, W>;
+//  auto V = sequence<vtx_status>::uninitialized(CG.n);
+//  auto edges_2 = sequence<edge>::uninitialized(edges.size());
+//
+////  while (edges.size() > 0) {
+////
+////
+////  }
+//
+//  // 1. Compute the set of vertices that are active (incident to any edges).
+//  //    This set shrinks over the course of this algorithm.
+//  auto BoolSeq = sequence<bool>(CG.n, false);
+//  parallel_for(0, edges.size(), [&] (size_t i) {
+//    auto [u, v, wgh] = edges[i];
+//    assert(u < CG.n);
+//    assert(v < CG.n);
+//    if (!BoolSeq[u]) BoolSeq[u] = true;
+//    if (!BoolSeq[v]) BoolSeq[v] = true;
+//  });
+//  auto I = pack_index(BoolSeq);
+//
+//  // 2. Select red and blue vertices.
+//  // TODO: use a better source of randomness (fresh per-round).
+//  auto is_red = pbbslib::make_delayed<bool>(I.size(), [&] (size_t i) {
+//    uintE u = I[i];
+//    return (bool)(pbbslib::hash32_3(u) % 2); });
+//  auto Split = parlay::internal::split_two(I, is_red);
+//  auto& S = std::get<0>(Split);
+//  auto R = S.cut(0, std::get<1>(Split));
+//  auto B = S.cut(std::get<1>(Split), S.size());
+//  std::cout << "I size = " << I.size() << " R size = " << R.size() << " B size = " << B.size() << std::endl;
+//
+//  // Blue vertices select a random red neighbor to try and propose to.
+//  // Red vertices compute an MIS on their desired neighbors. Conflict edges are
+//  // edges with weight < threshold.
+//  //
+//  // Idea: just pick local minima (if there are conflict edges).
+//
+//  // Per vertex array stores:
+//  // - red/blue identification
+//
+//
+//  // Need to subsequently filter out edges between (red, blue) vertices where a
+//  // bad neighbor of the blue vertex merged with the red vertex. How?
+//  // Idea (again use local minima): if we have a conflict edge to our chosen red
+//  // vertex, and are not the local minima in the conflict nghood, delete the
+//  // edge (mark it).
+//
+//  // After finding all successful merges, filter the edges array. Need to remove
+//  // new self-loops, and edges that are deleted due to conflict. Self-loop can
+//  // be done using a map.
+//  // Keep iterating util edges.size() == 0.
+//}
 
 
 template <class Weights,
@@ -282,15 +202,16 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   auto CG = clustered_graph(G, weights);
   bt.next("build clustered graph time");
 
+  using Sim = double;
   using W = typename Weights::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
 
-  W max_weight = (W)0;
-  W min_weight = std::numeric_limits<W>::max();
+  Sim max_weight = 0;
+  Sim min_weight = std::numeric_limits<Sim>::max();
   parallel_for(0, CG.n, [&] (size_t i) {
     auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      if (wgh > max_weight) { pbbslib::write_max(&max_weight, wgh); }
-      if (wgh < min_weight) { pbbslib::write_min(&min_weight, wgh); }
+      if (wgh.get_weight() > max_weight) { pbbslib::write_max(&max_weight, wgh.get_weight()); }
+      if (wgh.get_weight() < min_weight) { pbbslib::write_min(&min_weight, wgh.get_weight()); }
     };
     CG.clusters[i].iterate(i, f);
   });
@@ -304,17 +225,19 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   auto Colors = sequence<size_t>::uninitialized(G.n);
 
   while (rounds > 0) {
-    W lower_threshold = max_weight / one_plus_eps;
+    Sim lower_threshold = max_weight / one_plus_eps;
+
+//    std::cout << "Round = " << rounds << std::endl;
+//    ProcessGraphUnweightedAverage(CG, lower_threshold, max_weight, rnd);
 
     std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
-
     timer rt; rt.start();
     // Map-reduce to figure out the number of edges with weight > threshold.
     auto wgh_degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) {
       // TODO: should only process active clusters
       auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        assert(wgh <= max_weight);
-        return (wgh >= lower_threshold) && (wgh <= max_weight) && (u < v);   // predicate
+        assert(wgh.get_weight() <= max_weight);
+        return (wgh.get_weight() >= lower_threshold) && (wgh.get_weight() <= max_weight) && (u < v);   // predicate
       };
       return CG.clusters[i].countNeighbors(i, pred_f);
     });
@@ -328,7 +251,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
       if (delta > 0) {
         size_t k = 0;
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          if ((wgh >= lower_threshold) && (u < v)) {  // predicate
+          if ((wgh.get_weight() >= lower_threshold) && (u < v)) {  // predicate
             edges[offset + k] = {u, v, wgh};
             k++;
           }

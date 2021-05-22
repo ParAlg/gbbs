@@ -22,34 +22,9 @@
 // SOFTWARE.
 
 #include "ParallelHAC.h"
+#include "HACConfiguration.h"
 
 namespace gbbs {
-
-
-struct ActualWeight {
-  struct data {};
-  template <class Graph, class WeightType=float>
-  struct GetWeight {
-    using weight_type = typename Graph::weight_type;
-    using underlying_weight_type = typename Graph::weight_type;
-    Graph& G;
-
-    GetWeight(Graph& G) : G(G) {}
-
-    weight_type id() { return 0; }
-
-    static weight_type linkage (const weight_type& lhs, const weight_type& rhs) {
-      return lhs + rhs / static_cast<weight_type>(2);
-    }
-
-    // Convert an underlying weight to an initial edge weight for this edge.
-    weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) const {
-      return wgh;
-    }
-
-  };
-};
-
 
 template <class Graph>
 double HAC_runner(Graph& G, commandLine P) {
@@ -68,7 +43,9 @@ double HAC_runner(Graph& G, commandLine P) {
   timer t; t.start();
   double tt;
 
-  auto Weights = ActualWeight::template GetWeight<Graph>(G);
+  // auto Weights = ActualWeight::template GetWeight<Graph>(G);
+  auto Weights =
+          ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
   clustering::ParallelUPGMA(G, Weights);
 
   return tt;

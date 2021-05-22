@@ -262,6 +262,9 @@ struct AvgLinkWeight {
     : total_weight(total_weight), current_weight(current_weight) {}
   double get_weight() const { return current_weight; }
   void print() const { std::cout << "{" << total_weight << ", " << current_weight << "}" << std::endl; }
+  std::string AsString() const {
+    return std::to_string(get_weight());
+  }
 };
 bool operator< (const AvgLinkWeight& l, const AvgLinkWeight& r) {
   return l.get_weight() < r.get_weight();
