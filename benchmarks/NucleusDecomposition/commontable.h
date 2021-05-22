@@ -47,6 +47,39 @@ namespace gbbs {
     }
   };
 
+  inline uintE middleOfThree(uintE a, uintE b, uintE c){
+    // Checking for b
+    if ((a < b && b < c) || (c < b && b < a)) return b;
+    // Checking for a
+    else if ((b < a && a < c) || (c < a && a < b)) return a;
+    else return c;
+  }
+  
+  template <class F>
+  inline uintE middleOfThree(uintE a, uintE b, uintE c, F& func){
+    // Checking for b
+    if (( func(a, b) && func(b, c)) || (func(c, b) && func(b, a))) return b;
+    // Checking for a
+    else if ((func(b, a) && func(a, c)) || (func(c, a) && func(a, b))) return a;
+    else return c;
+  }
+
+  template <class F>
+  inline uintE minOfThree(uintE a, uintE b, uintE c, F& func){
+    if ( func(a,b) && func(a, c)) return a;
+    if (func(b,a) && func(b,c)) return b;
+    return c;
+  }
+
+  template <class F>
+  inline uintE maxOfThree(uintE a, uintE b, uintE c, F& func){
+    if ( func(b,a) && func(c,a)) return a;
+    if (func(a,b) && func(c,b)) return b;
+    return c;
+  }
+ 
+ 
+
 
   template<class Graph>
   size_t get_max_deg3(Graph& DG) {

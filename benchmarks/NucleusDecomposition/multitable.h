@@ -708,10 +708,189 @@ namespace multitable {
         index23 += next23->end_table.find_index(key23);
         if (is_inactive(index23)) return;
 
-        if (is_active(index13)) num_active++;
-        if (is_active(index23)) num_active++;
-        if (!is_active(index13)) func(index13, 1.0 / (double) num_active);
-        if (!is_active(index23)) func(index23, 1.0 / (double) num_active);
+        bool is_active_13 = is_active(index13);
+        bool is_active_23 = is_active(index23);
+        if (is_active_13 && is_active_23) return;
+        if (is_active_13 || is_active_23) {
+          // Level 0
+        size_t index12 = 0;
+        uintE min12 = sort_func(v1, v2) ? v1 : v2;
+        uintE max12 = sort_func(v1, v2) ? v2 : v1;
+        auto next_mtable_index12 = mtable.mtable.find_index(min12);
+        auto next12 = std::get<1>(mtable.mtable.table[next_mtable_index12]);
+        index12 += mtable.table_sizes[next_mtable_index12];
+
+        // Level 1
+        Y key12 = max12 & mask;
+        index12 += next13->end_table.find_index(key12);
+          if (is_active_13 && index12 < index13) func(index23, 1.0);
+          else if (is_active_23 && index12 < index23) func(index13, 1.0);
+          return;
+        }
+        func(index23, 1.0);
+        func(index13, 1.0);
+      }
+
+
+      template<class HH, class HG, class I>
+      void extract_indices_threefour(uintE v1, uintE v2, uintE v3, uintE v4,
+        HH is_active, HG is_inactive, I func, int r, int k) {
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+        size_t index134 = 0;
+        size_t index234 = 0;
+        size_t index124 = 0;
+        size_t num_active = 1;
+        uintE min134 = minOfThree(v1, v3, v4, sort_func);
+        uintE mid134 = middleOfThree(v1, v3, v4, sort_func);
+        uintE max134 = maxOfThree(v1, v3, v4, sort_func);
+
+        uintE min234 = minOfThree(v2, v3, v4, sort_func);
+        uintE mid234 = middleOfThree(v2, v3, v4, sort_func);
+        uintE max234 = maxOfThree(v2, v3, v4, sort_func);
+
+        uintE min124 = minOfThree(v1, v2, v4, sort_func);
+        uintE mid124 = middleOfThree(v1, v2, v4, sort_func);
+        uintE max124 = maxOfThree(v1, v2, v4, sort_func);
+
+        if (max_lvl == 2) { // three levels
+        // Level 0
+        auto next_mtable_index134 = mtable.mtable.find_index(min134);
+        auto next134 = std::get<1>(mtable.mtable.table[next_mtable_index134]);
+        index134 += mtable.table_sizes[next_mtable_index134];
+        // Level 1
+        auto next_next_mtable_index134 = next134->mtable.find_index(mid134);
+        auto next_next134 = std::get<1>(next134->mtable.table[next_next_mtable_index134]);
+        index134 += next134->table_sizes[next_next_mtable_index134];
+        // Level 2
+        Y key134 = max134 & mask;
+        index134 += next_next134->end_table.find_index(key134);
+        if (is_inactive(index134)) return;
+
+        // Level 0
+        auto next_mtable_index234 = mtable.mtable.find_index(min234);
+        auto next234 = std::get<1>(mtable.mtable.table[next_mtable_index234]);
+        index234 += mtable.table_sizes[next_mtable_index234];
+        // Level 1
+        auto next_next_mtable_index234 = next234->mtable.find_index(mid234);
+        auto next_next234 = std::get<1>(next234->mtable.table[next_next_mtable_index234]);
+        index234 += next234->table_sizes[next_next_mtable_index234];
+        // Level 2
+        Y key234 = max234 & mask;
+        index234 += next_next234->end_table.find_index(key234);
+        if (is_inactive(index234)) return;
+
+        // Level 0
+        auto next_mtable_index124 = mtable.mtable.find_index(min124);
+        auto next124 = std::get<1>(mtable.mtable.table[next_mtable_index124]);
+        index124 += mtable.table_sizes[next_mtable_index124];
+        // Level 1
+        auto next_next_mtable_index124 = next124->mtable.find_index(mid124);
+        auto next_next124 = std::get<1>(next124->mtable.table[next_next_mtable_index124]);
+        index124 += next124->table_sizes[next_next_mtable_index124];
+        // Level 2
+        Y key124 = max124 & mask;
+        index124 += next_next124->end_table.find_index(key124);
+        if (is_inactive(index124)) return;
+
+
+
+        bool is_active_124 = is_active(index124);
+        bool is_active_134 = is_active(index134);
+        bool is_active_234 = is_active(index234);
+        if (is_active_124 && is_active_134 && is_active_234) return;
+        if (is_active_124 || is_active_134 || is_active_234) {
+          uintE min123 = minOfThree(v1, v3, v2, sort_func);
+          uintE mid123 = middleOfThree(v1, v3, v2, sort_func);
+          uintE max123 = maxOfThree(v1, v3, v2, sort_func);
+          size_t index123 = 0;
+          // Level 0
+          auto next_mtable_index123 = mtable.mtable.find_index(min123);
+          auto next123 = std::get<1>(mtable.mtable.table[next_mtable_index123]);
+          index123 += mtable.table_sizes[next_mtable_index123];
+          // Level 1
+          auto next_next_mtable_index123 = next123->mtable.find_index(mid123);
+          auto next_next123 = std::get<1>(next123->mtable.table[next_next_mtable_index123]);
+          index123 += next123->table_sizes[next_next_mtable_index123];
+          // Level 2
+          Y key123 = max123 & mask;
+          index123 += next_next123->end_table.find_index(key123);
+          if (is_active_124 && index123 > index124) return;
+          if (is_active_134 && index123 > index134) return;
+          if (is_active_234 && index123 > index234) return;
+          if (!is_active(index124)) func(index124, 1.0);
+          if (!is_active(index134)) func(index134, 1.0);
+          if (!is_active(index234)) func(index234, 1.0);
+          return;
+        }
+        func(index124, 1.0);
+        func(index134, 1.0);
+        func(index234, 1.0);
+        return;
+        }
+        // max_lvl = 1
+        // Level 0
+        auto next_mtable_index134 = mtable.mtable.find_index(min134);
+        auto next134 = std::get<1>(mtable.mtable.table[next_mtable_index134]);
+        index134 += mtable.table_sizes[next_mtable_index134];
+        // Level 1
+        Y key134 = mid134 & mask;
+        key134 = key134 << nd_global_shift_factor;
+        key134 |= (max134 & mask);
+        index134 += next134->end_table.find_index(key134);
+        if (is_inactive(index134)) return;
+
+        // Level 0
+        auto next_mtable_index234 = mtable.mtable.find_index(min234);
+        auto next234 = std::get<1>(mtable.mtable.table[next_mtable_index234]);
+        index234 += mtable.table_sizes[next_mtable_index234];
+        // Level 1
+        Y key234 = mid234 & mask;
+        key234 = key234 << nd_global_shift_factor;
+        key234 |= (max234 & mask);
+        index234 += next234->end_table.find_index(key234);
+        if (is_inactive(index234)) return;
+
+        // Level 0
+        auto next_mtable_index124 = mtable.mtable.find_index(min124);
+        auto next124 = std::get<1>(mtable.mtable.table[next_mtable_index124]);
+        index124 += mtable.table_sizes[next_mtable_index124];
+        // Level 1
+        Y key124 = mid124 & mask;
+        key124 = key124 << nd_global_shift_factor;
+        key124 |= (max124 & mask);
+        index124 += next124->end_table.find_index(key124);
+        if (is_inactive(index124)) return;
+
+        bool is_active_124 = is_active(index124);
+        bool is_active_134 = is_active(index134);
+        bool is_active_234 = is_active(index234);
+        if (is_active_124 && is_active_134 && is_active_234) return;
+        if (is_active_124 || is_active_134 || is_active_234) {
+          uintE min123 = minOfThree(v1, v3, v2, sort_func);
+          uintE mid123 = middleOfThree(v1, v3, v2, sort_func);
+          uintE max123 = maxOfThree(v1, v3, v2, sort_func);
+          size_t index123 = 0;
+          // Level 0
+          auto next_mtable_index123 = mtable.mtable.find_index(min123);
+          auto next123 = std::get<1>(mtable.mtable.table[next_mtable_index123]);
+          index123 += mtable.table_sizes[next_mtable_index123];
+          // Level 1
+          Y key123 = mid123 & mask;
+          key123 = key123 << nd_global_shift_factor;
+          key123 |= (max123 & mask);
+          index123 += next123->end_table.find_index(key123);
+          if (is_active_124 && index123 > index124) return;
+          if (is_active_134 && index123 > index134) return;
+          if (is_active_234 && index123 > index234) return;
+          if (!is_active(index124)) func(index124, 1.0);
+          if (!is_active(index134)) func(index134, 1.0);
+          if (!is_active(index234)) func(index234, 1.0);
+          return;
+        }
+        func(index124, 1.0);
+        func(index134, 1.0);
+        func(index234, 1.0);
+        return;
       }
 
       //Fill base[k] ... base[k-r+2] and base[0]

@@ -349,7 +349,6 @@ namespace twotable_nosearch {
         HG is_inactive, I func, int r, int k) {
         unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
         size_t num_active = 1;
-        bool use_func = true;
         // Assume v1, v2 is the active edge
         // Need to get indices for v1, v3 and v2, v3
         auto vtx13 = std::min(v1, v3);
@@ -365,12 +364,78 @@ namespace twotable_nosearch {
         auto index23 = top_table_sizes[vtx23] + (end_table23->table).find_index(key23);
         if (is_inactive(index23)) return;
 
-        if (use_func) {
-          if (is_active(index13)) num_active++;
-          if (is_active(index23)) num_active++;
-          if (!is_active(index13)) func(index13, 1.0 / (double) num_active);
-          if (!is_active(index23)) func(index23, 1.0 / (double) num_active);
+        bool is_active_13 = is_active(index13);
+        bool is_active_23 = is_active(index23);
+        if (is_active_13 && is_active_23) return;
+        if (is_active_13 || is_active_23) {
+          auto vtx12 = std::min(v1, v2);
+          Y key12 = (std::max(v1, v2) & mask);
+          EndTableY* end_table12 = top_table.arr[vtx12];
+          auto index12 = top_table_sizes[vtx12] + (end_table12->table).find_index(key12);
+          if (is_active_13 && index12 < index13) func(index23, 1.0);
+          else if (is_active_23 && index12 < index23) func(index13, 1.0);
+          return;
         }
+        func(index23, 1.0);
+        func(index13, 1.0);
+      }
+
+      template<class HH, class HG, class I>
+      void extract_indices_threefour(uintE v1, uintE v2, uintE v3, uintE v4, HH is_active, 
+        HG is_inactive, I func, int r, int k) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        size_t num_active = 1;
+        // Assume v1, v2 is the active edge
+        // Need to get indices for v1, v3 and v2, v3
+        auto vtx124 = std::min({v1, v2, v4});
+        Y key124 = middleOfThree(v1, v2, v4) & mask;
+        key124 = key124 << shift_factor;
+        key124 |= (std::max({v1, v2, v4}) & mask);
+
+        EndTableY* end_table124 = top_table.arr[vtx124];
+        auto index124 = top_table_sizes[vtx124] + (end_table124->table).find_index(key124);
+        if (is_inactive(index124)) return;
+
+        auto vtx134 = std::min({v1, v3, v4});
+        Y key134 = middleOfThree(v1, v3, v4) & mask;
+        key134 = key134 << shift_factor;
+        key134 |= (std::max({v1, v3, v4}) & mask);
+
+        EndTableY* end_table134 = top_table.arr[vtx134];
+        auto index134 = top_table_sizes[vtx134] + (end_table134->table).find_index(key134);
+        if (is_inactive(index134)) return;
+
+        auto vtx234 = std::min({v2, v3, v4});
+        Y key234 = middleOfThree(v2, v3, v4) & mask;
+        key234 = key234 << shift_factor;
+        key234 |= (std::max({v2, v3, v4}) & mask);
+
+        EndTableY* end_table234 = top_table.arr[vtx234];
+        auto index234 = top_table_sizes[vtx234] + (end_table234->table).find_index(key234);
+        if (is_inactive(index234)) return;
+
+        bool is_active_124 = is_active(index124);
+        bool is_active_134 = is_active(index134);
+        bool is_active_234 = is_active(index234);
+        if (is_active_124 && is_active_134 && is_active_234) return;
+        if (is_active_124 || is_active_134 || is_active_234) {
+          auto vtx123 = std::min({v1, v2, v3});
+          Y key123 = middleOfThree(v1, v2, v3) & mask;
+          key123 = key123 << shift_factor;
+          key123 |= (std::max({v1, v2, v3}) & mask);
+          EndTableY* end_table123 = top_table.arr[vtx123];
+          auto index123 = top_table_sizes[vtx123] + (end_table123->table).find_index(key123);
+          if (is_active_124 && index123 > index124) return;
+          if (is_active_134 && index123 > index134) return;
+          if (is_active_234 && index123 > index234) return;
+          if (!is_active(index124)) func(index124, 1.0);
+          if (!is_active(index134)) func(index134, 1.0);
+          if (!is_active(index234)) func(index234, 1.0);
+          return;
+        }
+        func(index124, 1.0);
+        func(index134, 1.0);
+        func(index234, 1.0);
       }
 
       template<class HH, class HG, class I>
