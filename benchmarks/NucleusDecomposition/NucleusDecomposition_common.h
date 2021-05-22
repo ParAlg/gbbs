@@ -83,8 +83,8 @@ class list_buffer {
       if (efficient) {
         ss = s;
         num_workers2 = num_workers();
-        buffer = 64;
-        int buffer2 = 64;
+        buffer = 1024;
+        int buffer2 = 1024;
         list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
         std::cout << "list size: " << list.size() << std::endl;
         starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
@@ -149,9 +149,9 @@ class list_buffer {
       parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
       });
-      parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
+      /*parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
         list[j] = UINT_E_MAX;
-      });
+      });*/
       next = num_workers2 * buffer;
       } else{
         next = 0;
