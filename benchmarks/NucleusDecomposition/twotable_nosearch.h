@@ -331,6 +331,35 @@ namespace twotable_nosearch {
       }
 
       template<class HH, class HG, class I>
+      void extract_indices_twothree(uintE v1, uintE v2, uintE v3, HH is_active, 
+        HG is_inactive, I func, int r, int k) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        size_t num_active = 1;
+        bool use_func = true;
+        // Assume v1, v2 is the active edge
+        // Need to get indices for v1, v3 and v2, v3
+        auto vtx13 = std::min(v1, v3);
+        auto vtx23 = std::min(v2, v3);
+        Y key13 = (std::max(v1, v3) & mask);
+        Y key23 = (std::max(v2, v3) & mask);
+  
+        EndTableY* end_table13 = top_table.arr[vtx13];
+        auto index13 = top_table_sizes[vtx13] + (end_table13->table).find_index(key13);
+        if (is_inactive(index13)) return;
+
+        EndTableY* end_table23 = top_table.arr[vtx23];
+        auto index23 = top_table_sizes[vtx23] + (end_table23->table).find_index(key23);
+        if (is_inactive(index23)) return;
+
+        if (use_func) {
+          if (is_active(index13)) num_active++;
+          if (is_active(index23)) num_active++;
+          if (!is_active(index13)) func(index13, 1.0 / (double) num_active);
+          if (!is_active(index23)) func(index23, 1.0 / (double) num_active);
+        }
+      }
+
+      template<class HH, class HG, class I>
       void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         uintE base[10];
@@ -374,7 +403,7 @@ namespace twotable_nosearch {
 
           indices.push_back(prefix + index);
           if (is_active(prefix + index)) num_active++;
-          if (is_inactive(prefix + index)) use_func = false;
+          if (is_inactive(prefix + index)) return;
           //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 

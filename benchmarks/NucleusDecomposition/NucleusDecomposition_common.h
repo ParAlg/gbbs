@@ -38,6 +38,17 @@
 
 namespace gbbs {
 
+  struct IntersectSpace {
+  // Label each vertex for fast intersect for first recursive level
+  uintE* labels = nullptr;
+
+  IntersectSpace () {}
+
+  void alloc(size_t n) {
+    if (labels == nullptr) labels = (uintE*) calloc(n, sizeof(uintE));
+  }
+  };
+
   template <class Graph, class T>
   inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table) {
     k--; r--;
@@ -256,10 +267,18 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 t1.start();
   // Clique count updates
   //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
-  //if (k - r == 1) {
+  if (k - r == 1) {
     // For each vert from 0 to active_size, intersect + place the intersection
     // in base[1], and then call update_d
     if (k == 2 && r == 1) { // This is (2, 3)
+      auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
+        cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
+          [&](std::size_t index, double val){
+          double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+          if (ct == 0 && val != 0) count_idxs.add(index);
+        }, r, k);
+      };
+
       parallel_for(0, active_size, [&](size_t i){
         auto x = get_active(i);
         std::tuple<uintE, uintE> v1v2 = cliques->extract_clique_two(x, k);
@@ -267,26 +286,32 @@ t1.start();
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2)] : std::get<1>(v1v2);
         auto v_v = G.get_vertex(v);
         auto process_f = [&](uintE a, uintE b, uintE intersect_w){
-          uintE base2[3];
-          //sequence<uintE> base2(k + 1);
-          base2[0] = std::get<0>(v1v2);
-          base2[1] = relabel ? rank[intersect_w] : intersect_w;
-          base2[2] = std::get<1>(v1v2);
-          update_d(base2);
+          uintE v3 = relabel ? rank[intersect_w] : intersect_w;
+          update_d_twothree(std::get<0>(v1v2), std::get<1>(v1v2), v3);
         };
         
         G.get_vertex(u).intersect_f_par(&v_v, u, v, process_f);
 
       });
-    } /*else { // This is not (2, 3)
-      auto init_intersect = [&](uintE* arr){
-        if (arr == nullptr) arr = (uintE*) calloc(G.n, sizeof(uintE));
+    } else { // This is not (2, 3)
+      auto init_intersect = [&](IntersectSpace* arr){
+        arr->alloc(G.n);
       };
-      auto finish_intersect = [&](uintE* arr){ if (arr != nullptr) {free(arr); arr = nullptr;}};
-      parallel_for_alloc<uintE>(init_intersect, finish_intersect, 0, active_size, [&](size_t i, uintE* labels) {
+      auto finish_intersect = [&](IntersectSpace* arr){
+        if (arr != nullptr){
+          if (arr->labels != nullptr) {
+            free(arr->labels);
+            arr->labels = nullptr;
+          }
+          delete arr;
+        }
+      };
+      parallel_for_alloc<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
+        [&](size_t i, IntersectSpace* intersect_space) {
+        auto labels = intersect_space->labels;
         auto x = get_active(i);
-        auto base = sequence<uintE>(k + 1);
-        cliques->extract_clique(x, base.s, G, k);
+        uintE base[10];
+        cliques->extract_clique(x, base, G, k);
         // Sequentially find min deg and swap with 0
         uintE u = relabel ? inverse_rank[base[0]] : base[0];
         auto min_deg = G.get_vertex(u).getOutDegree();
@@ -315,16 +340,16 @@ t1.start();
           uintE v = relabel ? inverse_rank[base[j]] : base[j];
           auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
             uintE actual_ngh = relabel ? rank[ngh] : ngh;
-            if (labels[actual_ngh] == k - j + 1) labels[actual_ngh]++;
+            if (labels[actual_ngh] > 0) labels[actual_ngh]++;
           };
           G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
         }
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          if (labels[actual_ngh] == k - 1) {
+          if (labels[actual_ngh] == k) {
             base[1] = actual_ngh;
-            update_d(base.s);
+            update_d(base);
             labels[actual_ngh] = 0;
           } else if (labels[actual_ngh] != 0) {
             labels[actual_ngh] = 0;
@@ -334,7 +359,7 @@ t1.start();
       },1, true);
     }
 
-  } */else {
+  } else {
 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {

@@ -561,6 +561,14 @@ namespace multitable_nosearch {
         }
       }
 
+      template<class HH, class HG, class I>
+      void extract_indices_twothree(uintE v1, uintE v2, uintE v3, HH is_active, 
+        HG is_inactive, I func, int r, int k) {
+          uintE base[3];
+          base[0] = v1; base[1] = v2; base[2] = v3;
+          extract_indices(base, is_active, is_inactive, func, r, k); 
+      }
+
       //Fill base[k] ... base[k-r+1] and base[0]
       template<class S, class Graph>
       void extract_clique(S index, uintE* base, Graph& G, int k) {

@@ -214,7 +214,10 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
 
           indices.push_back(index);
           if (is_active(index)) num_active++;
-          if (is_inactive(index)) use_func = false;
+          if (is_inactive(index)) {
+            use_func = false;
+            return; //TODO: check that this is ok
+          }
           //func(index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
@@ -224,6 +227,32 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);
           }
+        }
+      }
+
+      template<class HH, class HG, class I>
+      void extract_indices_twothree(uintE v1, uintE v2, uintE v3, HH is_active, 
+        HG is_inactive, I func, int r, int k) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        size_t num_active = 1;
+        bool use_func = true;
+        // Assume v1, v2 is the active edge
+        // Need to get indices for v1, v3 and v2, v3
+        Y key13 = (std::min(v1, v3) & mask);
+        Y key23 = (std::min(v2, v3) & mask);
+        key13 = key13 << shift_factor;
+        key23 = key23 << shift_factor;
+        key13 |= (std::max(v1, v3) & mask);
+        key23 |= (std::max(v2, v3) & mask);
+        auto index13 = table.find_index(key13);
+        if (is_inactive(index13)) return;
+        auto index23 = table.find_index(key23);
+        if (is_inactive(index23)) return;
+        if (use_func) {
+          if (is_active(index13)) num_active++;
+          if (is_active(index23)) num_active++;
+          if (!is_active(index13)) func(index13, 1.0 / (double) num_active);
+          if (!is_active(index23)) func(index23, 1.0 / (double) num_active);
         }
       }
     
