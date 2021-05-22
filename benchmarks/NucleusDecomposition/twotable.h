@@ -312,7 +312,7 @@ namespace twotable {
         );
       }
 
-      Y extract_indices_check(sequence<uintE>& base2, int r) {
+      Y extract_indices_check(uintE* base2, int r) {
         // Size of base2 should be r + 1
         uintE base[10];
         assert(10 > r + 1);
@@ -342,7 +342,7 @@ namespace twotable {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -400,7 +400,7 @@ namespace twotable {
 
       // Given an index, get the clique
       template<class S, class Graph>
-      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+      void extract_clique(S index, uintE* base, Graph& G, int k) {
         Y vert;
         // First, do a binary search for index in prefix
         size_t top_index = get_top_index(index);
@@ -426,6 +426,47 @@ namespace twotable {
           vert = vert >> shift_factor;
         }
       }
+
+    template<class S>
+    std::tuple<uintE, uintE> extract_clique_two(S index, int k) {
+      Y vert;
+        // First, do a binary search for index in prefix
+        size_t top_index = get_top_index(index);
+        if (!contiguous_space) {
+          EndTableY* end_table = top_table.arr[top_index];
+          size_t bottom_index = index - top_table_sizes[top_index];
+          vert = std::get<0>((end_table->table).table[bottom_index]);
+        } else {
+          vert = std::get<0>(space[index]);
+        }
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        uintE extract = (uintE) (vert & mask); // vert & mask
+        uintE v2 = static_cast<uintE>(extract);
+        return std::make_tuple(static_cast<uintE>(top_index), v2);
+    }
+
+    template<class S>
+    std::tuple<uintE, uintE> extract_clique_three(S index, int k) {
+      Y vert;
+        // First, do a binary search for index in prefix
+        size_t top_index = get_top_index(index);
+        if (!contiguous_space) {
+          EndTableY* end_table = top_table.arr[top_index];
+          size_t bottom_index = index - top_table_sizes[top_index];
+          vert = std::get<0>((end_table->table).table[bottom_index]);
+        } else {
+          vert = std::get<0>(space[index]);
+        }
+        uintE v2 = UINT_E_MAX; uintE v3 = UINT_E_MAX;
+        for (int j = 0; j < rr - 1; ++j) {
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+          uintE extract = (uintE) (vert & mask); // vert & mask
+          if (j == 0) v2 = static_cast<uintE>(extract);
+          else v3 = static_cast<uintE>(extract);
+          vert = vert >> shift_factor;
+        }
+        return std::make_tuple(static_cast<uintE>(top_index), v2, v3);
+    }
   };
 
 } // end namespace twotable

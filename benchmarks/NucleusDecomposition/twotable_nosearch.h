@@ -154,7 +154,7 @@ namespace twotable_nosearch {
   
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i){
           auto vtx = std::get<0>(top_table_sizes2[i]);
-          if (i != top_table_sizes2.size() - 1) assert(vtx < std::get<0>(top_table_sizes2[i + 1]));
+          //if (i != top_table_sizes2.size() - 1) assert(vtx < std::get<0>(top_table_sizes2[i + 1]));
           auto upper_size = actual_sizes[i + 1];
           auto size = upper_size - actual_sizes[i];
           EndTableY* end_table = new EndTableY();
@@ -181,12 +181,12 @@ namespace twotable_nosearch {
           top_table_sizes[l] = end_table->table.m;*/
           //***for arr
           top_table.arr[vtx] = end_table;
-          assert(size == 1 + end_table->table.m);
+          //assert(size == 1 + end_table->table.m);
           top_table_sizes[vtx] = size; //1 + end_table->table.m;
           //assert((end_table->table).table == space + actual_sizes[i]);
         });
         total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
-        assert(total == total_top_table_sizes2);
+        //assert(total == total_top_table_sizes2);
         /*for (std::size_t i = 1; i < top_table_sizes.size(); i++) {
           assert(top_table_sizes[i - 1] <= top_table_sizes[i]);
           EndTable* end_table = std::get<1>(top_table.table.table[i - 1]);
@@ -238,23 +238,23 @@ namespace twotable_nosearch {
           //EndTable* end_table = top_table.table.find(vtx, nullptr);
           //***for arr
           EndTableY* end_table = top_table.arr[vtx];
-          assert(end_table != nullptr);
+          //assert(end_table != nullptr);
           (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
 
-          auto index2 = (end_table->table).find_index(key);
+          /*auto index2 = (end_table->table).find_index(key);
           uintE vtest1 = get_mtable<Y>(index2, (end_table->table).table);
-          assert(vtest1 == vtx);
+          assert(vtest1 == vtx);*/
 
           //EndTableY* end_table2 = top_table.arr[vtx];
           auto prefix = top_table_sizes[vtx];
-          if (end_table != nullptr) {
+          /*if (end_table != nullptr) {
             assert(end_table->vtx == vtx);
             assert((end_table->table).m + 1 == top_table_sizes[vtx + 1] - top_table_sizes[vtx]);
             assert((end_table->table).table == space + prefix);
-          }
+          }*/
           auto index = (end_table->table).find_index(key);
-          uintE vtest = get_mtable<Y>(index + prefix, space);
-          assert(vtest == vtx);
+          /*uintE vtest = get_mtable<Y>(index + prefix, space);
+          assert(vtest == vtx);*/
 
 
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
@@ -302,7 +302,7 @@ namespace twotable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), update);
       }
 
-      Y extract_indices_check(sequence<uintE>& base2, int r) {
+      Y extract_indices_check(uintE* base2, int r) {
         // Size of base2 should be r + 1
         uintE base[10];
         assert(10 > r + 1);
@@ -331,7 +331,7 @@ namespace twotable_nosearch {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -389,7 +389,7 @@ namespace twotable_nosearch {
 
       // Given an index, get the clique
       template<class S, class Graph>
-      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+      void extract_clique(S index, uintE* base, Graph& G, int k) {
         Y vert;
         uintE v = get_mtable<Y>(index, space);
 
@@ -408,11 +408,37 @@ namespace twotable_nosearch {
           /*if (static_cast<uintE>(extract) >= G.n) {
             std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
           }*/
-          assert(static_cast<uintE>(extract) < G.n);
+          //assert(static_cast<uintE>(extract) < G.n);
           base[k - j] = static_cast<uintE>(extract);
           vert = vert >> shift_factor;
         }
       }
+
+    template<class S>
+    std::tuple<uintE, uintE> extract_clique_two(S index, int k) {
+      uintE v = get_mtable<Y>(index, space);
+      Y vert = std::get<0>(space[index]);
+      unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+      uintE extract = (uintE) (vert & mask); // vert & mask
+      uintE v2 = static_cast<uintE>(extract);
+      return std::make_tuple(v, v2);
+    }
+
+    template<class S>
+    std::tuple<uintE, uintE, uintE> extract_clique_three(S index, int k) {
+      Y vert;
+      uintE v = get_mtable<Y>(index, space);
+      vert = std::get<0>(space[index]);
+      uintE v2 = UINT_E_MAX; uintE v3 = UINT_E_MAX;
+        for (int j = 0; j < rr - 1; ++j) {
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+          uintE extract = (uintE) (vert & mask); // vert & mask
+          if (j == 0) v2 = static_cast<uintE>(extract);
+          else v3 = static_cast<uintE>(extract);
+          vert = vert >> shift_factor;
+        }
+        return std::make_tuple(v, v2, v3);
+    }
   };
 
 } // end namespace twotable

@@ -41,7 +41,7 @@ namespace gbbs {
   template <class Graph, class T>
   inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table) {
     k--; r--;
-    timer t2; t2.start();
+    //timer t2; t2.start();
 
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
@@ -62,7 +62,7 @@ namespace gbbs {
         } else tots[i] = 0;
     //  finish_induced(induced);
     }, 1, false);
-    double tt2 = t2.stop();
+    //double tt2 = t2.stop();
 
     return pbbslib::reduce_add(tots);
   }
@@ -177,7 +177,9 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank, bool relabel) {
+  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d) {
+  
+  using W = typename Graph::weight_type;
 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {
@@ -191,7 +193,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
   };
-  auto update_d = [&](sequence<uintE>& base){
+
+  auto update_d = [&](uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
@@ -203,10 +206,88 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   // Set up space for clique counting
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-
 t1.start();
   // Clique count updates
   //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
+  //if (k - r == 1) {
+    // For each vert from 0 to active_size, intersect + place the intersection
+    // in base[1], and then call update_d
+    if (k == 2 && r == 1) { // This is (2, 3)
+      parallel_for(0, active_size, [&](size_t i){
+        auto x = get_active(i);
+        std::tuple<uintE, uintE> v1v2 = cliques->extract_clique_two(x, k);
+        uintE u = relabel ? inverse_rank[std::get<0>(v1v2)] : std::get<0>(v1v2);
+        uintE v = relabel ? inverse_rank[std::get<1>(v1v2)] : std::get<1>(v1v2);
+        auto v_v = G.get_vertex(v);
+        auto process_f = [&](uintE a, uintE b, uintE intersect_w){
+          uintE base2[3];
+          //sequence<uintE> base2(k + 1);
+          base2[0] = std::get<0>(v1v2);
+          base2[1] = relabel ? rank[intersect_w] : intersect_w;
+          base2[2] = std::get<1>(v1v2);
+          update_d(base2);
+        };
+        
+        G.get_vertex(u).intersect_f_par(&v_v, u, v, process_f);
+
+      });
+    } /*else { // This is not (2, 3)
+      auto init_intersect = [&](uintE* arr){
+        if (arr == nullptr) arr = (uintE*) calloc(G.n, sizeof(uintE));
+      };
+      auto finish_intersect = [&](uintE* arr){ if (arr != nullptr) {free(arr); arr = nullptr;}};
+      parallel_for_alloc<uintE>(init_intersect, finish_intersect, 0, active_size, [&](size_t i, uintE* labels) {
+        auto x = get_active(i);
+        auto base = sequence<uintE>(k + 1);
+        cliques->extract_clique(x, base.s, G, k);
+        // Sequentially find min deg and swap with 0
+        uintE u = relabel ? inverse_rank[base[0]] : base[0];
+        auto min_deg = G.get_vertex(u).getOutDegree();
+        size_t u_idx = 0;
+        for (size_t j = k; j > 1; j--) {
+          uintE v = relabel ? inverse_rank[base[j]] : base[j];
+          auto v_deg = G.get_vertex(v).getOutDegree();
+          if (v_deg < min_deg) {
+            u_idx = j;
+            min_deg = v_deg;
+          }
+        }
+        // Swap u_idx and 0
+        if (u_idx != 0) {
+          auto tmp = base[u_idx];
+          base[u_idx] = base[0];
+          base[0] = tmp;
+        }
+        u = relabel ? inverse_rank[base[0]] : base[0];
+        auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+          uintE actual_ngh = relabel ? rank[ngh] : ngh;
+          labels[actual_ngh] = 1;
+        };
+        G.get_vertex(u).mapOutNgh(u, map_label_f, true);
+        for (size_t j = k; j > 1; j--) {
+          uintE v = relabel ? inverse_rank[base[j]] : base[j];
+          auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+            uintE actual_ngh = relabel ? rank[ngh] : ngh;
+            if (labels[actual_ngh] == k - j + 1) labels[actual_ngh]++;
+          };
+          G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
+        }
+        // Any vtx with labels[vtx] = k - 1 is in the intersection
+        auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+          uintE actual_ngh = relabel ? rank[ngh] : ngh;
+          if (labels[actual_ngh] == k - 1) {
+            base[1] = actual_ngh;
+            update_d(base.s);
+            labels[actual_ngh] = 0;
+          } else if (labels[actual_ngh] != 0) {
+            labels[actual_ngh] = 0;
+          }
+        };
+        G.get_vertex(u).mapOutNgh(u, map_update_f, false);
+      },1, true);
+    }
+
+  } */else {
 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
@@ -215,7 +296,8 @@ t1.start();
     init_induced(induced);
 
     auto x = get_active(i);
-    auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
+    //auto base = sequence<uintE>(k + 1);
+    uintE base[10];
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+1] and base[0]
     if (relabel) {
@@ -230,12 +312,15 @@ t1.start();
   //  finish_induced(induced);
   }, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
+  }
 t1.stop();
 
+t_update_d.start();
   // Perform update_changed on each vertex with changed clique counts
   std::size_t num_count_idxs = 0;
   num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
   count_idxs.reset();
+t_update_d.stop();
 
   // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {
@@ -280,6 +365,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   timer t_count;
   timer t_update;
   timer t_x;
+  timer t_update_d;
 
   size_t rounds = 0;
   size_t finished = 0;
@@ -349,7 +435,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
-      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel);
+      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
+      t_update_d);
       t_count.stop();
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
@@ -379,6 +466,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   t_count.reportTotal("### Peel Count time: ");
   t_update.reportTotal("### Peel Update time: ");
   t_x.reportTotal("Inner counting: ");
+  t_update_d.reportTotal("Update d time: ");
 
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
@@ -445,6 +533,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
   timer t_count;
   timer t_update;
   timer t_x;
+  timer t_update_d;
 
   size_t rounds = 0;
   size_t finished = 0;
@@ -609,11 +698,13 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
     size_t filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
       granularity, still_active, rank, per_processor_counts,
-      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel);
+      true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
+      t_update_d);
     
     size_t filter_size2 = cliqueUpdate(G, DG, r, k, max_deg, true, get_active2, active_size2, 
       granularity, still_active2, rank, per_processor_counts2,
-      true, update_changed2, cliques2, num_entries2, count_idxs2, t_x, inverse_rank, relabel);
+      true, update_changed2, cliques2, num_entries2, count_idxs2, t_x, inverse_rank, relabel,
+      t_update_d);
     t_count.stop();
 
     std::cout << "Finished verifying active set; starting verifying updates" << std::endl;
@@ -626,7 +717,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       // Check that vtx exists in cliques2
       sequence<uintE> base(k + 1);
       // Vertices will be in inclusive k, ..., k - r + 1, 0
-      cliques->extract_clique(vtx, base, G, k);
+      cliques->extract_clique(vtx, base.s, G, k);
       sequence<uintE> actual_base(r + 1);
       for (size_t j = 0; j <= r; j++) {
         auto base_idx = k - j;
@@ -635,12 +726,12 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       }
 
       // Check that extracting a clique from cliques and turning it back to an index works
-      auto check_vtx = cliques->extract_indices_check(actual_base, r);
+      auto check_vtx = cliques->extract_indices_check(actual_base.s, r);
       assert(check_vtx == vtx);
 
-      auto vtx2 = cliques2->extract_indices_check(actual_base, r);
+      auto vtx2 = cliques2->extract_indices_check(actual_base.s, r);
       sequence<uintE> base2(k + 1);
-      cliques2->extract_clique(vtx2, base2, G, k);
+      cliques2->extract_clique(vtx2, base2.s, G, k);
       sequence<uintE> actual_base2(r + 1);
       for (size_t j = 0; j <= r; j++) {
         auto base_idx = k - j;
@@ -649,7 +740,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       }
 
       // Check that extracting a clique from cliques2 and turning it back to an index works
-      auto check_vtx2 = cliques2->extract_indices_check(actual_base2, r);
+      auto check_vtx2 = cliques2->extract_indices_check(actual_base2.s, r);
       assert(check_vtx2 == vtx2);
 
       // Check that the clique counts match up

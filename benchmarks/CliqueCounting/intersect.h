@@ -94,7 +94,7 @@ struct HybridSpace_lw {
   }
 
   template <class Graph, class Graph2, class FF, class FG>
-  void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r,
+  void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, uintE* base, size_t r,
     FF& inverse_g_vert_map, FG& g_vert_map) {
     using W = typename Graph::weight_type;
 

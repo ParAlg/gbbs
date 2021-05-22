@@ -41,14 +41,14 @@ namespace onetable {
         shift_factor = _shift_factor;
         rr = r;
         // count cliques
-        timer t_pre; t_pre.start();
+        //timer t_pre; t_pre.start();
         size_t pre_count = 0;
         // Clique counting
         if (r == 2) pre_count = DG.m;
         else if (r == 3) pre_count = TriClique_count(DG, false, nullptr);
         else pre_count = Clique_count(DG, r, 5, true, false, 0, nullptr);
         //std::cout << "Pre count " << r << ": " << pre_count << std::endl;
-        double tt_pre = t_pre.stop();
+        //double tt_pre = t_pre.stop();
         //std::cout << "### Pre count: " << tt_pre << std::endl;
 
         //std::cout << "Start table" << std::endl;
@@ -143,7 +143,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),update);
       }
 
-      Y extract_indices_check(sequence<uintE>& base2, int r) {
+      Y extract_indices_check(uintE* base2, int r) {
         // Size of base2 should be r + 1
         uintE base[10];
         assert(10 > r + 1);
@@ -165,7 +165,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         // Sort base
         uintE base[10];
@@ -228,7 +228,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       }
     
     template<class S, class Graph>
-    void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+    void extract_clique(S index, uintE* base, Graph& G, int k) {
       auto vert = std::get<0>(table.table[index]);
       for (int j = 0; j < rr; ++j) {
         unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
@@ -241,6 +241,40 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         else base[k - j] = static_cast<uintE>(extract);
         vert = vert >> shift_factor;
       }
+    }
+
+    template<class S>
+    std::tuple<uintE, uintE> extract_clique_two(S index, int k) {
+      auto vert = std::get<0>(table.table[index]);
+      uintE v1 = UINT_E_MAX;
+      uintE v2 = UINT_E_MAX;
+      for (int j = 0; j < rr; ++j) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        uintE extract = (uintE) (vert & mask); // vert & mask
+        if (j == rr - 1) v1 = static_cast<uintE>(extract);
+        else v2 = static_cast<uintE>(extract);
+        vert = vert >> shift_factor;
+      }
+      assert(v1 != UINT_E_MAX); assert(v2 != UINT_E_MAX);
+      return std::tuple(v1, v2);
+    }
+
+    template<class S>
+    std::tuple<uintE, uintE, uintE> extract_clique_three(S index, int k) {
+      auto vert = std::get<0>(table.table[index]);
+      uintE v1 = UINT_E_MAX;
+      uintE v2 = UINT_E_MAX;
+      uintE v3 = UINT_E_MAX;
+      for (int j = 0; j < rr; ++j) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        uintE extract = (uintE) (vert & mask); // vert & mask
+        if (j == rr - 1) v1 = static_cast<uintE>(extract);
+        else if (j == 0) v2 = static_cast<uintE>(extract);
+        else v3 = static_cast<uintE>(extract);
+        vert = vert >> shift_factor;
+      }
+      assert(v1 != UINT_E_MAX); assert(v2 != UINT_E_MAX); assert(v3 != UINT_E_MAX);
+      return std::tuple(v1, v2, v3);
     }
   };
 

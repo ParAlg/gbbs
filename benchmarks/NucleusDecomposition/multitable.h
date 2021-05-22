@@ -301,7 +301,7 @@ namespace multitable {
   
     //Fill base[k] ... base[k-r+1] and base[0]
     template<class S>
-    void extract_clique(S index, sequence<uintE>& base, int base_idx, int rr, int k) {
+    void extract_clique(S index, uintE* base, int base_idx, int rr, int k) {
       if (lvl == max_lvl) {
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
@@ -603,7 +603,7 @@ namespace multitable {
         mtable.find_table_loc(index, func);
       }
 
-      Y extract_indices_check(sequence<uintE>& base2, int r) {
+      Y extract_indices_check(uintE* base2, int r) {
         // Size of base2 should be r + 1
         uintE base[10];
         assert(10 > r + 1);
@@ -616,7 +616,7 @@ namespace multitable {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
         uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
@@ -648,9 +648,71 @@ namespace multitable {
 
       //Fill base[k] ... base[k-r+2] and base[0]
       template<class S, class Graph>
-      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+      void extract_clique(S index, uintE* base, Graph& G, int k) {
         mtable.extract_clique(index, base, 0, rr, k);
       }
+    
+    template<class S>
+    std::tuple<uintE, uintE> extract_clique_two(S index, int k) {
+      // If max level is 1 (2 levels)
+      S next_index = index;
+      // Level 0
+      auto next_mtable_idx = mtable.get_top_index(next_index);
+      next_index -= mtable.table_sizes[next_mtable_idx];
+      auto mtable_ptr_1 = std::get<1>(mtable.mtable.table[next_mtable_idx]);
+
+      // Level 1
+      uintE v1 = mtable_ptr_1->get_vtx(0);
+      auto vert = std::get<0>(mtable_ptr_1->end_table.table[next_index]);
+      unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+      uintE extract = (uintE) (vert & mask); // vert & mask
+      uintE v2 = static_cast<uintE>(extract);
+      return std::make_tuple(v1, v2);
+    }
+
+    template<class S>
+    std::tuple<uintE, uintE, uintE> extract_clique_three(S index, int k) {
+      if (max_lvl == 2) { // 3 levels
+        S next_index = index;
+        // Level 0
+        auto next_mtable_idx = mtable.get_top_index(next_index);
+        next_index -= mtable.table_sizes[next_mtable_idx];
+        auto mtable_ptr_1 = std::get<1>(mtable.mtable.table[next_mtable_idx]);
+
+        // Level 1
+        auto next_mtable_idx_1 = mtable_ptr_1->get_top_index(next_index);
+        next_index -= mtable_ptr_1->table_sizes[next_mtable_idx_1];
+        uintE v1 = mtable_ptr_1->get_vtx(0);
+        auto mtable_ptr_2 = std::get<1>(mtable_ptr_1->mtable.table[next_mtable_idx_1]);
+
+        // Level 2
+        uintE v2 = mtable_ptr_2->get_vtx(0);
+        auto vert = std::get<0>(mtable_ptr_2->end_table.table[next_index]);
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+        uintE extract = (uintE) (vert & mask);
+        uintE v3 = static_cast<uintE>(extract);
+        return std::make_tuple(v1, v2, v3);
+      }
+        // If max level is 1 (2 levels)
+        S next_index = index;
+        // Level 0
+        auto next_mtable_idx = mtable.get_top_index(next_index);
+        next_index -= mtable.table_sizes[next_mtable_idx];
+        auto mtable_ptr_1 = std::get<1>(mtable.mtable.table[next_mtable_idx]);
+
+        // Level 1
+        uintE v1 = mtable_ptr_1->get_vtx(0);
+        auto vert = std::get<0>(mtable_ptr_1->end_table.table[next_index]);
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+        uintE v2 = UINT_E_MAX; uintE v3 = UINT_E_MAX;
+        for (int j = 0; j < 2; j++) {
+          uintE extract = (uintE) (vert & mask); // vert & mask
+          if (j == 0) v2 = static_cast<uintE>(extract);
+          else v3 = static_cast<uintE>(extract);
+          vert = vert >> nd_global_shift_factor;
+        }
+        return std::make_tuple(v1, v2, v3);
+    }
   };
 
 } // end namespace multitable

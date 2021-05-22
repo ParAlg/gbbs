@@ -73,9 +73,9 @@ bool is_edge3(Graph& DG, uintE v, uintE u) {
   return is;
 }
 
-  template <class Graph, class F>
+  template <class Graph, class F, class B>
   inline size_t NKCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced, F& base_f,
-  sequence<uintE>& base) {
+  B& base) {
     size_t num_induced = induced->num_induced[k_idx-1];
     if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
