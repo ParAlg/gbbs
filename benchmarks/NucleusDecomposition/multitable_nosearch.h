@@ -495,12 +495,36 @@ namespace multitable_nosearch {
         std::sort(base, base + k + 1,sort_func);
         mtable.insert(base, r, k);
       }
-      
+
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
-        uintE base[3];
-        base[0] = v1; base[1] = v2; base[2] = v3;
-        std::sort(base, base + k + 1, sort_func);
-        mtable.insert(base, r, k);
+        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
+          pbbs::fetch_and_add(ct, (long)1);
+        };
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+
+        uintE min13 = sort_func(v1, v3) ? v1 : v3;
+        uintE max13 = sort_func(v1, v3) ? v3 : v1;
+        // Level 0
+        auto next13 = mtable.mtable.find(min13, nullptr);
+        // Level 1
+        Y key13 = max13 & mask;
+        next13->end_table.insert_f(std::make_tuple(key13, (long) 1), add_f);
+
+        uintE min23 = sort_func(v2, v3) ? v2 : v3;
+        uintE max23 = sort_func(v2, v3) ? v3 : v2;
+        // Level 0
+        auto next23 = mtable.mtable.find(min23, nullptr);
+        // Level 1
+        Y key23 = max23 & mask;
+        next23->end_table.insert_f(std::make_tuple(key23, (long) 1), add_f);
+
+        uintE min12 = sort_func(v1, v2) ? v1 : v2;
+        uintE max12 = sort_func(v1, v2) ? v2 : v1;
+        // Level 0
+        auto next12 = mtable.mtable.find(min12, nullptr);
+        // Level 1
+        Y key12 = max12 & mask;
+        next12->end_table.insert_f(std::make_tuple(key12, (long) 1), add_f);
       }
 
       std::size_t return_total() { return mtable.total_size; }
