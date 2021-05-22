@@ -1135,6 +1135,27 @@ struct LDS {
     return total_moved;
   }
 
+  size_t get_size() {
+    size_t size = 0;
+    size += sizeof(delta) + sizeof(UpperConstant) + sizeof(eps) + sizeof(OnePlusEps) +
+        sizeof(optimized_insertion) + sizeof(n) + sizeof(levels_per_group);
+    for (size_t i = 0; i < n; i++) {
+        auto vertex = L[i];
+        size += sizeof(vertex.level);
+        size += sizeof(vertex.desire_level);
+        for (size_t j = 0; j < vertex.down.size(); j++) {
+            for (size_t k = 0; k < vertex.down[j].size(); k++) {
+                size += sizeof(vertex.down[j].table[k]);
+            }
+        }
+
+        for (size_t j = 0; j < vertex.up.size(); j++) {
+            size += sizeof(vertex.up.table[j]);
+        }
+    }
+    return size;
+  }
+
   template <class Seq>
   size_t batch_insertion(const Seq& insertions_unfiltered) {
     //timer insert_timer;
@@ -1440,8 +1461,7 @@ inline void RunLDS(Graph& G, bool optimized_deletion) {
 }
 
 template <class W>
-inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
-        LDS& layers, bool optimized_insertion, size_t offset) {
+inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers, bool optimized_insertion, size_t offset, bool get_size) {
     auto batch = batch_edge_list.edges;
     size_t num_insertion_flips = 0;
     size_t num_deletion_flips = 0;
@@ -1513,6 +1533,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 
         double deletion_time = t.stop();
         double tt = insertion_time + deletion_time;
+
         std::cout << "### Batch Running Time: " << tt << std::endl;
         std::cout << "### Insertion Running Time: " << insertion_time << std::endl;
         std::cout << "### Deletion Running Time: " << deletion_time << std::endl;
@@ -1521,6 +1542,10 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         std::cout << "### Number Insertion Flips: " << num_insertion_flips << std::endl;
         std::cout << "### Number Deletion Flips: " << num_deletion_flips << std::endl;
         std::cout << "### Max Outdegree: " << max_degree << std::endl;
+        if (get_size) {
+            auto size = layers.get_size();
+            std::cout << "### Size: " << size << std::endl;
+        }
         if (compare_exact) {
             auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(),
                         i + batch_size));
@@ -1576,11 +1601,12 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 
 template <class Graph, class W>
 inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
-        bool compare_exact, double eps, double delta, bool optimized_insertion, size_t offset) {
+        bool compare_exact, double eps, double delta, bool optimized_insertion,
+        size_t offset, bool get_size) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
     if (G.n > 0) RunLDS(G, optimized_insertion);
-    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
+    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset, get_size);
 }
 
 }  // namespace gbbs
