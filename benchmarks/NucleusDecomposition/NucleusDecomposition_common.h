@@ -112,7 +112,7 @@ class list_buffer {
     }
 
     template <class I>
-    size_t filter(I update_changed, sequence<double>& per_processor_counts) {
+    size_t filter(I& update_changed, sequence<double>& per_processor_counts) {
       if (efficient) {
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
@@ -175,7 +175,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t r,
 size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   size_t granularity, char* still_active, sequence<uintE> &rank, 
   sequence<double>& per_processor_counts, 
-  bool do_update_changed, I update_changed,
+  bool do_update_changed, I& update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
   sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d) {
   
