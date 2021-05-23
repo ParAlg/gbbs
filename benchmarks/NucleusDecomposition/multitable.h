@@ -722,7 +722,7 @@ namespace multitable {
 
         // Level 1
         Y key12 = max12 & mask;
-        index12 += next13->end_table.find_index(key12);
+        index12 += next12->end_table.find_index(key12);
           if (is_active_13 && index12 < index13) func(index23, 1.0);
           else if (is_active_23 && index12 < index23) func(index13, 1.0);
           return;
