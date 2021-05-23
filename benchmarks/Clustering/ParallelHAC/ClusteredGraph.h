@@ -170,19 +170,20 @@ struct clustered_graph {
     auto starts = parlay::filter(all_starts, [&] (uintE v) { return v != UINT_E_MAX; });
     std::cout << "Number of merge targets = " << starts.size() << std::endl;
 
-    auto edge_sizes = sequence<size_t>(starts.size());
+    auto edge_sizes = sequence<size_t>(sorted.size());
 
     // In parallel over every instance.
+    // Make the merge target the cluster with the largest number of out-edges.
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t start = starts[i];
       size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
 
       uintE our_id = sorted[start].first;
-      auto our_size = clusters[our_id].cluster_size();
+      auto our_size = clusters[our_id].neighbor_size();
 
       auto sizes_and_id = parlay::delayed_seq<std::pair<uintE, uintE>>(end - start, [&] (size_t i) {
         uintE vtx_id = sorted[start + i].second;
-        return std::make_pair(clusters[vtx_id].cluster_size(), vtx_id);
+        return std::make_pair(clusters[vtx_id].neighbor_size(), vtx_id);
       });
       std::pair<uintE, uintE> id = std::make_pair((uintE)0, (uintE)UINT_E_MAX);
       auto mon = parlay::make_monoid([&] (const auto& l, const auto& r) { return (l.first < r.first) ? r : l;}, id);
@@ -195,23 +196,68 @@ struct clustered_graph {
             sorted[i].second = our_id;
           }
         }
-        // Update this instance's id and size.
         our_id = largest_id;
         our_size = largest_size;
       }
 
-      auto neighbors = parlay::delayed_seq<uintE>(end - start, [&] (size_t j) { return sorted[start + j].second; });
-      auto ngh_sizes = parlay::delayed_seq<size_t>(end - start, [&] (size_t j) { return clusters[neighbors[j]].cluster_size(); });
+      // Write the neighbor size before scan.
+      // Update the current_id for each (being merged) neighbor. Active flag is
+      // still on.
+      for (size_t j=start; j<end; j++) {
+        uintE ngh_id = sorted[j].second;
+        uintE ngh_size = clusters[ngh_id].neighbor_size();
+        edge_sizes[j] = ngh_size;
 
-      edge_sizes[i] = parlay::reduce(ngh_sizes);
+        assert(clusters[ngh_id].current_id == ngh_id);
+        // Update id to point to the merge target.
+        clusters[ngh_id].current_id = our_id;
+      }
     });
 
+    // Scan to compute #edges we need to merge.
     size_t total_edges = parlay::scan_inplace(make_slice(edge_sizes));
     std::cout << "Total edges = " << total_edges << std::endl;
+    auto edges = sequence<std::pair<uintE, Sim>>::uninitialized(total_edges);
+
+    // Copy edges from trees to seq.
+    parallel_for(0, sorted.size(), [&] (size_t i) {
+      uintE ngh_id = sorted[i].second;
+      size_t k = 0;
+      size_t off = edge_sizes[i];
+      // todo: map_with_index
+      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        uintE cur_ngh_id = clusters[v].current_id;
+        edges[off + k] = std::make_pair(cur_ngh_id, wgh.total_weight);
+      };
+      clusters[ngh_id].iterate(ngh_id, map_f);
+    });
+
+    // Sort within each instance.
+    parallel_for(0, starts.size(), [&] (size_t i) {
+      size_t start = starts[i];
+      size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+
+      uintE our_id = sorted[start].first;
+      auto our_size = clusters[our_id].cluster_size();
+
+      auto sub_seq = edges.cut(start, end);
+
+      auto comp = [&] (const auto& l, const auto& r) { return l.first < r.first;};
+      parlay::sort(sub_seq, comp);
+
+      auto scan_f = [&] (const auto& l, const auto& r) {
+        if (l.first == r.first) {  // combine
+          return std::make_pair(r.first, l.second + r.second);
+        }
+        return r;
+      };
+      std::pair<uintE, Sim> id = std::make_pair(UINT_E_MAX, (Sim)0);
+      auto scan_mon = parlay::make_monoid(scan_f, id);
+      // After the scan, last occurence of each ngh has the sum'd weight.
+      parlay::scan_inplace(sub_seq, scan_mon);
 
 
-    // Compute size for each instance.
-
+    });
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
