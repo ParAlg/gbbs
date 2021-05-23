@@ -405,34 +405,31 @@ t1.start();
           delete arr;
         }
       };
-      parallel_for_alloc<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
-        [&](size_t i, IntersectSpace* intersect_space) {
-        auto labels = intersect_space->labels;
+      parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
+        [&](size_t i, IntersectSpace* is) {
         auto x = get_active(i);
         std::tuple<uintE, uintE, uintE> v1v2v3 = cliques->extract_clique_three(x, k);
         uintE u = relabel ? inverse_rank[std::get<0>(v1v2v3)] : std::get<0>(v1v2v3);
         auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          labels[actual_ngh] = 1;
+          is->labels[actual_ngh] = 1;
         };
         G.get_vertex(u).mapOutNgh(u, map_label_f, true);
-          uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
-          auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-            uintE actual_ngh = relabel ? rank[ngh] : ngh;
-            if (labels[actual_ngh] > 0) labels[actual_ngh]++;
-          };
-          G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
-          v = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
-          G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
+        uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
+        auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+          uintE actual_ngh = relabel ? rank[ngh] : ngh;
+          if (is->labels[actual_ngh] > 0) is->labels[actual_ngh]++;
+        };
+        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
+        v = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
+        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          if (labels[actual_ngh] == k) {
+          if (is->labels[actual_ngh] == k) {
             update_d_threefour(std::get<0>(v1v2v3), std::get<1>(v1v2v3), std::get<2>(v1v2v3), actual_ngh);
-            labels[actual_ngh] = 0;
-          } else if (labels[actual_ngh] != 0) {
-            labels[actual_ngh] = 0;
           }
+          is->labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
       },1, true);
@@ -449,9 +446,8 @@ t1.start();
           delete arr;
         }
       };
-      parallel_for_alloc<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
-        [&](size_t i, IntersectSpace* intersect_space) {
-        auto labels = intersect_space->labels;
+      parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
+        [&](size_t i, IntersectSpace* is) {
         auto x = get_active(i);
         uintE base[10];
         cliques->extract_clique(x, base, G, k);
@@ -476,27 +472,25 @@ t1.start();
         u = relabel ? inverse_rank[base[0]] : base[0];
         auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          labels[actual_ngh] = 1;
+          is->labels[actual_ngh] = 1;
         };
         G.get_vertex(u).mapOutNgh(u, map_label_f, true);
         for (size_t j = k; j > 1; j--) {
           uintE v = relabel ? inverse_rank[base[j]] : base[j];
           auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
             uintE actual_ngh = relabel ? rank[ngh] : ngh;
-            if (labels[actual_ngh] > 0) labels[actual_ngh]++;
+            if (is->labels[actual_ngh] > 0) is->labels[actual_ngh]++;
           };
           G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
         }
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          if (labels[actual_ngh] == k) {
+          if (is->labels[actual_ngh] == k) {
             base[1] = actual_ngh;
             update_d(base);
-            labels[actual_ngh] = 0;
-          } else if (labels[actual_ngh] != 0) {
-            labels[actual_ngh] = 0;
           }
+          is->labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
       },1, true);

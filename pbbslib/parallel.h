@@ -43,6 +43,11 @@ template <typename A, typename Af, typename Df, typename F>
 static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity = 0,
                                bool conservative = false);
+
+template <typename A, typename Af, typename Df, typename F>
+static void parallel_for_alloc2(Af init_alloc, Df finish_alloc, long start,
+                               long end, F f, long granularity = 0,
+                               bool conservative = false);
 }  // namespace pbbs
 
 //***************************************
@@ -100,6 +105,21 @@ class alloc_holder {
 // TODO try parallel_for_1
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
+                               long end, F f, long granularity,
+                               bool conservative) {
+  alloc_holder<A> alloc;
+
+  parallel_for_1(start, end,
+                 [&](size_t i) {
+                   init_alloc(&alloc.imp_.view());
+                   f(i, &(alloc.imp_.view()));
+                   // finish_alloc(&(alloc.imp_.view()));
+                 },
+                 granularity, conservative);
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc2(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity,
                                bool conservative) {
   alloc_holder<A> alloc;
@@ -188,6 +208,23 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   }
 }
 
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc2(Af init_alloc, Df finish_alloc, long start,
+                               long end, F f, long granularity,
+                               bool conservative) {
+  A* alloc = nullptr;
+#pragma omp parallel private(alloc)
+  {
+    alloc = new A();
+    init_alloc(alloc);
+    parallel_for_1(start, end, [&](size_t i) { f(i, alloc); }, granularity,
+                   conservative);
+    //#pragma omp for schedule(dynamic, 1) nowait
+    // for(long i=start; i<end; i++) f(i, alloc);
+    finish_alloc(alloc);
+  }
+}
+
 inline int num_workers() { return omp_get_max_threads(); }
 inline int worker_id() { return omp_get_thread_num(); }
 #ifdef SAGE
@@ -246,6 +283,25 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   // finish_alloc(alloc);
 }
 
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc2(Af init_alloc, Df finish_alloc, long start,
+                               long end, F f, long granularity,
+                               bool conservative) {
+  /*A** allocs = (A**) malloc(num_workers() * sizeof(A*));
+  for (std::size_t i = 0; i < num_workers(); i++) {
+    allocs[i] = new A();
+  }*/
+  parallel_for(start, end,
+               [&](long i) {
+                 static thread_local A* alloc = new A();
+                 //A* alloc = allocs[worker_id()];
+                 init_alloc(alloc);
+                 f(i, alloc);
+               },
+               granularity, true);
+  // finish_alloc(alloc);
+}
+
 #ifdef SAGE
 inline int numanode() { return pbbs::global_scheduler.numanode(); }
 #endif
@@ -278,6 +334,18 @@ inline void parallel_run(Job job, int num_threads = 0) {
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
+                               long end, F f, long granularity,
+                               bool conservative) {
+  A* alloc = new A();
+  init_alloc(alloc);
+  for (long i = start; i < end; i++) {
+    f(i, alloc);
+  }
+  finish_alloc(alloc);
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc2(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity,
                                bool conservative) {
   A* alloc = new A();
