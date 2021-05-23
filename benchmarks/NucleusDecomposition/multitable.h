@@ -583,13 +583,13 @@ namespace multitable {
 
       C get_count(std::size_t index) {
         if (contiguous_space) {
-          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return 0;
+          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return std::numeric_limits<C>::max() - 1;
           return std::get<1>(space[index]);
         }
 
         C count = 0;
         auto func = [&](std::tuple<Y, C>* loc){
-          if (std::get<0>(*loc) == std::numeric_limits<Y>::max()) count = 0;
+          if (std::get<0>(*loc) == std::numeric_limits<Y>::max()) count = std::numeric_limits<C>::max() - 1;
           else count = std::get<1>(*loc);
         };
         mtable.find_table_loc(index, func);

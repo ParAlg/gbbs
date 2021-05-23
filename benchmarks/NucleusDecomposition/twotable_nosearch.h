@@ -291,7 +291,7 @@ namespace twotable_nosearch {
       }
 
       C get_count(std::size_t index) {
-        if (is_max_val(std::get<0>(space[index]))) return 0;
+        if (is_max_val(std::get<0>(space[index]))) return std::numeric_limits<C>::max() - 1;
         return std::get<1>(space[index]);
       }
 

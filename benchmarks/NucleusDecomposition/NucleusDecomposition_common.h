@@ -281,7 +281,7 @@ class list_buffer {
       return next;
       } else if (efficient == 0) {
         parallel_for(0, next, [&](size_t worker) {
-          assert(list[worker] != UINT_E_MAX);
+          //assert(list[worker] != UINT_E_MAX);
           assert(per_processor_counts[list[worker]] != 0);
           update_changed(per_processor_counts, worker, list[worker]);
         });
@@ -614,13 +614,15 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     finished += active_size;
 
+    if (cur_bkt >= std::numeric_limits<bucket_t>::max() - 1) return;
+
     max_bkt = std::max(cur_bkt, max_bkt);
     if (cur_bkt == 0 || finished == num_entries) {
-      /*parallel_for (0, active_size, [&] (size_t j) {
+      parallel_for (0, active_size, [&] (size_t j) {
         auto index = get_active(j);
         still_active[index] = 2;
         cliques->set_count(index, UINT_E_MAX);
-      }, 2048);*/
+      }, 2048);
       continue;
     }
 
