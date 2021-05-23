@@ -155,6 +155,7 @@ struct clustered_graph {
   // - sort by 2nd component
   // - perform merges from u_1,...,u_k to v.
   // -
+  template <class Sim>
   void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
     //auto sorted = parlay::sample_sort(make_slice(merge_seq), [&] (const auto& pair) { return pair.second; });
     // Sort.
@@ -234,13 +235,15 @@ struct clustered_graph {
 
     // Sort within each instance.
     parallel_for(0, starts.size(), [&] (size_t i) {
-      size_t start = starts[i];
-      size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t sort_start = starts[i];
+      size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t edges_start = edge_sizes[sort_start];
+      size_t edges_end = (sort_end == sorted.size()) ? total_edges : edge_sizes[sort_end];
 
-      uintE our_id = sorted[start].first;
+      uintE our_id = sorted[sort_start].first;
       auto our_size = clusters[our_id].cluster_size();
 
-      auto sub_seq = edges.cut(start, end);
+      auto sub_seq = edges.cut(edges_start, edges_end);
 
       auto comp = [&] (const auto& l, const auto& r) { return l.first < r.first;};
       parlay::sort(sub_seq, comp);
@@ -256,6 +259,9 @@ struct clustered_graph {
       // After the scan, last occurence of each ngh has the sum'd weight.
       parlay::scan_inplace(sub_seq, scan_mon);
 
+//      for (size_t j=start+1; j<end; j++) {
+//        if (edges
+//      }
 
     });
   }

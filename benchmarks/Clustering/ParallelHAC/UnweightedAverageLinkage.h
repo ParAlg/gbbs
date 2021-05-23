@@ -132,7 +132,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
     std::cout << "Num merges = " << merges.size() << std::endl;
 
-    CG.unite_merge(std::move(merges));
+    CG.template unite_merge<Sim>(std::move(merges));
 
     exit(0);
 
