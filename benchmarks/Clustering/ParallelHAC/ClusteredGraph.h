@@ -110,6 +110,8 @@ struct clustered_graph {
 
     // Tracks the last cluster update size.
     uintE staleness;
+    // Initially equal to staleness, but cas'd in parallel rounds.
+    uintE cas_size;
     // The "current" id of this cluster, updated upon a merge that keeps this cluster active.
     uintE current_id;
     // Number of vertices contained in this cluster.
