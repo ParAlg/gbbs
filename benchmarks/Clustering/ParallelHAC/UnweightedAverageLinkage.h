@@ -127,11 +127,14 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       }
     }});
 
-    std::cout << "Num merges = " << pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return merge_target[i] != UINT_E_MAX; }))
-      << std::endl;
+    auto pairs = parlay::delayed_seq<std::pair<uintE, uintE>>(n, [&] (size_t i) { return std::make_pair(merge_target[i], i); });
+    auto merges = parlay::filter(pairs, [&] (const auto& pair) { return pair.first != UINT_E_MAX; });
+
+    std::cout << "Num merges = " << merges.size() << std::endl;
+
+    CG.unite_merge(std::move(merges));
+
     exit(0);
-
-
 
     rnd = rnd.next();
     // Reset colors.

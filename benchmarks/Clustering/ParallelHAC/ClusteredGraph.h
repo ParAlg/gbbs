@@ -137,15 +137,27 @@ struct clustered_graph {
   }
 
   // Need to implement a unite_merge operation.
-  // input: sequence of (u, v) pairs representing that u will merge to v
+  // input: sequence of (u, v) pairs representing that v will merge to u
   //
   // outline:
   // - sort by 2nd component
   // - perform merges from u_1,...,u_k to v.
   // -
-  template <class MergeSeq>
-  void unite_merge(MergeSeq&& merge_seq) {
+  void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
+    //auto sorted = parlay::sample_sort(make_slice(merge_seq), [&] (const auto& pair) { return pair.second; });
 
+    auto sorted = parlay::sort(make_slice(merge_seq));
+
+    // For each instance, find largest component.
+    auto all_starts = parlay::delayed_seq<uintE>(sorted.size(), [&] (size_t i) {
+      if ((i == 0) || sorted[i].first != sorted[i-1].first) {
+        return (uintE)i;
+      }
+      return UINT_E_MAX;
+    });
+    auto starts = parlay::filter(all_starts, [&] (uintE v) { return v != UINT_E_MAX; });
+
+    std::cout << "Number of merge targets = " << starts.size() << std::endl;
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
