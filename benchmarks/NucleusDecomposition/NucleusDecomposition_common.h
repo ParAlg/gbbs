@@ -406,7 +406,7 @@ t1.start();
           delete arr;
         }
       };
-      parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
+      pbbs::parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
         [&](size_t i, IntersectSpace* is) {
         auto x = get_active(i);
         std::tuple<uintE, uintE, uintE> v1v2v3 = cliques->extract_clique_three(x, k);
@@ -447,7 +447,7 @@ t1.start();
           delete arr;
         }
       };
-      parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
+      pbbs::parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
         [&](size_t i, IntersectSpace* is) {
         auto x = get_active(i);
         uintE base[10];
