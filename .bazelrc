@@ -41,6 +41,9 @@ build --cxxopt=-Wpointer-arith
 # codebase currently contains lots of instances of global shadowing.
 build --cxxopt=-Wshadow=local
 build --cxxopt=-Wvla
+build --cxxopt=-Wno-unused-variable
+build --cxxopt=-Wno-sign-compare
+build --cxxopt=-Wno-narrowing
 
 # Build without parallelism.
 build:serial --cxxopt=-UHOMEGROWN
