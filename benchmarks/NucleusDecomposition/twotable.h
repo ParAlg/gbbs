@@ -273,7 +273,7 @@ namespace twotable {
           fflush(stdout);
         }
         assert(bottom_index < (end_table->table).m);*/
-        if (std::get<0>((end_table->table).table[bottom_index]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+        if (std::get<0>((end_table->table).table[bottom_index]) == std::numeric_limits<Y>::max()) return 0;
         return std::get<1>((end_table->table).table[bottom_index]);
       }
 
