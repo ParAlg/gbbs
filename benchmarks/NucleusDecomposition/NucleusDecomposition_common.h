@@ -13,6 +13,7 @@
 #include "pbbslib/assert.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
+#include "pbbslib/parallel.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
