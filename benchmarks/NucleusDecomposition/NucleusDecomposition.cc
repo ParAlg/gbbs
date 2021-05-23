@@ -59,7 +59,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
 
-  auto count = NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify, efficient);
+  NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify, efficient);
 
   double tt = t.stop();
 
