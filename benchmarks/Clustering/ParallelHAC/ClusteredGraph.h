@@ -58,6 +58,12 @@ struct clustered_graph {
       auto cluster_size = vertex.out_degree();
       auto combine_w = [&] (W l, W r) { return l; };
       neighbors = neighbor_map(edges, edges + cluster_size, combine_w);
+
+      num_in_cluster = 1;
+      staleness = 1;
+      cas_size = 1;
+      current_id = vtx_id;
+      active = true;
     }
 
     clustered_vertex(uintE vtx_id, Graph_vertex& vertex, const Weights& weights) {
@@ -74,6 +80,12 @@ struct clustered_graph {
 
       auto combine_w = [&] (W l, W r) { return l; };
       neighbors = neighbor_map(edges, combine_w);
+
+      num_in_cluster = 1;
+      staleness = 1;
+      cas_size = 1;
+      current_id = vtx_id;
+      active = true;
     }
 
     struct Add {
@@ -145,7 +157,7 @@ struct clustered_graph {
   // -
   void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
     //auto sorted = parlay::sample_sort(make_slice(merge_seq), [&] (const auto& pair) { return pair.second; });
-
+    // Sort.
     auto sorted = parlay::sort(make_slice(merge_seq));
 
     // For each instance, find largest component.
@@ -156,37 +168,50 @@ struct clustered_graph {
       return UINT_E_MAX;
     });
     auto starts = parlay::filter(all_starts, [&] (uintE v) { return v != UINT_E_MAX; });
-
     std::cout << "Number of merge targets = " << starts.size() << std::endl;
 
-    parallel_for(0, starts.size(), [&] (size_t i) {
-      uintE our_id = sorted[start].first;
-      auto our_size = CG.clusters[our_id].cluster_size();
+    auto edge_sizes = sequence<size_t>(starts.size());
 
+    // In parallel over every instance.
+    parallel_for(0, starts.size(), [&] (size_t i) {
       size_t start = starts[i];
       size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+
+      uintE our_id = sorted[start].first;
+      auto our_size = clusters[our_id].cluster_size();
+
       auto sizes_and_id = parlay::delayed_seq<std::pair<uintE, uintE>>(end - start, [&] (size_t i) {
         uintE vtx_id = sorted[start + i].second;
-        return {CG.clusters[vtx_id].cluster_size(), vtx_id};
+        return std::make_pair(clusters[vtx_id].cluster_size(), vtx_id);
       });
       std::pair<uintE, uintE> id = std::make_pair((uintE)0, (uintE)UINT_E_MAX);
-      auto mon = make_monoid([&] (const auto& l, const auto&, r) { return (l.first < r.first) ? r : l;});
+      auto mon = parlay::make_monoid([&] (const auto& l, const auto& r) { return (l.first < r.first) ? r : l;}, id);
       auto [largest_size, largest_id] = parlay::reduce(sizes_and_id, mon);
 
-      if (our_size < largest_size) {  // relabel
+      if (our_size < largest_size) {  // Relabel merge targets to largest_id.
         for (size_t i=start; i<end; i++) {
           sorted[i].first = largest_id;
           if (sorted[i].second == largest_id) {
             sorted[i].second = our_id;
           }
         }
-
+        // Update this instance's id and size.
         our_id = largest_id;
         our_size = largest_size;
       }
 
+      auto neighbors = parlay::delayed_seq<uintE>(end - start, [&] (size_t j) { return sorted[start + j].second; });
+      auto ngh_sizes = parlay::delayed_seq<size_t>(end - start, [&] (size_t j) { return clusters[neighbors[j]].cluster_size(); });
 
+      edge_sizes[i] = parlay::reduce(ngh_sizes);
     });
+
+    size_t total_edges = parlay::scan_inplace(make_slice(edge_sizes));
+    std::cout << "Total edges = " << total_edges << std::endl;
+
+
+    // Compute size for each instance.
+
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
