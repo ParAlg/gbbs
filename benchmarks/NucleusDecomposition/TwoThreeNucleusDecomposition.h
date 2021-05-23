@@ -239,8 +239,7 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   std::cout << "Num bits in n: " << shift_factor << std::endl;
   fflush(stdout);
 
-  if (r == 2 && s == 3) {
-    using bucket_t = uintE;
+  using bucket_t = uintE;
 
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
@@ -258,31 +257,6 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
     else
       runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
         max_deg, rank, shift_factor);
-  }
-
-
-  } else {
-
-  using bucket_t = size_t;
-
-  if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
-    // unsigned __int32
-    runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress);
-  } else if (num_bytes_needed <= 8) {
-    // unsigned __int64
-    runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress);
-  } else {
-    // unsigned__int128
-    if (!verify)
-      runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress);
-    else
-      runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor);
-  }
-
   }
 
    

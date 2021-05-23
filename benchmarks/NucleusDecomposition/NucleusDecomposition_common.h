@@ -37,10 +37,11 @@
 #include "multitable_nosearch.h"
 
 namespace gbbs {
-
-  template <typename bucket_t, class CU, class Graph, class F, class FF, class Table>
+/*
+  template <class CU, class Graph, class F, class FF, class Table>
   void CompressOut(CU& compress_utils, Graph& GA, F& g_to_dg, FF& dg_to_g,
     char* still_active, timer& ct, Table* cliques) {
+      using bucket_t = uintE;
     using W = typename Graph::weight_type;
       ct.start();
     auto del_edges = compress_utils.del_edges;
@@ -50,7 +51,7 @@ namespace gbbs {
       // map over both endpoints, update counts using histogram
       // this is really a uintE seq, but edge_t >= uintE, and this way we can
       // re-use the same histogram structure.
-      auto decr_seq = pbbs::sequence<bucket_t>(2*del_edges.size);
+      auto decr_seq = pbbs::sequence<uintE>(2*del_edges.size);
       parallel_for(0, del_edges.size, [&] (size_t i) {
         size_t fst = 2*i; size_t snd = fst+1;
         uintE id = del_edges.A[i];
@@ -90,9 +91,9 @@ namespace gbbs {
       ct.stop();
   }
 
-  template <class bucket_t>
   class compress_utils {
     public:
+    using bucket_t = uintE;
     pbbslib::dyn_arr<uintE> del_edges;
     hist_table<uintE, bucket_t> em;
     pbbs::sequence<uintE> actual_degree;
@@ -116,7 +117,7 @@ namespace gbbs {
       del_edges.copyIn(active, active.size());
       return del_edges.size > 2*n;
     }
-  };
+  };*/
 
   struct IntersectSpace {
   // Label each vertex for fast intersect for first recursive level
@@ -221,15 +222,20 @@ class list_buffer {
     }
 
     void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
-      if (efficient > 1) {
+      if (efficient == 2) {
         use_size = num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt;
         if (use_size > ss) use_size = ss;
         size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
+        source_table.resize_no_copy(space_required);
+        use_table = pbbslib::make_sparse_table<uintE, uintE>(
+          source_table.table, space_required,
+          std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
+          std::hash<uintE>(), false /* do not clear */);
         // (size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
-        use_table = STable(space_required,
+        /*use_table = STable(space_required,
           std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
           std::hash<uintE>(),
-          source_table.table, false);
+          source_table.table, false);*/
       }
     }
 
@@ -542,6 +548,7 @@ t_update_d.stop();
 template <typename bucket_t, class Graph, class Graph2, class T>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t efficient, bool relabel, 
+  bool use_compress,
   size_t num_buckets=16) {
   sequence<uintE> inverse_rank;
   if (relabel) {
@@ -572,9 +579,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
   /*timer t_compress;
-  compress_utils<bucket_t> compress_util;
-  if (r == 1 && k == 2) {
-    compress_util = compress_utils<bucket_t>(G);
+  compress_utils compress_util;
+  if (r == 1 && k == 2 && use_compress) {
+    compress_util = compress_utils(G);
   }*/
 
   timer t_extract;
@@ -676,18 +683,20 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_update.stop();
 
     rounds++;
-/*
-    if (r == 1 && k == 2) {
+
+    /*if (r == 1 && k == 2 && use_compress) {
       bool to_compress = compress_util.update_del_edges(active);
       if (to_compress) {
+        //std::cout << "Start compress" << std::endl;
         if (!relabel) {
           auto map_g_dg = [](uintE x) {return x;};
-          CompressOut<bucket_t>(compress_util, G, map_g_dg, map_g_dg,still_active, t_compress, cliques);
+          CompressOut(compress_util, G, map_g_dg, map_g_dg,still_active, t_compress, cliques);
         } else {
           auto g_to_dg = [&](uintE x) {return rank[x];};
           auto dg_to_g = [&](uintE x) {return inverse_rank[x];};
-          CompressOut<bucket_t>(compress_util, G, g_to_dg, dg_to_g,still_active, t_compress, cliques);
+          CompressOut(compress_util, G, g_to_dg, dg_to_g,still_active, t_compress, cliques);
         }
+        //std::cout << "End compress" << std::endl;
       }
     }*/
   

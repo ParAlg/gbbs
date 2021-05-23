@@ -33,14 +33,14 @@
 //     -fa : run the fetch-and-add implementation of k-core
 //     -nb : the number of buckets to use in the bucketing implementation
 
-#include "NucleusDecomposition.h"
+#include "TwoThreeNucleusDecomposition.h"
 #include <math.h>
 #include <fstream>
 namespace gbbs {
 template <class Graph>
-double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
-  long r = P.getOptionLongValue("-r", 3); // k as in k-cliques
-  long ss = P.getOptionLongValue("-ss", 4); // k as in k-cliques
+double AppTwoThreeNucleusDecomposition_runner(Graph& GA, commandLine P) {
+  long r = P.getOptionLongValue("-r", 2); // k as in k-cliques
+  long ss = P.getOptionLongValue("-ss", 3); // k as in k-cliques
   long table_type = P.getOptionLongValue("-tt", 3); // 1 = 1 lvl, 2 = 2 lvls, 3 = multi
   long num_levels = P.getOptionLongValue("-nl", 2); // only for multi, # levels
   bool relabel = P.getOptionValue("-relabel"); // for true, relabel graph
@@ -69,4 +69,4 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   return tt;
 }
 }
-generate_symmetric_main(AppNucleusDecomposition_runner, false);
+generate_symmetric_main(AppTwoThreeNucleusDecomposition_runner, false);

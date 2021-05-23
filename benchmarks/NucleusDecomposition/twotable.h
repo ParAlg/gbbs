@@ -28,29 +28,29 @@ namespace gbbs {
 
 namespace twotable {
 
-  template <class Y, class H>
+  template <class Y, class H, class C>
   struct EndTable {
-    pbbslib::sparse_table<Y, long, H> table;
+    pbbslib::sparse_table<Y, C, H> table;
     uintE vtx;
     //MidTable* up_table;
   };
 
-  template <class Y, class H>
+  template <class Y, class H, class C>
   struct MidTable {
-    using EndTableY = EndTable<Y, H>;
+    using EndTableY = EndTable<Y, H, C>;
     pbbslib::sparse_table<uintE, EndTableY*, std::hash<uintE>> table;
     sequence<EndTableY*> arr;
   };
   
-  template <class Y, class H>
+  template <class Y, class H, class C>
   class TwolevelHash {
     public:
-      using T = pbbslib::sparse_table<Y, long, H>;
-      using X = std::tuple<Y, long>;
-      using EndTableY = EndTable<Y, H>;
-      using MidTableY = MidTable<Y, H>;
+      using T = pbbslib::sparse_table<Y, C, H>;
+      using X = std::tuple<Y, C>;
+      using EndTableY = EndTable<Y, H, C>;
+      using MidTableY = MidTable<Y, H, C>;
       MidTableY top_table;
-      sequence<long> top_table_sizes;
+      sequence<C> top_table_sizes;
       int rr;
       std::size_t total = 0;
       X* space = nullptr;
@@ -66,11 +66,11 @@ namespace twotable {
         //top_table.up_table = nullptr;
         // How many vert in top level?
         // For each vert in top level, how many pairs of vert finish it?
-        auto tmp_table = pbbslib::sparse_additive_map<uintE, long>(
-          DG.n, std::make_tuple(UINT_E_MAX, long{0}));
+        auto tmp_table = pbbslib::sparse_additive_map<uintE, C>(
+          DG.n, std::make_tuple(UINT_E_MAX, C{0}));
         auto base_f = [&](sequence<uintE>& base){
           auto min_vert = relabel ? base[0] : pbbslib::reduce_min(base);
-          auto tmp = std::make_tuple<uintE, long>(static_cast<uintE>(min_vert), long{1});
+          auto tmp = std::make_tuple<uintE, C>(static_cast<uintE>(min_vert), C{1});
           tmp_table.insert(tmp);
         };
 
@@ -101,11 +101,11 @@ namespace twotable {
 
         auto top_table_sizes2 = tmp_table.entries();
         // sort by key
-        pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
+        pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, C>& u, const std::tuple<uintE, C>&  v) {
           return std::get<0>(u) < std::get<0>(v);
         });
 
-        sequence<long> actual_sizes(top_table_sizes2.size() + 1);
+        sequence<C> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
           auto m = (size_t)1 << pbbslib::log2_up((size_t)(1.1 * std::get<1>(top_table_sizes2[i])) + 1);
@@ -123,7 +123,7 @@ namespace twotable {
   
         //*** for arr
         top_table.arr = sequence<EndTableY*>(DG.n, [](std::size_t i){return nullptr;});
-        top_table_sizes = sequence<long>(DG.n + 1, long{0});
+        top_table_sizes = sequence<C>(DG.n + 1, C{0});
         /*top_table.table = pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>>(
           top_table_sizes2.size(),
           std::make_tuple<uintE, EndTable*>(UINT_E_MAX, static_cast<EndTable*>(nullptr)),
@@ -136,15 +136,15 @@ namespace twotable {
           auto size = upper_size - actual_sizes[i];
           EndTableY* end_table = new EndTableY();
           end_table->vtx = vtx;
-          end_table->table = contiguous_space ? pbbslib::sparse_table<Y, long, H>(
+          end_table->table = contiguous_space ? pbbslib::sparse_table<Y, C, H>(
             size, 
-            std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
+            std::make_tuple<Y, C>(std::numeric_limits<Y>::max(), static_cast<C>(0)),
             H{},
             space + actual_sizes[i]
             ) :
-            pbbslib::sparse_table<Y, long, H>(
+            pbbslib::sparse_table<Y, C, H>(
             size, 
-            std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
+            std::make_tuple<Y, C>(std::numeric_limits<Y>::max(), static_cast<C>(0)),
             H{}, 1, true);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
@@ -167,27 +167,27 @@ namespace twotable {
           }
         }
         assert(top_table_sizes[0] == 0);*/
-        size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(long);
+        size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(C);
         std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         EndTableY* end_table12 = top_table.arr[std::min(v1, v2)];
-        (end_table12->table).insert_f(std::make_tuple(Y{std::max(v1, v2)}, (long) 1), add_f);
+        (end_table12->table).insert_f(std::make_tuple(Y{std::max(v1, v2)}, (C) 1), add_f);
 
         EndTableY* end_table13 = top_table.arr[std::min(v1, v3)];
-        (end_table13->table).insert_f(std::make_tuple(Y{std::max(v1, v3)}, (long) 1), add_f);
+        (end_table13->table).insert_f(std::make_tuple(Y{std::max(v1, v3)}, (C) 1), add_f);
 
         EndTableY* end_table23 = top_table.arr[std::min(v2, v3)];
-        (end_table23->table).insert_f(std::make_tuple(Y{std::max(v2, v3)}, (long) 1), add_f);
+        (end_table23->table).insert_f(std::make_tuple(Y{std::max(v2, v3)}, (C) 1), add_f);
       }
   
       void insert(sequence<uintE>& base2, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         // Sort base
         uintE base[10];
@@ -220,7 +220,7 @@ namespace twotable {
           //***for arr
           EndTableY* end_table = top_table.arr[vtx];
           //assert(end_table != nullptr);
-          (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
+          (end_table->table).insert_f(std::make_tuple(key, (C) 1), add_f);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
       }
 
@@ -228,7 +228,7 @@ namespace twotable {
 
       size_t get_top_index(std::size_t index) {
         // This gives the first i such that top_table_sizes[i] >= index
-        auto idx = pbbslib::binary_search(top_table_sizes, long{index}, std::less<long>());
+        auto idx = pbbslib::binary_search(top_table_sizes, C{index}, std::less<C>());
         if (idx >= top_table_sizes.size()) return top_table_sizes.size() - 1;
         if (top_table_sizes[idx] == index) {
           while(idx < top_table_sizes.size() && top_table_sizes[idx] == index) {
@@ -240,7 +240,7 @@ namespace twotable {
         return idx - 1;
       }
 
-      long get_count(std::size_t index) {
+      C get_count(std::size_t index) {
         if (contiguous_space) {
           if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return 0;
           return std::get<1>(space[index]);
@@ -277,7 +277,7 @@ namespace twotable {
         return std::get<1>((end_table->table).table[bottom_index]);
       }
 
-      size_t update_count(std::size_t index, size_t update){
+      C update_count(std::size_t index, C update){
         if (contiguous_space) {
           auto val = std::get<1>(space[index]) - update;
           space[index] =
@@ -311,7 +311,7 @@ namespace twotable {
         );
       }
 
-      void set_count(std::size_t index, size_t update) {
+      void set_count(std::size_t index, C update) {
         if (contiguous_space) {
           space[index] = std::make_tuple(std::get<0>(space[index]), update);
           return;

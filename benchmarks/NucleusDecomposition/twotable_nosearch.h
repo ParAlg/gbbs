@@ -75,7 +75,7 @@ namespace twotable_nosearch {
       using EndTableY = EndTable<Y, H, C>;
       using MidTableY = MidTable<Y, H, C>;
       MidTableY top_table;
-      sequence<long> top_table_sizes;
+      sequence<C> top_table_sizes;
       int rr;
       std::size_t total = 0;
       X* space = nullptr;
@@ -91,11 +91,11 @@ namespace twotable_nosearch {
         //top_table.up_table = nullptr;
         // How many vert in top level?
         // For each vert in top level, how many pairs of vert finish it?
-        auto tmp_table = pbbslib::sparse_additive_map<uintE, long>(
-          DG.n, std::make_tuple(UINT_E_MAX, long{0}));
+        auto tmp_table = pbbslib::sparse_additive_map<uintE, C>(
+          DG.n, std::make_tuple(UINT_E_MAX, C{0}));
         auto base_f = [&](sequence<uintE>& base){
           auto min_vert = relabel ? base[0] : pbbslib::reduce_min(base);
-          auto tmp = std::make_tuple<uintE, long>(static_cast<uintE>(min_vert), long{1});
+          auto tmp = std::make_tuple<uintE, C>(static_cast<uintE>(min_vert), C{1});
           tmp_table.insert(tmp);
         };
         if (r == 2) {
@@ -124,7 +124,7 @@ namespace twotable_nosearch {
         }
         auto top_table_sizes2 = tmp_table.entries();
         // sort by key
-        pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
+        pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, C>& u, const std::tuple<uintE, long>&  v) {
           return std::get<0>(u) < std::get<0>(v);
         });
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
@@ -145,7 +145,7 @@ namespace twotable_nosearch {
   
         //*** for arr
         top_table.arr = sequence<EndTableY*>(DG.n, [](std::size_t i){return nullptr;});
-        top_table_sizes = sequence<long>(DG.n + 1, long{0});
+        top_table_sizes = sequence<C>(DG.n + 1, C{0});
         /*top_table.table = pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>>(
           top_table_sizes2.size(),
           std::make_tuple<uintE, EndTable*>(UINT_E_MAX, static_cast<EndTable*>(nullptr)),
@@ -200,7 +200,7 @@ namespace twotable_nosearch {
           }
         }
         assert(top_table_sizes[0] == 0);*/
-        size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(long);
+        size_t data_structure_size = sizeof(*this) + sizeof(MidTableY) + total * sizeof(X) +  (DG.n) * sizeof(EndTableY*) + (DG.n + 1) * sizeof(C);
         std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
 
@@ -278,7 +278,7 @@ namespace twotable_nosearch {
 
       size_t get_top_index(std::size_t index) {
         // This gives the first i such that top_table_sizes[i] >= index
-        auto idx = pbbslib::binary_search(top_table_sizes, long{index}, std::less<long>());
+        auto idx = pbbslib::binary_search(top_table_sizes, C{index}, std::less<C>());
         if (idx >= top_table_sizes.size()) return top_table_sizes.size() - 1;
         if (top_table_sizes[idx] == index) {
           while(idx < top_table_sizes.size() && top_table_sizes[idx] == index) {

@@ -142,7 +142,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
 
       std::size_t return_total() {return table.m;}
       C get_count(std::size_t i) {
-        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) 0;
+        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0;
         return std::get<1>((table.table)[i]);
       }
       C update_count(std::size_t i, C update){

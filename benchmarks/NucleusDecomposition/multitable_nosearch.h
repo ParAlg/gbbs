@@ -48,19 +48,19 @@ namespace multitable_nosearch {
 
   // max_lvl should be set to # levels - 2
   // two level hash is equiv to setting max_level to 0
-  template <class Y, class H>
+  template <class Y, class H, class C>
   struct MTable {
-    using MTableY = MTable<Y, H>;
+    using MTableY = MTable<Y, H, C>;
     using NextMTable = pbbslib::sparse_table<uintE, MTableY*, std::hash<uintE>>;
-    using EndTable = pbbslib::sparse_table<Y, long, H>;
+    using EndTable = pbbslib::sparse_table<Y, C, H>;
     NextMTable mtable;
     EndTable end_table;
     uintE lvl;
     uintE max_lvl;
     MTable* prev_mtable = nullptr;
     long total_size = 0;
-    sequence<long> table_sizes;
-    std::tuple<Y, long>* end_space = nullptr;
+    sequence<C> table_sizes;
+    std::tuple<Y, C>* end_space = nullptr;
 
 //#ifdef NUCLEUS_USE_VERTEX
     uintE vtx;
@@ -87,7 +87,7 @@ namespace multitable_nosearch {
     }
 #endif*/
 
-    void set_end_table_rec(std::tuple<Y, long>* _end_space) {
+    void set_end_table_rec(std::tuple<Y, C>* _end_space) {
       end_space = _end_space;
 
       if (lvl == max_lvl) {
@@ -99,11 +99,11 @@ namespace multitable_nosearch {
         // Allocate end_table here using end_space
         end_table = EndTable(
           total_size - 1,
-          std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0)),
+          std::make_tuple<Y, C>(static_cast<Y>(max_val), static_cast<C>(0)),
           H{},
           end_space
         );
-        end_space[total_size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
+        end_space[total_size - 1] = std::make_tuple<Y, C>(static_cast<Y>(max_val), static_cast<C>(0));
 
       } else {
         for (std::size_t i = 0; i < mtable.m; i++) {
@@ -121,7 +121,7 @@ namespace multitable_nosearch {
     long set_table_sizes() {
       if (lvl != max_lvl) {
         if (lvl + 1 == max_lvl) {
-          table_sizes = sequence<long>(mtable.m, [](std::size_t i){ return 0; });
+          table_sizes = sequence<C>(mtable.m, [](std::size_t i){ return 0; });
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
@@ -129,14 +129,14 @@ namespace multitable_nosearch {
               table_sizes[i] = tbl->total_size;
             }
           });
-          total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
+          total_size = scan_inplace(table_sizes.slice(), pbbs::addm<C>());
           return total_size;
         }
-        table_sizes = sequence<long>(mtable.m, [&](std::size_t i){
-          if (is_uint_e_max(std::get<0>(mtable.table[i]))) return long{0};
+        table_sizes = sequence<C>(mtable.m, [&](std::size_t i) -> C{
+          if (is_uint_e_max(std::get<0>(mtable.table[i]))) return C{0};
           return std::get<1>(mtable.table[i])->total_size;
         });
-        total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
+        total_size = scan_inplace(table_sizes.slice(), pbbs::addm<C>());
         return total_size;
       }
       //else if (set_table_size_flag == false) {
@@ -189,8 +189,8 @@ namespace multitable_nosearch {
     void insert(uintE* base, int curr_idx, int r, int k, std::string& bitmask) {
       if (lvl == max_lvl) {
         assert(end_table.m > 0);
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         Y key = 0;
         unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
@@ -200,7 +200,7 @@ namespace multitable_nosearch {
             key |= (base[i] & mask);
           }
         }
-        end_table.insert_f(std::make_tuple(key, (long) 1), add_f);
+        end_table.insert_f(std::make_tuple(key, (C) 1), add_f);
         return;
       }
       int next_idx = curr_idx;
@@ -329,10 +329,10 @@ namespace multitable_nosearch {
 
   }; // when we put in 3, max_lvl = 2, which is actually a 
 
-  template<class Y, class H, class S, class EndSpace>
-  MTable<Y, H>* get_mtable(S index, EndSpace* end_space) {
-    using MTableY = MTable<Y, H>;
-    using X = std::tuple<Y, long>;
+  template<class Y, class H, class C, class S, class EndSpace>
+  MTable<Y, H, C>* get_mtable(S index, EndSpace* end_space) {
+    using MTableY = MTable<Y, H, C>;
+    using X = std::tuple<Y, C>;
     while (true) {
       auto max_val = std::get<0>(static_cast<X>(end_space[index]));
       std::size_t max_bit = sizeof(Y) * 8;
@@ -444,11 +444,11 @@ namespace multitable_nosearch {
     return total_ct;
   }
 
-  template <class Y, class H, class F>
+  template <class Y, class H, class C, class F>
   class MHash {
     public:
-      using X = std::tuple<Y, long>;
-      using MTableY = MTable<Y, H>;
+      using X = std::tuple<Y, C>;
+      using MTableY = MTable<Y, H, C>;
       int rr = 0;
       uintE max_lvl;
       MTableY mtable;
@@ -497,8 +497,8 @@ namespace multitable_nosearch {
       }
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
 
@@ -508,7 +508,7 @@ namespace multitable_nosearch {
         auto next13 = mtable.mtable.find(min13, nullptr);
         // Level 1
         Y key13 = max13 & mask;
-        next13->end_table.insert_f(std::make_tuple(key13, (long) 1), add_f);
+        next13->end_table.insert_f(std::make_tuple(key13, (C) 1), add_f);
 
         uintE min23 = sort_func(v2, v3) ? v2 : v3;
         uintE max23 = sort_func(v2, v3) ? v3 : v2;
@@ -516,7 +516,7 @@ namespace multitable_nosearch {
         auto next23 = mtable.mtable.find(min23, nullptr);
         // Level 1
         Y key23 = max23 & mask;
-        next23->end_table.insert_f(std::make_tuple(key23, (long) 1), add_f);
+        next23->end_table.insert_f(std::make_tuple(key23, (C) 1), add_f);
 
         uintE min12 = sort_func(v1, v2) ? v1 : v2;
         uintE max12 = sort_func(v1, v2) ? v2 : v1;
@@ -524,17 +524,17 @@ namespace multitable_nosearch {
         auto next12 = mtable.mtable.find(min12, nullptr);
         // Level 1
         Y key12 = max12 & mask;
-        next12->end_table.insert_f(std::make_tuple(key12, (long) 1), add_f);
+        next12->end_table.insert_f(std::make_tuple(key12, (C) 1), add_f);
       }
 
       std::size_t return_total() { return mtable.total_size; }
 
-      long get_count(std::size_t index) {
+      C get_count(std::size_t index) {
         if (is_max_val(std::get<0>(space[index]))) return 0;
         return std::get<1>(space[index]);
       }
 
-      size_t update_count(std::size_t index, size_t update){
+      C update_count(std::size_t index, C update){
         auto val = std::get<1>(space[index]) - update;
         space[index] =
           std::make_tuple(std::get<0>(space[index]), val);
@@ -545,7 +545,7 @@ namespace multitable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), 0);
       }
 
-      void set_count(std::size_t index, size_t update) {
+      void set_count(std::size_t index, C update) {
         space[index] = std::make_tuple(std::get<0>(space[index]), update);
       }
 
@@ -826,7 +826,7 @@ namespace multitable_nosearch {
       //Fill base[k] ... base[k-r+1] and base[0]
       template<class S, class Graph>
       void extract_clique(S index, uintE* base, Graph& G, int k) {
-        auto last_mtable = get_mtable<Y, H>(index, space);
+        auto last_mtable = get_mtable<Y, H, C>(index, space);
         last_mtable->extract_clique(std::get<0>(space[index]), base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
       }
@@ -835,7 +835,7 @@ namespace multitable_nosearch {
     std::tuple<uintE, uintE> extract_clique_two(S index, int k) {
       unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
       Y vert = std::get<0>(space[index]);
-      auto last_mtable = get_mtable<Y, H>(index, space);
+      auto last_mtable = get_mtable<Y, H, C>(index, space);
 
       // max_lvl = 1
       uintE v1 = last_mtable->vtx;
@@ -849,7 +849,7 @@ namespace multitable_nosearch {
     std::tuple<uintE, uintE, uintE> extract_clique_three(S index, int k) {
       unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
       Y vert = std::get<0>(space[index]);
-      auto last_mtable = get_mtable<Y, H>(index, space);
+      auto last_mtable = get_mtable<Y, H, C>(index, space);
 
       // If max_lvl == 2
       if (max_lvl == 2) {
