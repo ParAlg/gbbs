@@ -215,7 +215,7 @@ class list_buffer {
         std::cout << "list size: " << sizeof(uintE) * list.size() << std::endl;
         next = 0;
       } else {
-        source_table = pbbslib::make_sparse_table<uintE, uintE>(s, std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
+        source_table = pbbslib::make_sparse_table<uintE, uintE>(1 << 20, std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
         std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
         use_size = s;
       }
@@ -224,7 +224,7 @@ class list_buffer {
     void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
       if (efficient == 2) {
         use_size = num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt;
-        if (use_size > ss) use_size = ss;
+        //if (use_size > ss) use_size = ss;
         size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
         source_table.resize_no_copy(space_required);
         use_table = pbbslib::make_sparse_table<uintE, uintE>(
