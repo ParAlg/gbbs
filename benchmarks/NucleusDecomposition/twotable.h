@@ -242,7 +242,7 @@ namespace twotable {
 
       long get_count(std::size_t index) {
         if (contiguous_space) {
-          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return 0;
           return std::get<1>(space[index]);
         }
         //assert(index < total);
@@ -353,6 +353,17 @@ namespace twotable {
         auto index = (end_table->table).find_index(key);
 
         return prefix + index;
+      }
+
+      Y extract_indices_two(uintE v1, uintE v3) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        // Assume v1, v2 is the active edge
+        // Need to get indices for v1, v3 and v2, v3
+        auto vtx13 = std::min(v1, v3);
+        Y key13 = (std::max(v1, v3) & mask);
+  
+        EndTableY* end_table13 = top_table.arr[vtx13];
+        return top_table_sizes[vtx13] + (end_table13->table).find_index(key13);
       }
 
       template<class HH, class HG, class I>

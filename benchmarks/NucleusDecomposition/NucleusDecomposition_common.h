@@ -38,8 +38,85 @@
 
 namespace gbbs {
 
-  // An unavoidable part of (2,3) is to add 1/2 instead of just check and add 1
-  // when updating counts
+  template <typename bucket_t, class CU, class Graph, class F, class FF, class Table>
+  void CompressOut(CU& compress_utils, Graph& GA, F& g_to_dg, FF& dg_to_g,
+    char* still_active, timer& ct, Table* cliques) {
+    using W = typename Graph::weight_type;
+      ct.start();
+    auto del_edges = compress_utils.del_edges;
+    auto em = compress_utils.em;
+    auto actual_degree = compress_utils.actual_degree;
+      // compact
+      // map over both endpoints, update counts using histogram
+      // this is really a uintE seq, but edge_t >= uintE, and this way we can
+      // re-use the same histogram structure.
+      auto decr_seq = pbbs::sequence<bucket_t>(2*del_edges.size);
+      parallel_for(0, del_edges.size, [&] (size_t i) {
+        size_t fst = 2*i; size_t snd = fst+1;
+        uintE id = del_edges.A[i];
+        std::tuple<uintE, uintE> uv = cliques->extract_clique_two(id, 2);
+        decr_seq[fst] = dg_to_g(std::get<0>(uv));
+        decr_seq[snd] = dg_to_g(std::get<1>(uv));
+      });
+
+      // returns only those vertices that have enough degree lost to warrant
+      // packing them out. Again note that edge_t >= uintE
+      auto apply_vtx_f = [&](const std::tuple<uintE, bucket_t>& p)
+        -> const std::optional<std::tuple<uintE, bucket_t> > {
+        uintE id = std::get<0>(p);
+        uintE degree_lost = std::get<1>(p);
+        actual_degree[id] -= degree_lost;
+        // compare with GA.V[id]. this is the current space used for this vtx.
+        return std::nullopt;
+      };
+
+      auto vs = vertexSubset(GA.n, decr_seq.size(), decr_seq.begin());
+      auto cond_f = [&] (const uintE& u) { return true; };
+      nghCount(GA, vs, cond_f, apply_vtx_f, em);
+
+      auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
+      auto to_pack_seq = pbbs::filter(all_vertices, [&] (uintE u) {
+        return 4*actual_degree[u] >= GA.get_vertex(u).getOutDegree();
+      });
+      auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
+
+      auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
+        // return true iff edge is still alive
+        auto index = cliques->extract_indices_two(g_to_dg(u), g_to_dg(ngh));
+        return still_active[index] == 0;
+      };
+      edgeMapFilter(GA, to_pack, pack_predicate, pack_edges | no_output);
+
+      ct.stop();
+  }
+
+  template <class bucket_t>
+  class compress_utils {
+    public:
+    pbbslib::dyn_arr<uintE> del_edges;
+    hist_table<uintE, bucket_t> em;
+    pbbs::sequence<uintE> actual_degree;
+    size_t n;
+
+    compress_utils(){}
+
+    template <class Graph>
+    compress_utils(Graph& GA){
+      n = GA.n;
+      del_edges = pbbslib::dyn_arr<uintE>(6 * GA.n);
+      std::tuple<uintE, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<uintE>::max(), 0);
+      em = hist_table<uintE, bucket_t>(histogram_empty, GA.m/50);
+      actual_degree = pbbs::sequence<uintE>(GA.n, [&] (size_t i) {
+        return GA.get_vertex(i).getOutDegree();
+      });
+    }
+
+    template <class A>
+    bool update_del_edges(A& active) {
+      del_edges.copyIn(active, active.size());
+      return del_edges.size > 2*n;
+    }
+  };
 
   struct IntersectSpace {
   // Label each vertex for fast intersect for first recursive level
@@ -106,7 +183,7 @@ unsigned nChoosek( unsigned n, unsigned k )
 class list_buffer {
   public:
     int buffer;
-    sequence<size_t> list;
+    sequence<uintE> list;
     sequence<size_t> starts;
     sequence<bool> to_pack;
     size_t next;
@@ -115,7 +192,7 @@ class list_buffer {
     size_t efficient = 1;
 
     // for hash
-    using STable = pbbslib::sparse_table<size_t, uintE, std::hash<size_t>>;
+    using STable = pbbslib::sparse_table<uintE, uintE, std::hash<uintE>>;
     STable source_table;
     size_t use_size;
     STable use_table;
@@ -127,18 +204,18 @@ class list_buffer {
         num_workers2 = num_workers();
         buffer = 1024;
         int buffer2 = 1024;
-        list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
+        list = sequence<uintE>(s + buffer2 * num_workers2);
         starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
-        std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(size_t) * list.size() << std::endl;
+        std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * list.size() << std::endl;
         next = num_workers2 * buffer2;
         to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
       } else if (efficient == 0) {
-        list = sequence<size_t>(s, static_cast<size_t>(UINT_E_MAX));
-        std::cout << "list size: " << sizeof(size_t) * list.size() << std::endl;
+        list = sequence<uintE>(s, static_cast<uintE>(UINT_E_MAX));
+        std::cout << "list size: " << sizeof(uintE) * list.size() << std::endl;
         next = 0;
       } else {
-        source_table = pbbslib::make_sparse_table<size_t, uintE>(s, std::make_tuple(std::numeric_limits<size_t>::max(), (uintE)0), std::hash<size_t>());
-        std::cout << "list size: " << sizeof(std::tuple<size_t, uintE>) * source_table.m << std::endl;
+        source_table = pbbslib::make_sparse_table<uintE, uintE>(s, std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
+        std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
         use_size = s;
       }
     }
@@ -150,8 +227,8 @@ class list_buffer {
         size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
         // (size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
         use_table = STable(space_required,
-          std::make_tuple(std::numeric_limits<size_t>::max(), (uintE)0),
-          std::hash<size_t>(),
+          std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
+          std::hash<uintE>(),
           source_table.table, false);
       }
     }
@@ -478,6 +555,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   timer t2; t2.start();
 
   size_t num_entries = cliques->return_total();
+  std::cout << "num entries: " << num_entries << std::endl;
   auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
   });
@@ -493,6 +571,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
+  /*timer t_compress;
+  compress_utils<bucket_t> compress_util;
+  if (r == 1 && k == 2) {
+    compress_util = compress_utils<bucket_t>(G);
+  }*/
+
   timer t_extract;
   timer t_count;
   timer t_update;
@@ -507,7 +591,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   bool use_max_density = false;
   size_t iter = 0;
 
-  while (finished != num_entries) {
+  while (finished < num_entries) {
     t_extract.start();
     // Retrieve next bucket
     auto bkt = b.next_bucket();
@@ -523,19 +607,18 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     finished += active_size;
 
-    if (cur_bkt == UINT_E_MAX) continue;
-
     max_bkt = std::max(cur_bkt, max_bkt);
     if (cur_bkt == 0 || finished == num_entries) {
-      parallel_for (0, active_size, [&] (size_t j) {
+      /*parallel_for (0, active_size, [&] (size_t j) {
         auto index = get_active(j);
         still_active[index] = 2;
         cliques->set_count(index, UINT_E_MAX);
-      }, 2048);
+      }, 2048);*/
       continue;
     }
 
     //std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
+    //std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
     iter++;
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
@@ -572,7 +655,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       t_update_d);
       t_count.stop();
 
-    auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
+    auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
       auto v = std::get<0>(D_filter[i]);
       bucket_t bucket = std::get<1>(D_filter[i]);
       if (v != num_entries + 1) {
@@ -593,11 +676,27 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_update.stop();
 
     rounds++;
+/*
+    if (r == 1 && k == 2) {
+      bool to_compress = compress_util.update_del_edges(active);
+      if (to_compress) {
+        if (!relabel) {
+          auto map_g_dg = [](uintE x) {return x;};
+          CompressOut<bucket_t>(compress_util, G, map_g_dg, map_g_dg,still_active, t_compress, cliques);
+        } else {
+          auto g_to_dg = [&](uintE x) {return rank[x];};
+          auto dg_to_g = [&](uintE x) {return inverse_rank[x];};
+          CompressOut<bucket_t>(compress_util, G, g_to_dg, dg_to_g,still_active, t_compress, cliques);
+        }
+      }
+    }*/
+  
   }
 
   t_extract.reportTotal("### Peel Extract time: ");
   t_count.reportTotal("### Peel Count time: ");
   t_update.reportTotal("### Peel Update time: ");
+  //t_compress.reportTotal("### Compress time: ");
   t_x.reportTotal("Inner counting: ");
   t_update_d.reportTotal("Update d time: ");
 

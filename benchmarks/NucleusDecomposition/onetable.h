@@ -28,10 +28,10 @@ namespace gbbs {
 
 namespace onetable {
 
-  template <class Y, class H>
+  template <class Y, class H, class C>
   class OnelevelHash {
     public:
-      using T = pbbslib::sparse_table<Y, long, H>;
+      using T = pbbslib::sparse_table<Y, C, H>;
       T table;
       int rr;
       int shift_factor;
@@ -52,17 +52,17 @@ namespace onetable {
         //std::cout << "### Pre count: " << tt_pre << std::endl;
 
         //std::cout << "Start table" << std::endl;
-        table = pbbslib::sparse_table<Y, long, H>(
+        table = pbbslib::sparse_table<Y, C, H>(
           pre_count,
-          std::make_tuple(std::numeric_limits<Y>::max(), long{0}), H{});
+          std::make_tuple(std::numeric_limits<Y>::max(), C{0}), H{});
         
-        size_t data_structure_size = sizeof(*this) + table.m * sizeof(std::tuple<Y, long>);
+        size_t data_structure_size = sizeof(*this) + table.m * sizeof(std::tuple<Y, C>);
         std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
 
       void insert(sequence<uintE>& base2, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
 
         // Sort base
@@ -86,7 +86,7 @@ namespace onetable {
               key |= (base[i] & mask);
             }
           }
-          table.insert_f(std::make_tuple(key, (long) 1), add_f);
+          table.insert_f(std::make_tuple(key, (C) 1), add_f);
           // TESTING EXTRACTION OF KEy
           /*for (int j = 0; j < static_cast<int>(r)+1; ++j) {
             int extract = (int) key;
@@ -119,33 +119,33 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       }
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 
         Y key12 = std::min(v1, v2) & mask;
         key12  = key12 << shift_factor;
         key12 |= (std::max(v1, v2) & mask);
-        table.insert_f(std::make_tuple(key12, (long) 1), add_f);
+        table.insert_f(std::make_tuple(key12, (C) 1), add_f);
 
         Y key13 = std::min(v1, v3) & mask;
         key13 = key13 << shift_factor;
         key13 |= (std::max(v1, v3) & mask);
-        table.insert_f(std::make_tuple(key13, (long) 1), add_f);
+        table.insert_f(std::make_tuple(key13, (C) 1), add_f);
 
         Y key23 = std::min(v2, v3) & mask;
         key23 = key23 << shift_factor;
         key23 |= (std::max(v2, v3) & mask);
-        table.insert_f(std::make_tuple(key23, (long) 1), add_f);
+        table.insert_f(std::make_tuple(key23, (C) 1), add_f);
       }
 
       std::size_t return_total() {return table.m;}
-      long get_count(std::size_t i) {
-        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+      C get_count(std::size_t i) {
+        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) 0;
         return std::get<1>((table.table)[i]);
       }
-      size_t update_count(std::size_t i, size_t update){
+      C update_count(std::size_t i, C update){
         /*if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0
         }*/
         if (get_count(i) < update) {
@@ -161,7 +161,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),0);
       }
 
-      void set_count(std::size_t index, size_t update) {
+      void set_count(std::size_t index, C update) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),update);
       }
 
@@ -250,6 +250,17 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
               func(indices[i], 1.0 / (double) num_active);
           }
         }
+      }
+
+      Y extract_indices_two(uintE v1, uintE v3) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        //size_t num_active = 1;
+        // Assume v1, v2 is the active edge
+        // Need to get indices for v1, v3 and v2, v3
+        Y key13 = (std::min(v1, v3) & mask);
+        key13 = key13 << shift_factor;
+        key13 |= (std::max(v1, v3) & mask);
+        return table.find_index(key13);
       }
 
       template<class HH, class HG, class I>

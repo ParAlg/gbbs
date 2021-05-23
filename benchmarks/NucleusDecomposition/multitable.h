@@ -583,13 +583,13 @@ namespace multitable {
 
       long get_count(std::size_t index) {
         if (contiguous_space) {
-          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return 0;
           return std::get<1>(space[index]);
         }
 
         long count = 0;
         auto func = [&](std::tuple<Y, long>* loc){
-          if (std::get<0>(*loc) == std::numeric_limits<Y>::max()) count = UINT_E_MAX;
+          if (std::get<0>(*loc) == std::numeric_limits<Y>::max()) count = 0;
           else count = std::get<1>(*loc);
         };
         mtable.find_table_loc(index, func);
@@ -675,6 +675,22 @@ namespace multitable {
               func(indices[i], 1.0 / (double) num_active);
           }
         }
+      }
+
+      Y extract_indices_two(uintE v1, uintE v3) {
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+        size_t index13 = 0;
+        // Level 0
+        uintE min13 = sort_func(v1, v3) ? v1 : v3;
+        uintE max13 = sort_func(v1, v3) ? v3 : v1;
+        auto next_mtable_index13 = mtable.mtable.find_index(min13);
+        auto next13 = std::get<1>(mtable.mtable.table[next_mtable_index13]);
+        index13 += mtable.table_sizes[next_mtable_index13];
+
+        // Level 1
+        Y key13 = max13 & mask;
+        index13 += next13->end_table.find_index(key13);
+        return index13;
       }
 
       template<class HH, class HG, class I>

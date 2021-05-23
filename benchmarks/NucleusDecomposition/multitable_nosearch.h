@@ -530,7 +530,7 @@ namespace multitable_nosearch {
       std::size_t return_total() { return mtable.total_size; }
 
       long get_count(std::size_t index) {
-        if (is_max_val(std::get<0>(space[index]))) return UINT_E_MAX;
+        if (is_max_val(std::get<0>(space[index]))) return 0;
         return std::get<1>(space[index]);
       }
 
@@ -590,6 +590,22 @@ namespace multitable_nosearch {
               func(indices[i], 1.0 / (double) num_active);
           }
         }
+      }
+
+      Y extract_indices_two(uintE v1, uintE v3) {
+        unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
+        size_t index13 = 0;
+        // Level 0
+        uintE min13 = sort_func(v1, v3) ? v1 : v3;
+        uintE max13 = sort_func(v1, v3) ? v3 : v1;
+        auto next_mtable_index13 = mtable.mtable.find_index(min13);
+        auto next13 = std::get<1>(mtable.mtable.table[next_mtable_index13]);
+        index13 += mtable.table_sizes[next_mtable_index13];
+
+        // Level 1
+        Y key13 = max13 & mask;
+        index13 += next13->end_table.find_index(key13);
+        return index13;
       }
 
       template<class HH, class HG, class I>

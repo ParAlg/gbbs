@@ -28,16 +28,16 @@ namespace gbbs {
 
 namespace twotable_nosearch {
 
-  template <class Y, class H>
+  template <class Y, class H, class C>
   struct EndTable {
-    pbbslib::sparse_table<Y, long, H> table;
+    pbbslib::sparse_table<Y, C, H> table;
     uintE vtx;
     //MidTable* up_table;
   };
 
-  template <class Y, class H>
+  template <class Y, class H, class C>
   struct MidTable {
-    using EndTableY = EndTable<Y, H>;
+    using EndTableY = EndTable<Y, H, C>;
     pbbslib::sparse_table<uintE, EndTableY*, std::hash<uintE>> table;
     sequence<EndTableY*> arr;
   };
@@ -50,9 +50,9 @@ namespace twotable_nosearch {
     return (check_bit != 0);
   }
 
-  template<class Y, class S, class EndSpace>
+  template<class Y, class C, class S, class EndSpace>
   uintE get_mtable(S index, EndSpace* end_space) {
-    using X = std::tuple<Y, long>;
+    using X = std::tuple<Y, C>;
     while (true) {
       auto max_val = std::get<0>(static_cast<X>(end_space[index]));
       std::size_t max_bit = sizeof(Y) * 8;
@@ -67,13 +67,13 @@ namespace twotable_nosearch {
     }
   }
   
-  template <class Y, class H>
+  template <class Y, class H, class C>
   class TwolevelHash {
     public:
-      using T = pbbslib::sparse_table<Y, long, H>;
-      using X = std::tuple<Y, long>;
-      using EndTableY = EndTable<Y, H>;
-      using MidTableY = MidTable<Y, H>;
+      using T = pbbslib::sparse_table<Y, C, H>;
+      using X = std::tuple<Y, C>;
+      using EndTableY = EndTable<Y, H, C>;
+      using MidTableY = MidTable<Y, H, C>;
       MidTableY top_table;
       sequence<long> top_table_sizes;
       int rr;
@@ -165,13 +165,13 @@ namespace twotable_nosearch {
           max_val |= one << (max_bit - 1);
 
           end_table->vtx = vtx;
-          end_table->table = pbbslib::sparse_table<Y, long, H>(
+          end_table->table = pbbslib::sparse_table<Y, C, H>(
             size - 1, 
-            std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0)),
+            std::make_tuple<Y, C>(static_cast<Y>(max_val), static_cast<C>(0)),
             H{},
             space + actual_sizes[i]
             );
-          space[actual_sizes[i] + size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
+          space[actual_sizes[i] + size - 1] = std::make_tuple<Y, C>(static_cast<Y>(max_val), static_cast<C>(0));
 
           //uintE vtest = get_mtable<Y>(actual_sizes[i], space);
           //vtest = get_mtable<Y>(actual_sizes[i] + size - 1, space);
@@ -205,22 +205,22 @@ namespace twotable_nosearch {
       }
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         EndTableY* end_table12 = top_table.arr[std::min(v1, v2)];
-        (end_table12->table).insert_f(std::make_tuple(Y{std::max(v1, v2)}, (long) 1), add_f);
+        (end_table12->table).insert_f(std::make_tuple(Y{std::max(v1, v2)}, (C) 1), add_f);
 
         EndTableY* end_table13 = top_table.arr[std::min(v1, v3)];
-        (end_table13->table).insert_f(std::make_tuple(Y{std::max(v1, v3)}, (long) 1), add_f);
+        (end_table13->table).insert_f(std::make_tuple(Y{std::max(v1, v3)}, (C) 1), add_f);
 
         EndTableY* end_table23 = top_table.arr[std::min(v2, v3)];
-        (end_table23->table).insert_f(std::make_tuple(Y{std::max(v2, v3)}, (long) 1), add_f);
+        (end_table23->table).insert_f(std::make_tuple(Y{std::max(v2, v3)}, (C) 1), add_f);
       }
   
       void insert(sequence<uintE>& base2, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
-          pbbs::fetch_and_add(ct, (long)1);
+        auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
+          pbbs::fetch_and_add(ct, (C)1);
         };
         // Sort base
         uintE base[10];
@@ -253,7 +253,7 @@ namespace twotable_nosearch {
           //***for arr
           EndTableY* end_table = top_table.arr[vtx];
           //assert(end_table != nullptr);
-          (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
+          (end_table->table).insert_f(std::make_tuple(key, (C) 1), add_f);
 
           /*auto index2 = (end_table->table).find_index(key);
           uintE vtest1 = get_mtable<Y>(index2, (end_table->table).table);
@@ -290,12 +290,12 @@ namespace twotable_nosearch {
         return idx - 1;
       }
 
-      long get_count(std::size_t index) {
-        if (is_max_val(std::get<0>(space[index]))) return UINT_E_MAX;
+      C get_count(std::size_t index) {
+        if (is_max_val(std::get<0>(space[index]))) return 0;
         return std::get<1>(space[index]);
       }
 
-      size_t update_count(std::size_t index, size_t update){
+      C update_count(std::size_t index, C update){
         if (get_count(index) < update) {
           std::cout << "i: " << index << ", count: " << get_count(index) << ", update: " << update << std::endl;
           fflush(stdout);
@@ -312,7 +312,7 @@ namespace twotable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), 0);
       }
 
-      void set_count(std::size_t index, size_t update) {
+      void set_count(std::size_t index, C update) {
         space[index] = std::make_tuple(std::get<0>(space[index]), update);
       }
 
@@ -342,6 +342,17 @@ namespace twotable_nosearch {
         auto prefix = top_table_sizes[vtx];
         auto index = (end_table->table).find_index(key);
         return prefix + index;
+      }
+
+      Y extract_indices_two(uintE v1, uintE v3) {
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        // Assume v1, v2 is the active edge
+        // Need to get indices for v1, v3 and v2, v3
+        auto vtx13 = std::min(v1, v3);
+        Y key13 = (std::max(v1, v3) & mask);
+  
+        EndTableY* end_table13 = top_table.arr[vtx13];
+        return top_table_sizes[vtx13] + (end_table13->table).find_index(key13);
       }
 
       template<class HH, class HG, class I>
@@ -499,7 +510,7 @@ namespace twotable_nosearch {
       template<class S, class Graph>
       void extract_clique(S index, uintE* base, Graph& G, int k) {
         Y vert;
-        uintE v = get_mtable<Y>(index, space);
+        uintE v = get_mtable<Y, C>(index, space);
 
         assert(v < nx);
 
@@ -524,7 +535,7 @@ namespace twotable_nosearch {
 
     template<class S>
     std::tuple<uintE, uintE> extract_clique_two(S index, int k) {
-      uintE v = get_mtable<Y>(index, space);
+      uintE v = get_mtable<Y, C>(index, space);
       Y vert = std::get<0>(space[index]);
       unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
       uintE extract = (uintE) (vert & mask); // vert & mask
@@ -535,7 +546,7 @@ namespace twotable_nosearch {
     template<class S>
     std::tuple<uintE, uintE, uintE> extract_clique_three(S index, int k) {
       Y vert;
-      uintE v = get_mtable<Y>(index, space);
+      uintE v = get_mtable<Y, C>(index, space);
       vert = std::get<0>(space[index]);
       uintE v2 = UINT_E_MAX; uintE v3 = UINT_E_MAX;
         for (int j = 0; j < rr - 1; ++j) {
