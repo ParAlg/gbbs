@@ -13,7 +13,6 @@
 #include "pbbslib/assert.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
-#include "pbbslib/parallel.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -406,20 +405,21 @@ t1.start();
           delete arr;
         }
       };
-      pbbs::parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
-        [&](size_t i, IntersectSpace* is) {
+      parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+                                     [&](size_t i, HybridSpace_lw* induced) {
+        auto labels = induced->old_labels;
         auto x = get_active(i);
         std::tuple<uintE, uintE, uintE> v1v2v3 = cliques->extract_clique_three(x, k);
         uintE u = relabel ? inverse_rank[std::get<0>(v1v2v3)] : std::get<0>(v1v2v3);
         auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          is->labels[actual_ngh] = 1;
+          labels[actual_ngh] = 1;
         };
         G.get_vertex(u).mapOutNgh(u, map_label_f, true);
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
         auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          if (is->labels[actual_ngh] > 0) is->labels[actual_ngh]++;
+          if (labels[actual_ngh] > 0) labels[actual_ngh]++;
         };
         G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
         v = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
@@ -427,10 +427,10 @@ t1.start();
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          if (is->labels[actual_ngh] == k) {
+          if (labels[actual_ngh] == k) {
             update_d_threefour(std::get<0>(v1v2v3), std::get<1>(v1v2v3), std::get<2>(v1v2v3), actual_ngh);
           }
-          is->labels[actual_ngh] = 0;
+          labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
       },1, true);
@@ -447,8 +447,9 @@ t1.start();
           delete arr;
         }
       };
-      pbbs::parallel_for_alloc2<IntersectSpace>(init_intersect, finish_intersect, 0, active_size,
-        [&](size_t i, IntersectSpace* is) {
+      parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+                                     [&](size_t i, HybridSpace_lw* induced) {
+        auto labels = induced->old_labels;
         auto x = get_active(i);
         uintE base[10];
         cliques->extract_clique(x, base, G, k);
@@ -473,25 +474,25 @@ t1.start();
         u = relabel ? inverse_rank[base[0]] : base[0];
         auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          is->labels[actual_ngh] = 1;
+          labels[actual_ngh] = 1;
         };
         G.get_vertex(u).mapOutNgh(u, map_label_f, true);
         for (size_t j = k; j > 1; j--) {
           uintE v = relabel ? inverse_rank[base[j]] : base[j];
           auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
             uintE actual_ngh = relabel ? rank[ngh] : ngh;
-            if (is->labels[actual_ngh] > 0) is->labels[actual_ngh]++;
+            if (labels[actual_ngh] > 0) labels[actual_ngh]++;
           };
           G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
         }
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
-          if (is->labels[actual_ngh] == k) {
+          if (labels[actual_ngh] == k) {
             base[1] = actual_ngh;
             update_d(base);
           }
-          is->labels[actual_ngh] = 0;
+          labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
       },1, true);

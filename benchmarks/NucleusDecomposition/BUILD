@@ -186,7 +186,6 @@ cc_library(
   "//benchmarks/KCore/JulienneDBS17:KCore",
   "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
   "//benchmarks/CliqueCounting:Clique",
-  "//pbbslib:parallel",
   ":onetable",
   ":twotable",
   ":twotable_nosearch",
