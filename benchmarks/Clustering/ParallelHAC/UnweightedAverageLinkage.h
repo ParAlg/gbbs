@@ -110,7 +110,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       assert(ngh_id != std::numeric_limits<uintE>::max());
 
       // Try to join the neighbor's cluster if neighbor is red.
-      if (ngh_id == kRed) {
+      if (colors[ngh_id] == kRed) {
         assert(clusters[ngh_id].active);
         assert(clusters[i].active);
         uintE staleness = CG.clusters[ngh_id].staleness;
