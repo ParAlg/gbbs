@@ -158,6 +158,35 @@ struct clustered_graph {
     auto starts = parlay::filter(all_starts, [&] (uintE v) { return v != UINT_E_MAX; });
 
     std::cout << "Number of merge targets = " << starts.size() << std::endl;
+
+    parallel_for(0, starts.size(), [&] (size_t i) {
+      uintE our_id = sorted[start].first;
+      auto our_size = CG.clusters[our_id].cluster_size();
+
+      size_t start = starts[i];
+      size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      auto sizes_and_id = parlay::delayed_seq<std::pair<uintE, uintE>>(end - start, [&] (size_t i) {
+        uintE vtx_id = sorted[start + i].second;
+        return {CG.clusters[vtx_id].cluster_size(), vtx_id};
+      });
+      std::pair<uintE, uintE> id = std::make_pair((uintE)0, (uintE)UINT_E_MAX);
+      auto mon = make_monoid([&] (const auto& l, const auto&, r) { return (l.first < r.first) ? r : l;});
+      auto [largest_size, largest_id] = parlay::reduce(sizes_and_id, mon);
+
+      if (our_size < largest_size) {  // relabel
+        for (size_t i=start; i<end; i++) {
+          sorted[i].first = largest_id;
+          if (sorted[i].second == largest_id) {
+            sorted[i].second = our_id;
+          }
+        }
+
+        our_id = largest_id;
+        our_size = largest_size;
+      }
+
+
+    });
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
