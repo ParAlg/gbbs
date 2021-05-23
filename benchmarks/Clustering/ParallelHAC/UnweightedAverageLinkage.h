@@ -41,10 +41,34 @@ struct vtx_status {
   bool red;
 };
 
-template <class ClusteredGraph, class W>
-void ProcessGraphUnweightedAverage(ClusteredGraph& CG, W lower_threshold, W max_weight, parlay::random& rnd) {
+// At the end of this call, we will have performed merges and ensured that no
+// edges exist with weights between [lower_threshold, ...).
+template <class ClusteredGraph, class Sim>
+void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd) {
+    std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
+  using W = typename ClusteredGraph::W;
+  // Identify vertices with edges between [lower_threshold, max_weight)
+  size_t n = CG.n;
+  auto active = sequence<uintE>(n, 0);
+  parallel_for(0, n, [&] (size_t i) {
+    auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      assert(wgh.get_weight() <= max_weight);
+      return (wgh.get_weight() >= lower_threshold) && (wgh.get_weight() <= max_weight);
+    };
+    size_t ct = CG.clusters[i].countNeighbors(i, pred_f);
+    if (ct > 0) active[i] = ct;
+  });
+
+  // use dense iterations for now.
+  size_t n_active = pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return active[i] != 0; }));
+  std::cout << "nactive = " << n_active << std::endl;
+
 
 }
+
+
+
+
 
 template <class ClusteredGraph, class W>
 void ProcessEdgesUnweightedAverage(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges,
@@ -79,8 +103,6 @@ void ProcessEdgesUnweightedAverage(ClusteredGraph& CG, sequence<std::tuple<uintE
   };
 
   std::cout << "Edges.size = " << edges.size() << std::endl;
-
-
 }
 
 }  // namespace clustering

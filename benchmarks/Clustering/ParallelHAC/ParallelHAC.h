@@ -227,50 +227,50 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   while (rounds > 0) {
     Sim lower_threshold = max_weight / one_plus_eps;
 
-//    std::cout << "Round = " << rounds << std::endl;
-//    ProcessGraphUnweightedAverage(CG, lower_threshold, max_weight, rnd);
+    std::cout << "Round = " << rounds << std::endl;
+    ProcessGraphUnweightedAverage(CG, lower_threshold, max_weight, rnd);
 
-    std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
-    timer rt; rt.start();
-    // Map-reduce to figure out the number of edges with weight > threshold.
-    auto wgh_degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) {
-      // TODO: should only process active clusters
-      auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        assert(wgh.get_weight() <= max_weight);
-        return (wgh.get_weight() >= lower_threshold) && (wgh.get_weight() <= max_weight) && (u < v);   // predicate
-      };
-      return CG.clusters[i].countNeighbors(i, pred_f);
-    });
-    size_t sum_wgh_degrees = scan_inplace(make_slice(wgh_degrees));
-
-    // Extract the edges.
-    auto edges = sequence<edge>::uninitialized(sum_wgh_degrees);
-    parallel_for(0, CG.n, [&] (size_t i) {
-      size_t offset = wgh_degrees[i];
-      size_t delta = ((i == CG.n-1) ? sum_wgh_degrees : wgh_degrees[i+1]) - offset;
-      if (delta > 0) {
-        size_t k = 0;
-        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          if ((wgh.get_weight() >= lower_threshold) && (u < v)) {  // predicate
-            edges[offset + k] = {u, v, wgh};
-            k++;
-          }
-        };
-        CG.clusters[i].iterate(i, map_f);
-      }
-    });
-
-    std::cout << "Extracted: " << edges.size() << " edges." << std::endl;
-    rt.next("Extract time");
-
-    // All edges passing the threshold for this round now in edges. Now process
-    // using random-mate-based algorithm.
-    //
-    // The stuff above is generic for any linkage, but what comes next is specific
-    // to the given linkage function.
-    //ProcessEdgesComplete(CG, std::move(edges));
-    ProcessEdgesUnweightedAverage(CG, std::move(edges), Colors, rnd);
-    rt.next("Process time");
+//    std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
+//    timer rt; rt.start();
+//    // Map-reduce to figure out the number of edges with weight > threshold.
+//    auto wgh_degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) {
+//      // TODO: should only process active clusters
+//      auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//        assert(wgh.get_weight() <= max_weight);
+//        return (wgh.get_weight() >= lower_threshold) && (wgh.get_weight() <= max_weight) && (u < v);   // predicate
+//      };
+//      return CG.clusters[i].countNeighbors(i, pred_f);
+//    });
+//    size_t sum_wgh_degrees = scan_inplace(make_slice(wgh_degrees));
+//
+//    // Extract the edges.
+//    auto edges = sequence<edge>::uninitialized(sum_wgh_degrees);
+//    parallel_for(0, CG.n, [&] (size_t i) {
+//      size_t offset = wgh_degrees[i];
+//      size_t delta = ((i == CG.n-1) ? sum_wgh_degrees : wgh_degrees[i+1]) - offset;
+//      if (delta > 0) {
+//        size_t k = 0;
+//        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//          if ((wgh.get_weight() >= lower_threshold) && (u < v)) {  // predicate
+//            edges[offset + k] = {u, v, wgh};
+//            k++;
+//          }
+//        };
+//        CG.clusters[i].iterate(i, map_f);
+//      }
+//    });
+//
+//    std::cout << "Extracted: " << edges.size() << " edges." << std::endl;
+//    rt.next("Extract time");
+//
+//    // All edges passing the threshold for this round now in edges. Now process
+//    // using random-mate-based algorithm.
+//    //
+//    // The stuff above is generic for any linkage, but what comes next is specific
+//    // to the given linkage function.
+//    //ProcessEdgesComplete(CG, std::move(edges));
+//    ProcessEdgesUnweightedAverage(CG, std::move(edges), Colors, rnd);
+//    rt.next("Process time");
 
     rnd = rnd.next();
     max_weight /= one_plus_eps;

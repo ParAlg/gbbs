@@ -76,10 +76,6 @@ struct clustered_graph {
       neighbors = neighbor_map(edges, combine_w);
     }
 
-    uintE size() {
-      return neighbors.size();
-    }
-
     struct Add {
       using T = size_t;
       static T identity() { return 0;}
@@ -103,6 +99,23 @@ struct clustered_graph {
       neighbor_map::foreach_seq(neighbors, iter);
     }
 
+    uintE neighbor_size() {
+      return neighbors.size();
+    }
+
+    // Number of vertices contained in this cluster.
+    uintE cluster_size() {
+      return num_in_cluster;
+    }
+
+    // Tracks the last cluster update size.
+    uintE staleness;
+    // The "current" id of this cluster, updated upon a merge that keeps this cluster active.
+    uintE current_id;
+    // Number of vertices contained in this cluster.
+    uintE num_in_cluster;
+    // Active = false iff this cluster is no longer active.
+    bool active;
     // A map storing our neighbors + weights.
     neighbor_map neighbors;
   };
@@ -118,13 +131,19 @@ struct clustered_graph {
   sequence<std::pair<uintE, W>> dendrogram;
 
   uintE degree(uintE v) {
-    return clusters[v].size();
+    return clusters[v].neighbor_size();
   }
 
-  uintE new_cluster_id() {
-    uintE ret = last_cluster_id;
-    last_cluster_id++;
-    return ret;
+  // Need to implement a unite_merge operation.
+  // input: sequence of (u, v) pairs representing that u will merge to v
+  //
+  // outline:
+  // - sort by 2nd component
+  // - perform merges from u_1,...,u_k to v.
+  // -
+  template <class MergeSeq>
+  void unite_merge(MergeSeq&& merge_seq) {
+
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
