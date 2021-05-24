@@ -345,7 +345,7 @@ struct clustered_graph {
         auto our_map = std::move(clusters[our_id].neighbors);
         auto sl = edges.cut(edges_start, edges_start + k);
         auto op = [&] (const uintE& key, const Sim& old_val, const Sim& new_val) {
-          return new_val;  // FOR TESTING
+          return old_val + new_val;  // sum to get the new total weight across the cut
         };
         auto updated = neighbor_map::keyed_multi_insert_sorted(std::move(our_map), sl, op);
       }
