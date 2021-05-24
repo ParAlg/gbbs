@@ -148,6 +148,32 @@ struct clustered_graph {
     return clusters[v].neighbor_size();
   }
 
+
+  // Delete all (u,v) edges from the graph. The "v" endpoint is a newly
+  // deactivated vertex, so no need to delete from that side, but may need to
+  // delete from the "u" side.
+  // - first endpoint: status unknown (either active or newly deactivated)
+  // - second endpoint: newly deactivated
+  void process_deletions(sequence<std::pair<uintE, uintE>>&& dels) {
+    parlay::sort(make_slice(deletion_seq));  // sort by the first endpoint
+
+    auto all_starts = parlay::delayed_seq<size_t>(dels.size(), [&] (size_t i) {
+      if ((i == 0) || dels[i].first != dels[i-1].first) {
+        return i;
+      }
+      return std::numeric_limits<size_t>::max();
+    });
+    auto starts = parlay::filter(all_starts, [&] (auto v) { return v != std::numeric_limits<size_t>::max(); });
+    std::cout << "Number of deletion targets = " << starts.size() << std::endl;
+
+    parallel_for(0, starts.size(), [&] (size_t i) {
+      size_t start = starts[i];
+      size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      uintE our_id = dels[start].first;
+    });
+
+  }
+
   // Need to implement a unite_merge operation.
   // input: sequence of (u, v) pairs representing that v will merge to u
   //
@@ -202,8 +228,8 @@ struct clustered_graph {
       }
 
       // Write the neighbor size before scan.
-      // Update the current_id for each (being merged) neighbor. Active flag is
-      // still on.
+      // - Update the current_id for each (being merged) neighbor.
+      // - Set the active flag for each such neighbor to false ( Deactivate ).
       for (size_t j=start; j<end; j++) {
         uintE ngh_id = sorted[j].second;
         uintE ngh_size = clusters[ngh_id].neighbor_size();
@@ -212,6 +238,7 @@ struct clustered_graph {
         assert(clusters[ngh_id].current_id == ngh_id);
         // Update id to point to the merge target.
         clusters[ngh_id].current_id = our_id;
+        clusters[ngh_id].active = false;
       }
     });
 
@@ -219,8 +246,11 @@ struct clustered_graph {
     size_t total_edges = parlay::scan_inplace(make_slice(edge_sizes));
     std::cout << "Total edges = " << total_edges << std::endl;
     auto edges = sequence<std::pair<uintE, Sim>>::uninitialized(total_edges);
+    // Deletions store deleted edges (incident to newly deactivated vertices) as
+    // (v,u) pairs, where u is deactivated, and the status of v is unknown.
+    auto deletions = sequence<std::pair<uintE, uintE>>::uninitialized(total_edges);
 
-    // Copy edges from trees to seq.
+    // Copy edges from trees to edges and deletions.
     parallel_for(0, sorted.size(), [&] (size_t i) {
       uintE ngh_id = sorted[i].second;
       size_t k = 0;
@@ -229,11 +259,19 @@ struct clustered_graph {
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         uintE cur_ngh_id = clusters[v].current_id;
         edges[off + k] = std::make_pair(cur_ngh_id, wgh.total_weight);
+        deletions[off + k] = std::make_pair(v, u);
+        k++;
       };
       clusters[ngh_id].iterate(ngh_id, map_f);
     });
 
-    // Sort within each instance.
+    // (1) First perform the deletions. This makes life easier later when we
+    // perform the insertions.
+    process_deletions(std::move(deletions));
+
+
+
+    // Sort within each instance, scan to merge weights for identical edges.
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t sort_start = starts[i];
       size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
@@ -264,6 +302,12 @@ struct clustered_graph {
 //      }
 
     });
+
+
+
+    // Batch deletion of edges from (active_cluster, merged_cluster)
+
+    // Reinsert correctly weighted edges.
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
