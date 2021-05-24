@@ -111,19 +111,22 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
       // Try to join the neighbor's cluster if neighbor is red.
       if (colors[ngh_id] == kRed) {
-        assert(clusters[ngh_id].active);
-        assert(clusters[i].active);
+        assert(CG.clusters[ngh_id].active);
+        assert(CG.clusters[i].active);
         uintE staleness = CG.clusters[ngh_id].staleness;
         uintE upper_bound = one_plus_eps * staleness;
         uintE ngh_cur_size = CG.clusters[ngh_id].cas_size;
         uintE our_size = CG.clusters[i].num_in_cluster;
-        auto old_opt = pbbslib::fetch_and_add_threshold(
-            &(CG.clusters[ngh_id].cas_size),
-            ngh_cur_size,
-            ngh_cur_size + our_size);
-        if (old_opt.has_value()) {  // Success
-          merge_target[i] = ngh_id;
-        }
+
+        // TODO: just for stress-testing the merge implementation.
+        merge_target[i] = ngh_id;
+//        auto old_opt = pbbslib::fetch_and_add_threshold(
+//            &(CG.clusters[ngh_id].cas_size),
+//            ngh_cur_size,
+//            ngh_cur_size + our_size);  // TODO: this should be upper_bound. just for testing now.
+//        if (old_opt.has_value()) {  // Success
+//          merge_target[i] = ngh_id;
+//        }
       }
     }});
 

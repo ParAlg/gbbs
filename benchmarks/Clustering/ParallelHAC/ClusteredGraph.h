@@ -57,7 +57,18 @@ struct clustered_graph {
     clustered_vertex(uintE vtx_id, Graph_vertex& vertex, const Weights& weights, edge* edges) {
       auto cluster_size = vertex.out_degree();
       auto combine_w = [&] (W l, W r) { return l; };
-      neighbors = neighbor_map(edges, edges + cluster_size, combine_w);
+////DEBUG:
+//      for (size_t i=0; i<cluster_size; i++) {
+//        if (edges[i].first == 2622863) {
+//          std::cout << "Edge to 2622863, wgh = " << edges[i].second.total_weight << std::endl;
+//        }
+//      }
+      if (cluster_size > 0) {
+        neighbors = neighbor_map(edges, edges + cluster_size, combine_w);
+//        neighbors.check_consistency();
+      } else {
+        neighbors = neighbor_map();
+      }
 
       num_in_cluster = 1;
       staleness = 1;
@@ -111,6 +122,14 @@ struct clustered_graph {
       neighbor_map::foreach_seq(neighbors, iter);
     }
 
+    template <class F>
+    void map_index(uintE id, F& f) {
+      auto iter = [&] (edge e, size_t index) -> void {
+        f(id, e.first, e.second, index);
+      };
+      neighbor_map::map_index(neighbors, iter);
+    }
+
     uintE neighbor_size() {
       return neighbors.size();
     }
@@ -155,7 +174,8 @@ struct clustered_graph {
   // - first endpoint: status unknown (either active or newly deactivated)
   // - second endpoint: newly deactivated
   void process_deletions(sequence<std::pair<uintE, uintE>>&& dels) {
-    parlay::sort(make_slice(deletion_seq));  // sort by the first endpoint
+    timer dt; dt.start();
+    parlay::sort_inplace(make_slice(dels));  // sort by the first endpoint
 
     auto all_starts = parlay::delayed_seq<size_t>(dels.size(), [&] (size_t i) {
       if ((i == 0) || dels[i].first != dels[i-1].first) {
@@ -165,13 +185,55 @@ struct clustered_graph {
     });
     auto starts = parlay::filter(all_starts, [&] (auto v) { return v != std::numeric_limits<size_t>::max(); });
     std::cout << "Number of deletion targets = " << starts.size() << std::endl;
+    auto del_keys = sequence<uintE>::from_function(dels.size(), [&] (size_t i) { return dels[i].second; });
+
+
+//    for (size_t i=0; i<starts.size(); i++) {
+//      size_t start = starts[i];
+//      size_t end = (i == starts.size() - 1) ? dels.size() : starts[i+1];
+//      uintE our_id = dels[start].first;
+//      if (clusters[our_id].active) {  // otherwise this vertex is deactivated and we can safely skip.
+//        // perform deletions.
+//        auto root = clusters[our_id].neighbors.root;
+//        clusters[our_id].neighbors.check_consistency();
+//        auto our_map = std::move(clusters[our_id].neighbors);
+//        bool ret = our_map.check_consistency();
+//        assert(ret);
+//
+//        auto sl = del_keys.cut(start, end);
+//        auto updated = neighbor_map::multi_delete(std::move(our_map), sl);
+//        clusters[our_id].neighbors = std::move(updated);
+//      }
+//    }
+
+
+//    // DEBUG
+//    size_t n = 3072627;
+//    auto flags = sequence<bool>(n, false);
 
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t start = starts[i];
-      size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t end = (i == starts.size() - 1) ? dels.size() : starts[i+1];
       uintE our_id = dels[start].first;
-    });
 
+      if (clusters[our_id].active) {  // otherwise this vertex is deactivated and we can safely skip.
+
+//        bool ret = pbbslib::atomic_compare_and_swap(&flags[our_id], false, true);
+//        assert(ret);
+
+        // perform deletions.
+        auto root = clusters[our_id].neighbors.root;
+//        clusters[our_id].neighbors.check_consistency();
+        auto our_map = std::move(clusters[our_id].neighbors);
+//        bool check = our_map.check_consistency();
+//        assert(check);
+
+        auto sl = del_keys.cut(start, end);
+        auto updated = neighbor_map::multi_delete(std::move(our_map), sl);
+        clusters[our_id].neighbors = std::move(updated);
+      }
+    });
+    dt.stop(); dt.reportTotal("deletion time");
   }
 
   // Need to implement a unite_merge operation.
@@ -238,6 +300,7 @@ struct clustered_graph {
         assert(clusters[ngh_id].current_id == ngh_id);
         // Update id to point to the merge target.
         clusters[ngh_id].current_id = our_id;
+        assert(clusters[ngh_id].active);
         clusters[ngh_id].active = false;
       }
     });
@@ -250,25 +313,47 @@ struct clustered_graph {
     // (v,u) pairs, where u is deactivated, and the status of v is unknown.
     auto deletions = sequence<std::pair<uintE, uintE>>::uninitialized(total_edges);
 
+//    for (size_t i=0; i<n; i++) {
+//      if (clusters[i].active) {
+//        if (clusters[i].neighbors.root) {
+//          assert(clusters[i].neighbors.root->ref_cnt > 0);
+//        }
+//        clusters[i].neighbors.check_consistency();
+//      }
+//    }
+
     // Copy edges from trees to edges and deletions.
     parallel_for(0, sorted.size(), [&] (size_t i) {
       uintE ngh_id = sorted[i].second;
       size_t k = 0;
       size_t off = edge_sizes[i];
       // todo: map_with_index
-      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t k) {
         uintE cur_ngh_id = clusters[v].current_id;
         edges[off + k] = std::make_pair(cur_ngh_id, wgh.total_weight);
         deletions[off + k] = std::make_pair(v, u);
-        k++;
       };
-      clusters[ngh_id].iterate(ngh_id, map_f);
+      clusters[ngh_id].map_index(ngh_id, map_f);
+      //clusters[ngh_id].iterate(ngh_id, map_f);
     });
+
+//    std::cout << "n = " << n << std::endl;
+//    for (size_t i=0; i<n; i++) {
+//      if (clusters[i].active) {
+//        if (clusters[i].neighbors.root) {
+//          assert(clusters[i].neighbors.root->ref_cnt > 0);
+//        }
+//        clusters[i].neighbors.check_consistency();
+//      }
+//    }
 
     // (1) First perform the deletions. This makes life easier later when we
     // perform the insertions.
+    std::cout << "deletions.size = " << deletions.size() << std::endl;
+    //for (size_t i=0; i<10000; i++) {
+    //  std::cout << deletions[i].first << " " << deletions[i].second << std::endl;
+    //}
     process_deletions(std::move(deletions));
-
 
 
     // Sort within each instance, scan to merge weights for identical edges.
@@ -284,7 +369,7 @@ struct clustered_graph {
       auto sub_seq = edges.cut(edges_start, edges_end);
 
       auto comp = [&] (const auto& l, const auto& r) { return l.first < r.first;};
-      parlay::sort(sub_seq, comp);
+      parlay::sort_inplace(sub_seq, comp);
 
       auto scan_f = [&] (const auto& l, const auto& r) {
         if (l.first == r.first) {  // combine
