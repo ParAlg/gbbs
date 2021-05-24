@@ -242,7 +242,7 @@ namespace twotable {
 
       C get_count(std::size_t index) {
         if (contiguous_space) {
-          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return std::numeric_limits<C>::max() - 1;
+          if (std::get<0>(space[index]) == std::numeric_limits<Y>::max()) return 0;
           return std::get<1>(space[index]);
         }
         //assert(index < total);
@@ -273,7 +273,7 @@ namespace twotable {
           fflush(stdout);
         }
         assert(bottom_index < (end_table->table).m);*/
-        if (std::get<0>((end_table->table).table[bottom_index]) == std::numeric_limits<Y>::max()) return std::numeric_limits<C>::max() - 1;
+        if (std::get<0>((end_table->table).table[bottom_index]) == std::numeric_limits<Y>::max()) return 0;
         return std::get<1>((end_table->table).table[bottom_index]);
       }
 

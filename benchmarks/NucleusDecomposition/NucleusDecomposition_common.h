@@ -633,7 +633,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     finished += active_size;
 
-    if (cur_bkt >= std::numeric_limits<bucket_t>::max() - 1) continue;
+    //if (cur_bkt >= std::numeric_limits<bucket_t>::max() - 1) continue;
 
     max_bkt = std::max(cur_bkt, max_bkt);
     if (cur_bkt == 0 || finished == num_entries) {

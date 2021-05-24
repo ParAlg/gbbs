@@ -530,7 +530,7 @@ namespace multitable_nosearch {
       std::size_t return_total() { return mtable.total_size; }
 
       C get_count(std::size_t index) {
-        if (is_max_val(std::get<0>(space[index]))) return std::numeric_limits<C>::max() - 1;
+        if (is_max_val(std::get<0>(space[index]))) return 0;
         return std::get<1>(space[index]);
       }
 
