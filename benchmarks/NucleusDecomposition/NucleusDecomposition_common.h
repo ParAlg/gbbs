@@ -415,21 +415,29 @@ t1.start();
         uintE u = relabel ? inverse_rank[std::get<0>(v1v2v3)] : std::get<0>(v1v2v3);
         auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
+          assert(labels[actual_ngh] == 0);
           labels[actual_ngh] = 1;
         };
         G.get_vertex(u).mapOutNgh(u, map_label_f, false);
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
         auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
+          assert(labels[actual_ngh] <= 1);
           if (labels[actual_ngh] > 0) labels[actual_ngh]++;
         };
         G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
         v = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
-        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
+        auto map_label_inner_f2 = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+          uintE actual_ngh = relabel ? rank[ngh] : ngh;
+          assert(labels[actual_ngh] <= 2);
+          if (labels[actual_ngh] > 0) labels[actual_ngh]++;
+        };
+        G.get_vertex(v).mapOutNgh(v, map_label_inner_f2, false);
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           if (labels[actual_ngh] == k) {
+            assert(is_edge(G, ngh, std::get<1>(v1v2v3)));
             update_d_threefour(std::get<0>(v1v2v3), std::get<1>(v1v2v3), std::get<2>(v1v2v3), actual_ngh);
           }
           labels[actual_ngh] = 0;
