@@ -330,8 +330,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I& update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d,
-  IntersectSpace* is = nullptr) {
+  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d) {
   
   using W = typename Graph::weight_type;
 
@@ -409,6 +408,9 @@ t1.start();
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
       parallel_for(0, active_size, [&](size_t i) {
+        static thread_local IntersectSpace* is = nullptr;
+        if (is == nullptr) is = new IntersectSpace();
+        is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
         std::tuple<uintE, uintE, uintE> v1v2v3 = cliques->extract_clique_three(x, k);
@@ -460,6 +462,9 @@ t1.start();
       /*parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
       parallel_for(0, active_size, [&](size_t i) {
+        static thread_local IntersectSpace* is = nullptr;
+        if (is == nullptr) is = new IntersectSpace();
+        is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
         uintE base[10];
@@ -585,12 +590,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
-  static thread_local IntersectSpace* is = nullptr;
-  if (k - r == 1 && !(k == 2 && r == 1)) {
-    if (is == nullptr) is = new IntersectSpace();
-    is->alloc(G.n);
-  }
-
   /*timer t_compress;
   compress_utils compress_util;
   if (r == 1 && k == 2 && use_compress) {
@@ -674,7 +673,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
-      t_update_d, is);
+      t_update_d);
       t_count.stop();
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
