@@ -164,7 +164,10 @@ struct clustered_graph {
   template <class Sim>
   void insert_neighbor_endpoints(sequence<std::tuple<uintE, uintE, Sim>>&& triples) {
     timer nt; nt.start();
-    parlay::sort_inplace(make_slice(triples));
+    std::cout << "Before sort, triples size = " << triples.size() << std::endl;
+    auto comp = [&] (const auto& l, const auto& r) { return std::get<0>(l) < std::get<0>(r); };
+    parlay::sort_inplace(make_slice(triples), comp);
+    std::cout << "After sort" << std::endl;
 
     auto all_starts = parlay::delayed_seq<size_t>(triples.size(), [&] (size_t i) {
       if ((i == 0) || std::get<0>(triples[i]) != std::get<0>(triples[i-1])) {
@@ -354,15 +357,14 @@ struct clustered_graph {
       parlay::sort_inplace(our_edges, comp);
 
       auto scan_f = [&] (const auto& l, const auto& r) {
-        if (l.first == r.first) {  // combine
-          return std::make_pair(r.first, l.second + r.second);
-        }
-        return r;
+        if (r.first == UINT_E_MAX) return l;
+        if (r.first != l.first) return r;
+        return std::make_pair(r.first, l.second + r.second);
       };
       std::pair<uintE, Sim> id = std::make_pair(UINT_E_MAX, (Sim)0);
       auto scan_mon = parlay::make_monoid(scan_f, id);
       // After the scan, last occurence of each ngh has the sum'd weight.
-      parlay::scan_inplace(our_edges, scan_mon);
+      parlay::scan_inclusive_inplace(our_edges, scan_mon);
 
       // Pack-inplace. (optimize later if it seems necessary)
       // Also get rid of self-loop edges.
@@ -394,7 +396,8 @@ struct clustered_graph {
     // endpoints (transposed).
 
     using triple = std::tuple<uintE, uintE, Sim>;
-    auto triples = sequence<triple>::uninitialized(total_compacted);
+    triple id{UINT_E_MAX, UINT_E_MAX, 0};
+    auto triples = sequence<triple>(total_compacted, id);
     std::cout << "Total compacted (triples size) = " << total_compacted << std::endl;
 
     parallel_for(0, starts.size(), [&] (size_t i) {
@@ -402,7 +405,7 @@ struct clustered_graph {
       size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
       size_t edges_start = edge_sizes[sort_start];
 
-      size_t num_edges = ((i == starts.size() - 1) ? total_compacted : starts[i+1]) - starts[i];
+      size_t num_edges = ((i == starts.size() - 1) ? total_compacted : compacted_edge_sizes[i+1]) - compacted_edge_sizes[i];
       size_t edges_end = edges_start + num_edges;
 
       uintE our_id = sorted[sort_start].first;
@@ -411,10 +414,16 @@ struct clustered_graph {
       size_t offset = compacted_edge_sizes[i];
 
       for (size_t j=0; j<our_edges.size(); j++) {
-        auto [ngh_id, sim] = our_edges[i];
-        triples[offset + j] = {ngh_id, our_id, sim};
+        auto [ngh_id, sim] = our_edges[j];
+        triples[offset + j] = std::make_tuple(ngh_id, our_id, sim);
+        assert(offset + j < total_compacted);
       }
     });
+
+    for (size_t i=0; i<triples.size(); i++) {
+      assert(std::get<0>(triples[i]) != UINT_E_MAX);
+    }
+    std::cout << "Inserting neighbor endpoints" << std::endl;
 
     insert_neighbor_endpoints(std::move(triples));
   }
