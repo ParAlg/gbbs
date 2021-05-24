@@ -299,8 +299,10 @@ struct clustered_graph {
     // perform the insertions.
     process_deletions(std::move(deletions));
 
+    auto compacted_edge_sizes = sequence<size_t>::uninitialized(starts.size());
 
     // Sort within each instance, scan to merge weights for identical edges.
+    // TODO: need to be careful to avoid self-loop edges.
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t sort_start = starts[i];
       size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
@@ -327,17 +329,29 @@ struct clustered_graph {
       parlay::scan_inplace(our_edges, scan_mon);
 
       // Pack-inplace. (optimize later if it seems necessary)
-
+      // Also get rid of self-loop edges.
       assert(our_edges.size() > 0);
+      size_t k = 0;
       for (size_t j=0; j<our_edges.size(); j++) {
-
+        if (our_edges[j].first == our_id) continue;  // skip self-loops
+        if ((j == our_edges.size() - 1) || (our_edges[j].first != our_edges[j+1].first)) {
+          our_edges[k] = our_edges[j];
+          k++;
+        }
       }
+      compacted_edge_sizes[i] = k;
 
-//      for (size_t j=start+1; j<end; j++) {
-//        if (edges
-//      }
-
+      if (k > 0) {
+        auto our_map = std::move(clusters[our_id].neighbors);
+        auto sl = edges.cut(edges_start, edges_start + k);
+        auto op = [&] (const uintE& key, const Sim& old_val, const Sim& new_val) {
+          return new_val;  // FOR TESTING
+        };
+        // auto updated = neighbor_map::keyed_multi_insert_sorted(std::move(our_map), sl, op);
+      }
     });
+
+    parlay::scan_inplace(make_slice(compacted_edge_sizes));
 
     // Map to triples, and reinsert correctly weighted edges into neighbors
     // endpoints (transposed).
@@ -359,7 +373,7 @@ struct clustered_graph {
     pbbslib::scan_inplace(make_slice(offsets));
     parallel_for(0, n, [&] (size_t i) {
       size_t off = offsets[i];
-      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t j) {
+      auto map_f = [&] (const uintE& u, const uintE& v, const auto& wgh, size_t j) {
         edges[off + j] = {v, wgh};
       };
       G.get_vertex(i).out_neighbors().map_with_index(map_f);

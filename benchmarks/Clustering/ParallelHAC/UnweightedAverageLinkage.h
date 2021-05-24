@@ -56,8 +56,9 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
   uint8_t kRed = 2;
   parallel_for(0, n, [&] (size_t i) {
     auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      assert(wgh.get_weight() <= max_weight);
-      return (wgh.get_weight() >= lower_threshold) && (wgh.get_weight() <= max_weight);
+      Sim actual_weight = wgh.get_weight(u, v, CG);
+      assert(actual_weight <= max_weight);
+      return (actual_weight >= lower_threshold) && (actual_weight <= max_weight);
     };
     size_t ct = CG.clusters[i].countNeighbors(i, pred_f);
     if (ct > 0) active[i] = ct;
@@ -96,9 +97,9 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       // seq selection for now (todo: could run in par for high-degrees)
       size_t k = 0;
       uintE ngh_id = std::numeric_limits<uintE>::max();
-      W weight;
+      W weight;  // TODO: don't really need to save?
       auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        if (wgh.get_weight() >= lower_threshold) {
+        if (wgh.get_weight(u, v, CG) >= lower_threshold) {
           if (k == edge_idx) {
             ngh_id = v; weight = wgh;
           } else {
@@ -146,43 +147,6 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 }
 
 
-
-
-
-template <class ClusteredGraph, class W>
-void ProcessEdgesUnweightedAverage(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges,
-                                   sequence<size_t>& Colors, parlay::random& rnd) {
-  using edge = std::tuple<uintE, uintE, W>;
-  auto V = sequence<vtx_status>::uninitialized(CG.n);
-  auto edges_2 = sequence<edge>::uninitialized(edges.size());
-
-  // Initialize Colors for vertices active in this round.
-  auto UpdateColors = [&] () {
-    auto latches = sequence<bool>(CG.n, false);
-    auto gen_rand = [&] (const uintE& u) {
-      // test and set
-      if (!latches[u] && pbbslib::atomic_compare_and_swap(&latches[u], false, true)) {
-        Colors[u] = rnd.ith_rand(u);  // TODO: make sure to update rnd outside.
-      }
-    };
-    parallel_for(0, edges.size(), [&] (size_t i) {
-      auto [u, v, wgh] = edges[i];
-      gen_rand(u); gen_rand(v);
-    });
-  };
-  UpdateColors();
-
-  size_t phase = 0;
-  constexpr size_t kPhaseMask = 63;
-
-  auto GetColor = [&] (const uintE& u) -> bool {
-    auto bit = phase & kPhaseMask;
-    auto color = Colors[u];
-    return color & (1 << bit);
-  };
-
-  std::cout << "Edges.size = " << edges.size() << std::endl;
-}
 
 }  // namespace clustering
 }  // namespace gbbs

@@ -204,86 +204,39 @@ struct MinLinkage : ClusteringType::template Clustering<Graph, GetWeight> {
   }
 };
 
-
-struct NormAvgLinkWeight {
-  uintE bundle_size;
-  double total_weight;
-  NormAvgLinkWeight() : bundle_size(0), total_weight(0) {}
-  NormAvgLinkWeight(uintE single_edge_weight) : bundle_size(1), total_weight(single_edge_weight) {}
-  NormAvgLinkWeight(uintE bundle_size, double total_weight)
-    : bundle_size(bundle_size), total_weight(total_weight) {}
-  double get_weight() const { return total_weight / static_cast<double>(bundle_size); }
-  void print() const { std::cout << "{" << bundle_size << ", " << total_weight << "}" << std::endl; }
-};
-bool operator< (const NormAvgLinkWeight& l, const NormAvgLinkWeight& r) {
-  return l.get_weight() < r.get_weight();
-}
-bool operator<= (const NormAvgLinkWeight& l, const NormAvgLinkWeight& r) {
-  return l.get_weight() <= r.get_weight();
-}
-bool operator> (const NormAvgLinkWeight& l, const NormAvgLinkWeight& r) {
-  return l.get_weight() > r.get_weight();
-}
-bool operator>= (const NormAvgLinkWeight& l, const NormAvgLinkWeight& r) {
-  return l.get_weight() >= r.get_weight();
-}
-bool operator== (const NormAvgLinkWeight& l, const NormAvgLinkWeight& r) {
-  return l.get_weight() == r.get_weight();
-}
-bool operator!= (const NormAvgLinkWeight& l, const NormAvgLinkWeight& r) {
-  return l.get_weight() != r.get_weight();
-}
-
-template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
-struct NormAverageLinkage : ClusteringType::template WeightedClustering<Graph, NormAvgLinkWeight, GetWeight> {
-  using base = typename ClusteringType::template WeightedClustering<Graph, NormAvgLinkWeight, GetWeight>;
-  using weight_type = NormAvgLinkWeight;
-  using base::base;
-
-  // The linkage function.
-  static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
-    size_t bundle_size = lhs.bundle_size + rhs.bundle_size;
-    double total_weight = lhs.total_weight + rhs.total_weight;
-    return weight_type(bundle_size, total_weight);
-  }
-
-  static std::string AsString(const weight_type& wgh) {
-    return std::to_string(wgh.get_weight());
-  }
-};
-
-
 struct AvgLinkWeight {
   double total_weight;  // weight going across this cut
-  double current_weight;  // total_weight / (|A| * |B|)
-  AvgLinkWeight() : total_weight(0), current_weight(0) {}
-  AvgLinkWeight(uintE single_edge_weight) : total_weight(single_edge_weight), current_weight(single_edge_weight) {}
-  AvgLinkWeight(double total_weight, double current_weight)
-    : total_weight(total_weight), current_weight(current_weight) {}
-  double get_weight() const { return current_weight; }
-  void print() const { std::cout << "{" << total_weight << ", " << current_weight << "}" << std::endl; }
+  AvgLinkWeight() : total_weight(0) {}
+  AvgLinkWeight(double total_weight) : total_weight(total_weight) {}
+  template <class Graph>
+  double get_weight(const uintE& u, const uintE& v, Graph& G) const {
+    double size_u = G.clusters[u].cluster_size();
+    double size_v = G.clusters[v].cluster_size();
+    return total_weight / (size_u * size_v);
+  }
+  void print() const { std::cout << "{" << total_weight << "}" << std::endl; }
   std::string AsString() const {
-    return std::to_string(get_weight());
+    return std::to_string(total_weight);
   }
 };
-bool operator< (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-  return l.get_weight() < r.get_weight();
-}
-bool operator<= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-  return l.get_weight() <= r.get_weight();
-}
-bool operator> (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-  return l.get_weight() > r.get_weight();
-}
-bool operator>= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-  return l.get_weight() >= r.get_weight();
-}
-bool operator== (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-  return l.get_weight() == r.get_weight();
-}
-bool operator!= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-  return l.get_weight() != r.get_weight();
-}
+//bool operator< (const AvgLinkWeight& l, const AvgLinkWeight& r) {
+//  return l.get_weight() < r.get_weight();
+//}
+//bool operator<= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
+//  return l.get_weight() <= r.get_weight();
+//}
+//bool operator> (const AvgLinkWeight& l, const AvgLinkWeight& r) {
+//  return l.get_weight() > r.get_weight();
+//}
+//bool operator>= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
+//  return l.get_weight() >= r.get_weight();
+//}
+//bool operator== (const AvgLinkWeight& l, const AvgLinkWeight& r) {
+//  return l.get_weight() == r.get_weight();
+//}
+//bool operator!= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
+//  return l.get_weight() != r.get_weight();
+//}
 
 template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
 struct ApproxAverageLinkage : ClusteringType::template WeightedClustering<Graph, AvgLinkWeight, GetWeight> {
@@ -296,35 +249,27 @@ struct ApproxAverageLinkage : ClusteringType::template WeightedClustering<Graph,
 
   // Convert an underlying weight to an initial edge weight for this edge.
   static weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) {
-    double total_weight = wgh;  // divided by 1
-    double current_weight = total_weight;
-    return weight_type(total_weight, current_weight);
+    return weight_type(wgh);
   }
 
   template <class Clusters>
   static auto GetLinkage(Clusters& clusters, const uintE& our_size) {
     return [&, our_size] (const value& lhs, const value& rhs) -> value {
       uintE id = lhs.first;
-      double ngh_size = clusters[id].size();
+      // double ngh_size = clusters[id].size();
       double total_weight = lhs.second.total_weight + rhs.second.total_weight;
-      double sizes_product = our_size * ngh_size;
-      double current_weight = total_weight / sizes_product;
-      return value(id, weight_type(total_weight, current_weight));
+      // double sizes_product = our_size * ngh_size;
+      return value(id, weight_type(total_weight));
     };
   }
 
   template <class Clusters>
   static value UpdateWeight(Clusters& clusters, const value& wgh, const uintE& our_size) {
     uintE ngh_id = wgh.first;
-    uintE ngh_size = clusters[ngh_id].size();
+    // uintE ngh_size = clusters[ngh_id].size();
     double total_weight = wgh.second.total_weight;
-    double sizes_product = our_size * ngh_size;
-    double current_weight = total_weight / sizes_product;
-    return value(ngh_id, weight_type(total_weight, current_weight));
-  }
-
-  static std::string AsString(const weight_type& wgh) {
-    return std::to_string(wgh.get_weight());
+    // double sizes_product = our_size * ngh_size;
+    return value(ngh_id, weight_type(total_weight));
   }
 };
 

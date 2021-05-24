@@ -44,8 +44,7 @@ double HAC_runner(Graph& G, commandLine P) {
   double tt;
 
   // auto Weights = ActualWeight::template GetWeight<Graph>(G);
-  auto Weights =
-          ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
+  auto Weights = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
   clustering::ParallelUPGMA(G, Weights);
 
   return tt;

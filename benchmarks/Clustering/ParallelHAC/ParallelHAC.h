@@ -210,8 +210,9 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   Sim min_weight = std::numeric_limits<Sim>::max();
   parallel_for(0, CG.n, [&] (size_t i) {
     auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      if (wgh.get_weight() > max_weight) { pbbslib::write_max(&max_weight, wgh.get_weight()); }
-      if (wgh.get_weight() < min_weight) { pbbslib::write_min(&min_weight, wgh.get_weight()); }
+      auto actual_weight = wgh.get_weight(u,v, CG);
+      if (actual_weight > max_weight) { pbbslib::write_max(&max_weight, actual_weight); }
+      if (actual_weight < min_weight) { pbbslib::write_min(&min_weight, actual_weight); }
     };
     CG.clusters[i].iterate(i, f);
   });
