@@ -187,47 +187,14 @@ struct clustered_graph {
     std::cout << "Number of deletion targets = " << starts.size() << std::endl;
     auto del_keys = sequence<uintE>::from_function(dels.size(), [&] (size_t i) { return dels[i].second; });
 
-
-//    for (size_t i=0; i<starts.size(); i++) {
-//      size_t start = starts[i];
-//      size_t end = (i == starts.size() - 1) ? dels.size() : starts[i+1];
-//      uintE our_id = dels[start].first;
-//      if (clusters[our_id].active) {  // otherwise this vertex is deactivated and we can safely skip.
-//        // perform deletions.
-//        auto root = clusters[our_id].neighbors.root;
-//        clusters[our_id].neighbors.check_consistency();
-//        auto our_map = std::move(clusters[our_id].neighbors);
-//        bool ret = our_map.check_consistency();
-//        assert(ret);
-//
-//        auto sl = del_keys.cut(start, end);
-//        auto updated = neighbor_map::multi_delete(std::move(our_map), sl);
-//        clusters[our_id].neighbors = std::move(updated);
-//      }
-//    }
-
-
-//    // DEBUG
-//    size_t n = 3072627;
-//    auto flags = sequence<bool>(n, false);
-
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t start = starts[i];
       size_t end = (i == starts.size() - 1) ? dels.size() : starts[i+1];
       uintE our_id = dels[start].first;
 
       if (clusters[our_id].active) {  // otherwise this vertex is deactivated and we can safely skip.
-
-//        bool ret = pbbslib::atomic_compare_and_swap(&flags[our_id], false, true);
-//        assert(ret);
-
         // perform deletions.
-        auto root = clusters[our_id].neighbors.root;
-//        clusters[our_id].neighbors.check_consistency();
         auto our_map = std::move(clusters[our_id].neighbors);
-//        bool check = our_map.check_consistency();
-//        assert(check);
-
         auto sl = del_keys.cut(start, end);
         auto updated = neighbor_map::multi_delete(std::move(our_map), sl);
         clusters[our_id].neighbors = std::move(updated);
@@ -313,15 +280,6 @@ struct clustered_graph {
     // (v,u) pairs, where u is deactivated, and the status of v is unknown.
     auto deletions = sequence<std::pair<uintE, uintE>>::uninitialized(total_edges);
 
-//    for (size_t i=0; i<n; i++) {
-//      if (clusters[i].active) {
-//        if (clusters[i].neighbors.root) {
-//          assert(clusters[i].neighbors.root->ref_cnt > 0);
-//        }
-//        clusters[i].neighbors.check_consistency();
-//      }
-//    }
-
     // Copy edges from trees to edges and deletions.
     parallel_for(0, sorted.size(), [&] (size_t i) {
       uintE ngh_id = sorted[i].second;
@@ -334,25 +292,11 @@ struct clustered_graph {
         deletions[off + k] = std::make_pair(v, u);
       };
       clusters[ngh_id].map_index(ngh_id, map_f);
-      //clusters[ngh_id].iterate(ngh_id, map_f);
     });
-
-//    std::cout << "n = " << n << std::endl;
-//    for (size_t i=0; i<n; i++) {
-//      if (clusters[i].active) {
-//        if (clusters[i].neighbors.root) {
-//          assert(clusters[i].neighbors.root->ref_cnt > 0);
-//        }
-//        clusters[i].neighbors.check_consistency();
-//      }
-//    }
 
     // (1) First perform the deletions. This makes life easier later when we
     // perform the insertions.
     std::cout << "deletions.size = " << deletions.size() << std::endl;
-    //for (size_t i=0; i<10000; i++) {
-    //  std::cout << deletions[i].first << " " << deletions[i].second << std::endl;
-    //}
     process_deletions(std::move(deletions));
 
 
