@@ -519,8 +519,12 @@ t1.start();
 
   } else {
 
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-                                     [&](size_t i, HybridSpace_lw* induced) {
+  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+  //                                   [&](size_t i, HybridSpace_lw* induced) {
+  parallel_for(0, active_size, [&](size_t i) {
+    static thread_local HybridSpace_lw* induced = nullptr;
+    if (induced == nullptr) induced = new IntersectSpace();
+    induced->alloc(max_deg, k-r, G.n, true, true, true);
   //for(size_t i =0; i < active_size; i++) {
   //  HybridSpace_lw* induced = new HybridSpace_lw();
     init_induced(induced);
