@@ -126,7 +126,10 @@ namespace gbbs {
   IntersectSpace () {}
 
   void alloc(size_t n) {
-    if (labels == nullptr) labels = (uintE*) calloc(n, sizeof(uintE));
+    if (labels == nullptr) {
+      labels = (uintE*) calloc(n, sizeof(uintE));
+      assert(labels[0] == 0);
+    }
   }
   };
 
