@@ -161,6 +161,42 @@ struct clustered_graph {
   }
 
 
+  template <class Sim>
+  void insert_neighbor_endpoints(sequence<std::tuple<uintE, uintE, Sim>>&& triples) {
+    timer nt; nt.start();
+    parlay::sort_inplace(make_slice(triples));
+
+    auto all_starts = parlay::delayed_seq<size_t>(triples.size(), [&] (size_t i) {
+      if ((i == 0) || std::get<0>(triples[i]) != std::get<0>(triples[i-1])) {
+        return i;
+      }
+      return std::numeric_limits<size_t>::max();
+    });
+    auto starts = parlay::filter(all_starts, [&] (auto v) { return v != std::numeric_limits<size_t>::max(); });
+    std::cout << "Number of neighbor-insertion targets = " << starts.size() << std::endl;
+
+    auto pairs = sequence<std::pair<uintE, Sim>>::from_function(triples.size(), [&] (size_t i) {
+      return std::make_pair(std::get<1>(triples[i]), std::get<2>(triples[i]));
+    });
+
+    parallel_for(0, starts.size(), [&] (size_t i) {
+      size_t start = starts[i];
+      size_t end = (i == starts.size() - 1) ? triples.size() : starts[i+1];
+      uintE our_id = std::get<0>(triples[start]);
+
+      assert(clusters[our_id].active);
+
+      auto our_map = std::move(clusters[our_id].neighbors);
+      auto sl = pairs.cut(start, end);
+        auto op = [&] (const uintE& key, const Sim& old_val, const Sim& new_val) {
+          return old_val + new_val;  // sum to get the new total weight across the cut
+        };
+      auto updated = neighbor_map::keyed_multi_insert_sorted(std::move(our_map), sl, op);
+      clusters[our_id].neighbors = std::move(updated);
+    });
+    nt.stop(); nt.reportTotal("Neighbor insertion time");
+  }
+
   // Delete all (u,v) edges from the graph. The "v" endpoint is a newly
   // deactivated vertex, so no need to delete from that side, but may need to
   // delete from the "u" side.
@@ -348,13 +384,39 @@ struct clustered_graph {
           return old_val + new_val;  // sum to get the new total weight across the cut
         };
         auto updated = neighbor_map::keyed_multi_insert_sorted(std::move(our_map), sl, op);
+        clusters[our_id].neighbors = std::move(updated);
       }
     });
 
-    parlay::scan_inplace(make_slice(compacted_edge_sizes));
+    size_t total_compacted = parlay::scan_inplace(make_slice(compacted_edge_sizes));
 
     // Map to triples, and reinsert correctly weighted edges into neighbors
     // endpoints (transposed).
+
+    using triple = std::tuple<uintE, uintE, Sim>;
+    auto triples = sequence<triple>::uninitialized(total_compacted);
+    std::cout << "Total compacted (triples size) = " << total_compacted << std::endl;
+
+    parallel_for(0, starts.size(), [&] (size_t i) {
+      size_t sort_start = starts[i];
+      size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t edges_start = edge_sizes[sort_start];
+
+      size_t num_edges = ((i == starts.size() - 1) ? total_compacted : starts[i+1]) - starts[i];
+      size_t edges_end = edges_start + num_edges;
+
+      uintE our_id = sorted[sort_start].first;
+      auto our_edges = edges.cut(edges_start, edges_end);
+
+      size_t offset = compacted_edge_sizes[i];
+
+      for (size_t j=0; j<our_edges.size(); j++) {
+        auto [ngh_id, sim] = our_edges[i];
+        triples[offset + j] = {ngh_id, our_id, sim};
+      }
+    });
+
+    insert_neighbor_endpoints(std::move(triples));
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
