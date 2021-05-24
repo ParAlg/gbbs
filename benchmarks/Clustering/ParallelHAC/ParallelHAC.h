@@ -189,7 +189,7 @@ namespace clustering {
 
 
 template <class Weights,
-// provides get_weight : () -> Weights::weight_type which is the
+// provides get_weight -> Weights::weight_type which is the
 // datatype that is stored for each edge incident to a _cluster_. This
 // could involve more than simply storing the underlying weight, or
 // could internally be a representation like gbbs::empty.
@@ -210,7 +210,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   Sim min_weight = std::numeric_limits<Sim>::max();
   parallel_for(0, CG.n, [&] (size_t i) {
     auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      auto actual_weight = wgh.get_weight(u,v, CG);
+      auto actual_weight = Weights::get_weight(wgh, u, v, CG);
       if (actual_weight > max_weight) { pbbslib::write_max(&max_weight, actual_weight); }
       if (actual_weight < min_weight) { pbbslib::write_min(&min_weight, actual_weight); }
     };
@@ -229,7 +229,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     Sim lower_threshold = max_weight / one_plus_eps;
 
     std::cout << "Round = " << rounds << std::endl;
-    ProcessGraphUnweightedAverage(CG, lower_threshold, max_weight, rnd);
+    ProcessGraphUnweightedAverage<Weights>(CG, lower_threshold, max_weight, rnd);
 
 //    std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
 //    timer rt; rt.start();

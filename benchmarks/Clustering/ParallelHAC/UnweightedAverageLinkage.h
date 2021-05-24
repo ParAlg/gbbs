@@ -43,7 +43,7 @@ struct vtx_status {
 
 // At the end of this call, we will have performed merges and ensured that no
 // edges exist with weights between [lower_threshold, ...).
-template <class ClusteredGraph, class Sim>
+template <class Weights, class ClusteredGraph, class Sim>
 void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd,
     double eps = 0.05) {
     std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
@@ -56,7 +56,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
   uint8_t kRed = 2;
   parallel_for(0, n, [&] (size_t i) {
     auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      Sim actual_weight = wgh.get_weight(u, v, CG);
+      Sim actual_weight = Weights::get_weight(wgh, u, v, CG);
       assert(actual_weight <= max_weight);
       return (actual_weight >= lower_threshold) && (actual_weight <= max_weight);
     };
@@ -99,7 +99,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       uintE ngh_id = std::numeric_limits<uintE>::max();
       W weight;  // TODO: don't really need to save?
       auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        if (wgh.get_weight(u, v, CG) >= lower_threshold) {
+        if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
           if (k == edge_idx) {
             ngh_id = v; weight = wgh;
           } else {

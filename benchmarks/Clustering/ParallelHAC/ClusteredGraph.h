@@ -283,7 +283,7 @@ struct clustered_graph {
       // todo: map_with_index
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t k) {
         uintE cur_ngh_id = clusters[v].current_id;
-        edges[off + k] = std::make_pair(cur_ngh_id, wgh.total_weight);
+        edges[off + k] = std::make_pair(cur_ngh_id, wgh);
         deletions[off + k] = std::make_pair(v, u);
       };
       clusters[ngh_id].map_index(ngh_id, map_f);
@@ -347,7 +347,7 @@ struct clustered_graph {
         auto op = [&] (const uintE& key, const Sim& old_val, const Sim& new_val) {
           return new_val;  // FOR TESTING
         };
-        // auto updated = neighbor_map::keyed_multi_insert_sorted(std::move(our_map), sl, op);
+        auto updated = neighbor_map::keyed_multi_insert_sorted(std::move(our_map), sl, op);
       }
     });
 

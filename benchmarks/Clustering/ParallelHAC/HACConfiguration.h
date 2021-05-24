@@ -204,71 +204,52 @@ struct MinLinkage : ClusteringType::template Clustering<Graph, GetWeight> {
   }
 };
 
-struct AvgLinkWeight {
-  double total_weight;  // weight going across this cut
-  AvgLinkWeight() : total_weight(0) {}
-  AvgLinkWeight(double total_weight) : total_weight(total_weight) {}
-  template <class Graph>
-  double get_weight(const uintE& u, const uintE& v, Graph& G) const {
-    double size_u = G.clusters[u].cluster_size();
-    double size_v = G.clusters[v].cluster_size();
-    return total_weight / (size_u * size_v);
-  }
-  void print() const { std::cout << "{" << total_weight << "}" << std::endl; }
-  std::string AsString() const {
-    return std::to_string(total_weight);
-  }
-};
-//bool operator< (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-//  return l.get_weight() < r.get_weight();
-//}
-//bool operator<= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-//  return l.get_weight() <= r.get_weight();
-//}
-//bool operator> (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-//  return l.get_weight() > r.get_weight();
-//}
-//bool operator>= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-//  return l.get_weight() >= r.get_weight();
-//}
-//bool operator== (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-//  return l.get_weight() == r.get_weight();
-//}
-//bool operator!= (const AvgLinkWeight& l, const AvgLinkWeight& r) {
-//  return l.get_weight() != r.get_weight();
-//}
+//struct AvgLinkWeight {
+//  double total_weight;  // weight going across this cut
+//  AvgLinkWeight() : total_weight(0) {}
+//  AvgLinkWeight(double total_weight) : total_weight(total_weight) {}
+//  template <class Graph>
+//  double get_weight(const uintE& u, const uintE& v, Graph& G) const {
+//    double size_u = G.clusters[u].cluster_size();
+//    double size_v = G.clusters[v].cluster_size();
+//    return total_weight / (size_u * size_v);
+//  }
+//  void print() const { std::cout << "{" << total_weight << "}" << std::endl; }
+//  std::string AsString() const {
+//    return std::to_string(total_weight);
+//  }
+//};
 
 template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
-struct ApproxAverageLinkage : ClusteringType::template WeightedClustering<Graph, AvgLinkWeight, GetWeight> {
-  using base = typename ClusteringType::template WeightedClustering<Graph, AvgLinkWeight, GetWeight>;
-  using weight_type = AvgLinkWeight;
+struct ApproxAverageLinkage : ClusteringType::template WeightedClustering<Graph, double, GetWeight> {
+  using base = typename ClusteringType::template WeightedClustering<Graph, double, GetWeight>;
+  using weight_type = double;
   using base::base;
   using underlying_weight_type = typename Graph::weight_type;
 
   using value = std::pair<uintE, weight_type>;   // type of the value in the ngh tree (neighbor_map)
 
   // Convert an underlying weight to an initial edge weight for this edge.
-  static weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) {
-    return weight_type(wgh);
+  template <class ClusteredGraph>
+  static weight_type get_weight(double total_weight, const uintE& u, const uintE& v, ClusteredGraph& CG) {
+    double size_u = CG.clusters[u].cluster_size();
+    double size_v = CG.clusters[v].cluster_size();
+    return total_weight / (size_u * size_v);
   }
 
   template <class Clusters>
   static auto GetLinkage(Clusters& clusters, const uintE& our_size) {
     return [&, our_size] (const value& lhs, const value& rhs) -> value {
       uintE id = lhs.first;
-      // double ngh_size = clusters[id].size();
-      double total_weight = lhs.second.total_weight + rhs.second.total_weight;
-      // double sizes_product = our_size * ngh_size;
-      return value(id, weight_type(total_weight));
+      double total_weight = lhs.second + rhs.second;
+      return value(id, total_weight);
     };
   }
 
   template <class Clusters>
   static value UpdateWeight(Clusters& clusters, const value& wgh, const uintE& our_size) {
     uintE ngh_id = wgh.first;
-    // uintE ngh_size = clusters[ngh_id].size();
-    double total_weight = wgh.second.total_weight;
-    // double sizes_product = our_size * ngh_size;
+    double total_weight = wgh.second;
     return value(ngh_id, weight_type(total_weight));
   }
 };
