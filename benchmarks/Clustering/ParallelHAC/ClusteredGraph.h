@@ -57,15 +57,8 @@ struct clustered_graph {
     clustered_vertex(uintE vtx_id, Graph_vertex& vertex, const Weights& weights, edge* edges) {
       auto cluster_size = vertex.out_degree();
       auto combine_w = [&] (W l, W r) { return l; };
-////DEBUG:
-//      for (size_t i=0; i<cluster_size; i++) {
-//        if (edges[i].first == 2622863) {
-//          std::cout << "Edge to 2622863, wgh = " << edges[i].second.total_weight << std::endl;
-//        }
-//      }
       if (cluster_size > 0) {
         neighbors = neighbor_map(edges, edges + cluster_size, combine_w);
-//        neighbors.check_consistency();
       } else {
         neighbors = neighbor_map();
       }
@@ -278,7 +271,9 @@ struct clustered_graph {
     auto edges = sequence<std::pair<uintE, Sim>>::uninitialized(total_edges);
     // Deletions store deleted edges (incident to newly deactivated vertices) as
     // (v,u) pairs, where u is deactivated, and the status of v is unknown.
-    auto deletions = sequence<std::pair<uintE, uintE>>::uninitialized(total_edges);
+    // The last merge_seq.size() many deletions are directly copied from the
+    // merges.
+    auto deletions = sequence<std::pair<uintE, uintE>>::uninitialized(total_edges + merge_seq.size());
 
     // Copy edges from trees to edges and deletions.
     parallel_for(0, sorted.size(), [&] (size_t i) {
@@ -294,9 +289,14 @@ struct clustered_graph {
       clusters[ngh_id].map_index(ngh_id, map_f);
     });
 
+    // Delete every (active_id, deactivated_id) edge incident to the active
+    // merge targets.
+    parallel_for(0, merge_seq.size(), [&] (size_t i) {
+      deletions[total_edges + i] = merge_seq[i];
+    });
+
     // (1) First perform the deletions. This makes life easier later when we
     // perform the insertions.
-    std::cout << "deletions.size = " << deletions.size() << std::endl;
     process_deletions(std::move(deletions));
 
 
@@ -310,10 +310,10 @@ struct clustered_graph {
       uintE our_id = sorted[sort_start].first;
       auto our_size = clusters[our_id].cluster_size();
 
-      auto sub_seq = edges.cut(edges_start, edges_end);
+      auto our_edges = edges.cut(edges_start, edges_end);
 
       auto comp = [&] (const auto& l, const auto& r) { return l.first < r.first;};
-      parlay::sort_inplace(sub_seq, comp);
+      parlay::sort_inplace(our_edges, comp);
 
       auto scan_f = [&] (const auto& l, const auto& r) {
         if (l.first == r.first) {  // combine
@@ -324,7 +324,14 @@ struct clustered_graph {
       std::pair<uintE, Sim> id = std::make_pair(UINT_E_MAX, (Sim)0);
       auto scan_mon = parlay::make_monoid(scan_f, id);
       // After the scan, last occurence of each ngh has the sum'd weight.
-      parlay::scan_inplace(sub_seq, scan_mon);
+      parlay::scan_inplace(our_edges, scan_mon);
+
+      // Pack-inplace. (optimize later if it seems necessary)
+
+      assert(our_edges.size() > 0);
+      for (size_t j=0; j<our_edges.size(); j++) {
+
+      }
 
 //      for (size_t j=start+1; j<end; j++) {
 //        if (edges
@@ -332,11 +339,8 @@ struct clustered_graph {
 
     });
 
-
-
-    // Batch deletion of edges from (active_cluster, merged_cluster)
-
-    // Reinsert correctly weighted edges.
+    // Map to triples, and reinsert correctly weighted edges into neighbors
+    // endpoints (transposed).
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
