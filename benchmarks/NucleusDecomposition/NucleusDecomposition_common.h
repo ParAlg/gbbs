@@ -417,15 +417,15 @@ t1.start();
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           labels[actual_ngh] = 1;
         };
-        G.get_vertex(u).mapOutNgh(u, map_label_f, true);
+        G.get_vertex(u).mapOutNgh(u, map_label_f, false);
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
         auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           if (labels[actual_ngh] > 0) labels[actual_ngh]++;
         };
-        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
+        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
         v = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
-        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
+        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
@@ -479,14 +479,14 @@ t1.start();
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           labels[actual_ngh] = 1;
         };
-        G.get_vertex(u).mapOutNgh(u, map_label_f, true);
+        G.get_vertex(u).mapOutNgh(u, map_label_f, false);
         for (size_t j = k; j > 1; j--) {
           uintE v = relabel ? inverse_rank[base[j]] : base[j];
           auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
             uintE actual_ngh = relabel ? rank[ngh] : ngh;
             if (labels[actual_ngh] > 0) labels[actual_ngh]++;
           };
-          G.get_vertex(v).mapOutNgh(v, map_label_inner_f, true);
+          G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
         }
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -578,7 +578,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
   static thread_local IntersectSpace* is = nullptr;
-  if (k == 3 && r == 2) {
+  if (k - r == 1 && !(k == 2 && r == 1)) {
     if (is == nullptr) is = new IntersectSpace();
     is->alloc(G.n);
   }
