@@ -46,7 +46,7 @@ def run_2():
             eff_pre = eff
             for nw in num_workers:
               for i in range(4):
-                out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
+                out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" + tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
                 ss = ("NUM_THREADS="+str(nw)+" timeout 6h bazel run :NucleusDecomposition_main -- "
                 "-s -rounds 1 -r 2 -ss " + s + " -tt " + tt + " -nl"
                 " " + nl + " " + relabel + " -efficient " + eff + " " + contig + " " + read_dir  + filename)
@@ -82,7 +82,7 @@ def run_3():
               eff_pre = eff
               for nw in num_workers:
                 for i in range(4):
-                  out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
+                  out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" + tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
                   ss = ("NUM_THREADS="+str(nw)+" timeout 6h bazel run :NucleusDecomposition_main -- "
                   "-s -rounds 1 -r " + r + " -ss " + s + " -tt " + tt + " -nl"
                   " " + nl + " " + relabel + " -efficient " + eff + " " + contig + " " + read_dir  + filename)
@@ -117,7 +117,7 @@ def run_4():
               eff_pre = eff
               for nw in num_workers:
                 for i in range(4):
-                  out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
+                  out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" +tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
                   ss = ("NUM_THREADS="+str(nw)+" timeout 6h bazel run :NucleusDecomposition_main -- "
                   "-s -rounds 1 -r " + r + " -ss " + s + " -tt " + tt + " -nl"
                   " " + nl + " " + relabel + " -efficient " + eff + " " + contig + " " + read_dir  + filename)
@@ -152,7 +152,7 @@ def run_5():
               eff_pre = eff
               for nw in num_workers:
                 for i in range(4):
-                  out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
+                  out_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + nl + "_" +tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff_pre +"_" + str(nw) + ".out"
                   ss = ("NUM_THREADS="+str(nw)+" timeout 6h bazel run :NucleusDecomposition_main -- "
                   "-s -rounds 1 -r " + r + " -ss " + s + " -tt " + tt + " -nl"
                   " " + nl + " " + relabel + " -efficient " + eff + " " + contig + " " + read_dir  + filename)
