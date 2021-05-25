@@ -244,13 +244,14 @@ struct clustered_graph {
   // -
   template <class Sim>
   void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
+
     //auto sorted = parlay::sample_sort(make_slice(merge_seq), [&] (const auto& pair) { return pair.second; });
     // Sort.
-    auto sorted = parlay::sort(make_slice(merge_seq));
+    parlay::sort_inplace(make_slice(merge_seq));
 
     // For each instance, find largest component.
-    auto all_starts = parlay::delayed_seq<uintE>(sorted.size(), [&] (size_t i) {
-      if ((i == 0) || sorted[i].first != sorted[i-1].first) {
+    auto all_starts = parlay::delayed_seq<uintE>(merge_seq.size(), [&] (size_t i) {
+      if ((i == 0) || merge_seq[i].first != merge_seq[i-1].first) {
         return (uintE)i;
       }
       return UINT_E_MAX;
@@ -258,19 +259,19 @@ struct clustered_graph {
     auto starts = parlay::filter(all_starts, [&] (uintE v) { return v != UINT_E_MAX; });
     std::cout << "Number of merge targets = " << starts.size() << std::endl;
 
-    auto edge_sizes = sequence<size_t>(sorted.size());
+    auto edge_sizes = sequence<size_t>(merge_seq.size());
 
     // In parallel over every instance.
     // Make the merge target the cluster with the largest number of out-edges.
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t start = starts[i];
-      size_t end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t end = (i == starts.size() - 1) ? merge_seq.size() : starts[i+1];
 
-      uintE our_id = sorted[start].first;
+      uintE our_id = merge_seq[start].first;
       auto our_size = clusters[our_id].neighbor_size();
 
       auto sizes_and_id = parlay::delayed_seq<std::pair<uintE, uintE>>(end - start, [&] (size_t i) {
-        uintE vtx_id = sorted[start + i].second;
+        uintE vtx_id = merge_seq[start + i].second;
         return std::make_pair(clusters[vtx_id].neighbor_size(), vtx_id);
       });
       std::pair<uintE, uintE> id = std::make_pair((uintE)0, (uintE)UINT_E_MAX);
@@ -279,9 +280,9 @@ struct clustered_graph {
 
       if (our_size < largest_size) {  // Relabel merge targets to largest_id.
         for (size_t i=start; i<end; i++) {
-          sorted[i].first = largest_id;
-          if (sorted[i].second == largest_id) {
-            sorted[i].second = our_id;
+          merge_seq[i].first = largest_id;
+          if (merge_seq[i].second == largest_id) {
+            merge_seq[i].second = our_id;
           }
         }
         our_id = largest_id;
@@ -292,14 +293,15 @@ struct clustered_graph {
       // - Update the current_id for each (being merged) neighbor.
       // - Set the active flag for each such neighbor to false ( Deactivate ).
       for (size_t j=start; j<end; j++) {
-        uintE ngh_id = sorted[j].second;
+        uintE ngh_id = merge_seq[j].second;
         uintE ngh_size = clusters[ngh_id].neighbor_size();
         edge_sizes[j] = ngh_size;
 
+        // Was an active cluster before.
         assert(clusters[ngh_id].current_id == ngh_id);
-        // Update id to point to the merge target.
-        clusters[ngh_id].current_id = our_id;
         assert(clusters[ngh_id].active);
+        // Update id to point to the merge target, and deactivate.
+        clusters[ngh_id].current_id = our_id;
         clusters[ngh_id].active = false;
       }
     });
@@ -315,11 +317,10 @@ struct clustered_graph {
     auto deletions = sequence<std::pair<uintE, uintE>>::uninitialized(total_edges + merge_seq.size());
 
     // Copy edges from trees to edges and deletions.
-    parallel_for(0, sorted.size(), [&] (size_t i) {
-      uintE ngh_id = sorted[i].second;
+    parallel_for(0, merge_seq.size(), [&] (size_t i) {
+      uintE ngh_id = merge_seq[i].second;
       size_t k = 0;
       size_t off = edge_sizes[i];
-      // todo: map_with_index
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t k) {
         uintE cur_ngh_id = clusters[v].current_id;
         edges[off + k] = std::make_pair(cur_ngh_id, wgh);
@@ -341,14 +342,13 @@ struct clustered_graph {
     auto compacted_edge_sizes = sequence<size_t>::uninitialized(starts.size());
 
     // Sort within each instance, scan to merge weights for identical edges.
-    // TODO: need to be careful to avoid self-loop edges.
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t sort_start = starts[i];
-      size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t sort_end = (i == starts.size() - 1) ? merge_seq.size() : starts[i+1];
       size_t edges_start = edge_sizes[sort_start];
-      size_t edges_end = (sort_end == sorted.size()) ? total_edges : edge_sizes[sort_end];
+      size_t edges_end = (sort_end == merge_seq.size()) ? total_edges : edge_sizes[sort_end];
 
-      uintE our_id = sorted[sort_start].first;
+      uintE our_id = merge_seq[sort_start].first;
       auto our_size = clusters[our_id].cluster_size();
 
       auto our_edges = edges.cut(edges_start, edges_end);
@@ -402,13 +402,13 @@ struct clustered_graph {
 
     parallel_for(0, starts.size(), [&] (size_t i) {
       size_t sort_start = starts[i];
-      size_t sort_end = (i == starts.size() - 1) ? sorted.size() : starts[i+1];
+      size_t sort_end = (i == starts.size() - 1) ? merge_seq.size() : starts[i+1];
       size_t edges_start = edge_sizes[sort_start];
 
       size_t num_edges = ((i == starts.size() - 1) ? total_compacted : compacted_edge_sizes[i+1]) - compacted_edge_sizes[i];
       size_t edges_end = edges_start + num_edges;
 
-      uintE our_id = sorted[sort_start].first;
+      uintE our_id = merge_seq[sort_start].first;
       auto our_edges = edges.cut(edges_start, edges_end);
 
       size_t offset = compacted_edge_sizes[i];
@@ -416,16 +416,24 @@ struct clustered_graph {
       for (size_t j=0; j<our_edges.size(); j++) {
         auto [ngh_id, sim] = our_edges[j];
         triples[offset + j] = std::make_tuple(ngh_id, our_id, sim);
-        assert(offset + j < total_compacted);
       }
     });
 
-    for (size_t i=0; i<triples.size(); i++) {
-      assert(std::get<0>(triples[i]) != UINT_E_MAX);
-    }
     std::cout << "Inserting neighbor endpoints" << std::endl;
 
     insert_neighbor_endpoints(std::move(triples));
+
+    // Finally, destroy all of the trees incident to newly deactivated vertices.
+    parallel_for(0, merge_seq.size(), [&] (size_t i) {
+      auto [u, v] = merge_seq[i];
+      auto nghs = std::move(clusters[v].neighbors);
+      assert(!clusters[v].active);
+      if (nghs.root) {
+        if (nghs.root->ref_cnt != 1) std::cout << nghs.root->ref_cnt << std::endl;
+        assert(nghs.root->ref_cnt == 1);
+      }
+    });
+    std::cout << "Finished unite merge." << std::endl;
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
