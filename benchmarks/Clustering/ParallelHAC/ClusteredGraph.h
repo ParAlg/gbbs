@@ -115,6 +115,14 @@ struct clustered_graph {
       neighbor_map::foreach_seq(neighbors, iter);
     }
 
+    template <class F>
+    void iterate_cond(uintE id, F& f) {
+      auto iter = [&] (edge e) -> bool {
+        return f(id, e.first, e.second);
+      };
+      neighbor_map::foreach_cond(neighbors, iter);
+    }
+
     void print_edges() {
       auto f = [&] (const uintE& u, const uintE& v, const auto& wgh) {
         std::cout << u << " " << v << " " << wgh << std::endl;

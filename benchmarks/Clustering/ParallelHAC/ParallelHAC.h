@@ -230,7 +230,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     Sim lower_threshold = max_weight / one_plus_eps;
 
     std::cout << "Round = " << rounds << std::endl;
-    ProcessGraphUnweightedAverage<Weights>(CG, lower_threshold, max_weight, rnd);
+    ProcessGraphUnweightedAverage<true, Weights>(CG, lower_threshold, max_weight, rnd);
 
 //    std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
 //    timer rt; rt.start();
@@ -284,7 +284,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     // Final round.
 
     std::cout << "Final round." << std::endl;
-    ProcessGraphUnweightedAverage<Weights>(CG, (Sim)0, orig_max_weight, rnd);
+    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, (Sim)0, orig_max_weight, rnd);
   }
 
 //  for (size_t i=0; i<G.n; i++) {

@@ -43,9 +43,9 @@ struct vtx_status {
 
 // At the end of this call, we will have performed merges and ensured that no
 // edges exist with weights between [lower_threshold, ...).
-template <class Weights, class ClusteredGraph, class Sim>
+template <bool AggressiveMerge, class Weights, class ClusteredGraph, class Sim>
 void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd,
-    double eps = 0.5) {
+    double eps = 0.05) {
   std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
   using W = typename ClusteredGraph::W;
 
@@ -114,36 +114,60 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       size_t k = 0;
       uintE ngh_id = std::numeric_limits<uintE>::max();
       W weight;  // TODO: don't really need to save?
-      auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
-          if (k == edge_idx) {
-            ngh_id = v; weight = wgh;
-          } else {
-            k++;
+
+      if constexpr (AggressiveMerge) {
+        auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+          if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
+            if (colors[v] == kRed) {
+              uintE ngh_cur_size = CG.clusters[v].cluster_size();
+              uintE upper_bound = one_plus_eps * ngh_cur_size;
+              uintE our_size = CG.clusters[u].cluster_size();
+              auto opt = pbbslib::fetch_and_add_threshold(
+                  &(CG.clusters[v].cas_size),
+                  our_size,
+                  upper_bound);
+              if (opt.has_value()) {  // Success in the F&A!
+                merge_target[i] = v;
+                return false;  // done.
+              }
+            }
+          }
+          return true;  // keep going
+        };
+        CG.clusters[i].iterate_cond(i, iter_f);
+      } else {
+
+        auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+          if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
+            if (k == edge_idx) {
+              ngh_id = v; weight = wgh;
+            } else {
+              k++;
+            }
+          }
+        };
+        CG.clusters[i].iterate(i, iter_f);
+        assert(ngh_id != std::numeric_limits<uintE>::max());
+        // Try to join the neighbor's cluster if neighbor is red.
+        if (colors[ngh_id] == kRed) {
+          assert(CG.clusters[ngh_id].active);
+          assert(CG.clusters[i].active);
+          uintE ngh_cur_size = CG.clusters[ngh_id].cluster_size();
+          uintE upper_bound = one_plus_eps * ngh_cur_size;
+          uintE our_size = CG.clusters[i].cluster_size();
+          // Enable to stress-test the merge implementation.
+          //merge_target[i] = ngh_id;
+          auto old_opt = pbbslib::fetch_and_add_threshold(
+              &(CG.clusters[ngh_id].cas_size),
+              our_size,
+              upper_bound);
+          if (old_opt.has_value()) {  // Success
+            merge_target[i] = ngh_id;
           }
         }
-      };
-      CG.clusters[i].iterate(i, iter_f);
-      assert(ngh_id != std::numeric_limits<uintE>::max());
-
-      // Try to join the neighbor's cluster if neighbor is red.
-      if (colors[ngh_id] == kRed) {
-        assert(CG.clusters[ngh_id].active);
-        assert(CG.clusters[i].active);
-        uintE ngh_cur_size = CG.clusters[ngh_id].cluster_size();
-        uintE upper_bound = one_plus_eps * ngh_cur_size;
-        uintE our_size = CG.clusters[i].cluster_size();
-
-        // Enable to stress-test the merge implementation.
-        //merge_target[i] = ngh_id;
-        auto old_opt = pbbslib::fetch_and_add_threshold(
-            &(CG.clusters[ngh_id].cas_size),
-            our_size,
-            upper_bound);
-        if (old_opt.has_value()) {  // Success
-          merge_target[i] = ngh_id;
-        }
       }
+
+
     }});
 
     auto pairs = parlay::delayed_seq<std::pair<uintE, uintE>>(n, [&] (size_t i) { return std::make_pair(merge_target[i], i); });
