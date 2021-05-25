@@ -287,12 +287,14 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     ProcessGraphUnweightedAverage<Weights>(CG, (Sim)0, orig_max_weight, rnd);
   }
 
-  for (size_t i=0; i<G.n; i++) {
-    if (CG.clusters[i].active && CG.clusters[i].neighbor_size() > 0) {
-      std::cout << "i = " << i << " is active. Degree = " << CG.clusters[i].neighbor_size() << " Cluster size = " << CG.clusters[i].cluster_size() << std::endl;
-      CG.clusters[i].print_edges();
-    }
-  }
+//  for (size_t i=0; i<G.n; i++) {
+//    if (CG.clusters[i].active && CG.clusters[i].neighbor_size() > 0) {
+//      std::cout << "i = " << i << " is active. Degree = " <<
+//        CG.clusters[i].neighbor_size() << " Cluster size = " <<
+//        CG.clusters[i].cluster_size() << std::endl;
+//      CG.clusters[i].print_edges();
+//    }
+//  }
 
   tt.stop(); tt.reportTotal("total time");
 }

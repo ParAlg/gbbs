@@ -243,6 +243,7 @@ struct clustered_graph {
   // input: sequence of (u, v) pairs representing that v will merge to u
   template <class Sim>
   void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
+    timer um; um.start();
     std::cout << "Start of unite merge" << std::endl;
     // Sort.
     parlay::sort_inplace(make_slice(merge_seq));
@@ -472,6 +473,7 @@ struct clustered_graph {
       }
     });
     std::cout << "Finished unite merge." << std::endl;
+    um.next("Unite merge time");
   }
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {

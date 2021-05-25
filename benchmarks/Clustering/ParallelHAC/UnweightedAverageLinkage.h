@@ -45,7 +45,7 @@ struct vtx_status {
 // edges exist with weights between [lower_threshold, ...).
 template <class Weights, class ClusteredGraph, class Sim>
 void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd,
-    double eps = 0.05) {
+    double eps = 0.5) {
   std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
   using W = typename ClusteredGraph::W;
 
@@ -171,6 +171,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
     // Reset colors.
     // Recompute active and update n_active.
 
+    timer rt; rt.start();
     parallel_for(0, n, [&] (size_t i) {
       colors[i] = 0;
 //      if (active[i] > 0) {  // must have been active before to stay active.
@@ -182,6 +183,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
     });
     n_active = pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return active[i] != 0; }));
     std::cout << "nactive is now = " << n_active << std::endl;
+    rt.stop(); rt.reportTotal("reactivate time");
 
     rounds++;
   }
