@@ -218,6 +218,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   });
   assert(max_weight >= min_weight);
   std::cout << "Max weight = " << max_weight << " Min weight = " << min_weight << std::endl;
+  auto orig_max_weight = max_weight;
 
   double one_plus_eps = 1 + epsilon;
   long rounds = max((size_t)ceil(log(max_weight / min_weight) / log(one_plus_eps)), (size_t)1);
@@ -277,6 +278,22 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     max_weight /= one_plus_eps;
     rounds--;
   }
+
+  auto lower_threshold = max_weight / one_plus_eps;
+  if (lower_threshold > 0) {
+    // Final round.
+
+    std::cout << "Final round." << std::endl;
+    ProcessGraphUnweightedAverage<Weights>(CG, (Sim)0, orig_max_weight, rnd);
+  }
+
+  for (size_t i=0; i<G.n; i++) {
+    if (CG.clusters[i].active && CG.clusters[i].neighbor_size() > 0) {
+      std::cout << "i = " << i << " is active. Degree = " << CG.clusters[i].neighbor_size() << " Cluster size = " << CG.clusters[i].cluster_size() << std::endl;
+      CG.clusters[i].print_edges();
+    }
+  }
+
   tt.stop(); tt.reportTotal("total time");
 }
 

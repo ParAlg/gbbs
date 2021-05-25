@@ -115,6 +115,13 @@ struct clustered_graph {
       neighbor_map::foreach_seq(neighbors, iter);
     }
 
+    void print_edges() {
+      auto f = [&] (const uintE& u, const uintE& v, const auto& wgh) {
+        std::cout << u << " " << v << " " << wgh << std::endl;
+      };
+      iterate(current_id, f);
+    }
+
     template <class F>
     void map_index(uintE id, F& f) {
       auto iter = [&] (edge e, size_t index) -> void {
@@ -164,10 +171,7 @@ struct clustered_graph {
   template <class Sim>
   void insert_neighbor_endpoints(sequence<std::tuple<uintE, uintE, Sim>>&& triples) {
     timer nt; nt.start();
-    std::cout << "Before sort, triples size = " << triples.size() << std::endl;
-    auto comp = [&] (const auto& l, const auto& r) { return std::get<0>(l) < std::get<0>(r); };
-    parlay::sort_inplace(make_slice(triples), comp);
-    std::cout << "After sort" << std::endl;
+    parlay::sort_inplace(make_slice(triples));
 
     auto all_starts = parlay::delayed_seq<size_t>(triples.size(), [&] (size_t i) {
       if ((i == 0) || std::get<0>(triples[i]) != std::get<0>(triples[i-1])) {
@@ -237,15 +241,9 @@ struct clustered_graph {
 
   // Need to implement a unite_merge operation.
   // input: sequence of (u, v) pairs representing that v will merge to u
-  //
-  // outline:
-  // - sort by 2nd component
-  // - perform merges from u_1,...,u_k to v.
-  // -
   template <class Sim>
   void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
-
-    //auto sorted = parlay::sample_sort(make_slice(merge_seq), [&] (const auto& pair) { return pair.second; });
+    std::cout << "Start of unite merge" << std::endl;
     // Sort.
     parlay::sort_inplace(make_slice(merge_seq));
 
@@ -292,6 +290,7 @@ struct clustered_graph {
       // Write the neighbor size before scan.
       // - Update the current_id for each (being merged) neighbor.
       // - Set the active flag for each such neighbor to false ( Deactivate ).
+      size_t total_size = 0;
       for (size_t j=start; j<end; j++) {
         uintE ngh_id = merge_seq[j].second;
         uintE ngh_size = clusters[ngh_id].neighbor_size();
@@ -300,11 +299,42 @@ struct clustered_graph {
         // Was an active cluster before.
         assert(clusters[ngh_id].current_id == ngh_id);
         assert(clusters[ngh_id].active);
+
+        // Update total_size with the size of the cluster being merge
+        total_size += clusters[ngh_id].cluster_size();
+
         // Update id to point to the merge target, and deactivate.
         clusters[ngh_id].current_id = our_id;
         clusters[ngh_id].active = false;
       }
+      // Update our cluster size.
+      clusters[our_id].num_in_cluster += total_size;
+      // Update the CAS size for the next round.
+      clusters[our_id].cas_size = clusters[our_id].num_in_cluster;
     });
+
+//    std::cout << "Edges incident to 2862074" << std::endl;
+//    clusters[2862074].print_edges();
+//
+//    std::cout << "Edges incident to 2619886" << std::endl;
+//    clusters[2619886].print_edges();
+//
+//    std::cout << "Merging neighbors...." << std::endl << std::endl;
+//    std::cout << "Edges incident to " << 2862067 << std::endl;
+//    clusters[2862067].print_edges();
+//
+//    std::cout << "Edges incident to " << 2862057 << std::endl;
+//    clusters[2862057].print_edges();
+
+//    for (size_t i=0; i<merge_seq.size(); i++) {
+//      auto [u, v] = merge_seq[i];
+//      if ((u == 2862074) || (u == 2619886)) {
+//        std::cout << "Merging: " << u << " and " << v << std::endl;
+//      }
+//      if ((v == 2862074) || (v == 2619886)) {
+//        std::cout << "V merging: " << u << " and " << v << std::endl;
+//      }
+//    }
 
     // Scan to compute #edges we need to merge.
     size_t total_edges = parlay::scan_inplace(make_slice(edge_sizes));
@@ -323,7 +353,14 @@ struct clustered_graph {
       size_t off = edge_sizes[i];
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t k) {
         uintE cur_ngh_id = clusters[v].current_id;
-        edges[off + k] = std::make_pair(cur_ngh_id, wgh);
+        // Following symmetry-breaking check is very important to prevent sending a (u,v) edge
+        // between two deactivated vertices _twice_ to the activated targets.
+        bool ngh_active = clusters[v].active;
+        if (ngh_active || (u < v)) {
+          edges[off + k] = std::make_pair(cur_ngh_id, wgh);
+        } else {
+          edges[off + k] = std::make_pair(UINT_E_MAX, 0);
+        }
         deletions[off + k] = std::make_pair(v, u);
       };
       clusters[ngh_id].map_index(ngh_id, map_f);
@@ -371,7 +408,9 @@ struct clustered_graph {
       assert(our_edges.size() > 0);
       size_t k = 0;
       for (size_t j=0; j<our_edges.size(); j++) {
-        if (our_edges[j].first == our_id) continue;  // skip self-loops
+        if (our_edges[j].first == our_id || our_edges[j].first == UINT_E_MAX) {
+          continue;  // skip self-loops and deleted edges
+        }
         if ((j == our_edges.size() - 1) || (our_edges[j].first != our_edges[j+1].first)) {
           our_edges[k] = our_edges[j];
           k++;
@@ -394,7 +433,6 @@ struct clustered_graph {
 
     // Map to triples, and reinsert correctly weighted edges into neighbors
     // endpoints (transposed).
-
     using triple = std::tuple<uintE, uintE, Sim>;
     triple id{UINT_E_MAX, UINT_E_MAX, 0};
     auto triples = sequence<triple>(total_compacted, id);

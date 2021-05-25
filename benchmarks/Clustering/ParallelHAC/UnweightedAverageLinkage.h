@@ -46,22 +46,38 @@ struct vtx_status {
 template <class Weights, class ClusteredGraph, class Sim>
 void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd,
     double eps = 0.05) {
-    std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
+  std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
   using W = typename ClusteredGraph::W;
+
   // Identify vertices with edges between [lower_threshold, max_weight)
   size_t n = CG.n;
+  std::cout << "n = " << n << std::endl;
   auto active = sequence<uintE>(n, 0);
   auto colors = sequence<uint8_t>(n, 0);  // 1 is blue, 2 is red
   uint8_t kBlue = 1;
   uint8_t kRed = 2;
-  parallel_for(0, n, [&] (size_t i) {
+
+  auto get_num_active_edges = [&] (uintE u) -> uintE {
     auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       Sim actual_weight = Weights::get_weight(wgh, u, v, CG);
+      if (actual_weight > max_weight) {
+        std::cout << "Actual weight = " << actual_weight << " max_weight = " << max_weight << std::endl;
+        std::cout << "wgh = " << wgh << std::endl;
+        std::cout << "u = " << u << " v = " << v << std::endl;
+        std::cout << "u size = " << CG.clusters[u].cluster_size() << std::endl;
+        std::cout << "v size = " << CG.clusters[v].cluster_size() << std::endl;
+      }
       assert(actual_weight <= max_weight);
-      return (actual_weight >= lower_threshold) && (actual_weight <= max_weight);
+      return (actual_weight >= lower_threshold);
     };
-    size_t ct = CG.clusters[i].countNeighbors(i, pred_f);
-    if (ct > 0) active[i] = ct;
+    return CG.clusters[u].countNeighbors(u, pred_f);
+  };
+
+  parallel_for(0, n, [&] (size_t i) {
+    if (CG.clusters[i].active) {
+      uintE ct = get_num_active_edges(i);
+      if (ct > 0) active[i] = ct;
+    }
   });
 
   // use dense iterations for now.
@@ -69,8 +85,10 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
   std::cout << "nactive = " << n_active << std::endl;
 
   double one_plus_eps = 1 + eps;
+  size_t rounds = 0;
 
   while (n_active > 0) {
+    std::cout << "Starting round: " << rounds << std::endl;
 
     parallel_for(0, n, [&] (size_t i) {
     if (active[i] > 0) {
@@ -82,10 +100,8 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       }
     }});
 
-    std::cout << "num_blue = " <<
-      pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return colors[i] == kBlue; })) << std::endl;
-    std::cout << "num_red = " <<
-      pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return colors[i] == kRed; })) << std::endl;
+    std::cout << "num_blue = " << pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return colors[i] == kBlue; })) << std::endl;
+    std::cout << "num_red = " << pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return colors[i] == kRed; })) << std::endl;
 
     auto merge_target = sequence<uintE>(n, UINT_E_MAX);
 
@@ -114,20 +130,19 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
       if (colors[ngh_id] == kRed) {
         assert(CG.clusters[ngh_id].active);
         assert(CG.clusters[i].active);
-        uintE staleness = CG.clusters[ngh_id].staleness;
-        uintE upper_bound = one_plus_eps * staleness;
-        uintE ngh_cur_size = CG.clusters[ngh_id].cas_size;
-        uintE our_size = CG.clusters[i].num_in_cluster;
+        uintE ngh_cur_size = CG.clusters[ngh_id].cluster_size();
+        uintE upper_bound = one_plus_eps * ngh_cur_size;
+        uintE our_size = CG.clusters[i].cluster_size();
 
-        // TODO: just for stress-testing the merge implementation.
-        merge_target[i] = ngh_id;
-//        auto old_opt = pbbslib::fetch_and_add_threshold(
-//            &(CG.clusters[ngh_id].cas_size),
-//            ngh_cur_size,
-//            ngh_cur_size + our_size);  // TODO: this should be upper_bound. just for testing now.
-//        if (old_opt.has_value()) {  // Success
-//          merge_target[i] = ngh_id;
-//        }
+        // Enable to stress-test the merge implementation.
+        //merge_target[i] = ngh_id;
+        auto old_opt = pbbslib::fetch_and_add_threshold(
+            &(CG.clusters[ngh_id].cas_size),
+            our_size,
+            upper_bound);
+        if (old_opt.has_value()) {  // Success
+          merge_target[i] = ngh_id;
+        }
       }
     }});
 
@@ -136,14 +151,43 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
     std::cout << "Num merges = " << merges.size() << std::endl;
 
+//    for (size_t i=0; i<CG.clusters.size(); i++) {
+//      // check graph consistency (no edges to inactive vertices)
+//      if (CG.clusters[i].active) {
+//        auto f = [&] (const auto& u, const auto& v, const auto& wgh) {
+//          assert(CG.clusters[v].active);
+//        };
+//        CG.clusters[i].iterate(i, f);
+//      }
+//    }
+//    merges = sequence<std::pair<uintE, uintE>>(4);
+//    merges[0] = {4, 0};
+//    merges[1] = {4, 1};
+//    merges[2] = {4, 2};
+//    merges[3] = {4, 3};
     CG.template unite_merge<Sim>(std::move(merges));
-
-    exit(0);
 
     rnd = rnd.next();
     // Reset colors.
     // Recompute active and update n_active.
+
+    parallel_for(0, n, [&] (size_t i) {
+      colors[i] = 0;
+//      if (active[i] > 0) {  // must have been active before to stay active.
+      if (CG.clusters[i].active) {
+        active[i] = get_num_active_edges(i);
+      } else {
+        active[i] = 0;
+      }
+    });
+    n_active = pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return active[i] != 0; }));
+    std::cout << "nactive is now = " << n_active << std::endl;
+
+    rounds++;
   }
+  std::cout << "Finished bucket." << std::endl;
+  size_t rem_active = parlay::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return CG.clusters[i].active; }));
+  std::cout << rem_active << " vertices remain." << std::endl;
 }
 
 
