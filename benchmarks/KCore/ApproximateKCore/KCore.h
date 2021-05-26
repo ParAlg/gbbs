@@ -95,6 +95,8 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16,
     cur_inner_rounds++;
   }
 
+  b.del();
+  em.del();
   debug(bt.reportTotal("bucket time"););
 
   parallel_for(0, n, [&] (size_t i) {

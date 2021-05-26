@@ -49,7 +49,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
 
-    auto apply_f = [&, D = D.data()](const std::tuple<uintE, uintE>& p)
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
@@ -75,11 +75,9 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     bt.stop();
     rho++;
   }
-
-  b.report();
+ 
   b.del();
   em.del();
-
   //std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   bt.reportTotal("bucket time");
   emt.reportTotal("histogram time");
