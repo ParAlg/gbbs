@@ -6,7 +6,7 @@ import subprocess
 from math import sqrt
 
 def print_arr(row_headers, all_arr):
-  for row_head, r_idx in enumerate(row_headers):
+  for r_idx,row_head in enumerate(row_headers):
     arr = all_arr[r_idx]
     print(row_head + "\t"),
     for x in arr:
@@ -21,7 +21,7 @@ def print_arr(row_headers, all_arr):
 # num_r_idx = number of r_idxs to process; num entries in file should be
 # num_rounds * num_r_idx; append to end basically
 def read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table,
-  avg_count, avg_peel, std_dev_total, r_idx, num_r_idx):
+  avg_count, avg_peel, std_dev_total, ds_size, r_idx, num_r_idx):
   rho = ""
   clique_core = ""
   data_struct_size = ""
@@ -59,8 +59,8 @@ def read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table,
       elif split[0].startswith("clique core"):
         clique_core = split[1]
       elif split[0].startswith("Data Structure Size"):
-        data_struct_size = split[1]
-  for r in range(r_idx):
+        ds_size[r_idx + add_r_idx] = split[1]
+  for r in range(num_r_idx):
     t_ranks = ranks[r]
     t_filters = filters[r]
     t_tables = tables[r]
@@ -74,11 +74,11 @@ def read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table,
     total_avg = avg_rank[r + r_idx] + avg_filter[r + r_idx] + avg_table[r + r_idx] + avg_count[r + r_idx] + avg_peel[r + r_idx]
     totals = [t_ranks[x] + t_filters[x] + t_tables[x] + t_counts[x] + t_peels[x] for x in range(num_rounds)]
     std_dev_total[r + r_idx] = sqrt(sum([(x - total_avg) ** 2 for x in totals]) / num_rounds)
-  return (rho, clique_core, data_struct_size)
+  return (rho, clique_core)
 
 def read_exp_1():
-  r = "3"
-  s = "4"
+  r = "2"
+  s = "3"
   pres = ["dblp", "as_skitter", "amazon", "youtube", "lj", "orkut", "friendster"]
   tts = ["1", "2", "3", "2", "3", "4", "5"]
   contigs = ["", "", "", "-contig", "-contig", "", ""]
@@ -86,7 +86,7 @@ def read_exp_1():
   relabel_pres = ["nr", "r"]
   efficients = ["0", "1", "2"]
   num_workers = [60]
-  write_dir = "/home/jeshi_google_com/nd_exp1/"
+  write_dir = "/home/jeshi_google_com/23_par_nd/"
   # We want one axis -- horiz -- to be over different tts, contigs, and nls
   # We want the other axis -- vert -- to be over different relabels and efficients
   # Print a new table for each file
@@ -103,6 +103,7 @@ def read_exp_1():
     all_avg_count = []
     all_avg_peel = []
     all_std_dev_total = []
+    all_ds_size = []
     row_headers = []
     for nw in num_workers:
       for relabel_pre in relabel_pres:
@@ -114,6 +115,7 @@ def read_exp_1():
           avg_count = []
           avg_peel = []
           std_dev_total = []
+          ds_size = []
           r_idx = 0
           for tt_idx, tt in enumerate(tts):
             contig = contigs[tt_idx]
@@ -129,14 +131,12 @@ def read_exp_1():
               avg_peel.append(0)
               std_dev_total.append(0)
             read_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff +"_" + str(nw) + ".out"
-            tup = read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table, avg_count, avg_peel, std_dev_total, r_idx, len(nls))
+            tup = read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table, avg_count, avg_peel, std_dev_total, ds_size, r_idx, len(nls))
             r_idx += len(nls)
             if (tup[0] != ""):
               rho = tup[0]
             if (tup[1] != ""):
               clique_core = tup[1]
-            if (tup[2] != ""):
-              data_struct_size = tup[2]
           # now we must output
           all_avg_rank.append(avg_rank)
           all_avg_filter.append(avg_filter)
@@ -144,7 +144,9 @@ def read_exp_1():
           all_avg_count.append(avg_count)
           all_avg_peel.append(avg_peel)
           all_std_dev_total.append(std_dev_total)
+          all_ds_size.append(ds_size)
           row_headers.append(relabel_pre+eff)
+    print("rho: " + rho + ", clique core: " + clique_core)
     print("Rank")
     print_arr(row_headers, all_avg_rank)
     print("\n Filter")
@@ -157,6 +159,8 @@ def read_exp_1():
     print_arr(row_headers, all_avg_peel)
     print("\n Std Dev")
     print_arr(row_headers, all_std_dev_total)
+    print("\n T Size")
+    print_arr(row_headers, all_ds_size)
     print("\n\n")
 
 def main():
