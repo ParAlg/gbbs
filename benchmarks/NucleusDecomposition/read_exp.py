@@ -58,7 +58,7 @@ def read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table,
         rho = split[1]
       elif split[0].startswith("clique core"):
         clique_core = split[1]
-      elif split[0].startswith("Data Structure Size"):
+      elif split[0].startswith("Data Structure Size") and ds_size[r_idx + add_r_idx] == "":
         ds_size[r_idx + add_r_idx] = split[1]
   for r in range(num_r_idx):
     t_ranks = ranks[r]
@@ -130,6 +130,7 @@ def read_exp_1():
               avg_count.append(0)
               avg_peel.append(0)
               std_dev_total.append(0)
+              ds_size.append("")
             read_filename = write_dir + r + s + "_" + pres[file_idx] + "_" + tt + "_" + contig_pre + "_" + relabel_pre + "_" + eff +"_" + str(nw) + ".out"
             tup = read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table, avg_count, avg_peel, std_dev_total, ds_size, r_idx, len(nls))
             r_idx += len(nls)
