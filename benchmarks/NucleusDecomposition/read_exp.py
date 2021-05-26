@@ -58,7 +58,7 @@ def read_and_print(read_filename, num_rounds, avg_rank, avg_filter, avg_table,
         rho = split[1]
       elif split[0].startswith("clique core"):
         clique_core = split[1]
-      elif split[0].startswith("Data Structure Size") and ds_size[r_idx + add_r_idx] == "":
+      elif split[0].startswith("Data Structure Size"):
         ds_size[r_idx + add_r_idx] = split[1]
   for r in range(num_r_idx):
     t_ranks = ranks[r]
