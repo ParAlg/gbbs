@@ -30,27 +30,20 @@ def appendToFile(out, filename):
 def main():
   # Configured for Test 1
   program_dir = "../benchmarks/"
-  programs = ["EdgeOrientation/ParallelLDS/LDS"]
-  #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
-  program_pres = ["plds"] #["lds", "kcore", "ekcore"]
-  is_dynamic = [True]
-  files = ["dblp_insertion_edges", "orkut_insertion_edges",
-           "livejournal_insertion_edges", "brain_insertion_edges",
-          "stackoverflow_insertion_edges", "wiki_insertion_edges",
-          "ctr_insertion_edges", "usa_insertion_edges",
-          "youtube_insertion_edges"]
-          #, "brain_insertion_edges"] #["orkut_edges", "twitter_edges"]
-  pres = ["livejournal", "brain", "stackoverflow", "wiki",
-          "ctr", "usa", "youtube"]
-          #, "brain"] #["orkut-single-thread", "twitter-single-thread"]
+  programs = ["KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
+  program_pres = ["kcore", "ekcore"]
+  is_dynamic = [True, True]
+  files = ["youtube_insertion_edges", "wiki_insertion_edges", "orkut_insertion_edges", "ctr_insertion_edges", "usa_insertion_edges",
+          "stackoverflow_insertion_edges", "brain_insertion_edges"] #["orkut_edges", "twitter_edges"]
+  pres = ["youtube", "wiki", "orkut", "ctr", "usa", "stackoverflow", "brain"] #["orkut-single-thread", "twitter-single-thread"]
   empty = "empty_h"
-  stats = "-stats"
+  stats = ""
   epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   deltas = [3]  #[3, 6, 12, 24, 48, 96]
   batch_sizes = [1000000] #[100000, 1000000, 10000000, 10000, 1000, 100] #, 1000000, 10000000, 10000000, 1000, 100] #[100, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   read_dir = "/home/qliu19/dynamic_graph/"
-  write_dir = "/home/qliu19/new-stats-exp-4/"
+  write_dir = "/home/qliu19/exp-4-insert-dedup/"
   for file_idx, filename in enumerate(files):
     for program_idx, program in enumerate(programs):
       for e in epss:
@@ -65,12 +58,12 @@ def main():
                 num_lines = sum(1 for line in open(read_dir + filename))
                 batch_commands = ["-num_dynamic_edges " + str(x) for x in range(b, num_lines + 1, b)]
                 if (num_lines % b != 0):
-                  batch_commands.append(num_lines)
+                  batch_commands.append("-num_dynamic_edges " + str(num_lines))
               for bc in batch_commands:
-                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
-                " " + read_dir + filename + " -eps " + str(e) + " "
-                "-delta " + str(d) + " " + bc + " "
-                "-rounds 3 " + stats + " " + read_dir + empty)
+                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " +
+                        program_dir + program + " -s -i" + " " + read_dir +
+                        filename + " -eps " + str(e) + " " + "-delta " + str(d)
+                        + " " + str(bc) + " " + "-rounds 3 " + stats + " " + read_dir + empty)
 		print ss
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
