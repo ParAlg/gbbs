@@ -25,17 +25,17 @@ def appendToFile(out, filename):
 
 def run_rest():
   files = ["dblp_h", "amazon_h", "youtube_h","as_skitter_h"]#, "lj_h", "orkut_h", "friendster_h"]
-  pres = ["dblp", "as_skitter", "amazon", "youtube", "lj", "orkut", "friendster"]
+  pres = ["dblp", "amazon", "youtube", "as_skitter"]#, "lj", "orkut", "friendster"]
   ss = ["6", "7", "8", "9"]
   tts = ["2", "3", "2", "3", "4", "5"]
-  contigs = [, "", "-contig", "-contig", "", ""]
+  contigs = ["", "", "-contig", "-contig", "", ""]
   contig_pres = ["nc" if x == "" else "c" for x in contigs]
   relabels = ["-relabel"]
   efficients = ["1","2"]
   num_workers = [60]
-  read_dir = "/home/jeshi/snap/"
-  write_dir = "/home/jeshi/nd_exp1/"
-  for file_idx, filename in enumerate(files):
+  read_dir = "/home/jeshi_google_com/snap/"
+  write_dir = "/home/jeshi_google_com/nd_exp1/"
+  for file_idx, filename in reversed(list(enumerate(files))):
     for s in ss:
       rs = [str(x) for x in range(2, int(s) - 1)]
       if (s == "6") and (file_idx == 0):
