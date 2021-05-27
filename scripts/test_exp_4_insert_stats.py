@@ -34,13 +34,12 @@ def main():
   #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
   program_pres = ["plds"] #["lds", "kcore", "ekcore"]
   is_dynamic = [True]
-  files = ["dblp_insertion_edges", "orkut_insertion_edges",
-           "livejournal_inseriton_edges", "brain_insertion_edges",
+  files = ["livejournal_insertion_edges", "brain_insertion_edges",
           "stackoverflow_insertion_edges", "wiki_insertion_edges",
           "ctr_insertion_edges", "usa_insertion_edges",
           "youtube_insertion_edges"]
           #, "brain_insertion_edges"] #["orkut_edges", "twitter_edges"]
-  pres = ["dblp", "orkut", "livejournal", "brain", "stackoverflow", "wiki",
+  pres = ["livejournal", "brain", "stackoverflow", "wiki",
           "ctr", "usa", "youtube"]
           #, "brain"] #["orkut-single-thread", "twitter-single-thread"]
   empty = "empty_h"
