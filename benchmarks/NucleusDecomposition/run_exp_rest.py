@@ -23,7 +23,7 @@ def appendToFile(out, filename):
     out_file.writelines(out)
 
 
-def run_3():
+def run_rest():
   files = ["dblp_h", "amazon_h", "youtube_h","as_skitter_h"]#, "lj_h", "orkut_h", "friendster_h"]
   pres = ["dblp", "as_skitter", "amazon", "youtube", "lj", "orkut", "friendster"]
   ss = ["6", "7", "8", "9"]
