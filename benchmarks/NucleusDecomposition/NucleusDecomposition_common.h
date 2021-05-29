@@ -351,6 +351,9 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
 
   auto update_d = [&](uintE* base){
+    for (size_t i = 0; i < r + 1; i++) {
+      if (is_inactive(base[i])) return;
+    }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
