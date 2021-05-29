@@ -97,7 +97,7 @@ namespace multitable {
       if (lvl == max_lvl) {
         return sizeof(*this) + table_sizes.size() * sizeof(C) + total_size * sizeof(std::tuple<Y, C>);
       }
-      return sizeof(*this) + table_sizes.size() * sizeof(C) + get_com_size(mtable);
+      return sizeof(*this) + table_sizes.size() * sizeof(C) + mtable.get_com_size();
     }
 
     void set_end_table_rec() {
