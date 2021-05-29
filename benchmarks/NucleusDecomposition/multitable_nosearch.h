@@ -72,7 +72,13 @@ namespace multitable_nosearch {
       if (lvl == max_lvl) {
         return sizeof(*this) + table_sizes.size() * sizeof(C) + total_size * sizeof(std::tuple<Y, C>);
       }
-      return sizeof(*this) + table_sizes.size() * sizeof(C) + mtable.get_com_size();
+      long size_so_far = 0;
+      for (std::size_t i = 0; i < mtable.m; i++) {
+          if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
+            size_so_far += std::get<1>(mtable.table[i])->get_com_size();
+          }
+        }
+      return sizeof(*this) + table_sizes.size() * sizeof(C) + size_so_far;
     }
 /*#else
     uintE vtx;
