@@ -67,6 +67,13 @@ namespace multitable_nosearch {
     uintE get_vtx(long idx) {
       return vtx;
     }
+
+    long get_com_size() {
+      if (lvl == max_lvl) {
+        return sizeof(*this) + table_sizes.size() * sizeof(C) + total_size * sizeof(std::tuple<Y, C>);
+      }
+      return sizeof(*this) + table_sizes.size() * sizeof(C);
+    }
 /*#else
     uintE vtx;
     uintE get_vtx(long idx) {
@@ -456,7 +463,8 @@ namespace multitable_nosearch {
       F sort_func;
 
       template<class Graph>
-      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, F _rank_func) : sort_func(_rank_func) {
+      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, F _rank_func, 
+        bool output_size=false) : sort_func(_rank_func) {
         //std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
         max_lvl = _max_level;
@@ -482,6 +490,12 @@ namespace multitable_nosearch {
         long total = mtable.set_table_sizes();
         space = pbbslib::new_array_no_init<X>(total);
         mtable.set_end_table_rec(space);
+
+        if (output_size) {
+          long mtable_size = mtable.get_com_size() + sizeof(*this);
+          std::cout << "Data Structure Size: " << mtable_size << std::endl; fflush(stdout);
+          exit(0);
+        }
 
         //std::cout << "End MHash" << std::endl; fflush(stdout);
       }

@@ -131,7 +131,7 @@ inline void runner_verify(Graph& GA, Graph2& DG, size_t r, size_t s, long table_
 template <class bucket_t, class T, class H, class Graph, class Graph2>
 inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
-  size_t efficient, bool use_compress) {
+  size_t efficient, bool use_compress, bool output_size) {
   timer t; 
   //sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
@@ -142,13 +142,13 @@ inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, l
     num_levels -= 1;
     if (!relabel) {
       auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
+      multitable::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func, output_size);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       NucleusDecompositionRunner<bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
     } else {
       auto rank_func = std::less<uintE>();
-      multitable::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
+      multitable::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func, output_size);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       NucleusDecompositionRunner<bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
@@ -170,13 +170,13 @@ inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, l
     num_levels -= 1;
     if (!relabel) {
       auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable_nosearch::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func);
+      multitable_nosearch::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func, output_size);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       NucleusDecompositionRunner<bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
     } else {
       auto rank_func = std::less<uintE>();
-      multitable_nosearch::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func);
+      multitable_nosearch::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func, output_size);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       NucleusDecompositionRunner<bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
@@ -193,7 +193,8 @@ inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, l
 
 template <class Graph>
 inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
-  bool relabel, bool contiguous_space, bool verify, size_t efficient, bool use_compress) {
+  bool relabel, bool contiguous_space, bool verify, size_t efficient, bool use_compress,
+  bool output_size) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
 
@@ -245,16 +246,16 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
     runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size);
   } else {
     // unsigned__int128
     if (!verify)
       runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size);
     else
       runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
         max_deg, rank, shift_factor);
@@ -268,16 +269,16 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
     runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size);
   } else {
     // unsigned__int128
     if (!verify)
       runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size);
     else
       runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
         max_deg, rank, shift_factor);

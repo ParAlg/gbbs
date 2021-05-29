@@ -93,6 +93,13 @@ namespace multitable {
       }
     }
 
+    long get_com_size() {
+      if (lvl == max_lvl) {
+        return sizeof(*this) + table_sizes.size() * sizeof(C) + total_size * sizeof(std::tuple<Y, C>);
+      }
+      return sizeof(*this) + table_sizes.size() * sizeof(C);
+    }
+
     void set_end_table_rec() {
       if (lvl == max_lvl) {
         // Allocate end_table here
@@ -472,7 +479,7 @@ namespace multitable {
 
       template<class Graph>
       MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, bool _contiguous_space,
-        F _rank_func) : sort_func(_rank_func) {
+        F _rank_func, bool output_size=false) : sort_func(_rank_func) {
         using W = typename Graph::weight_type;
         contiguous_space = _contiguous_space;
         //std::cout << "Init MHash" << std::endl; fflush(stdout);
@@ -533,6 +540,12 @@ namespace multitable {
           mtable.set_end_table_rec(space);
         } else {
           mtable.set_end_table_rec();
+        }
+
+        if (output_size) {
+          long mtable_size = mtable.get_com_size() + sizeof(*this);
+          std::cout << "Data Structure Size: " << mtable_size << std::endl; fflush(stdout);
+          exit(0);
         }
 
         //std::cout << "End MHash" << std::endl; fflush(stdout);

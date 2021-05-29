@@ -48,6 +48,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   bool verify = P.getOptionValue("-verify"); // for testing
   long efficient = P.getOptionLongValue("-efficient", 1); // for list buffer
   bool use_compress = P.getOptionValue("-compress"); //only for 2, 3
+  bool output_size = P.getOptionValue("-output_size");
 
   std::cout << "### Application: Nucleus Decomposition" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -60,7 +61,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
 
-  NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify, efficient, use_compress);
+  NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify, efficient, use_compress, output_size);
 
   double tt = t.stop();
 
