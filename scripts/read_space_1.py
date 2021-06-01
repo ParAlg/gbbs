@@ -14,16 +14,16 @@ def main():
   #is_dynamic = [True, False, False]
   #files = ["dblp_edges", "livejournal_edges"]
   program_pres = ["plds"]
-  pres = "dblp"
+  pres = "livejournal"
   #empty = "empty_h"
   num_rounds = 3
   e = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   d = [3, 6, 12, 24, 48, 96]
-  batch_sizes = [100000] #[1000, 10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]
+  batch_sizes = [1000000] #[1000, 10000, 100000, 1000000, 10000000]#[100, 1000, 10000,100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   #read_dir = "/home/jeshi/dynamic_graph/"
-  write_dir = "/home/qliu19/exp-1-space/"
-  actual_batch_size = 100000
+  write_dir = "/home/qliu19/exp-1-regular-delete-size/"
+  actual_batch_size = 1000000
   #for b_idx, b in enumerate(batch_sizes):
   for p_idx, p in enumerate(program_pres):
     for b_idx, b in enumerate(batch_sizes):
@@ -91,12 +91,12 @@ def main():
                         best_approx_max = max_error
                         best_size = max_size
                 print(str(b), end = ",")
-                print(str(eps), end = ",")
-                print(str(delta), end = ",")
-                print(str(best_size), end = ",")
-                print(str(best_total), end = ",")
-                print(str(best_avg), end = ",")
-                print(str(max_time), end = "\n")
+                #print(str(eps), end = ",")
+                #print(str(delta), end = ",")
+                print(str(best_size), end = "\\\\,")
+                print(str(best_total), end = "\n")
+                #print(str(best_avg), end = ",")
+                #print(str(max_time), end = "\n")
 
 if __name__ == "__main__":
   main()
