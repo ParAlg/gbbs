@@ -82,7 +82,7 @@ def main():
                 best_avg = cur_avg
                 max_time = cur_max
                 best_total = cur_total
-                best_avg_error = total_error / num_iterations
+                best_avg_error = total_error / num_error_iter
                 best_max_error = max_error
         print(str(p), end = "&")
         #print(str(best_total), end = ",")
