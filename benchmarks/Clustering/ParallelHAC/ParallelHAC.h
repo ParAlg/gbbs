@@ -194,7 +194,7 @@ template <class Weights,
 // could involve more than simply storing the underlying weight, or
 // could internally be a representation like gbbs::empty.
 template <class WW> class w_vertex, class IW>  // the weight type of the underlying graph
-auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 1.0) {
+auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.5) {
   timer tt; tt.start();
   using clustered_graph =
       gbbs::clustering::clustered_graph<Weights, IW, w_vertex>;
@@ -230,7 +230,33 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     Sim lower_threshold = max_weight / one_plus_eps;
 
     std::cout << "Round = " << rounds << std::endl;
-    ProcessGraphUnweightedAverage<true, Weights>(CG, lower_threshold, max_weight, rnd);
+    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, lower_threshold, max_weight, rnd);
+
+    rnd = rnd.next();
+    max_weight /= one_plus_eps;
+    rounds--;
+  }
+
+  auto lower_threshold = max_weight / one_plus_eps;
+  if (lower_threshold > 0) {
+    // Final round.
+
+    std::cout << "Final round." << std::endl;
+    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, (Sim)0, orig_max_weight, rnd);
+  }
+
+//  for (size_t i=0; i<G.n; i++) {
+//    if (CG.clusters[i].active && CG.clusters[i].neighbor_size() > 0) {
+//      std::cout << "i = " << i << " is active. Degree = " <<
+//        CG.clusters[i].neighbor_size() << " Cluster size = " <<
+//        CG.clusters[i].cluster_size() << std::endl;
+//      CG.clusters[i].print_edges();
+//    }
+//  }
+  tt.stop(); tt.reportTotal("total time");
+  return CG.get_dendrogram();
+}
+
 
 //    std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
 //    timer rt; rt.start();
@@ -273,32 +299,6 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
 //    //ProcessEdgesComplete(CG, std::move(edges));
 //    ProcessEdgesUnweightedAverage(CG, std::move(edges), Colors, rnd);
 //    rt.next("Process time");
-
-    rnd = rnd.next();
-    max_weight /= one_plus_eps;
-    rounds--;
-  }
-
-  auto lower_threshold = max_weight / one_plus_eps;
-  if (lower_threshold > 0) {
-    // Final round.
-
-    std::cout << "Final round." << std::endl;
-    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, (Sim)0, orig_max_weight, rnd);
-  }
-
-//  for (size_t i=0; i<G.n; i++) {
-//    if (CG.clusters[i].active && CG.clusters[i].neighbor_size() > 0) {
-//      std::cout << "i = " << i << " is active. Degree = " <<
-//        CG.clusters[i].neighbor_size() << " Cluster size = " <<
-//        CG.clusters[i].cluster_size() << std::endl;
-//      CG.clusters[i].print_edges();
-//    }
-//  }
-
-  tt.stop(); tt.reportTotal("total time");
-}
-
 
 
 // For log_{1+eps}(...) rounds:

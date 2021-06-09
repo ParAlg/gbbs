@@ -301,6 +301,7 @@ struct ApproxAverageLinkage : ClusteringType::template WeightedClustering<Graph,
   template <class Clusters>
   static auto GetLinkage(Clusters& clusters, const uintE& our_size) {
     return [&, our_size] (const value& lhs, const value& rhs) -> value {
+      assert(lhs.first == rhs.first);
       uintE id = lhs.first;
       double ngh_size = clusters[id].size();
       double total_weight = lhs.second.total_weight + rhs.second.total_weight;
@@ -318,6 +319,15 @@ struct ApproxAverageLinkage : ClusteringType::template WeightedClustering<Graph,
     double sizes_product = our_size * ngh_size;
     double current_weight = total_weight / sizes_product;
     return value(ngh_id, weight_type(total_weight, current_weight));
+  }
+
+  template <class Clusters>
+  static value RebuildWeight(Clusters& clusters, uintE ngh_id, const value& wgh, const uintE& our_size) {
+    uintE ngh_size = clusters[ngh_id].size();
+    double total_weight = wgh.second.total_weight;
+    double sizes_product = our_size * ngh_size;
+    double current_weight = total_weight / sizes_product;
+    return value(wgh.first, weight_type(total_weight, current_weight));
   }
 
   static std::string AsString(const weight_type& wgh) {

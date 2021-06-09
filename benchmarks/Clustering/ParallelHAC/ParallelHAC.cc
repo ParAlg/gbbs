@@ -26,6 +26,26 @@
 
 namespace gbbs {
 
+template <class Weights, class Dendrogram>
+void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
+                           const std::string& of) {
+  ofstream out;
+  out.open(of);
+  size_t wrote = 0;
+  for (size_t i = 0; i < dendrogram.size(); i++) {
+    if (dendrogram[i].first != i) {
+      if (dendrogram[i].first != UINT_E_MAX) {
+        out << i << " " << dendrogram[i].first << " "
+            << dendrogram[i].second << std::endl;
+      } else {
+        std::cout << "UINT_E_MAX in dendrogram, index = " << i << std::endl;
+      }
+      wrote++;
+    }
+  }
+  std::cout << "Wrote " << wrote << " parent-pointers. " << std::endl;
+}
+
 template <class Graph>
 double HAC_runner(Graph& G, commandLine P) {
 
@@ -45,11 +65,18 @@ double HAC_runner(Graph& G, commandLine P) {
 
   // auto Weights = ActualWeight::template GetWeight<Graph>(G);
   auto Weights = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-  clustering::ParallelUPGMA(G, Weights);
+  auto dendrogram = clustering::ParallelUPGMA(G, Weights);
+  auto of = P.getOptionValue("-of", "");
+  if (of != "") {
+    // write merges
+    WriteDendrogramToDisk(Weights, dendrogram, of);
+    exit(0);
+  }
 
   return tt;
 }
 
 }  // namespace gbbs
 
-generate_symmetric_weighted_main(gbbs::HAC_runner, false);
+//generate_symmetric_weighted_main(gbbs::HAC_runner, false);
+generate_symmetric_float_weighted_main(gbbs::HAC_runner);

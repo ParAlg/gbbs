@@ -45,7 +45,7 @@ struct vtx_status {
 // edges exist with weights between [lower_threshold, ...).
 template <bool AggressiveMerge, class Weights, class ClusteredGraph, class Sim>
 void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd,
-    double eps = 0.05) {
+    double eps = 0.1) {
   std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
   using W = typename ClusteredGraph::W;
 
@@ -103,7 +103,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
     std::cout << "num_blue = " << pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return colors[i] == kBlue; })) << std::endl;
     std::cout << "num_red = " << pbbslib::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return colors[i] == kRed; })) << std::endl;
 
-    auto merge_target = sequence<uintE>(n, UINT_E_MAX);
+    auto merge_target = sequence<std::pair<uintE, float>>(n, std::make_pair(UINT_E_MAX, float()));
 
     parallel_for(0, n, [&] (size_t i) {
     if (active[i] > 0 && colors[i] == kBlue) {
@@ -117,7 +117,8 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
       if constexpr (AggressiveMerge) {
         auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
+          auto real_weight = Weights::get_weight(wgh, u, v, CG);
+          if (real_weight >= lower_threshold) {
             if (colors[v] == kRed) {
               uintE ngh_cur_size = CG.clusters[v].cluster_size();
               uintE upper_bound = one_plus_eps * ngh_cur_size;
@@ -127,7 +128,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
                   our_size,
                   upper_bound);
               if (opt.has_value()) {  // Success in the F&A!
-                merge_target[i] = v;
+                merge_target[i] = std::make_pair(v, lower_threshold);
                 return false;  // done.
               }
             }
@@ -136,7 +137,6 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
         };
         CG.clusters[i].iterate_cond(i, iter_f);
       } else {
-
         auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
           if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
             if (k == edge_idx) {
@@ -162,7 +162,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
               our_size,
               upper_bound);
           if (old_opt.has_value()) {  // Success
-            merge_target[i] = ngh_id;
+            merge_target[i] = std::make_pair(ngh_id, lower_threshold);
           }
         }
       }
@@ -170,8 +170,8 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
     }});
 
-    auto pairs = parlay::delayed_seq<std::pair<uintE, uintE>>(n, [&] (size_t i) { return std::make_pair(merge_target[i], i); });
-    auto merges = parlay::filter(pairs, [&] (const auto& pair) { return pair.first != UINT_E_MAX; });
+    auto pairs = parlay::delayed_seq<std::tuple<uintE, uintE, float>>(n, [&] (size_t i) { return std::make_tuple(merge_target[i].first, i, merge_target[i].second); });
+    auto merges = parlay::filter(pairs, [&] (const auto& tup) { return std::get<0>(tup) != UINT_E_MAX; });
 
     std::cout << "Num merges = " << merges.size() << std::endl;
 

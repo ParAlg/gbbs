@@ -433,7 +433,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                 \
     gbbs::pcm_init();                                                   \
     if (compressed) {                                                   \
-      ABORT("Graph compression not yet implemented for float weights"); \
+      exit(0); \
     } else {                                                            \
       auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(     \
           iFile, mmap, binary);                                         \

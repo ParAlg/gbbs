@@ -223,8 +223,8 @@ struct clustered_graph {
   // extract dendrogram
   sequence<std::pair<uintE, W>> get_dendrogram() {
 
-    debug(std::cout << "num_merges_performed = " << num_merges_performed << std::endl;);
-    debug(std::cout << "n = " << n << std::endl;);
+    std::cout << "num_merges_performed = " << num_merges_performed << std::endl;
+    std::cout << "n = " << n << std::endl;
 
     if (num_merges_performed < n-1) {
       size_t last_clust = last_cluster_id;
@@ -256,6 +256,21 @@ struct clustered_graph {
         bad_queue.push(new_id);
       }
     }
+
+//    size_t ok = 0;
+//    for (size_t i=0; i<2*n-1; i++) {
+//      uintE cur_id = i;
+//      uintE root_id = 2*n-2;
+//      auto cur_wgh = dendrogram[cur_id].second;
+//      std::cout << "searching from cur_id = " << cur_id << std::endl;
+//      while (cur_id != root_id) {
+//        std::cout << "cur_id = " << cur_id <<  " " << cur_wgh << std::endl;
+//        cur_id = dendrogram[cur_id].first;
+//        cur_wgh = dendrogram[cur_id].second;
+//      }
+//      std::cout << "finished" << std::endl;
+//      ok += (cur_id == root_id);
+//    }
 
     return std::move(dendrogram);
   }

@@ -143,6 +143,11 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
 
     unites++;
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh);
+
+    std::cout << "Min weight edge of weight = " << Weights::AsString(wgh)
+                    << " between " << " (" << u << ") and "
+                    << " (" << v << ")" << std::endl;
+
     debug(std::cout << "Min weight edge of weight = " << Weights::AsString(wgh)
                     << " between " << current_id_u << " (" << u << ") and "
                     << current_id_v << " (" << v << ")" << std::endl;

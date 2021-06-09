@@ -61,8 +61,8 @@ struct clustered_graph {
 
     clustered_vertex(uintE vtx_id, orig_vertex& vertex, const Weights& weights) {
       auto cluster_size = vertex.out_degree();
-      staleness = cluster_size;
       num_in_cluster = 1;  // initially just this vertex
+      staleness = 1;
       active = true;
       current_id = vtx_id;
 
@@ -78,7 +78,7 @@ struct clustered_graph {
       neighbors = neighbor_map(edges);
     }
 
-    std::optional<edge> highest_priority_edge() {
+    std::optional<edge> best_edge() {
       if (neighbor_size() == 0) return {};
       W m = neighbors.aug_val();
       internal_edge entry;
@@ -108,7 +108,8 @@ struct clustered_graph {
     }
 
     bool is_stale(double epsilon) {
-      return ((staleness * (1 + epsilon)) < size());
+      debug(std::cout << "staleness check: staleness = " << staleness << " eps = " << epsilon << " lhs = " << ((staleness * (1 + epsilon))) << " rhs = " << size() << std::endl;);
+      return ((staleness * (1 + epsilon)) < ((double)size()));
     }
 
     // Tracks the last cluster update size.
@@ -145,14 +146,16 @@ struct clustered_graph {
     return ret;
   }
 
-  uintE unite(uintE a, uintE b, W wgh) {
+  template <class UH>
+  uintE unite(uintE a, uintE b, W wgh, const UH& update_heap) {
     assert(is_active(a));
     assert(is_active(b));
+
     // Identify smaller/larger clusters (will merge smaller -> larger).
-    uintE d_a = clusters[a].neighbor_size();
-    uintE d_b = clusters[b].neighbor_size();
+    uintE size_a = clusters[a].neighbor_size();
+    uintE size_b = clusters[b].neighbor_size();
     uintE smaller, larger;
-    if (d_a < d_b) {
+    if (size_a < size_b) {
       smaller = a; larger = b;
     } else {
       larger = a; smaller = b;
@@ -162,6 +165,8 @@ struct clustered_graph {
     clusters[smaller].active = false;
 
     // Merge smaller and larger's neighbors.
+    update_heap(larger);
+
     auto smaller_ngh = std::move(clusters[smaller].neighbors);
     auto larger_ngh = std::move(clusters[larger].neighbors);
 
@@ -175,26 +180,26 @@ struct clustered_graph {
     auto small_pre_merge = neighbor_map::remove(std::move(smaller_ngh), larger);
     auto large_pre_merge = neighbor_map::remove(std::move(larger_ngh), smaller);
 
-    auto smaller_keys = neighbor_map::keys(small_pre_merge);
+    size_t new_cluster_size = clusters[larger].size() + clusters[smaller].size();
+    debug(std::cout << "New cluster size = " << new_cluster_size << std::endl;);
 
-    // First merge to calculate the new size of this cluster.
-    auto first_merge = neighbor_map::map_union(
-        small_pre_merge,
-        large_pre_merge);
-    uintE merged_size = first_merge.size();
-    first_merge.~neighbor_map();
+    // Map the small map's weights to use the new cluster size. This
+    // is important in the case when we merge and don't find something
+    // in the intersection. Note for the future that a lazy / delayed map
+    // would be OK here.
+    auto small_map_f = [&] (const auto& entry) {
+      return Weights::RebuildWeight(clusters, entry.first, entry.second, new_cluster_size);
+    };
+    auto updated_small = neighbor_map::map(std::move(small_pre_merge), small_map_f);
+    auto smaller_keys = neighbor_map::keys(updated_small);
 
-
-    size_t new_cluster_size = clusters[larger].num_in_cluster + clusters[smaller].num_in_cluster;
+    // Merge smaller (updated) and larger, using linkage for elements
+    // found in the intersection.
     auto linkage = Weights::GetLinkage(clusters, new_cluster_size);
-    std::cout << "Performed first merge. New cluster size = " << new_cluster_size << std::endl;
-
     auto merged = neighbor_map::map_union(
-        std::move(small_pre_merge),
+        std::move(updated_small),
         std::move(large_pre_merge),
         linkage);
-    assert(merged.size() == merged_size);
-
     clusters[larger].neighbors = std::move(merged);
 
     // Save that clusters a and b are merged.
@@ -208,10 +213,8 @@ struct clustered_graph {
 
     // Update the current id of the remaining cluster.
     clusters[larger].current_id = new_id;
-
     // Update the size of the remaining cluster.
     clusters[larger].num_in_cluster = new_cluster_size;
-    std::cout << "Num in cluster = " << clusters[larger].num_in_cluster << std::endl;
 
     // Map over _all_ of smaller's edges, and update its neighbors to point to
     // larger. If the neighbor, w, also has an edge to larger (a
@@ -222,30 +225,30 @@ struct clustered_graph {
 
       auto w_zero = std::move(clusters[w].neighbors);
       auto found_value = *(w_zero.find(smaller));  // value
+
       auto w_one = neighbor_map::remove(std::move(w_zero), smaller);
 
-      // Insert larger, merging using Weights::linkage if it already exists in
-      // the tree.
+      // Insert larger, merging if it already exists in the tree.
       found_value.first = larger;
-      auto new_value = Weights::UpdateWeight(clusters, found_value, new_cluster_size);
+      auto new_value = Weights::RebuildWeight(clusters, w, found_value, new_cluster_size);
       auto larger_ent = std::make_pair(larger, new_value);
 
-      auto larger_value = w_one.find(larger);
-
-      w_one.insert(larger_ent, linkage);
+      auto ngh_linkage = Weights::GetLinkage(clusters, clusters[w].size());
+      w_one.insert(larger_ent, ngh_linkage);
 
       // Move the neighbors back.
       clusters[w].neighbors = std::move(w_one);
-    }
 
+      update_heap(w);
+    }
 
     // Staleness check.
     if (clusters[larger].is_stale(epsilon)) {
-      std::cout << "LARGER = " << larger << " is STALE" << std::endl;
+      debug(std::cout << "LARGER = " << larger << " is STALE" << std::endl;);
       // Update our own edges.
       auto edges = std::move(clusters[larger].neighbors);
       auto map_f = [&] (const auto& entry) {
-        return Weights::UpdateWeight(clusters, entry.second, new_cluster_size);
+        return Weights::RebuildWeight(clusters, entry.first, entry.second, new_cluster_size);
       };
       auto updated_edges = neighbor_map::map(edges, map_f);
       clusters[larger].neighbors = std::move(updated_edges);
@@ -256,23 +259,31 @@ struct clustered_graph {
         auto val = entry.second;
         uintE val_id = val.first;
         assert(ngh_id == val_id);
+        assert(clusters[ngh_id].active);
+        assert(ngh_id != larger);
 
         val.first = larger; // place our id
-        auto updated_val = Weights::UpdateWeight(clusters, val, new_cluster_size);  // update weight
+        //auto updated_val = Weights::UpdateWeight(clusters, val, new_cluster_size);  // update weight
+        auto updated_val = Weights::RebuildWeight(clusters, ngh_id, val, new_cluster_size);  // update weight
         auto new_entry = std::make_pair(larger, updated_val);
+        assert(updated_val.first == larger);
 
         // Now update our neighbor.
         assert(clusters[ngh_id].neighbors.contains(larger));
         clusters[ngh_id].neighbors.insert(new_entry);
+
+        update_heap(ngh_id);
       };
       neighbor_map::map_void(clusters[larger].neighbors, update_ngh_f);
 
       // Update staleness.
       clusters[larger].staleness = clusters[larger].size();
-      std::cout << "Finished update." << std::endl;
+      debug(std::cout << "Finished update." << std::endl;);
+    } else {
+      debug(std::cout << "NOT STALE" << std::endl;);
     }
 
-
+    update_heap(larger);
     return larger;
   }
 

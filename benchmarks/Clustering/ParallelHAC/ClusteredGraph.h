@@ -168,7 +168,9 @@ struct clustered_graph {
   uintE last_cluster_id;
   uintE num_merges_performed;
 
+  uintE merge_order_idx = 0;
   sequence<clustered_vertex> clusters;
+  sequence<std::pair<uintE, float>> merge_order;
   sequence<std::pair<uintE, W>> dendrogram;
 
   uintE degree(uintE v) {
@@ -250,7 +252,7 @@ struct clustered_graph {
   // Need to implement a unite_merge operation.
   // input: sequence of (u, v) pairs representing that v will merge to u
   template <class Sim>
-  void unite_merge(sequence<std::pair<uintE, uintE>>&& merge_seq) {
+  void unite_merge(sequence<std::tuple<uintE, uintE, float>>&& merge_seq) {
     timer um; um.start();
     std::cout << "Start of unite merge" << std::endl;
     // Sort.
@@ -258,7 +260,7 @@ struct clustered_graph {
 
     // For each instance, find largest component.
     auto all_starts = parlay::delayed_seq<uintE>(merge_seq.size(), [&] (size_t i) {
-      if ((i == 0) || merge_seq[i].first != merge_seq[i-1].first) {
+      if ((i == 0) || std::get<0>(merge_seq[i]) != std::get<0>(merge_seq[i-1])) {
         return (uintE)i;
       }
       return UINT_E_MAX;
@@ -274,11 +276,11 @@ struct clustered_graph {
       size_t start = starts[i];
       size_t end = (i == starts.size() - 1) ? merge_seq.size() : starts[i+1];
 
-      uintE our_id = merge_seq[start].first;
+      uintE our_id = std::get<0>(merge_seq[start]);
       auto our_size = clusters[our_id].neighbor_size();
 
       auto sizes_and_id = parlay::delayed_seq<std::pair<uintE, uintE>>(end - start, [&] (size_t i) {
-        uintE vtx_id = merge_seq[start + i].second;
+        uintE vtx_id = std::get<1>(merge_seq[start + i]);
         return std::make_pair(clusters[vtx_id].neighbor_size(), vtx_id);
       });
       std::pair<uintE, uintE> id = std::make_pair((uintE)0, (uintE)UINT_E_MAX);
@@ -287,9 +289,9 @@ struct clustered_graph {
 
       if (our_size < largest_size) {  // Relabel merge targets to largest_id.
         for (size_t i=start; i<end; i++) {
-          merge_seq[i].first = largest_id;
-          if (merge_seq[i].second == largest_id) {
-            merge_seq[i].second = our_id;
+          std::get<0>(merge_seq[i]) = largest_id;
+          if (std::get<1>(merge_seq[i]) == largest_id) {
+            std::get<1>(merge_seq[i]) = our_id;
           }
         }
         our_id = largest_id;
@@ -301,7 +303,7 @@ struct clustered_graph {
       // - Set the active flag for each such neighbor to false ( Deactivate ).
       size_t total_size = 0;
       for (size_t j=start; j<end; j++) {
-        uintE ngh_id = merge_seq[j].second;
+        uintE ngh_id = std::get<1>(merge_seq[j]);
         uintE ngh_size = clusters[ngh_id].neighbor_size();
         edge_sizes[j] = ngh_size;
 
@@ -357,7 +359,7 @@ struct clustered_graph {
 
     // Copy edges from trees to edges and deletions.
     parallel_for(0, merge_seq.size(), [&] (size_t i) {
-      uintE ngh_id = merge_seq[i].second;
+      uintE ngh_id = std::get<1>(merge_seq[i]);
       size_t k = 0;
       size_t off = edge_sizes[i];
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t k) {
@@ -378,7 +380,8 @@ struct clustered_graph {
     // Delete every (active_id, deactivated_id) edge incident to the active
     // merge targets.
     parallel_for(0, merge_seq.size(), [&] (size_t i) {
-      deletions[total_edges + i] = merge_seq[i];
+      auto [u, v, wgh] = merge_seq[i];
+      deletions[total_edges + i] = std::make_pair(u, v);
     });
 
     // (1) First perform the deletions. This makes life easier later when we
@@ -394,7 +397,7 @@ struct clustered_graph {
       size_t edges_start = edge_sizes[sort_start];
       size_t edges_end = (sort_end == merge_seq.size()) ? total_edges : edge_sizes[sort_end];
 
-      uintE our_id = merge_seq[sort_start].first;
+      uintE our_id = std::get<0>(merge_seq[sort_start]);
       auto our_size = clusters[our_id].cluster_size();
 
       auto our_edges = edges.cut(edges_start, edges_end);
@@ -455,7 +458,7 @@ struct clustered_graph {
       size_t num_edges = ((i == starts.size() - 1) ? total_compacted : compacted_edge_sizes[i+1]) - compacted_edge_sizes[i];
       size_t edges_end = edges_start + num_edges;
 
-      uintE our_id = merge_seq[sort_start].first;
+      uintE our_id = std::get<0>(merge_seq[sort_start]);
       auto our_edges = edges.cut(edges_start, edges_end);
 
       size_t offset = compacted_edge_sizes[i];
@@ -472,7 +475,7 @@ struct clustered_graph {
 
     // Finally, destroy all of the trees incident to newly deactivated vertices.
     parallel_for(0, merge_seq.size(), [&] (size_t i) {
-      auto [u, v] = merge_seq[i];
+      auto [u, v, wgh] = merge_seq[i];
       auto nghs = std::move(clusters[v].neighbors);
       assert(!clusters[v].active);
       if (nghs.root) {
@@ -480,6 +483,33 @@ struct clustered_graph {
         assert(nghs.root->ref_cnt == 1);
       }
     });
+
+
+    // Sort the weights incident to each merged vertex. This ensures that the
+    // merge order stores parallel merges into this vertex in descending order
+    // of weight (preventing inversions in the dendrogram).
+    parallel_for(0, starts.size(), [&] (size_t i) {
+      size_t start = starts[i];
+      size_t end = (i == starts.size() - 1) ? merge_seq.size() : starts[i+1];
+      auto our_merges = merge_seq.cut(start, end);
+      auto comp = [&] (const auto& l, const auto& r) {
+        return std::get<2>(l) > std::get<2>(r);  // sort by weights in desc. order
+      };
+      parlay::sort_inplace(our_merges, comp);
+      auto prev_wgh = std::numeric_limits<float>::max();
+      for (size_t i=0; i< our_merges.size(); i++) {
+        if (std::get<2>(our_merges[i]) > prev_wgh) { std::cout << "sort error!" << std::endl; }
+        prev_wgh = std::get<2>(our_merges[i]);
+      }
+    });
+
+    // Lastly for each merged vertex, save it in the merge_order seq.
+    parallel_for(0, merge_seq.size(), [&] (size_t i) {
+      assert(merge_order[merge_order_idx + i].first == UINT_E_MAX);
+      merge_order[merge_order_idx + i] = std::make_pair(std::get<1>(merge_seq[i]), std::get<2>(merge_seq[i]));
+    });
+    merge_order_idx += merge_seq.size();
+
     std::cout << "Finished unite merge." << std::endl;
     um.next("Unite merge time");
   }
@@ -512,6 +542,83 @@ struct clustered_graph {
       clusters[i] = clustered_vertex(i, orig, weights, edges.begin() + off);
     }, 1);
     std::cout << "Built all vertices" << std::endl;
+
+    merge_order = sequence<std::pair<uintE, float>>(n, std::make_pair(UINT_E_MAX, float()));
+    merge_order_idx = 0;
+  }
+
+  sequence<std::pair<uintE, double>> get_dendrogram() {
+    auto dendrogram = sequence<std::pair<uintE, double>>(2*n-1, std::make_pair(UINT_E_MAX, double()));
+    std::cout << "merge order idx = " << merge_order_idx << " n = " << n << std::endl;
+    std::cout << "dendrogram length = " << dendrogram.size() << std::endl;
+
+    auto mapping = sequence<uintE>(n, UINT_E_MAX);
+
+    size_t cluster_id = n;  // Next new cluster id is n.
+    for (size_t i=0; i<merge_order_idx; i++) {
+      auto [u, wgh] = merge_order[i];
+      assert(u != UINT_E_MAX);
+      uintE merge_target = clusters[u].current_id;
+
+      //std::cout << "Merging " << u << " to " << merge_target << " with weight " << wgh << std::endl;
+
+      // Get a new id.
+      uintE new_id = cluster_id;
+      cluster_id++;
+
+      assert(u < n);
+      if (mapping[u] != UINT_E_MAX) {
+        //std::cout << "remapped u to: " << mapping[u] << std::endl;
+        u = mapping[u];
+      }
+
+      assert(merge_target < n);
+      uintE old_merge_target = merge_target;
+      if (mapping[merge_target] != UINT_E_MAX) {  // Actually a different (new) cluster.
+        //std::cout << "remapped merge_target to: " << mapping[merge_target] << std::endl;
+        merge_target = mapping[merge_target];
+      }
+      mapping[old_merge_target] = new_id;  // Subsequent merge to merge_target uses new_id.
+      // std::cout << "new cluster id: " << new_id << std::endl;
+
+      dendrogram[u] = std::make_pair(new_id, wgh);
+      dendrogram[merge_target] = std::make_pair(new_id, wgh);
+    }
+
+
+    auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
+      return (clusters[i].current_id == i) ? i : UINT_E_MAX; });
+    auto bad = parlay::filter(all_vertices, [&] (uintE u) -> bool { return u != UINT_E_MAX; });
+
+    std::queue<uintE> bad_queue;
+    for (size_t i=0; i<bad.size(); i++) {
+      bad_queue.push(bad[i]);
+    }
+
+    while (bad_queue.size() > 1) {
+      uintE fst = bad_queue.front();
+      bad_queue.pop();
+      uintE snd = bad_queue.front();
+      bad_queue.pop();
+
+      if (fst < n && mapping[fst] != UINT_E_MAX) {  // An original vertex.
+        fst = mapping[fst];
+      }
+      if (snd < n && mapping[snd] != UINT_E_MAX) {
+        snd = mapping[snd];
+      }
+
+      uintE new_id = cluster_id;  // increments next_id
+      cluster_id++;
+      dendrogram[fst] = {new_id, double(0)};
+      dendrogram[snd] = {new_id, double(0)};
+
+      debug(std::cout << "Merged components for: " << fst << " " << snd << " dend_size = " << dendrogram.size() << std::endl);
+
+      bad_queue.push(new_id);
+    }
+
+    return dendrogram;
   }
 
 };
