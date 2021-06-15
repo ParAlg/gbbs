@@ -70,13 +70,14 @@ double HAC_runner(Graph& G, commandLine P) {
 
   bool heap_based = P.getOptionValue("-heapbased");
   string linkage_opt = P.getOptionValue("-linkage", "complete");
+  double epsilon = P.getOptionDoubleValue("-epsilon", 0.1);
 
   std::cout << "### Application: HAC" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: heap-based = " << heap_based << " linkage = " << linkage_opt << std::endl;
+  std::cout << "### Params: heap-based = " << heap_based << " linkage = " << linkage_opt << " epsilon = " << epsilon << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
@@ -84,7 +85,7 @@ double HAC_runner(Graph& G, commandLine P) {
 
   // auto Weights = ActualWeight::template GetWeight<Graph>(G);
   auto Weights = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-  auto dendrogram = clustering::ParallelUPGMA(G, Weights);
+  auto dendrogram = clustering::ParallelUPGMA(G, Weights, epsilon);
   auto of = P.getOptionValue("-of", "");
   if (of != "") {
     // write merges

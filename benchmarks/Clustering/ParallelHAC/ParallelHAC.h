@@ -230,7 +230,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     std::cout << "Max weight = " << max_weight << std::endl;
     auto orig_max_weight = max_weight;
 
-    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, max_weight / one_plus_eps, max_weight, rnd);
+    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, max_weight / one_plus_eps, max_weight, rnd, epsilon);
 
     num_active = pbbslib::reduce_add(active_seq);
     rounds++;
