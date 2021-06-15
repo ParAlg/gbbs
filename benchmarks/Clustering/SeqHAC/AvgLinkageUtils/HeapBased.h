@@ -124,9 +124,11 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
     debug(std::cout << "Heap remove with u = " << u << "; v = " << v << " wgh = " << wgh.get_weight() << std::endl;);
 
     if (!CG.is_active(v)) {
+      debug(std::cout << "v = " << v << " is not active." << std::endl;);
       // Our (u's) highest-pri edge points to a cluster that has already been
       // merged.
       assert(CG.clusters[u].neighbor_size() > 0);
+      CG.clusters[u].update_best_edge();
       auto best_edge = *(CG.clusters[u].best_edge());
       auto ent = std::make_pair(u, best_edge);
       assert(best_edge.first != v);
@@ -147,21 +149,41 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
     double max_distort = pow((1 + epsilon), 2);
     if (distort > max_distort) {
       auto best_edge = *(CG.clusters[u].best_edge());
+      std::cout <<"Large distortion of : " << distort << " Current cut weight = " << wgh.total_weight << " actual weight = " << (wgh.total_weight / total_size) << " reported weight = " << wgh.get_weight() << " u_size = " << u_size << " v_size = " << v_size << std::endl;
+      std::cout << "Best edge total_weight = " << best_edge.second.total_weight << " best_edge weight = " << best_edge.second.get_weight() << " u = " << u << " v = " << v << std::endl;
       assert(v == best_edge.first);
-      std::cout <<"Large distortion of : " << distort << " Current cut weight = " << wgh.total_weight << " actual weight = " << (wgh.total_weight / total_size) << " reported weight = " << wgh.get_weight() << " u_size = " << u_size << " v_size = " << v_size << " best edge total_weight = " << best_edge.second.total_weight << " best_edge weight = " << best_edge.second.get_weight() << " u = " << u << " v = " << std::endl;
     }
     max_distort = std::max(max_distort, distort););
 
-    auto update_heap = [&] (uintE w) {
-      //auto best_w = *(CG.clusters[w].best_edge());
-      auto best_w = *(CG.clusters[w].best_edge_weight());
-      if (best_w.get_weight() != (*CG.clusters[w].cur_best_edge).second.get_weight()) {
+    auto update_heap = [&] (uintE w, uintE updated_ngh, double wgh) {
+      assert(CG.clusters[w].active);
+      auto [best_ngh, best_wgh] = (*CG.clusters[w].cur_best_edge);
+      if (w == 1167) {
+        std::cout << "updated ngh = " << updated_ngh << " wgh = " << wgh << std::endl;
+        std::cout << "best_wgh.get_weight = " << best_wgh.get_weight() << std::endl;
+        std::cout << "best ngh = " << best_ngh << std::endl;
+      }
+      if ((best_ngh == updated_ngh) ||
+          (best_wgh.get_weight() < wgh)) {
         CG.clusters[w].update_best_edge();
         auto best_edge = *(CG.clusters[w].best_edge());
         auto ent = std::make_pair(w, best_edge);
         the_heap.insert(ent);
       }
+//      //auto best_w = *(CG.clusters[w].best_edge());
+//      auto best_w = *(CG.clusters[w].best_edge_weight());
+//      if (w == 1097) {
+//        std::cout << "best_w.get_weight = " << best_w.get_weight() << std::endl;
+//        std::cout << "current best_edge weight = " << (*CG.clusters[w].cur_best_edge).second.get_weight() << std::endl;
+//      }
+//      if (best_w.get_weight() != (*CG.clusters[w].cur_best_edge).second.get_weight()) {
+//        CG.clusters[w].update_best_edge();
+//        auto best_edge = *(CG.clusters[w].best_edge());
+//        auto ent = std::make_pair(w, best_edge);
+//        the_heap.insert(ent);
+//      }
     };
+
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh, update_heap);
     unites++;
 
@@ -182,6 +204,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
       rem_v.insert(ent);
     }
     the_heap = std::move(rem_v);
+    debug(std::cout << endl;);
   }
 
   std::cout << "Performed " << unites << " many merges." << std::endl;

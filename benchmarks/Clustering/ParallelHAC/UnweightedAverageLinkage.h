@@ -178,6 +178,10 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
     std::cout << "Num merges = " << merges.size() << std::endl;
 
+    for (size_t i=0; i<merges.size(); i++) {
+      std::cout << "Merge-o " << std::get<0>(merges[i]) << " " << std::get<1>(merges[i]) << " " << std::get<2>(merges[i]) << std::endl;
+    }
+
 //    for (size_t i=0; i<CG.clusters.size(); i++) {
 //      // check graph consistency (no edges to inactive vertices)
 //      if (CG.clusters[i].active) {

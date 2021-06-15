@@ -178,7 +178,6 @@ struct clustered_graph {
     clusters[smaller].active = false;
 
     // Merge smaller and larger's neighbors.
-    update_heap(larger);
 
     auto smaller_ngh = std::move(clusters[smaller].neighbors);
     auto larger_ngh = std::move(clusters[larger].neighbors);
@@ -252,7 +251,7 @@ struct clustered_graph {
       // Move the neighbors back.
       clusters[w].neighbors = std::move(w_one);
 
-      update_heap(w);
+      update_heap(w, larger, new_value.second.get_weight());
     }
 
     // Staleness check.
@@ -285,7 +284,11 @@ struct clustered_graph {
         assert(clusters[ngh_id].neighbors.contains(larger));
         clusters[ngh_id].neighbors.insert(new_entry);
 
-        update_heap(ngh_id);
+        if (larger == 1029) {
+          std::cout << "Inserted into ngh_id = " << ngh_id << " wgh = " << updated_val.second.get_weight() << " cut_weight = " << updated_val.second.total_weight <<  std::endl;
+        }
+
+        update_heap(ngh_id, larger, updated_val.second.get_weight());
       };
       neighbor_map::map_void(clusters[larger].neighbors, update_ngh_f);
 
@@ -296,7 +299,7 @@ struct clustered_graph {
       debug(std::cout << "NOT STALE" << std::endl;);
     }
 
-    update_heap(larger);
+    update_heap(larger, larger, std::numeric_limits<double>::max());
 
     clusters[larger].update_best_edge();
     return larger;
@@ -353,6 +356,25 @@ struct clustered_graph {
         bad_queue.push(new_id);
       }
     }
+
+    auto root = (2*n-2);
+
+    for (size_t i=0; i<(2*n - 2); i++) {
+      std::cout << "Checking i = " << i << std::endl;
+      auto cluster_id = i;
+      double wgh = std::numeric_limits<double>::max();
+      while (true) {
+        auto parent = dendrogram[cluster_id].first;
+        auto merge_wgh = dendrogram[cluster_id].second.get_weight();
+        std::cout << "id = " << cluster_id << " parent = " << parent << " wgh = " << merge_wgh << std::endl;
+        assert(wgh >= merge_wgh);
+        wgh = merge_wgh;
+        if (cluster_id == parent || parent == root) break;
+        cluster_id = parent;
+      }
+      std::cout << "i = " << i << " is good." << std::endl;
+    }
+
 
     return std::move(dendrogram);
   }

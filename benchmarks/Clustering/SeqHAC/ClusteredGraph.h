@@ -257,6 +257,23 @@ struct clustered_graph {
       }
     }
 
+    auto root = (2*n-2);
+    for (size_t i=0; i<(2*n - 2); i++) {
+      std::cout << "Checking i = " << i << std::endl;
+      auto cluster_id = i;
+      double wgh = std::numeric_limits<double>::max();
+      while (true) {
+        auto parent = dendrogram[cluster_id].first;
+        auto merge_wgh = dendrogram[cluster_id].second;
+        std::cout << "id = " << cluster_id << " parent = " << parent << " wgh = " << merge_wgh << std::endl;
+        assert(wgh >= merge_wgh);
+        wgh = merge_wgh;
+        if (cluster_id == parent || parent == UINT_E_MAX || parent == root) break;
+        cluster_id = parent;
+      }
+      std::cout << "i = " << i << " is good." << std::endl;
+    }
+
 //    size_t ok = 0;
 //    for (size_t i=0; i<2*n-1; i++) {
 //      uintE cur_id = i;

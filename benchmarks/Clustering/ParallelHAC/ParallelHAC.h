@@ -206,47 +206,77 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   using W = typename Weights::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
 
-  Sim max_weight = 0;
-  Sim min_weight = std::numeric_limits<Sim>::max();
-  parallel_for(0, CG.n, [&] (size_t i) {
-    auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      auto actual_weight = Weights::get_weight(wgh, u, v, CG);
-      if (actual_weight > max_weight) { pbbslib::write_max(&max_weight, actual_weight); }
-      if (actual_weight < min_weight) { pbbslib::write_min(&min_weight, actual_weight); }
-    };
-    CG.clusters[i].iterate(i, f);
-  });
-  assert(max_weight >= min_weight);
-  std::cout << "Max weight = " << max_weight << " Min weight = " << min_weight << std::endl;
-  auto orig_max_weight = max_weight;
-
   double one_plus_eps = 1 + epsilon;
-  long rounds = max((size_t)ceil(log(max_weight / min_weight) / log(one_plus_eps)), (size_t)1);
 
   parlay::random rnd;
-  auto Colors = sequence<size_t>::uninitialized(G.n);
 
-  // TODO: the logic around rounds / lower / upper threshold seems kind of
-  // fucked up. Think about it.
+  auto active_seq = parlay::delayed_seq<uintE>(CG.n, [&] (size_t i) { return (uintE)CG.clusters[i].active; });
+  size_t num_active = pbbslib::reduce_add(active_seq);
+  size_t rounds = 0;
+  while (num_active > 1) {
+    Sim max_weight = 0;
+    // TODO: the following loop can be made sparse.
+    parallel_for(0, CG.n, [&] (size_t i) {
+      auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        auto actual_weight = Weights::get_weight(wgh, u, v, CG);
+        if (actual_weight > max_weight) { pbbslib::write_max(&max_weight, actual_weight); }
+      };
+      if (CG.clusters[i].active) {
+        // TODO: this can be retrieved from the aug-val to make this much
+        // cheaper.
+        CG.clusters[i].iterate(i, f);
+      }
+    });
+    std::cout << "Max weight = " << max_weight << std::endl;
+    auto orig_max_weight = max_weight;
 
-  while (rounds > 0) {
-    Sim lower_threshold = max_weight / one_plus_eps;
+    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, max_weight / one_plus_eps, max_weight, rnd);
 
-    std::cout << "Round = " << rounds << std::endl;
-    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, lower_threshold, max_weight, rnd);
-
-    rnd = rnd.next();
-    max_weight /= one_plus_eps;
-    rounds--;
+    num_active = pbbslib::reduce_add(active_seq);
+    rounds++;
   }
+  std::cout << "Ran for " << rounds << " rounds." << std::endl;
 
-  auto lower_threshold = max_weight / one_plus_eps;
-  if (lower_threshold > 0) {
-    // Final round.
 
-    std::cout << "Final round." << std::endl;
-    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, (Sim)0, orig_max_weight, rnd);
-  }
+//  Sim max_weight = 0;
+//  Sim min_weight = std::numeric_limits<Sim>::max();
+//  parallel_for(0, CG.n, [&] (size_t i) {
+//    auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//      auto actual_weight = Weights::get_weight(wgh, u, v, CG);
+//      if (actual_weight > max_weight) { pbbslib::write_max(&max_weight, actual_weight); }
+//      if (actual_weight < min_weight) { pbbslib::write_min(&min_weight, actual_weight); }
+//    };
+//    CG.clusters[i].iterate(i, f);
+//  });
+//  assert(max_weight >= min_weight);
+//  std::cout << "Max weight = " << max_weight << " Min weight = " << min_weight << std::endl;
+//  auto orig_max_weight = max_weight;
+
+//  long rounds = max((size_t)ceil(log(max_weight / min_weight) / log(one_plus_eps)), (size_t)1);
+
+//  parlay::random rnd;
+//  auto Colors = sequence<size_t>::uninitialized(G.n);
+
+
+
+//  while (rounds > 0) {
+//    Sim lower_threshold = max_weight / one_plus_eps;
+//
+//    std::cout << "Round = " << rounds << std::endl;
+//    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, lower_threshold, max_weight, rnd);
+//
+//    rnd = rnd.next();
+//    max_weight /= one_plus_eps;
+//    rounds--;
+//  }
+//
+//  auto lower_threshold = max_weight / one_plus_eps;
+//  if (lower_threshold > 0) {
+//    // Final round.
+//
+//    std::cout << "Final round." << std::endl;
+//    ProcessGraphUnweightedAverage</*AggressiveMerge=*/true, Weights>(CG, (Sim)0, orig_max_weight, rnd);
+//  }
 
 //  for (size_t i=0; i<G.n; i++) {
 //    if (CG.clusters[i].active && CG.clusters[i].neighbor_size() > 0) {
