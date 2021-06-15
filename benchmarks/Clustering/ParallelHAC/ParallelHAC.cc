@@ -26,24 +26,43 @@
 
 namespace gbbs {
 
+//template <class Weights, class Dendrogram>
+//void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
+//                           const std::string& of) {
+//  ofstream out;
+//  out.open(of);
+//  size_t wrote = 0;
+//  for (size_t i = 0; i < dendrogram.size(); i++) {
+//    if (dendrogram[i].first != i) {
+//      if (dendrogram[i].first != UINT_E_MAX) {
+//        out << i << " " << dendrogram[i].first << " "
+//            << dendrogram[i].second << std::endl;
+//      } else {
+//        std::cout << "UINT_E_MAX in dendrogram, index = " << i << std::endl;
+//      }
+//      wrote++;
+//    }
+//  }
+//  std::cout << "Wrote " << wrote << " parent-pointers. " << std::endl;
+//}
+
 template <class Weights, class Dendrogram>
-void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
+void WriteAvgDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
                            const std::string& of) {
   ofstream out;
   out.open(of);
   size_t wrote = 0;
+  out.precision(std::numeric_limits<double>::max_digits10);
   for (size_t i = 0; i < dendrogram.size(); i++) {
     if (dendrogram[i].first != i) {
       if (dendrogram[i].first != UINT_E_MAX) {
         out << i << " " << dendrogram[i].first << " "
             << dendrogram[i].second << std::endl;
-      } else {
-        std::cout << "UINT_E_MAX in dendrogram, index = " << i << std::endl;
       }
       wrote++;
     }
   }
-  std::cout << "Wrote " << wrote << " parent-pointers. " << std::endl;
+  std::cout << "Wrote " << wrote << " parent-pointers." << std::endl;
 }
 
 template <class Graph>
@@ -69,7 +88,7 @@ double HAC_runner(Graph& G, commandLine P) {
   auto of = P.getOptionValue("-of", "");
   if (of != "") {
     // write merges
-    WriteDendrogramToDisk(Weights, dendrogram, of);
+    WriteAvgDendrogramToDisk(Weights, dendrogram, of);
     exit(0);
   }
 

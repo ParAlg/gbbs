@@ -20,9 +20,9 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-OPT = -O3 -DNDEBUG
 #OPT = -O3 -DNDEBUG
-#OPT = -O0 -g
+#OPT = -O3 -DNDEBUG
+OPT = -O0 -g
 
 CFLAGS = \
 	-U_FORTIFY_SOURCE \

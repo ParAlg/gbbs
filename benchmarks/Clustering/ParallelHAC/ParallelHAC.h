@@ -194,7 +194,7 @@ template <class Weights,
 // could involve more than simply storing the underlying weight, or
 // could internally be a representation like gbbs::empty.
 template <class WW> class w_vertex, class IW>  // the weight type of the underlying graph
-auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.5) {
+auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.1) {
   timer tt; tt.start();
   using clustered_graph =
       gbbs::clustering::clustered_graph<Weights, IW, w_vertex>;
@@ -225,6 +225,9 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
 
   parlay::random rnd;
   auto Colors = sequence<size_t>::uninitialized(G.n);
+
+  // TODO: the logic around rounds / lower / upper threshold seems kind of
+  // fucked up. Think about it.
 
   while (rounds > 0) {
     Sim lower_threshold = max_weight / one_plus_eps;

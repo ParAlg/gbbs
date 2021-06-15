@@ -70,28 +70,6 @@ struct clustered_graph {
       active = true;
     }
 
-    clustered_vertex(uintE vtx_id, Graph_vertex& vertex, const Weights& weights) {
-      auto cluster_size = vertex.out_degree();
-
-      auto edges = sequence<edge>::uninitialized(cluster_size);
-
-      auto map_f = [&] (const uintE& u, const uintE& v, const IW& wgh, size_t index) {
-        W true_weight = weights.get_weight(u, v, wgh);
-        edges[index] = {v, true_weight};
-      };
-
-      vertex.out_neighbors().map_with_index(map_f);
-
-      auto combine_w = [&] (W l, W r) { return l; };
-      neighbors = neighbor_map(edges, combine_w);
-
-      num_in_cluster = 1;
-      staleness = 1;
-      cas_size = 1;
-      current_id = vtx_id;
-      active = true;
-    }
-
     struct Add {
       using T = size_t;
       static T identity() { return 0;}
@@ -249,7 +227,6 @@ struct clustered_graph {
     dt.stop(); dt.reportTotal("deletion time");
   }
 
-  // Need to implement a unite_merge operation.
   // input: sequence of (u, v) pairs representing that v will merge to u
   template <class Sim>
   void unite_merge(sequence<std::tuple<uintE, uintE, float>>&& merge_seq) {
@@ -288,10 +265,10 @@ struct clustered_graph {
       auto [largest_size, largest_id] = parlay::reduce(sizes_and_id, mon);
 
       if (our_size < largest_size) {  // Relabel merge targets to largest_id.
-        for (size_t i=start; i<end; i++) {
-          std::get<0>(merge_seq[i]) = largest_id;
-          if (std::get<1>(merge_seq[i]) == largest_id) {
-            std::get<1>(merge_seq[i]) = our_id;
+        for (size_t j=start; j<end; j++) {
+          std::get<0>(merge_seq[j]) = largest_id;
+          if (std::get<1>(merge_seq[j]) == largest_id) {
+            std::get<1>(merge_seq[j]) = our_id;
           }
         }
         our_id = largest_id;
@@ -497,9 +474,9 @@ struct clustered_graph {
       };
       parlay::sort_inplace(our_merges, comp);
       auto prev_wgh = std::numeric_limits<float>::max();
-      for (size_t i=0; i< our_merges.size(); i++) {
-        if (std::get<2>(our_merges[i]) > prev_wgh) { std::cout << "sort error!" << std::endl; }
-        prev_wgh = std::get<2>(our_merges[i]);
+      for (size_t j=0; j< our_merges.size(); j++) {
+        if (std::get<2>(our_merges[j]) > prev_wgh) { std::cout << "sort error!" << std::endl; }
+        prev_wgh = std::get<2>(our_merges[j]);
       }
     });
 
@@ -616,6 +593,24 @@ struct clustered_graph {
       debug(std::cout << "Merged components for: " << fst << " " << snd << " dend_size = " << dendrogram.size() << std::endl);
 
       bad_queue.push(new_id);
+    }
+
+    // Check dendrogram.
+
+    for (size_t i=0; i<(2*n - 2); i++) {
+      std::cout << "Checking i = " << i << std::endl;
+      cluster_id = i;
+      double wgh = std::numeric_limits<double>::max();
+      while (true) {
+        auto parent = dendrogram[cluster_id].first;
+        auto merge_wgh = dendrogram[cluster_id].second;
+        std::cout << "id = " << cluster_id << " parent = " << parent << " wgh = " << merge_wgh << std::endl;
+        assert(wgh >= merge_wgh);
+        wgh = merge_wgh;
+        if (cluster_id == parent || parent == UINT_E_MAX) break;
+        cluster_id = parent;
+      }
+      std::cout << "i = " << i << " is good." << std::endl;
     }
 
     return dendrogram;

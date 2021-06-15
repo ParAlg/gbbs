@@ -136,36 +136,39 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
           return true;  // keep going
         };
         CG.clusters[i].iterate_cond(i, iter_f);
-      } else {
-        auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
-            if (k == edge_idx) {
-              ngh_id = v; weight = wgh;
-            } else {
-              k++;
-            }
-          }
-        };
-        CG.clusters[i].iterate(i, iter_f);
-        assert(ngh_id != std::numeric_limits<uintE>::max());
-        // Try to join the neighbor's cluster if neighbor is red.
-        if (colors[ngh_id] == kRed) {
-          assert(CG.clusters[ngh_id].active);
-          assert(CG.clusters[i].active);
-          uintE ngh_cur_size = CG.clusters[ngh_id].cluster_size();
-          uintE upper_bound = one_plus_eps * ngh_cur_size;
-          uintE our_size = CG.clusters[i].cluster_size();
-          // Enable to stress-test the merge implementation.
-          //merge_target[i] = ngh_id;
-          auto old_opt = pbbslib::fetch_and_add_threshold(
-              &(CG.clusters[ngh_id].cas_size),
-              our_size,
-              upper_bound);
-          if (old_opt.has_value()) {  // Success
-            merge_target[i] = std::make_pair(ngh_id, lower_threshold);
-          }
-        }
       }
+
+// Ignore else case for now. Let's focus on aggressive merge.
+//      else {
+//        auto iter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//          if (Weights::get_weight(wgh, u, v, CG) >= lower_threshold) {
+//            if (k == edge_idx) {
+//              ngh_id = v; weight = wgh;
+//            } else {
+//              k++;
+//            }
+//          }
+//        };
+//        CG.clusters[i].iterate(i, iter_f);
+//        assert(ngh_id != std::numeric_limits<uintE>::max());
+//        // Try to join the neighbor's cluster if neighbor is red.
+//        if (colors[ngh_id] == kRed) {
+//          assert(CG.clusters[ngh_id].active);
+//          assert(CG.clusters[i].active);
+//          uintE ngh_cur_size = CG.clusters[ngh_id].cluster_size();
+//          uintE upper_bound = one_plus_eps * ngh_cur_size;
+//          uintE our_size = CG.clusters[i].cluster_size();
+//          // Enable to stress-test the merge implementation.
+//          //merge_target[i] = ngh_id;
+//          auto old_opt = pbbslib::fetch_and_add_threshold(
+//              &(CG.clusters[ngh_id].cas_size),
+//              our_size,
+//              upper_bound);
+//          if (old_opt.has_value()) {  // Success
+//            merge_target[i] = std::make_pair(ngh_id, lower_threshold);
+//          }
+//        }
+//      }
 
 
     }});
@@ -214,6 +217,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
   std::cout << "Finished bucket." << std::endl;
   size_t rem_active = parlay::reduce(parlay::delayed_seq<uintE>(n, [&] (size_t i) { return CG.clusters[i].active; }));
   std::cout << rem_active << " vertices remain." << std::endl;
+  std::cout << "Bucket took " << rounds << " rounds." << std::endl;
 }
 
 

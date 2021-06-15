@@ -78,7 +78,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
   parlay::sequence<edge> best_neighbors(
       n, std::make_pair(UINT_E_MAX, std::numeric_limits<W>::max()));
    parallel_for(0, n, [&](size_t i) {
-     auto edge_option = CG.clusters[i].best_edge();
+     auto edge_option = CG.clusters[i].cur_best_edge;
      if (edge_option.has_value()) {
        best_neighbors[i] = edge_option.value();
      }
@@ -153,9 +153,14 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
     max_distort = std::max(max_distort, distort););
 
     auto update_heap = [&] (uintE w) {
-      auto best_w = *(CG.clusters[w].best_edge());
-      auto ent = std::make_pair(w, best_w);
-      the_heap.insert(ent);
+      //auto best_w = *(CG.clusters[w].best_edge());
+      auto best_w = *(CG.clusters[w].best_edge_weight());
+      if (best_w.get_weight() != (*CG.clusters[w].cur_best_edge).second.get_weight()) {
+        CG.clusters[w].update_best_edge();
+        auto best_edge = *(CG.clusters[w].best_edge());
+        auto ent = std::make_pair(w, best_edge);
+        the_heap.insert(ent);
+      }
     };
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh, update_heap);
     unites++;

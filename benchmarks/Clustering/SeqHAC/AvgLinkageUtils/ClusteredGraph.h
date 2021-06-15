@@ -76,6 +76,8 @@ struct clustered_graph {
       vertex.out_neighbors().map(map_f, /* parallel = */false);
 
       neighbors = neighbor_map(edges);
+
+      cur_best_edge = best_edge();
     }
 
     std::optional<edge> best_edge() {
@@ -85,6 +87,15 @@ struct clustered_graph {
       entry = *neighbors.aug_eq(m);
       assert(entry.second.second == m);
       return entry.second;
+    }
+
+    std::optional<W> best_edge_weight() {
+      if (neighbor_size() == 0) return {};
+      return neighbors.aug_val();
+    }
+
+    void update_best_edge() {
+      cur_best_edge = best_edge();
     }
 
     uintE neighbor_size() {
@@ -112,6 +123,8 @@ struct clustered_graph {
       return ((staleness * (1 + epsilon)) < ((double)size()));
     }
 
+    // Tracks the best edge.
+    std::optional<edge> cur_best_edge;
     // Tracks the last cluster update size.
     uintE staleness;
     // The "current" id of this cluster, updated upon a merge that keeps this cluster active.
@@ -284,6 +297,8 @@ struct clustered_graph {
     }
 
     update_heap(larger);
+
+    clusters[larger].update_best_edge();
     return larger;
   }
 
