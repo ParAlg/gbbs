@@ -195,6 +195,8 @@ struct DynamicColoring {
 
     // Initialize random to randomly select vertices.
     auto r = random();
+    auto vertices_previous_levels =
+        parlay::delayed_seq<uintE>(conflict_vertices.size(), 0);
     while (conflict_vertices.size() > 0) {
         parallel_for(0, conflict_vertices.size(), [&] (size_t i) {
             auto v = conflict_vertices[i];
