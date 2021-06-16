@@ -1165,7 +1165,7 @@ struct LDS {
   }
 
   template <class Seq>
-  size_t batch_insertion(const Seq& insertions_unfiltered) {
+  sequence<edge_type> batch_insertion(const Seq& insertions_unfiltered) {
     //timer insert_timer;
     //insert_timer.start();
     // Remove edges that already exist from the input.
@@ -1262,11 +1262,11 @@ struct LDS {
 
     //std::cout << "insert rebalance: " << insert_timer.stop() << std::endl;
 
-    return total_moved;
+    return insertions_filtered;
   }
 
   template <class Seq>
-  size_t batch_deletion(const Seq& deletions_unfiltered) {
+  sequence<edge_type> batch_deletion(const Seq& deletions_unfiltered) {
     // Remove edges that do not exist in the graph.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
@@ -1359,7 +1359,7 @@ struct LDS {
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
 
-    return total_moved;
+    return deletions_filtered;
   }
 
   void check_invariants() {
@@ -1498,8 +1498,10 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             uintE vert2 = deletions[i].to;
             return std::make_pair(vert1, vert2);
         });
-        num_insertion_flips += layers.batch_insertion(batch_insertions);
-        num_deletion_flips += layers.batch_deletion(batch_deletions);
+        //num_insertion_flips += layers.batch_insertion(batch_insertions);
+        //num_deletion_flips += layers.batch_deletion(batch_deletions);
+        layers.batch_insertion(batch_insertions);
+        layers.batch_deletion(batch_deletions);
       }
     }
 
@@ -1531,11 +1533,13 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             return std::make_pair(vert1, vert2);
         });
 
-        num_insertion_flips += layers.batch_insertion(batch_insertions);
+        //num_insertion_flips += layers.batch_insertion(batch_insertions);
+        layers.batch_insertion(batch_insertions);
         double insertion_time = t.stop();
 
         t.start();
-        num_deletion_flips += layers.batch_deletion(batch_deletions);
+        //num_deletion_flips += layers.batch_deletion(batch_deletions);
+        layers.batch_deletion(batch_deletions);
 
         max_degree = layers.max_degree();
 

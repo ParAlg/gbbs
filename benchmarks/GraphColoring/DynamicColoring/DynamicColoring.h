@@ -369,48 +369,6 @@ struct DynamicColoring {
   }
 };
 
-template <class Graph>
-inline void RunDynamicColoring(Graph& G, bool optimized_deletion) {
-  // using W = typename Graph::weight_type;
-  size_t n = G.n;
-  auto layers = LDS(n, optimized_deletion);
-  auto coloring = DynamicColoring(n, layers);
-
-  auto edges = G.edges();
-
-  size_t num_batches = 1000;
-  size_t batch_size = edges.size() / num_batches;
-  for (size_t i=0; i<num_batches; i++) {
-    size_t start = batch_size*i;
-    size_t end = std::min(start + batch_size, edges.size());
-
-    auto batch = parlay::delayed_seq<LDS::edge_type>(end - start, [&] (size_t i) {
-      uintE u = std::get<0>(edges[start + i]);
-      uintE v = std::get<1>(edges[start + i]);
-      return std::make_pair(u, v);
-    });
-
-    coloring.batch_insertion(batch);
-    layers.check_invariants();
-    coloring.check_invariants();
-  }
-
-  for (size_t i=0; i<num_batches; i++) {
-    size_t start = batch_size*i;
-    size_t end = std::min(start + batch_size, edges.size());
-
-    auto batch = parlay::delayed_seq<LDS::edge_type>(end - start, [&] (size_t i) {
-      uintE u = std::get<0>(edges[start + i]);
-      uintE v = std::get<1>(edges[start + i]);
-      return std::make_pair(u, v);
-    });
-
-    coloring.batch_deletion(batch);
-    layers.check_invariants();
-    coloring.check_invariants();
-  }
-}
-
 template <class W>
 inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
         LDS& layers, bool optimized_insertion, size_t offset) {
@@ -504,10 +462,10 @@ template <class Graph, class W>
 inline void RunDynamicColoring(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
         bool compare_exact, double eps, double delta, bool optimized_insertion, size_t offset) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
-    auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
-    if (G.n > 0) RunDynamicColoring(G, optimized_insertion);
+    auto layers = LDS(max_vertex, eps, delta, optimized_insertion, true);
     if (batch_edge_list.max_vertex > 0) RunDynamicColoring(max_vertex,
             batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
+    else std::cout << "ERROR: No batches" << std::endl;
 }
 
 }  // namespace gbbs
