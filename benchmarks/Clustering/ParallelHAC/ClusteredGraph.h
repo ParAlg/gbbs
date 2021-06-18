@@ -597,21 +597,21 @@ struct clustered_graph {
 
     // Check dendrogram.
 
-    for (size_t i=0; i<(2*n - 2); i++) {
-      std::cout << "Checking i = " << i << std::endl;
-      cluster_id = i;
-      double wgh = std::numeric_limits<double>::max();
-      while (true) {
-        auto parent = dendrogram[cluster_id].first;
-        auto merge_wgh = dendrogram[cluster_id].second;
-        std::cout << "id = " << cluster_id << " parent = " << parent << " wgh = " << merge_wgh << std::endl;
-        assert(wgh >= merge_wgh);
-        wgh = merge_wgh;
-        if (cluster_id == parent || parent == UINT_E_MAX) break;
-        cluster_id = parent;
-      }
-      std::cout << "i = " << i << " is good." << std::endl;
-    }
+//    for (size_t i=0; i<(2*n - 2); i++) {
+//      std::cout << "Checking i = " << i << std::endl;
+//      cluster_id = i;
+//      double wgh = std::numeric_limits<double>::max();
+//      while (true) {
+//        auto parent = dendrogram[cluster_id].first;
+//        auto merge_wgh = dendrogram[cluster_id].second;
+//        std::cout << "id = " << cluster_id << " parent = " << parent << " wgh = " << merge_wgh << std::endl;
+//        assert(wgh >= merge_wgh);
+//        wgh = merge_wgh;
+//        if (cluster_id == parent || parent == UINT_E_MAX) break;
+//        cluster_id = parent;
+//      }
+//      std::cout << "i = " << i << " is good." << std::endl;
+//    }
 
     return dendrogram;
   }
