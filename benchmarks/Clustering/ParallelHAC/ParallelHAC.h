@@ -194,7 +194,7 @@ template <class Weights,
 // could involve more than simply storing the underlying weight, or
 // could internally be a representation like gbbs::empty.
 template <class WW> class w_vertex, class IW>  // the weight type of the underlying graph
-auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.1) {
+auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.1, bool fine_grained_merge_sim = true) {
   timer tt; tt.start();
   using clustered_graph =
       gbbs::clustering::clustered_graph<Weights, IW, w_vertex>;

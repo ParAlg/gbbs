@@ -26,26 +26,6 @@
 
 namespace gbbs {
 
-//template <class Weights, class Dendrogram>
-//void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
-//                           const std::string& of) {
-//  ofstream out;
-//  out.open(of);
-//  size_t wrote = 0;
-//  for (size_t i = 0; i < dendrogram.size(); i++) {
-//    if (dendrogram[i].first != i) {
-//      if (dendrogram[i].first != UINT_E_MAX) {
-//        out << i << " " << dendrogram[i].first << " "
-//            << dendrogram[i].second << std::endl;
-//      } else {
-//        std::cout << "UINT_E_MAX in dendrogram, index = " << i << std::endl;
-//      }
-//      wrote++;
-//    }
-//  }
-//  std::cout << "Wrote " << wrote << " parent-pointers. " << std::endl;
-//}
-
 template <class Weights, class Dendrogram>
 void WriteAvgDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
                            const std::string& of) {
@@ -68,16 +48,16 @@ void WriteAvgDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
 template <class Graph>
 double HAC_runner(Graph& G, commandLine P) {
 
-  bool heap_based = P.getOptionValue("-heapbased");
   string linkage_opt = P.getOptionValue("-linkage", "complete");
   double epsilon = P.getOptionDoubleValue("-epsilon", 0.1);
+  bool no_fine_grained_merge = P.getOptionValue("-no_fine_grained_merge");
 
   std::cout << "### Application: HAC" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: heap-based = " << heap_based << " linkage = " << linkage_opt << " epsilon = " << epsilon << std::endl;
+  std::cout << "### Params: linkage = " << linkage_opt << " epsilon = " << epsilon << " fine_grained_merge = " << (!no_fine_grained_merge) << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
@@ -85,7 +65,7 @@ double HAC_runner(Graph& G, commandLine P) {
 
   // auto Weights = ActualWeight::template GetWeight<Graph>(G);
   auto Weights = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-  auto dendrogram = clustering::ParallelUPGMA(G, Weights, epsilon);
+  auto dendrogram = clustering::ParallelUPGMA(G, Weights, epsilon, !no_fine_grained_merge);
   auto of = P.getOptionValue("-of", "");
   if (of != "") {
     // write merges

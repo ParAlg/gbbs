@@ -45,7 +45,7 @@ struct vtx_status {
 // edges exist with weights between [lower_threshold, ...).
 template <bool AggressiveMerge, class Weights, class ClusteredGraph, class Sim>
 void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim max_weight, parlay::random& rnd,
-    double eps = 0.1) {
+    double eps = 0.1, bool fine_grained_merge_sim = true) {
   std::cout << "Thresholds: " << lower_threshold << " and " << max_weight << std::endl;
   using W = typename ClusteredGraph::W;
 
@@ -86,9 +86,16 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
 
   double one_plus_eps = 1 + eps;
   size_t rounds = 0;
+  double round_granularity = (max_weight - lower_threshold) / 16384;
 
   while (n_active > 0) {
     std::cout << "Starting round: " << rounds << std::endl;
+
+    // Set which similarity to use when merging.
+    double merge_weight = lower_threshold;
+    if (fine_grained_merge_sim) {
+      double merge_weight = max_weight - (round_granularity * rounds);
+    }
 
     parallel_for(0, n, [&] (size_t i) {
     if (active[i] > 0) {
@@ -128,7 +135,7 @@ void ProcessGraphUnweightedAverage(ClusteredGraph& CG, Sim lower_threshold, Sim 
                   our_size,
                   upper_bound);
               if (opt.has_value()) {  // Success in the F&A!
-                merge_target[i] = std::make_pair(v, lower_threshold);
+                merge_target[i] = std::make_pair(v, merge_weight);
                 return false;  // done.
               }
             }
