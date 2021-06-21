@@ -63,7 +63,6 @@ double HAC_runner(Graph& G, commandLine P) {
   timer t; t.start();
   double tt;
 
-  // auto Weights = ActualWeight::template GetWeight<Graph>(G);
   auto Weights = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
   auto dendrogram = clustering::ParallelUPGMA(G, Weights, epsilon, !no_fine_grained_merge);
   auto of = P.getOptionValue("-of", "");
