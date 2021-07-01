@@ -197,6 +197,8 @@ struct DynamicColoring {
     auto r = random();
     auto vertices_previous_levels =
         parlay::delayed_seq<uintE>(conflict_vertices.size(), 0);
+    auto first_pass = true;
+    auto same_level_neighbor_list = parlay::sequence<std::pair<uintE, parlay::sequence<uintE>>>(conflict_vertices.size());
     while (conflict_vertices.size() > 0) {
         parallel_for(0, conflict_vertices.size(), [&] (size_t i) {
             auto v = conflict_vertices[i];
@@ -208,63 +210,145 @@ struct DynamicColoring {
             auto new_palette_size = get_color_palette_size(level, levels_per_group, one_plus_eps, upper_constant);
             auto first_color_palette = get_first_color(level, levels_per_group, one_plus_eps, upper_constant);
 
-            VC[v].unmark_all_colors();
-            if (first_color_palette > VC[v].first_color_id_) {
-                VC[v].enlarge_palette(new_palette_size);
-                VC[v].first_color_id_ = first_color_palette;
+            parlay::sequence<uintE> same_level_neighbors;
+
+            if (first_pass) {
+                VC[v].unmark_all_colors();
+                if (first_color_palette > VC[v].first_color_id_) {
+                    VC[v].enlarge_palette(new_palette_size);
+                    VC[v].first_color_id_ = first_color_palette;
+                }
+
+                auto up_neighbors = layers_of_vertices_.L[v].up;
+                // Sort the neighbors on the same level and neighbors on different
+                // levels
+                same_level_neighbors = parlay::filter(up_neighbors.table,
+                    [&] (uintE neighbor){
+                    if (neighbor < num_vertices_) {
+                        auto neighbor_level = layers_of_vertices_.get_level(neighbor);
+                        return (neighbor_level == level);
+                    }
+                    return false;
+                });
+                same_level_neighbor_list[i] = std::make_pair(v, same_level_neighbors);
+
+                auto higher_level_neighbors = parlay::filter(up_neighbors.table,
+                        [&] (uintE neighbor){
+                    if (neighbor < num_vertices_) {
+                        auto neighbor_level = layers_of_vertices_.get_level(neighbor);
+                        return (neighbor_level > level);
+                    }
+                    return false;
+                });
+
+                assert(up_neighbors.num_elms() <= (VC[v].size_/2));
+                auto higher_neighbor_colors =
+                    parlay::sequence<uintE>(higher_level_neighbors.size());
+                parallel_for(0, higher_level_neighbors.size(), [&] (size_t i){
+                    auto neighbor = higher_level_neighbors.table[i];
+                    if (neighbor < num_vertices_) {
+                        auto neighbor_color = VC[neighbor].color_;
+                        higher_neighbor_colors[i] = neighbor_color;
+                    } else {
+                        higher_neighbor_colors[i] = kColorNotUsed;
+                    }
+                });
+
+                // Filter out the real colors
+                auto high_neighbor_colors =
+                parlay::filter(higher_neighbor_colors, [&] (const uintE& color) {
+                    return color != kColorNotUsed;
+                });
+            } else {
+                same_level_neighbors = same_level_neighbor_list[i];
+                auto high_neighbor_colors = parlay::sequence<uintE>(0);
             }
 
-            auto up_neighbors = layers_of_vertices_.L[v].up;
-            assert(up_neighbors.num_elms() <= (VC[v].size_/2));
-            auto possible_colors = parlay::sequence<uintE>(up_neighbors.size());
-            parallel_for(0, up_neighbors.size(), [&] (size_t i){
-                auto neighbor = up_neighbors.table[i];
+
+            auto same_level_colors =
+                parlay::sequence<uintE>(same_level_neighbors.size());
+            parallel_for(0, same_level_neighbors.size(), [&] (size_t i){
+                auto neighbor = same_level_neighbors.table[i];
                 if (neighbor < num_vertices_) {
                     auto neighbor_color = VC[neighbor].color_;
-                    possible_colors[i] = neighbor_color;
+                    same_level_colors[i] = neighbor_color;
                 } else {
-                    possible_colors[i] = kColorNotUsed;
+                    same_level_colors[i] = kColorNotUsed;
                 }
             });
 
             // Filter out the real colors
-            auto neighbor_colors = parlay::filter(possible_colors, [&] (const uintE& color) {
-                return color != kColorNotUsed;
-            });
+            auto same_neighbor_colors =
+                parlay::filter(same_level_colors, [&] (const uintE& color) {
+                    return color != kColorNotUsed;
+                });
 
-            if (neighbor_colors.size() > 0) {
+
+            if (high_neighbor_colors.size() > 0 || same_neighbor_colors.size()) {
                 // Sort based on the color
-                parlay::sort_inplace(parlay::make_slice(neighbor_colors));
-                auto bool_seq = parlay::delayed_seq<bool>(neighbor_colors.size() + 1, [&] (size_t i) {
-                    return (i == 0) || (i == neighbor_colors.size()) || (neighbor_colors[i-1] != neighbor_colors[i]);
+                parlay::sort_inplace(parlay::make_slice(high_neighbor_colors));
+                parlay::sort_inplace(parlay::make_slice(same_neighbor_colors));
+                auto bool_seq =
+                    parlay::delayed_seq<bool>(high_neighbor_colors.size() + 1,
+                            [&] (size_t i) {
+                    return (i == 0) || (i == high_neighbor_colors.size())
+                        || (high_neighbor_colors[i-1] != high_neighbor_colors[i]);
                 });
 
-                auto color_starts = parlay::pack_index(bool_seq);
-                auto num_color = parlay::sequence<std::pair<uintE, uintE>>(color_starts.size() - 1);
+                auto high_color_starts = parlay::pack_index(bool_seq);
+                auto high_num_color = parlay::sequence<std::pair<uintE, uintE>>(high_color_starts.size() - 1);
 
+                bool_seq =
+                    parlay::delayed_seq<bool>(same_neighbor_colors.size() + 1,
+                            [&] (size_t i) {
+                    return (i == 0) || (i == same_neighbor_colors.size())
+                        || (same_neighbor_colors[i-1] != same_neighbor_colors[i]);
+                });
+
+                auto same_color_starts = parlay::pack_index(bool_seq);
+                auto same_num_color =
+                    parlay::sequence<std::pair<uintE, uintE>>(same_color_starts.size() - 1);
                 // Insert all neighbor colors and mark them in color array held by v
-                parallel_for (0, color_starts.size() - 1, [&] (size_t q){
-                    uintE color_index = color_starts[q];
+                parallel_for (0, high_color_starts.size() - 1, [&] (size_t q){
+                    uintE color_index = high_color_starts[q];
                     uintE color = neighbor_colors[color_index];
-                    num_color[q] = std::make_pair(color, color_starts[q+1] - color_index);
+                    high_num_color[q] = std::make_pair(color, high_color_starts[q+1] - color_index);
                 });
 
-                parallel_for(0, num_color.size(), [&] (size_t q){
-                    uintE color = std::get<0>(num_color[q]);
-                    uintE number = std::get<1>(num_color[q]);
+                parallel_for (0, same_color_starts.size() - 1, [&] (size_t q){
+                    uintE color_index = same_color_starts[q];
+                    uintE color = neighbor_colors[color_index];
+                    same_num_color[q] = std::make_pair(color, same_color_starts[q+1] - color_index);
+                });
+
+                parallel_for(0, high_num_color.size(), [&] (size_t q){
+                    uintE color = std::get<0>(high_num_color[q]);
+                    uintE number = std::get<1>(high_num_color[q]);
+                    VC[v].mark_color(color, number);
+                });
+
+                parallel_for(0, same_num_color.size(), [&] (size_t q){
+                    uintE color = std::get<0>(same_num_color[q]);
+                    uintE number = std::get<1>(same_num_color[q]);
                     VC[v].mark_color(color, number);
                 });
 
                 VC[v].find_random_color(r);
+
+                // Unmark the colors from the same level because they changed
+                parallel_for(0, same_num_color.size(), [&] (size_t q){
+                    uintE color = std::get<0>(same_num_color[q]);
+                    uintE number = std::get<1>(same_num_color[q]);
+                    VC[v].unmark_color(color, number);
+                });
             }
         });
 
         auto next_conflict_vertices = parlay::filter(parlay::make_slice(conflict_vertices),
                 [&] (const uintE& v){
-            auto up_neighbors = layers_of_vertices_.L[v].up;
-            auto bool_conflict = parlay::sequence<bool>(up_neighbors.size(), (bool) false);
-            parallel_for(0, up_neighbors.size(), [&] (size_t i){
-                auto neighbor = up_neighbors.table[i];
+            auto bool_conflict = parlay::sequence<bool>(same_level_neighbors.size(), (bool) false);
+            parallel_for(0, same_level_neighbors.size(), [&] (size_t i){
+                auto neighbor = same_level_neighbors[i];
                 if (neighbor < num_vertices_) {
                     auto neighbor_color = VC[neighbor].color_;
                     if (neighbor_color == VC[v].color_) {
@@ -282,6 +366,7 @@ struct DynamicColoring {
         });
         r.next();
         conflict_vertices = next_conflict_vertices;
+        // Need to get the new_level_neighbor_lists.
     }
   }
 
