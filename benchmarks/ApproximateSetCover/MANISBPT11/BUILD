@@ -12,3 +12,7 @@ cc_binary(
   srcs = ["ApproximateSetCover.cc"],
   deps = [":ApproximateSetCover"]
 )
+
+package(
+  default_visibility = ["//visibility:public"],
+)

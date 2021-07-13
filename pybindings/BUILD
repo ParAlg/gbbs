@@ -84,6 +84,16 @@ cc_library(
   ]
 )
 
+cc_library(
+  name = "ApproximateSetCover_lib",
+  srcs = ["ApproximateSetCover_lib.cc"],
+  hdrs = ["ApproximateSetCover_lib.h"],
+  deps = [
+    "//benchmarks/ApproximateSetCover/MANISBPT11:ApproximateSetCover",
+    "//gbbs:gbbs",
+  ]
+)
+
 py_extension(
   name = "gbbs_lib",
   srcs = ["gbbs_lib.cc"],
@@ -98,6 +108,7 @@ py_extension(
     ":HAC_lib",
     ":PageRank_lib",
     ":MinimumSpanningForest_lib",
+    ":ApproximateSetCover_lib",
     "//gbbs:compressed_vertex",
     "//gbbs:graph",
     "//gbbs:graph_io",

@@ -54,7 +54,9 @@ namespace pbbslib {
 
     sequence<E> to_seq() {
       assert(A);
-      auto ret = sequence<E>(A, size);
+      // auto ret = sequence<E>(A, size);
+      auto ret = sequence<E>(size);
+      gbbs::par_for(0, size, [&](size_t i){ret[i] = A[i];});
       size = 0;
       A = nullptr;
       return std::move(ret);

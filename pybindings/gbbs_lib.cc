@@ -13,6 +13,7 @@
 #include "HAC_lib.h"
 #include "MinimumSpanningForest_lib.h"
 #include "PageRank_lib.h"
+#include "ApproximateSetCover_lib.h"
 
 //#include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
 //#include "benchmarks/Clustering/SeqHAC/HAC_api.h"
@@ -226,6 +227,10 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     }, py::arg("src"))
     .def("Connectivity", [&] (graph& G) {
       auto ccs = compiled::Connectivity(G);
+      return wrap_array(ccs);
+    })
+    .def("ApproximateSetCover", [&] (graph& G, size_t num_buckets) {
+      auto ccs = compiled::ApproximateSetCover(G, num_buckets);
       return wrap_array(ccs);
     })
     .def("KCore", [&] (graph& G) {
