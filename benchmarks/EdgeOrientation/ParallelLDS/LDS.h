@@ -18,19 +18,22 @@ struct LDS {
   bool optimized_insertion = false;
 
   static constexpr uintE kUpLevel = UINT_E_MAX;
+  static constexpr uintE kSameLevel = UINT_E_MAX - 1;
   // Used to indicate that this vertex is not moving.
   static constexpr uintE kNotMoving = UINT_E_MAX;
 
   using levelset = gbbs::sparse_set<uintE>;
   using down_neighbors = parlay::sequence<levelset>;
   using up_neighbors = levelset;
+  using same_level_neighbors = levelset;
   using edge_type = std::pair<uintE, uintE>;
 
   struct LDSVertex {
     uintE level;         // The level of this vertex.
     uintE desire_level;  // The desire level of this vertex (set only when moving this vertex).
     down_neighbors down; // The neighbors in levels < level, bucketed by their level.
-    up_neighbors up;     // The neighbors in levels >= level.
+    up_neighbors up;     // The neighbors in levels > level.
+    same_level_neighbors same; // The neighbors in level.
 
     LDSVertex() : level(0), desire_level(kNotMoving) {}
 
@@ -47,8 +50,27 @@ struct LDS {
         return std::make_pair(l_v, v);
       });
 
-      auto LVs = parlay::filter(LV_seq, [&] (const LV& lv) {
+      auto LVs_up = parlay::filter(LV_seq, [&] (const LV& lv) {
         return lv.first != UINT_E_MAX;
+      });
+
+      auto LV_seq_same = parlay::delayed_seq<LV>(same.size(), [&] (size_t i) {
+        uintE v = same.table[i];
+        uintE l_v = UINT_E_MAX;
+        if (levelset::valid(v)) l_v = L[v].level;
+        return std::make_pair(l_v, v);
+      });
+
+      auto LVs_same = parlay::filter(LV_seq, [&] (const LV& lv) {
+        return lv.first != UINT_E_MAX;
+      });
+
+      auto LVs = parlay::sequence<LV>(LVs_up.size() + LVs_same.size());
+      parallel_for(0, LVs_up.size(), [&](size_t i){
+        LVs[i] = LVs_up[i];
+      });
+      parallel_for(LVs_up.size(), LVs_up.size() + LVs_same.size(), [&](size_t i){
+        LVs[i] = LVs_same[i - LVs_up.size()];
       });
 
       //auto compare_tup = [&] (const LV& l, const LV& r) { return l.first < r.first; };
@@ -164,12 +186,12 @@ struct LDS {
     }
 
     inline uintE num_up_neighbors() const {
-      return up.num_elms();
+      return up.num_elms() + same.num_elms();
     }
 
     inline uintE num_up_star_neighbors() const {
-      if (level == 0) return up.num_elms();
-      return up.num_elms() + down[level - 1].num_elms();
+      if (level == 0) return up.num_elms() + same.num_elms();
+      return up.num_elms() + down[level - 1].num_elms() + same.num_elms();
     }
 
     // Get the sum of the number of neighbors at or higher than start_level
@@ -182,7 +204,7 @@ struct LDS {
             num_flipped_neighbors += down[start_level].num_elms();
             start_level++;
         }
-        return num_flipped_neighbors + up.num_elms();
+        return num_flipped_neighbors + up.num_elms() + same.num_elms();
     }
 
     template <class OutputSeq>
@@ -193,6 +215,12 @@ struct LDS {
         uintE v = up.table[i];
         if (levelset::valid(v))
           output[off++] = std::make_pair(v, our_id);
+      }
+
+      for (size_t i = 0; i < same.table_seq.size(); i++) {
+        uintE v = same.table[i];
+        if (levelset::valid(v))
+            output[off++] = std::make_pair(v, our_id);
       }
       return off;
     }
@@ -214,6 +242,12 @@ struct LDS {
         if (levelset::valid(v))
             output[off++] = std::make_pair(v, our_id);
       }
+
+      for (size_t i = 0; i < same.table_seq.size(); i++) {
+        uintE v = same.table[i];
+        if (levelset::valid(v))
+            output[off++] = std::make_pair(v, our_id);
+      }
       return off;
     }
 
@@ -221,7 +255,14 @@ struct LDS {
     template <class Levels>
     inline void filter_up_neighbors(uintE vtx_id, Levels& L) {
       uintE removed = 0;
-      auto all_up = up.entries();
+      uintE same_removed = 0;
+      auto all_up = parlay::sequence<uintE>(up.entries().size() + same.entries().size());
+      parallel_for(0, up.entries().size(), [&] (size_t i) {
+        all_up[i] = up.entries()[i];
+      });
+      parallel_for(up.entries().size(), same.entries().size() + up.entries().size(), [&] (size_t i) {
+        all_up[i] = same.entries()[i - up.entries().size()];
+      });
       assert(desire_level != kNotMoving);
 
       auto resize_sizes_seq = parlay::sequence<uintE>(desire_level - level, (uintE)0);
@@ -230,23 +271,60 @@ struct LDS {
       for (size_t i=0; i<up.table_seq.size(); i++) {
         uintE v = up.table[i];
         if (levelset::valid(v)) {
+          //if (L[v].level == level && L[v].desire_level == kNotMoving) {
+          //  up.table[i] = levelset::kTombstone;
+          //  uintE norm_v = L[v].level - level;
+          //  resize_sizes[norm_v]++;
+          //  removed++;
+          if (v == 45172) {
+            std::cout << "here: " << v << std::endl;
+          }
           if (L[v].level == level && L[v].desire_level == kNotMoving) {
-            up.table[i] = levelset::kTombstone;
-            uintE norm_v = L[v].level - level;
-            resize_sizes[norm_v]++;
-            removed++;
-          } else if (L[v].level > level && L[v].level < desire_level) {
+               up.table[i] = levelset::kTombstone;
+               uintE norm_v = L[v].level - level;
+               resize_sizes[norm_v]++;
+               std::cout << "up removed: " << v << std::endl;
+               removed++;
+          }
+          if (L[v].level > level && L[v].level < desire_level) {
             // Another case: L[v].level < desire_level
             up.table[i] = levelset::kTombstone;
             uintE norm_v = L[v].level - level;
             resize_sizes[norm_v]++;
+            std::cout << "up removed: " << v << std::endl;
             removed++;
           }
         }
       }
 
+      for (size_t i = 0; i < same.table_seq.size(); i++) {
+        uintE v = same.table[i];
+        if (v == 45172) {
+            std::cout << "same here: " << v << std::endl;
+        }
+        if (levelset::valid(v)) {
+            if (L[v].level == level && L[v].desire_level == kNotMoving) {
+                same.table[i] = levelset::kTombstone;
+                uintE norm_v = L[v].level - level;
+                resize_sizes[norm_v]++;
+                std::cout << "same removed: " << v << std::endl;
+                same_removed++;
+            }
+
+            if (L[v].level > level && L[v].level < desire_level) {
+                // Another case: L[v].level < desire_level
+                same.table[i] = levelset::kTombstone;
+                uintE norm_v = L[v].level - level;
+                resize_sizes[norm_v]++;
+                std::cout << "up same removed: " << v << std::endl;
+                same_removed++;
+            }
+        }
+      }
+
       // Perform resizing.
       up.resize_down(removed);
+      same.resize_down(same_removed);
       assert(down.size() > level);
       for (size_t i=0; i<resize_sizes_seq.size(); i++) {
         auto l = level + i;
@@ -258,13 +336,17 @@ struct LDS {
         uintE v = all_up[i];
         if (L[v].level == level && L[v].desire_level == kNotMoving) {
           down[level].insert(v);
+          std::cout << "inserted: " << v << "level: " << L[v].level << std::endl;
           inserted++;
         } else if (L[v].level > level && L[v].level < desire_level) {
           down[L[v].level].insert(v);
+          std::cout << "inserted: " << v << std::endl;
           inserted++;
         }
       }
-      assert(removed == inserted);
+      std::cout << "removed: " << removed + same_removed << std::endl;
+      std::cout << "inserted: " << inserted << std::endl;
+      assert(removed + same_removed == inserted);
     }
 
     inline double group_degree(size_t group, double eps) const {
@@ -279,7 +361,7 @@ struct LDS {
         up_degree = upper_constant * group_degree(group, eps);
       else
         up_degree = 1.1 * group_degree(group, eps);
-      return up.num_elms() <= up_degree;
+      return up.num_elms() + same.num_elms() <= up_degree;
     }
 
     inline bool lower_invariant(const size_t levels_per_group, double eps) const {
@@ -357,15 +439,15 @@ struct LDS {
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     if (l_u < l_v) {  // look in up(u)
-      if (L[u].up.contains(v)) {
+      if (L[u].up.contains(v) || L[u].same.contains(v)) {
         assert(L[v].down[l_u].contains(u));
       }
-      return L[u].up.contains(v);
+      return L[u].up.contains(v) || L[u].same.contains(v);
     } else {  // look in up(v)
-      if (L[v].up.contains(u)) {
-          assert(L[u].up.contains(v) || L[u].down[l_v].contains(v));
+      if (L[v].up.contains(u) || L[v].same.contains(u)) {
+          assert(L[u].up.contains(v) || L[u].same.contains(v) || L[u].down[l_v].contains(v));
       }
-      return L[v].up.contains(u);
+      return L[v].up.contains(u) || L[v].same.contains(u);
     }
   }
 
@@ -376,14 +458,14 @@ struct LDS {
     auto l_v = L[v].level;
     bool ok = true;
     if (l_u < l_v) {  // look in up(u)
-      ok &= L[u].up.contains(v); assert(ok);
+      ok &= L[u].up.contains(v) || L[u].same.contains(v); assert(ok);
       ok &= L[v].down[l_u].contains(u); assert(ok);
     } else if (l_v < l_u) {  // look in up(v)
-      ok &= L[v].up.contains(u); assert(ok);
+      ok &= L[v].up.contains(u) || L[v].same.contains(u); assert(ok);
       ok &= L[u].down[l_v].contains(v); assert(ok);
     } else {  // (l_v == l_u)
-      ok &= L[v].up.contains(u); assert(ok);
-      ok &= L[u].up.contains(v); assert(ok);
+      ok &= L[v].up.contains(u) || L[v].same.contains(u); assert(ok);
+      ok &= L[u].up.contains(v) || L[u].same.contains(v); assert(ok);
     }
     return ok;
   }
@@ -567,10 +649,12 @@ struct LDS {
         uintE level_id = neighbors[index].first;
         uintE num_in_level = next_index - index;
 
-        if (level_id != kUpLevel) {
+        if (level_id != kUpLevel && level_id != kSameLevel) {
           L[vtx].down[level_id].resize(num_in_level);
-        } else {
+        } else if (level_id == kUpLevel) {
           L[vtx].up.resize(num_in_level);
+        } else {
+          L[vtx].same.resize(num_in_level);
         }
     });
 
@@ -593,11 +677,14 @@ struct LDS {
 
     parallel_for(0, neighbors.size(), [&] (size_t i) {
       auto [level_id, v] = neighbors[i];
-      if (level_id != kUpLevel) {
+      if (level_id != kUpLevel && level_id != kSameLevel) {
         bool inserted = L[vtx].down[level_id].insert(v);
         assert(inserted);
-      } else {
+      } else if (level_id != kSameLevel) {
         bool inserted = L[vtx].up.insert(v);
+        assert(inserted);
+      } else {
+        bool inserted = L[vtx].same.insert(v);
         assert(inserted);
       }
     });
@@ -608,16 +695,27 @@ struct LDS {
   template <class Neighbors>
   void delete_neighbors(uintE vtx, Neighbors neighbors) {
        // Delete neighbors from the adjacency list structures in parallel
+       auto same_level_neighbors = parlay::sequence<bool>(neighbors.size(), (bool)false);
        parallel_for(0, neighbors.size(), [&] (size_t i){
           auto [level_id, v] = neighbors[i];
           if (level_id != kUpLevel) {
               bool deleted = L[vtx].down[level_id].remove(v);
               assert(deleted);
           } else {
-              bool deleted = L[vtx].up.remove(v);
+              bool deleted = false;
+              if (L[vtx].up.contains(v))
+                L[vtx].up.remove(v);
+              else {
+                L[vtx].same.remove(v);
+                same_level_neighbors[i] = true;
+              }
               assert(deleted);
           }
       });
+
+       auto num_same = parlay::filter(same_level_neighbors, [&] (const bool& elem) {
+          return elem;
+       });
 
        auto bool_seq = parlay::delayed_seq<bool>(neighbors.size() + 1, [&] (size_t i) {
            return (i == 0) || (i == neighbors.size()) || (std::get<0>(neighbors[i-1]) != std::get<0>(neighbors[i]));
@@ -634,7 +732,8 @@ struct LDS {
            if (level_id != kUpLevel) {
                L[vtx].down[level_id].resize_down(num_in_level);
            } else {
-               L[vtx].up.resize_down(num_in_level);
+               L[vtx].up.resize_down(num_in_level - num_same.size());
+               L[vtx].same.resize_down(num_same.size());
            }
        });
 
@@ -661,6 +760,7 @@ struct LDS {
   // returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_insertions(Levels&& levels, size_t actual_cur_level_id) {
+      std::cout << "rebalancing insertions" << std::endl;
     //timer rebalance_timer;
     //rebalance_timer.start();
     size_t total_moved = 0;
@@ -713,6 +813,7 @@ struct LDS {
     cur_level.resize_down(outer_level_sizes);
     //std::cout << "unoptimized resizing code: " << rebalance_timer.stop() << std::endl;
     //rebalance_timer.start();
+    std::cout << "cur level elements" << std::endl;
 
     auto vertex_seq = parlay::delayed_seq<uintE>(cur_level.size(), [&] (size_t i) {
       uintE u = cur_level.table[i];
@@ -729,14 +830,18 @@ struct LDS {
       return u != UINT_E_MAX;
     });
     auto dirty = dirty_seq.begin();
+    std::cout << "get dirty" << std::endl;
 
     // todo: can get away with a uintE seq for dirty.
     parallel_for(0, dirty_seq.size(), [&] (size_t i) {
       uintE v = dirty[i];
-      uintE desire_level = L[v].desire_level;
-      L[v].down.resize(desire_level);
+      if (levelset::valid(v)) {
+        uintE desire_level = L[v].desire_level;
+        L[v].down.resize(desire_level);
+      }
     });
 
+    std::cout << "dirty" << std::endl;
 
     //std::cout << "get dirty vertices: " << rebalance_timer.stop() << std::endl;
     //rebalance_timer.start();
@@ -759,6 +864,7 @@ struct LDS {
       return L[v].num_up_neighbors();
     });
     size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
+    std::cout << "sum degrees" << std::endl;
 
     // Write the affected (flipped) edges into an array of
     //   (affected_neighbor, moved_id)
@@ -800,6 +906,7 @@ struct LDS {
       uintE vtx_id = flipped[idx].first;
       return vtx_id;
     });
+    std::cout << "affected" << std::endl;
 
     // Map over the vertices being modified. Overwrite their incident edges with
     // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
@@ -827,9 +934,12 @@ struct LDS {
           auto [u_dup, v] = neighbors[off];
           assert(u == u_dup);
           uintE dl_v = L[v].desire_level;  // using desire_level not level.
-          if (dl_v >= dl_u) { dl_v = kUpLevel; }  // stay in up
+          if (dl_v > dl_u) { dl_v = kUpLevel; }  // stay in up
+          else if (dl_v == dl_u) { dl_v = kSameLevel; } // stay in same
           neighbors[off] = {dl_v, v};  // send to dl_v
         });
+
+        std::cout << "mapped edges" << std::endl;
 
         // Sort neighbors by level.
         //parlay::sort_inplace(neighbors);
@@ -842,15 +952,28 @@ struct LDS {
           return neighbors[i].first;
         });
         // first key greater than or equal to kUpLevel
-        size_t upstart = parlay::internal::binary_search(level_seq, kUpLevel, std::less<uintE>());
+        size_t upstart = parlay::internal::binary_search(level_seq, kSameLevel, std::less<uintE>());
 
+        auto same_level_neighbors = parlay::sequence<bool>(upstart, (bool)false);
         if (upstart > 0) {  // stuff to delete from L[u].up
           parallel_for(0, upstart, [&] (size_t j) {
             uintE v = neighbors[j].second;
-            bool removed = L[u].up.remove(v);
+            bool removed = false;
+            if (L[u].up.contains(v)) {
+                removed = L[u].up.remove(v);
+                same_level_neighbors[i] = false;
+            } else {
+                removed = L[u].same.remove(v);
+                same_level_neighbors[i] = true;
+            }
             assert(removed);
           });
-          L[u].up.resize_down(upstart);
+          std::cout << "upstart" << std::endl;
+          auto num_same = parlay::filter(same_level_neighbors, [&] (const bool& elem) {
+            return elem;
+          });
+          L[u].up.resize_down(upstart - num_same.size());
+          L[u].same.resize_down(num_same.size());
 
           // No need to update stuff in [upstart, end), since they are already
           // in u's Up.
@@ -867,7 +990,8 @@ struct LDS {
           auto [u_dup, v] = neighbors[off];
           assert(u == u_dup);
           uintE dl_v = L[v].desire_level;  // using desire_level not level.
-          if (dl_v >= l_u) { dl_v = kUpLevel; }  // move to up
+          if (dl_v > l_u) { dl_v = kUpLevel; }  // move to up
+          else if (dl_v == l_u) { dl_v = kSameLevel; } // move to same
           neighbors[off] = {dl_v, v};  // send to dl_v
         });
 
@@ -898,6 +1022,7 @@ struct LDS {
     });
     //std::cout << "move vertices: " << rebalance_timer.stop() << std::endl;
     //rebalance_timer.start();
+    std::cout << "flips" << std::endl;
 
     total_moved += parlay::scan_inplace(parlay::make_slice(num_flips));
     // Update current level for the dirty vertices, and reset
@@ -909,6 +1034,7 @@ struct LDS {
     });
 
     update_levels(std::move(affected), levels);
+    std::cout << "update levels" << std::endl;
 
     // TODO: update total_moved properly (not necessary for correctness, but
     // interesting for logging / experimental evaluation).
@@ -1019,9 +1145,13 @@ struct LDS {
                     assert(L[u].down[neighbor_level].contains(neighbor_id));
                     L[u].down[neighbor_level].remove(neighbor_id);
                     neighbor_levels[j] = neighbor_level;
-                } else {
-                    assert(L[u].up.contains(neighbor_id));
-                    L[u].up.remove(neighbor_id);
+                } else if (neighbor_level == my_level){
+                    assert(L[u].up.contains(neighbor_id) ||
+                            L[u].same.contains(neighbor_id));
+                    if (L[u].up.contains(neighbor_id))
+                        L[u].up.remove(neighbor_id);
+                    else
+                        L[u].same.remove(neighbor_id);
                     neighbor_levels[j] = my_level;
                 }
             //});
@@ -1042,7 +1172,7 @@ struct LDS {
                 size_t n_level = neighbor_levels[idx];
                 size_t num_deleted = new_starts[j+1] - idx;
                 if (n_level == my_level)
-                    L[u].up.resize_down(num_deleted);
+                    L[u].same.resize_down(num_deleted);
                 else
                     L[u].down[n_level].resize_down(num_deleted);
             //});
@@ -1160,6 +1290,10 @@ struct LDS {
         for (size_t j = 0; j < vertex.up.size(); j++) {
             size += sizeof(vertex.up.table[j]);
         }
+
+        for (size_t j = 0; j < vertex.same.size(); j++) {
+            size += sizeof(vertex.same.table[j]);
+        }
     }
     return size;
   }
@@ -1229,7 +1363,8 @@ struct LDS {
         auto [u, v] = neighbors[off];
         assert(vtx == u);
         uintE neighbor_level = L[v].level;
-        if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
+        if (neighbor_level > our_level) { neighbor_level = kUpLevel; }
+        else if (neighbor_level == our_level) { neighbor_level = kSameLevel; }
         neighbors[off] = {neighbor_level, v};
       //});
       }
@@ -1328,7 +1463,8 @@ struct LDS {
         assert(vtx == u);
         //assert(edge_exists({vtx, v}) || edge_exists({v, vtx}));
         uintE neighbor_level = L[v].level;
-        if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
+        if (neighbor_level > our_level) { neighbor_level = kUpLevel; }
+        if (neighbor_level == our_level) { neighbor_level = kSameLevel; }
         neighbors[off] = {neighbor_level, v};
       //});
       }
@@ -1388,7 +1524,7 @@ struct LDS {
 
   uintE max_degree() const {
     auto outdegrees = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
-        return L[i].up.size();
+        return L[i].up.num_elms() + L[i].same.num_elms();
     });
     uintE max_degree = pbbslib::reduce_max(outdegrees);
     return max_degree;
