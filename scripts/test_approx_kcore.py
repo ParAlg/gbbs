@@ -98,7 +98,6 @@ def main():
       for e in epss:
         for d in deltas:
           for divisor in divisors:
-            print("divisor" + str(divisor))
             for b in batch_sizes:
               for nw in num_workers:
                 num_rounds = 4
