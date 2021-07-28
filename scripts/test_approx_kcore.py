@@ -13,7 +13,7 @@ def shellGetOutput(str) :
   process = subprocess.Popen(str,shell=True,stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
   output, err = process.communicate()
-  
+
   if (len(err) > 0):
     raise NameError(str+"\n"+output.decode('utf-8')+err.decode('utf-8'))
   return output.decode('utf-8')
@@ -39,6 +39,10 @@ def benchmarkToIsDynamic(benchmark):
   return benchmark_dict.get(benchmark)
 
 def main():
+  git_init_process = subprocess.Popen("git init ..",shell=True,stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+  output, err = git_init_process.communicate()
+
   # Read parameters from setup file
   with open('approx_kcore_setup.txt') as parameters_file:
     for line in parameters_file:
@@ -63,6 +67,8 @@ def main():
         epss = params.copy()
       elif line.startswith("Lambdas/Deltas"):
         deltas = params.copy()
+      elif line.startswith("Number of Levels Divisor"):
+        divisors = params.copy()
       elif line.startswith("Batch sizes"):
         batch_sizes = params.copy()
       elif line.startswith("Output stats"):
@@ -70,9 +76,19 @@ def main():
           stats = "-stats"
         else:
           stats = ""
+      elif line.startswith("Output sizes"):
+        if split[1] == "True":
+          size = "-size"
+        else:
+          size = ""
+      elif line.startswith("Opt"):
+        if split[1] == "True":
+          opt = "-opt"
+        else:
+          opt = ""
   # Setup other parameters
   program_dir = "../benchmarks/"
-  empty = "empty_h"
+  empty = "../benchmarks/EdgeOrientation/ParallelLDS/empty_h"
   for program in programs:
     program_path = os.path.join(program_dir, program)
     program_local_dir = os.path.dirname(program_path)
@@ -81,18 +97,23 @@ def main():
     for program_idx, program in enumerate(programs):
       for e in epss:
         for d in deltas:
-          for b in batch_sizes:
-            for nw in num_workers:
-              num_rounds = 4
-              out_path_components = [program_pres[program_idx], filename, e, d, b, nw, ".out"]
-              out_filename = os.path.join(write_dir, "_".join(out_path_components))
-              program_path = os.path.join(program_dir, program)
-              ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_path + " "
-              "-s -i " + read_dir + filename + " -eps " + e + " "
-              "-delta " + d + " -b " + b + " " + stats + " "
-              "-rounds " + str(num_rounds) + " " + empty)
-              out = shellGetOutput(ss)
-              appendToFile(out, out_filename)
+          for divisor in divisors:
+            print("divisor" + str(divisor))
+            for b in batch_sizes:
+              for nw in num_workers:
+                num_rounds = 4
+                out_path_components = [program_pres[program_idx], filename, e,
+                        d, b, nw, divisor, ".out"]
+                out_filename = os.path.join(write_dir, "_".join(out_path_components))
+                program_path = os.path.join(program_dir, program)
+                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_path + " "
+                "-s -i " + read_dir + filename + " -eps " + e + " "
+                "-delta " + d + " -b " + b + " " + stats + " " + size + " " +
+                opt + " "  + str(divisor) + " " +
+                "-rounds " + str(num_rounds) + " " + empty)
+                print(ss)
+                out = shellGetOutput(ss)
+                appendToFile(out, out_filename)
 
 if __name__ == "__main__":
   main()

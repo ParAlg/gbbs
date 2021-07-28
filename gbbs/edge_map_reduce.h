@@ -80,13 +80,6 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
     nghs.copy(o, map_f, gen);
   }, 1);
 
-  for (size_t i=0; i<edges_seq.size(); i++) {
-    auto u = edges_seq[i];
-    if (u != UINT_E_MAX) {
-      assert(u < 1138499);
-    }
-  }
-
   return vertexSubsetData<E>(G.num_vertices(), std::move(edges_seq));
 }
 

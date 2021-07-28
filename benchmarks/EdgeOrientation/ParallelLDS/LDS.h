@@ -320,22 +320,30 @@ struct LDS {
   parlay::sequence<LDSVertex> L_seq;
   LDSVertex* L;
 
-  LDS(size_t _n, bool _optimized_insertion) : n(_n), optimized_insertion(_optimized_insertion) {
+  LDS(size_t _n, bool _optimized_insertion, size_t _optimize_all) : n(_n),
+    optimized_insertion(_optimized_insertion) {
     if (optimized_insertion)
         UpperConstant = 1.1;
-    levels_per_group = ceil(log(n) / 50 * log(OnePlusEps));
+    if (_optimize_all > 1)
+        levels_per_group = ceil(log(n) / size_t(_optimize_all) * log(OnePlusEps));
+    else
+        levels_per_group = ceil(log(n) / log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(n);
     L = L_seq.begin();
   }
 
-  LDS(size_t _n, double _eps, double _delta, bool _optimized_insertion) : n(_n), eps(_eps),
+  LDS(size_t _n, double _eps, double _delta, bool _optimized_insertion,
+          size_t _optimize_all) : n(_n), eps(_eps),
         delta(_delta), optimized_insertion(_optimized_insertion){
     OnePlusEps = (1 + _eps);
     if (optimized_insertion)
         UpperConstant = 1.1;
     else
         UpperConstant = 2 + ((double) 3 / _delta);
-    levels_per_group = ceil(log(n) / 50 * log(OnePlusEps));
+    if (_optimize_all > 1)
+        levels_per_group = ceil(log(n) / size_t(_optimize_all) * log(OnePlusEps));
+    else
+        levels_per_group = ceil(log(n) / log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(_n);
     L = L_seq.begin();
   }
@@ -1397,10 +1405,10 @@ struct LDS {
 };
 
 template <class Graph>
-inline void RunLDS(Graph& G, bool optimized_deletion) {
+inline void RunLDS(Graph& G, bool optimized_deletion, bool optimized_all) {
   // using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto layers = LDS(n, optimized_deletion);
+  auto layers = LDS(n, optimized_deletion, optimized_all);
 
   auto edges = G.edges();
 
@@ -1602,10 +1610,10 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 template <class Graph, class W>
 inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
         bool compare_exact, double eps, double delta, bool optimized_insertion,
-        size_t offset, bool get_size) {
+        size_t offset, bool get_size, size_t optimized_all) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
-    auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
-    if (G.n > 0) RunLDS(G, optimized_insertion);
+    auto layers = LDS(max_vertex, eps, delta, optimized_insertion, optimized_all);
+    if (G.n > 0) RunLDS(G, optimized_insertion, optimized_all);
     if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset, get_size);
 }
 

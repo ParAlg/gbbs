@@ -19,6 +19,9 @@
 //              values
 //     -ins-opt : indicates whether to set lambda such that
 //                (2 + 3 / lambda) = 1.1
+//     -size : option for getting the size of the data structure in bytes
+//     -opt : indicates whether to divide the number of levels by 50; faster
+//     runtime, subtle decrease in accuracy
 // Note: The static graph is ignored if -i is specified.
 
 #include "LDS.h"
@@ -46,6 +49,7 @@ double LDS_runner(Graph& G, commandLine P) {
   // Options for the approximation algorithm
   double eps = P.getOptionDoubleValue("-eps", 3);
   double delta = P.getOptionDoubleValue("-delta", 9);
+  size_t optimized_all = P.getOptionIntValue("-opt", 1);
 
   // Options not exposed to general users
   const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
@@ -67,7 +71,8 @@ double LDS_runner(Graph& G, commandLine P) {
 
   // Run LDS
   timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion, offset, get_size);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta,
+          optimized_insertion, offset, get_size, optimized_all);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
