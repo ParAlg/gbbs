@@ -123,6 +123,11 @@ def main():
                                 best_total_time = cur_total_time
                                 best_avg_error = cur_total_error / num_iterations
                                 best_max_error = cur_max_error
+                            cur_max_time = 0
+                            cur_total_time = 0
+                            num_iterations = 0
+                            cur_max_error = 0
+                            cur_total_error = 0
                         else:
                             split = [x.strip() for x in line.split(':')]
                             if split[0].startswith("### Batch Running Time"):
