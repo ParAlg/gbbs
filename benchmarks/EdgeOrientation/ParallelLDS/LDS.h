@@ -31,28 +31,46 @@ struct LDS {
     uintE desire_level;  // The desire level of this vertex (set only when moving this vertex).
     down_neighbors down; // The neighbors in levels < level, bucketed by their level.
     up_neighbors up;     // The neighbors in levels >= level.
+    bool is_small;       // Whether the degree is small and data structures are not stored
 
-    LDSVertex() : level(0), desire_level(kNotMoving) {}
+    LDSVertex() : level(0), desire_level(kNotMoving), is_small(true) {}
 
     // Used when Invariant 1 (upper invariant) is violated.
-    template <class Levels>
-    inline uintE get_desire_level_upwards(uintE vtx_id, Levels& L, const size_t levels_per_group,
-            double upper_constant, double eps) const {
-      //assert(!upper_invariant(levels_per_group, upper_constant, eps));
+    template <class Levels, class Graph>
+    inline uintE get_desire_level_upwards(Graph& G, uintE vtx_id,
+           Levels& L, const size_t levels_per_group,
+           double upper_constant, double eps) const {
       using LV = std::pair<uintE, uintE>;
-      auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
-        uintE v = up.table[i];
-        uintE l_v = UINT_E_MAX;
-        if (levelset::valid(v)) l_v = L[v].level;
-        return std::make_pair(l_v, v);
-      });
+      using W = typename Graph::weight_type;
+      parlay::sequence<LV> LVs;
+      //parlay::delayed_sequence<LV> LV_seq;
+      if (!is_small) {
+        auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
+            uintE v = up.table[i];
+            uintE l_v = UINT_E_MAX;
+            if (levelset::valid(v)) l_v = L[v].level;
+            return std::make_pair(l_v, v);
+        });
 
-      auto LVs = parlay::filter(LV_seq, [&] (const LV& lv) {
-        return lv.first != UINT_E_MAX;
-      });
+        LVs = parlay::filter(LV_seq, [&] (const LV& lv) {
+            return lv.first != UINT_E_MAX;
+        });
+      } else {
+        auto LV_seq = parlay::sequence<LV>(G.get_vertex(vtx_id).out_degree());
+        size_t counter = 0;
+        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+            uintE l_v = UINT_E_MAX;
+            if (levelset::valid(v) && L[v].level >= level) l_v = L[v].level;
+            LV_seq[counter] = std::make_pair(l_v, v);
+            counter++;
+        };
+        G.get_vertex(vtx_id).out_neighbors().map(map_f, false);
 
-      //auto compare_tup = [&] (const LV& l, const LV& r) { return l.first < r.first; };
-      //parlay::internal::quicksort_serial(LVs.begin(), LVs.size(), compare_tup);
+        LVs = parlay::filter(LV_seq, [&] (const LV& lv) {
+            return lv.first != UINT_E_MAX;
+        });
+      }
+
       parlay::sort_inplace(parlay::make_slice(LVs));
 
       uintE new_level = UINT_E_MAX;
@@ -72,23 +90,12 @@ struct LDS {
                 uintE up_degree = upper_constant * group_degree(j, eps);
 
                 if (degree_at_level <= up_degree) {
-                        new_level = std::max(uintE{j * levels_per_group}, uintE{prev_level + 1});
+                        new_level = std::max(uintE{j * levels_per_group},
+                                uintE{prev_level + 1});
                         done = true;
                         break;
                 }
           }
-          /*
-          // Consider all levels from prev_level to the cur_level.
-          for (uintE j = prev_level+1; j <= cur_level; j++) {
-            uintE group = j / levels_per_group;
-            uintE up_degree = upper_constant*group_degree(group, eps);
-
-            if (degree_at_level <= up_degree) {
-              new_level = j;
-              done = true;
-              break;
-            }
-          }*/
           if (done) break;
 
           prev_level = cur_level;
@@ -103,68 +110,58 @@ struct LDS {
 
 
       return new_level;
-
-//      uintE new_level = UINT_E_MAX;
-//      uintE max_level = 0;
-//      // todo: make search parallel
-//      for (size_t i=0; i<LVs.size(); i++) {
-//        if ((i == 0) || (LVs[i].first != LVs[i-1].first)) {
-//          uintE level = LVs[i].first;
-//          size_t degree_at_level = LVs.size() - i;
-//
-//          uintE group = level / levels_per_group;
-//          uintE up_degree = kUpperConstant * group_degree(group);
-//          max_level = level;
-//          if (degree_at_level <= up_degree) {
-//            new_level = level;
-//            break;
-//          }
-//        }
-//      }
-//
-//      // Could new_level still be UINT_E_MAX? possibly, e.g., if all up
-//      // neighbors are on the same level, and there are too many on this level.
-//      // In this case, the desired level is one larger than the max level.
-
-//
-//      if (new_level == UINT_E_MAX)
-//        new_level = max_level + 1;
-//
-//      return new_level;
     }
 
     // Used when Invariant 2 (up* degree invariant) is violated.
-    template <class Levels>
-    inline uintE get_desire_level_downwards(uintE vtx_id, Levels& L, const size_t levels_per_group,
+    template <class Graph, class Levels>
+    inline uintE get_desire_level_downwards(Graph& G, uintE vtx_id, Levels& L,
+            const size_t levels_per_group,
             double upper_constant, double eps) const {
+        using LV = std::pair<uintE, uintE>;
+        using W = typename Graph::weight_type;
         assert(!lower_invariant(levels_per_group, eps));
         assert(level > 0);
 
-        // Currently sequential going level by level but we probably want to
-        // optimize later.
-        //
         // This is the current level of the node.
         uintE cur_level = desire_level;
         if (desire_level == kNotMoving)
             cur_level = level - 1;
         if (cur_level == 0) return cur_level;
-        uintE num_up_neighbors = num_neighbors_higher_than_level((uintE) cur_level);
-        uintE num_up_star_neighbors = num_up_neighbors;
-        while (cur_level > 0) {
-            num_up_neighbors = num_up_star_neighbors;
-            num_up_star_neighbors += down[cur_level-1].num_elms();
-            if (upstar_degree_satisfies_invariant(cur_level, levels_per_group, num_up_star_neighbors,
-                        num_up_neighbors, upper_constant, eps)) {
-                break;
+        if (!is_small) {
+            uintE num_up_neighbors = num_neighbors_higher_than_level((uintE) cur_level);
+            uintE num_up_star_neighbors = num_up_neighbors;
+            while (cur_level > 0) {
+                num_up_neighbors = num_up_star_neighbors;
+                num_up_star_neighbors += down[cur_level-1].num_elms();
+                if (upstar_degree_satisfies_invariant(cur_level,
+                    levels_per_group, num_up_star_neighbors,
+                    num_up_neighbors, upper_constant, eps)) {
+                        break;
+                }
+                cur_level -= 1;
             }
-            cur_level -= 1;
+        } else {
+            auto LV_seq = parlay::sequence<LV>(G.get_vertex(vtx_id).out_degree());
+            size_t counter = 0;
+            auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+                uintE l_v = UINT_E_MAX;
+                if (levelset::valid(v) && L[v].level >= level) l_v = L[v].level;
+                LV_seq[counter] = std::make_pair(l_v, v);
+                counter++;
+            };
+            G.get_vertex(vtx_id).out_neighbors().map(map_f, false);
+
+            auto LVs = parlay::filter(LV_seq, [&] (const LV& lv) {
+                return lv.first != UINT_E_MAX;
+            });
+            parlay::sort_inplace(parlay::make_slice(LVs));
         }
 
         return cur_level;
     }
 
     inline uintE num_up_neighbors() const {
-      return up.num_elms();
+        return up.num_elms();
     }
 
     inline uintE num_up_star_neighbors() const {
@@ -390,8 +387,8 @@ struct LDS {
 
   // Input: dirty vertices
   // Output: Levels structure containing vertices at their desire-level
-  template <class Seq, class Levels>
-  void update_desire_levels(Seq&& possibly_dirty, Levels& levels) {
+  template <class Seq, class Levels, class Graph>
+  void update_desire_levels(Graph& G, Seq&& possibly_dirty, Levels& levels) {
     using level_and_vtx = std::pair<uintE, uintE>;
 
     // Compute dirty vertices that violate lower threshold
@@ -400,7 +397,7 @@ struct LDS {
         uintE desire_level = UINT_E_MAX;
         assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
         if (!L[v].lower_invariant(levels_per_group, eps)) {
-            auto our_desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group, UpperConstant,
+            auto our_desire_level = L[v].get_desire_level_downwards(G, v, L, levels_per_group, UpperConstant,
                     eps);
             // Only add it if it's not in the level structure
             if (our_desire_level >= levels.size() || !levels[our_desire_level].contains(v)) {
@@ -659,8 +656,8 @@ struct LDS {
 
 
   // returns the total number of moved vertices
-  template <class Levels>
-  size_t rebalance_insertions(Levels&& levels, size_t actual_cur_level_id) {
+  template <class Graph, class Levels>
+  size_t rebalance_insertions(Graph& G, Levels&& levels, size_t actual_cur_level_id) {
     //timer rebalance_timer;
     //rebalance_timer.start();
     size_t total_moved = 0;
@@ -687,7 +684,7 @@ struct LDS {
         assert(L[v].lower_invariant(levels_per_group, eps));
         assert(!L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
 
-        desire_level = L[v].get_desire_level_upwards(v, L, levels_per_group, UpperConstant, eps);
+        desire_level = L[v].get_desire_level_upwards(G, v, L, levels_per_group, UpperConstant, eps);
         L[v].desire_level = desire_level;
 
         assert(L[v].level == cur_level_id);
@@ -736,7 +733,6 @@ struct LDS {
       uintE desire_level = L[v].desire_level;
       L[v].down.resize(desire_level);
     });
-
 
     //std::cout << "get dirty vertices: " << rebalance_timer.stop() << std::endl;
     //rebalance_timer.start();
@@ -922,8 +918,8 @@ struct LDS {
 
   // Used to balance the level data structure for deletions
   // Returns the total number of moved vertices
-  template <class Levels>
-  size_t rebalance_deletions(Levels&& levels, size_t actual_cur_level_id, size_t total_moved = 0) {
+  template <class Levels, class Graph>
+  size_t rebalance_deletions(Graph& G, Levels&& levels, size_t actual_cur_level_id, size_t total_moved = 0) {
     size_t cur_level_id = actual_cur_level_id;
     if (cur_level_id >= levels.size()) {
       return total_moved;
@@ -946,7 +942,8 @@ struct LDS {
       auto nodes_to_move_seq = nodes_to_move.entries();
 
       // Compute the number of neighbors we affect
-      auto degrees = parlay::map(parlay::make_slice(nodes_to_move_seq), [&] (auto v) {
+      auto degrees = parlay::map(parlay::make_slice(nodes_to_move_seq),
+              [&] (auto v) {
           auto desire_level = L[v].desire_level;
           assert(desire_level < L[v].level);
           return L[v].num_neighbors_higher_than_level(desire_level);
@@ -1134,7 +1131,7 @@ struct LDS {
       levels[cur_level_id].clear();
       levels[cur_level_id].resize_down(size_down);
       // update the levels with neighbors
-      update_desire_levels(std::move(affected), levels);
+      update_desire_levels(G, std::move(affected), levels);
 
       total_moved += nodes_to_move_seq.size();
       cur_level_id++;
@@ -1164,8 +1161,8 @@ struct LDS {
     return size;
   }
 
-  template <class Seq>
-  size_t batch_insertion(const Seq& insertions_unfiltered) {
+  template <class Seq, class Graph>
+  size_t batch_insertion(Graph& G, const Seq& insertions_unfiltered) {
     //timer insert_timer;
     //insert_timer.start();
     // Remove edges that already exist from the input.
@@ -1258,15 +1255,15 @@ struct LDS {
     //insert_timer.start();
 
     // Update the level structure (basically a sparse bucketing structure).
-    size_t total_moved = rebalance_insertions(std::move(levels), 0);
+    size_t total_moved = rebalance_insertions(G, std::move(levels), 0);
 
     //std::cout << "insert rebalance: " << insert_timer.stop() << std::endl;
 
     return total_moved;
   }
 
-  template <class Seq>
-  size_t batch_deletion(const Seq& deletions_unfiltered) {
+  template <class Seq, class Graph>
+  size_t batch_deletion(Graph& G, const Seq& deletions_unfiltered) {
     // Remove edges that do not exist in the graph.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
@@ -1354,10 +1351,10 @@ struct LDS {
     // level and then re-update the dirty vertices and repeat.
     // First, start by finding all the dirty vertices via the below method that
     // are adjacent to an edge deletion.
-    update_desire_levels(std::move(affected), levels);
+    update_desire_levels(G, std::move(affected), levels);
 
     // Update the level structure (basically a sparse bucketing structure).
-    size_t total_moved = rebalance_deletions(std::move(levels), 0);
+    size_t total_moved = rebalance_deletions(G, std::move(levels), 0);
 
     return total_moved;
   }
@@ -1424,7 +1421,7 @@ inline void RunLDS(Graph& G, bool optimized_deletion, bool optimized_all) {
       return std::make_pair(u, v);
     });
 
-    layers.batch_insertion(batch);
+    layers.batch_insertion(G, batch);
   }
 
 //  for (size_t i = 0; i < n; i++) {
@@ -1448,7 +1445,7 @@ inline void RunLDS(Graph& G, bool optimized_deletion, bool optimized_all) {
       return std::make_pair(u, v);
     });
 
-    layers.batch_deletion(batch);
+    layers.batch_deletion(G, batch);
 
     /*for (size_t i=0; i<batch.size(); i++) {
         bool exists = layers.edge_exists(batch[i]);
@@ -1468,8 +1465,8 @@ inline void RunLDS(Graph& G, bool optimized_deletion, bool optimized_all) {
   layers.check_invariants();
 }
 
-template <class W>
-inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers, bool optimized_insertion, size_t offset, bool get_size) {
+template <class W, class Graph>
+inline void RunLDS (Graph& G, BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers, bool optimized_insertion, size_t offset, bool get_size, size_t neighbor_cutoff) {
     auto batch = batch_edge_list.edges;
     size_t num_insertion_flips = 0;
     size_t num_deletion_flips = 0;
@@ -1498,8 +1495,8 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             uintE vert2 = deletions[i].to;
             return std::make_pair(vert1, vert2);
         });
-        num_insertion_flips += layers.batch_insertion(batch_insertions);
-        num_deletion_flips += layers.batch_deletion(batch_deletions);
+        num_insertion_flips += layers.batch_insertion(G, batch_insertions);
+        num_deletion_flips += layers.batch_deletion(G, batch_deletions);
       }
     }
 
@@ -1531,11 +1528,11 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             return std::make_pair(vert1, vert2);
         });
 
-        num_insertion_flips += layers.batch_insertion(batch_insertions);
+        num_insertion_flips += layers.batch_insertion(G, batch_insertions);
         double insertion_time = t.stop();
 
         t.start();
-        num_deletion_flips += layers.batch_deletion(batch_deletions);
+        num_deletion_flips += layers.batch_deletion(G, batch_deletions);
 
         max_degree = layers.max_degree();
 
@@ -1610,11 +1607,12 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 template <class Graph, class W>
 inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
         bool compare_exact, double eps, double delta, bool optimized_insertion,
-        size_t offset, bool get_size, size_t optimized_all) {
+        size_t offset, bool get_size, size_t optimized_all,
+        size_t neighbor_cutoff) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta, optimized_insertion, optimized_all);
     if (G.n > 0) RunLDS(G, optimized_insertion, optimized_all);
-    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset, get_size);
+    if (batch_edge_list.max_vertex > 0) RunLDS(G, batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset, get_size, neighbor_cutoff);
 }
 
 }  // namespace gbbs
