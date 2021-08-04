@@ -1,12 +1,12 @@
-Input graph directory:
-Dynamic graphs: dblp_insertion_edges
-Output directory: ./
-Benchmarks: ParallelLDS, LDS, KCore
+Input graph directory: ../../dynamic_graph/
+Dynamic graphs: dblp_insertion_edges, dblp_edges
+Output directory: ../../levels/
+Benchmarks: ParallelLDS
 Numbers of workers: 60
-Epsilons: 0.4
-Lambdas/Deltas: 3
-Batch sizes: 1000000
-Output stats: False
+Epsilons: 0.2, 0.4, 0.8, 1.6, 3.2, 6.4
+Lambdas/Deltas: 3, 6, 12, 24, 48, 96
+Batch sizes: 100000
+Output stats: True
 Output sizes: False
-Number of Levels Divisor: 50, 100, 200
+Number of Levels Divisor: 75, 100, 150, 200, 500
 Opt: True

@@ -89,10 +89,6 @@ def main():
   # Setup other parameters
   program_dir = "../benchmarks/"
   empty = "../benchmarks/EdgeOrientation/ParallelLDS/empty_h"
-  for program in programs:
-    program_path = os.path.join(program_dir, program)
-    program_local_dir = os.path.dirname(program_path)
-    subprocess.Popen(["make"], stdout=subprocess.PIPE, cwd=program_local_dir)
   for file_idx, filename in enumerate(files):
     for program_idx, program in enumerate(programs):
       for e in epss:
@@ -103,16 +99,62 @@ def main():
                 num_rounds = 4
                 out_path_components = [program_pres[program_idx], filename, e,
                         d, b, nw, divisor, ".out"]
-                out_filename = os.path.join(write_dir, "_".join(out_path_components))
-                program_path = os.path.join(program_dir, program)
-                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_path + " "
-                "-s -i " + read_dir + filename + " -eps " + e + " "
-                "-delta " + d + " -b " + b + " " + stats + " " + size + " " +
-                opt + " "  + str(divisor) + " " +
-                "-rounds " + str(num_rounds) + " " + empty)
-                print(ss)
-                out = shellGetOutput(ss)
-                appendToFile(out, out_filename)
+                read_filename = os.path.join(write_dir, "_".join(out_path_components))
+
+                best_avg_time = 0
+                best_max_time = 0
+                best_total_time = 0
+                best_avg_error = 0
+                best_max_error = 0
+
+                with open(read_filename, "r") as read_file:
+                    cur_max_time = 0
+                    cur_total_time = 0
+                    num_iterations = 0
+                    cur_max_error = 0
+                    cur_total_error = 0
+                    for line in read_file:
+                        line = line.strip()
+                        if "------------" in line and cur_max_time > 0:
+                            cur_avg_time = cur_total_time / num_iterations
+                            if best_avg_time == 0 or cur_avg_time < best_avg_time:
+                                best_avg_time = cur_avg_time
+                                best_max_time = cur_max_time
+                                best_total_time = cur_total_time
+                                best_avg_error = cur_total_error / num_iterations
+                                best_max_error = cur_max_error
+                            cur_max_time = 0
+                            cur_total_time = 0
+                            num_iterations = 0
+                            cur_max_error = 0
+                            cur_total_error = 0
+                        else:
+                            split = [x.strip() for x in line.split(':')]
+                            if split[0].startswith("### Batch Running Time"):
+                                cur_total_time += float(split[1])
+                                if float(split[1]) > cur_max_time:
+                                    cur_max_time = float(split[1])
+                                num_iterations += 1
+                            elif split[0].startswith("### Per Vertex Average"):
+                                cur_total_error += float(split[1])
+                            elif split[0].startswith("### Per Vertex Max"):
+                                if float(split[1]) > cur_max_error:
+                                    cur_max_error = float(split[1])
+
+                    cur_avg_time = cur_total_time / num_iterations
+                    if best_avg_time == 0 or cur_avg_time < best_avg_time:
+                        best_avg_time = cur_avg_time
+                        max_time = cur_max_time
+                        best_total_time = cur_total_time
+                        best_avg_error = cur_total_error / num_iterations
+                        best_max_error = cur_max_error
+                for param in out_path_components:
+                    print(str(param), end = ",")
+                print(str(best_avg_time), end = ",")
+                print(str(best_max_time), end = ",")
+                print(str(best_total_time), end = ",")
+                print(str(best_avg_error), end=",")
+                print(str(best_max_error), end="\n")
 
 if __name__ == "__main__":
   main()
