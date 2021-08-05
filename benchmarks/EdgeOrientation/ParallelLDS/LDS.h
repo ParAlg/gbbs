@@ -25,6 +25,7 @@ struct LDS {
   using down_neighbors = parlay::sequence<levelset>;
   using up_neighbors = levelset;
   using edge_type = std::pair<uintE, uintE>;
+  using LV = std::pair<uintE, uintE>;
 
   struct LDSVertex {
     uintE level;         // The level of this vertex.
@@ -40,7 +41,6 @@ struct LDS {
     inline uintE get_desire_level_upwards(Graph& G, uintE vtx_id,
            Levels& L, const size_t levels_per_group,
            double upper_constant, double eps) const {
-      using LV = std::pair<uintE, uintE>;
       using W = typename Graph::weight_type;
       parlay::sequence<LV> LVs;
       //parlay::delayed_sequence<LV> LV_seq;
@@ -117,7 +117,6 @@ struct LDS {
     inline uintE get_desire_level_downwards(Graph& G, uintE vtx_id, Levels& L,
             const size_t levels_per_group,
             double upper_constant, double eps) const {
-        using LV = std::pair<uintE, uintE>;
         using W = typename Graph::weight_type;
         assert(!lower_invariant(levels_per_group, eps));
         assert(level > 0);
@@ -141,11 +140,12 @@ struct LDS {
                 cur_level -= 1;
             }
         } else {
-            auto LV_seq = parlay::sequence<LV>(G.get_vertex(vtx_id).out_degree());
+            auto degree = G.get_vertex(vtx_id).out_degree();
+            auto LV_seq = parlay::sequence<LV>(degree);
             size_t counter = 0;
             auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
                 uintE l_v = UINT_E_MAX;
-                if (levelset::valid(v) && L[v].level >= level) l_v = L[v].level;
+                if (levelset::valid(v) && L[v].level < level) l_v = L[v].level;
                 LV_seq[counter] = std::make_pair(l_v, v);
                 counter++;
             };
@@ -155,24 +155,47 @@ struct LDS {
                 return lv.first != UINT_E_MAX;
             });
             parlay::sort_inplace(parlay::make_slice(LVs));
+
+            uintE prev_level = level;
+            uintE cur_level = level;
+            for (size_t i = LVs.size() - 1; i >= 0; i--) {
+                // Start of a new level among our up-neighbors
+                if ((i == LVs.size() - 1) || (LVs[i].first != LVs[i + 1].first)) {
+                    cur_level = LVs[i].first;
+
+                    size_t degree_at_level = degree - i;
+                    uintE cur_level_group = (cur_level)/levels_per_group;
+
+                    uintE degree_bound = group_degree(cur_level_group, eps);
+
+                    if (degree_at_level >= degree_bound)
+                        break;
+                    prev_level = cur_level;
+                }
+            }
         }
 
-        return cur_level;
+        if (cur_level < level)
+            return cur_level;
+        else
+            return 0;
     }
 
+    // The below function is only called when the vertex does *not* have small
+    // degree.
     inline uintE num_up_neighbors() const {
         return up.num_elms();
     }
 
+    // The below function is only called when the vertex does *not* have small
+    // degree.
     inline uintE num_up_star_neighbors() const {
       if (level == 0) return up.num_elms();
       return up.num_elms() + down[level - 1].num_elms();
     }
 
-    // Get the sum of the number of neighbors at or higher than start_level
-    //
-    // TODO: this can be optimized by making the summation parallel, currently
-    // it is sequential.
+    // Get the sum of the number of neighbors at or higher than start_level;
+    // called only when the degree is not small.
     inline uintE num_neighbors_higher_than_level(uintE start_level) const {
         uintE num_flipped_neighbors = 0;
         while (start_level < level) {
@@ -184,14 +207,20 @@ struct LDS {
 
     template <class OutputSeq>
     inline uintE emit_up_neighbors(OutputSeq output, uintE our_id) const {
-      // TODO: Could filter using filter, but let's do this seq. for now...
-      size_t off = 0;
-      for (size_t i=0; i<up.table_seq.size(); i++) {
+      auto up_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
         uintE v = up.table[i];
-        if (levelset::valid(v))
-          output[off++] = std::make_pair(v, our_id);
-      }
-      return off;
+        if (!levelset::valid(v)) v = UINT_E_MAX;
+        return std::make_pair(v, our_id);
+      });
+
+      auto up_neighbors = parlay::filter(up_seq, [&] (const LV& lv) {
+        return lv.first != UINT_E_MAX;
+      });
+
+      parallel_for(0, up_neighbors.size(), [&] (size_t i){
+        output[i] = up_neighbors[i];
+      });
+      return up_neighbors.size();
     }
 
     template <class OutputSeq>
@@ -214,7 +243,7 @@ struct LDS {
       return off;
     }
 
-
+    // TODO: currently sequential may want to parallelize...
     template <class Levels>
     inline void filter_up_neighbors(uintE vtx_id, Levels& L) {
       uintE removed = 0;
@@ -282,8 +311,6 @@ struct LDS {
     inline bool lower_invariant(const size_t levels_per_group, double eps) const {
       if (level == 0) return true;
       uintE lower_group = (level - 1) / levels_per_group;
-      //auto up_size = up.num_elms();
-      //auto prev_level_size = down[level - 1].num_elms();
       size_t our_group_degree = static_cast<size_t>(group_degree(lower_group, eps));
       return num_up_star_neighbors() >= our_group_degree;
     }
@@ -351,19 +378,22 @@ struct LDS {
 
   bool edge_exists(edge_type e) {
     auto[u, v] = e;
-    auto l_u = L[u].level;
-    auto l_v = L[v].level;
-    if (l_u < l_v) {  // look in up(u)
-      if (L[u].up.contains(v)) {
-        assert(L[v].down[l_u].contains(u));
-      }
-      return L[u].up.contains(v);
-    } else {  // look in up(v)
-      if (L[v].up.contains(u)) {
-          assert(L[u].up.contains(v) || L[u].down[l_v].contains(v));
-      }
-      return L[v].up.contains(u);
-    }
+    if (!L[u].is_small && !L[v].is_small) {
+        auto l_u = L[u].level;
+        auto l_v = L[v].level;
+        if (l_u < l_v) {  // look in up(u)
+            if (L[u].up.contains(v)) {
+                assert(L[v].down[l_u].contains(u));
+            }
+            return L[u].up.contains(v);
+        } else {  // look in up(v)
+            if (L[v].up.contains(u)) {
+                assert(L[u].up.contains(v) || L[u].down[l_v].contains(v));
+            }
+            return L[v].up.contains(u);
+        }
+    } else
+        return true;
   }
 
   // Invariant checking for an edge e that we expect to exist
