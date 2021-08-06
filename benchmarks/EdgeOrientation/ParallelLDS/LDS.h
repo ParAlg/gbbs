@@ -141,6 +141,9 @@ struct LDS {
             }
         } else {
             auto degree = G.get_vertex(vtx_id).out_degree();
+            uintE cur_level_group = level/levels_per_group;
+            uintE degree_bound = group_degree(cur_level_group, eps);
+
             auto LV_seq = parlay::sequence<LV>(degree);
             size_t counter = 0;
             auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -156,6 +159,10 @@ struct LDS {
             });
             parlay::sort_inplace(parlay::make_slice(LVs));
 
+            size_t degree_at_level = degree - LVs.size();
+            if (degree_at_level >= degree_bound)
+                return level;
+
             uintE prev_level = level;
             uintE cur_level = level;
             for (size_t i = LVs.size() - 1; i >= 0; i--) {
@@ -163,10 +170,9 @@ struct LDS {
                 if ((i == LVs.size() - 1) || (LVs[i].first != LVs[i + 1].first)) {
                     cur_level = LVs[i].first;
 
-                    size_t degree_at_level = degree - i;
-                    uintE cur_level_group = (cur_level)/levels_per_group;
-
-                    uintE degree_bound = group_degree(cur_level_group, eps);
+                    degree_at_level = degree - i;
+                    cur_level_group = (cur_level)/levels_per_group;
+                    degree_bound = group_degree(cur_level_group, eps);
 
                     if (degree_at_level >= degree_bound)
                         break;
@@ -425,14 +431,28 @@ struct LDS {
     auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i){
         uintE v = possibly_dirty[i];
         uintE desire_level = UINT_E_MAX;
-        assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
-        if (!L[v].lower_invariant(levels_per_group, eps)) {
-            auto our_desire_level = L[v].get_desire_level_downwards(G, v, L, levels_per_group, UpperConstant,
-                    eps);
-            // Only add it if it's not in the level structure
-            if (our_desire_level >= levels.size() || !levels[our_desire_level].contains(v)) {
-                desire_level = our_desire_level;
+        // TODO: Perhaps we can make the following faster by storing all
+        // vertices which have already been queried instead of querying them
+        // each time.
+        if (!L[v].is_small) {
+            assert(L[v].upper_invariant(levels_per_group,
+                        UpperConstant, eps, optimized_insertion));
+            if (!L[v].lower_invariant(levels_per_group, eps)) {
+                auto our_desire_level = L[v].get_desire_level_downwards(G, v,
+                        L, levels_per_group, UpperConstant, eps);
+                // Only add it if it's not in the level structure
+                if (our_desire_level >= levels.size() ||
+                    !levels[our_desire_level].contains(v)) {
+                    desire_level = our_desire_level;
+                }
             }
+        } else {
+            auto our_desire_level = L[v].get_desire_level_downwards(G, v, L,
+                    levels_per_group, UpperConstant, eps);
+            assert(our_desire_level <= L[v].level);
+            if (our_desire_level < L[v].level && (our_desire_level >= levels.size()
+                || !levels[our_desire_level].contains(v)))
+                desire_level = our_desire_level;
         }
         return std::make_pair(desire_level, v);
     });
@@ -444,7 +464,8 @@ struct LDS {
     if (dirty.size() == 0) return;
 
     // Compute the removals from previous desire_levels
-    auto previous_desire_levels = parlay::delayed_seq<level_and_vtx>(dirty.size(), [&] (size_t i){
+    auto previous_desire_levels = parlay::delayed_seq<level_and_vtx>(dirty.size(),
+            [&] (size_t i){
         auto lv = dirty[i];
         uintE v = lv.second;
         uintE removal_level = UINT_E_MAX;
@@ -458,7 +479,8 @@ struct LDS {
         return std::make_pair(removal_level, v);
     });
 
-    auto non_empty_levels = parlay::filter(previous_desire_levels, [&] (const level_and_vtx& old_level) {
+    auto non_empty_levels = parlay::filter(previous_desire_levels,
+            [&] (const level_and_vtx& old_level) {
         return old_level.first != UINT_E_MAX;
     });
 
