@@ -105,7 +105,6 @@ struct LDS {
            double upper_constant, double eps) const {
       using W = typename Graph::weight_type;
       parlay::sequence<LV> LVs;
-      //parlay::delayed_sequence<LV> LV_seq;
       if (!is_small) {
         auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
             uintE v = up.table[i];
@@ -626,8 +625,12 @@ struct LDS {
             uintE up_degree = UpperConstant * L[v].group_degree(cur_level_group, eps);
             auto our_level = L[v].level;
             if (counter > up_degree &&
-                    (our_level >= levels.size() || !levels[our_level].contains(v)))
+                    (our_level >= levels.size() || !levels[our_level].contains(v))) {
                 level = our_level;
+                L[v].desire_level =
+                        L[v].get_desire_level_upwards(G, v, L, levels_per_group,
+                            UpperConstant, eps);
+            } else L[v].desire_level = kNotMoving;
         }
       }
 
@@ -679,7 +682,6 @@ struct LDS {
     });
   }
 
-  // todo: move into LDSVertex?
   // Neighbors is a slice of sorted (level, neighbor_id) pairs.
   template <class Neighbors>
   void insert_neighbors(uintE vtx, Neighbors neighbors) {
@@ -754,23 +756,6 @@ struct LDS {
                L[vtx].up.resize_down(num_in_level);
            }
        });
-
-      /*
-      parallel_for(0, neighbors.size(), [&] (size_t i){
-        if ((i == 0) || neighbors[i].first != neighbors[i-1].first) { // start of a new level
-            uintE level_id = neighbors[i].first;
-            size_t j = i;
-            for (; j < neighbors.size(); j++) {
-                if (neighbors[j].first != level_id) break;
-            }
-            size_t num_deleted = j - i;
-            if (level_id != kUpLevel) {
-                L[vtx].down[level_id].resize_down(num_deleted);
-            } else {
-                L[vtx].up.resize_down(num_deleted);
-            }
-        }
-      });*/
   }
 
 
@@ -778,8 +763,8 @@ struct LDS {
   // returns the total number of moved vertices
   template <class Graph, class Levels>
   size_t rebalance_insertions(Graph& G, Levels&& levels, size_t actual_cur_level_id, size_t cutoff) {
-    //timer rebalance_timer;
-    //rebalance_timer.start();
+    using W = typename Graph::weight_type;
+
     size_t total_moved = 0;
     size_t cur_level_id = actual_cur_level_id;
     if (cur_level_id >= levels.size())
@@ -788,19 +773,17 @@ struct LDS {
     while (cur_level_id < levels.size()) {
     auto& cur_level = levels[cur_level_id];
     if (cur_level.num_elms() == 0) {
-      //return rebalance_insertions(levels, cur_level_id+1, total_moved);
       cur_level_id++;
       continue;
     }
 
-    //std::cout << "rebalance preprocess: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
     // Figure out the desire_level for each vertex in cur_level.
     // Sets the desire level for each vertex with a valid desire_level in L.
     parallel_for(0, cur_level.size(), [&] (size_t i) {
       uintE v = cur_level.table[i];
       uintE desire_level = UINT_E_MAX;
-      if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps, optimized_insertion)) {
+      if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant,
+                  eps, optimized_insertion) && !L[v].is_small) {
         assert(L[v].lower_invariant(levels_per_group, eps));
         assert(!L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
 
@@ -812,24 +795,17 @@ struct LDS {
       }
     });
 
-    //std::cout << "get desire levels: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
-    // jeshi: unoptimized resize code
     size_t outer_level_sizes = 0;
-    //parallel_for(0, cur_level.size(), [&](size_t i) {
     for (size_t i = 0; i < cur_level.size(); i++) {
       uintE u = cur_level.table[i];
       if (levelset::valid(u)) {
         if (L[u].desire_level == kNotMoving) {
-          // *** jeshi: adding
           cur_level.remove(u);
           outer_level_sizes++;
         }
       }
-    }//);
+    }
     cur_level.resize_down(outer_level_sizes);
-    //std::cout << "unoptimized resizing code: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
 
     auto vertex_seq = parlay::delayed_seq<uintE>(cur_level.size(), [&] (size_t i) {
       uintE u = cur_level.table[i];
@@ -850,12 +826,11 @@ struct LDS {
     // todo: can get away with a uintE seq for dirty.
     parallel_for(0, dirty_seq.size(), [&] (size_t i) {
       uintE v = dirty[i];
-      uintE desire_level = L[v].desire_level;
-      L[v].down.resize(desire_level);
+      if (!L[v].is_small) {
+        uintE desire_level = L[v].desire_level;
+        L[v].down.resize(desire_level);
+      }
     });
-
-    //std::cout << "get dirty vertices: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
 
     // Consider the neighbors N(u) of a vertex u moving from cur_level to dl(u) > cur_level.
     // - {v \in N(u) | dl(u) < l(v)}: move u from cur_level -> dl(u) in v's Down
@@ -866,43 +841,54 @@ struct LDS {
     //     else (dl(u) < dl(v)): remove u from v's Up and insert into v's Down
     //
     // Let's emit a sequence of (u,v) edge tuples for all up_neighbors, and sort
-    // by the recieving endpoint. The steps the recieving vertex does will
+    // by the receiving endpoint. The steps the receiving vertex does will
     // depend on the calculation above. Note that the following steps are very
     // similar to the batch_insertion code. Is there some clean way of merging?
 
     // Compute the number of neighbors we affect.
     auto degrees = parlay::map(parlay::make_slice(dirty_seq), [&] (auto v) {
-      return L[v].num_up_neighbors();
+      if (!L[v].is_small)
+        return L[v].num_up_neighbors();
+      else
+        return G.get_vertex(v).out_degree();
     });
     size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
 
     // Write the affected (flipped) edges into an array of
     //   (affected_neighbor, moved_id)
     // edge pairs.
-    auto flipped = sequence<edge_type>::uninitialized(sum_degrees);
+    auto unfiltered_flipped = sequence<edge_type>::uninitialized(sum_degrees);
     parallel_for(0, dirty_seq.size(), [&] (size_t i) {
       uintE v = dirty[i];
       size_t offset = degrees[i];
       size_t end_offset = (i == dirty_seq.size()-1) ? sum_degrees : degrees[i+1];
 
-      auto output = flipped.cut(offset, end_offset);
-      size_t written = L[v].emit_up_neighbors(output, v);
-      assert(written == (end_offset - offset));
+      auto output = unfiltered_flipped.cut(offset, end_offset);
+      if (!L[v].is_small) {
+        size_t written = L[v].emit_up_neighbors(output, v);
+        assert(written == (end_offset - offset));
 
-      // Remove neighbors in up with level < desire_level that are not moving.
-      L[v].filter_up_neighbors(v, L);
+        // Remove neighbors in up with level < desire_level that are not moving.
+        L[v].filter_up_neighbors(v, L);
+      } else {
+        size_t counter = 0;
+        auto map_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
+            uintE w_id = UINT_E_MAX;
+            if (levelset::valid(w) && !L[w].is_small &&
+                    L[w].level > L[v].level && L[w].level <= L[v].desire_level) w_id = w;
+            output[counter] = std::make_pair(w_id, v);
+            counter++;
+        };
+        G.get_vertex(v).out_neighbors().map(map_f, false);
+      }
     });
-    //std::cout << "get flipped edges: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
+
+    auto flipped = parlay::filter(parlay::make_slice(unfiltered_flipped),
+        [&] (const edge_type& e) { return e.first != UINT_E_MAX; });
 
     // Sort based on the affected_neighbor. Note that there are no dup edges.
     auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
-    //parlay::internal::quicksort_serial(flipped.begin(), flipped.size(), compare_tup);
     parlay::sort_inplace(parlay::make_slice(flipped), compare_tup);
-    //auto compare_tup_second = [&] (const edge_type& elm) { return elm.second; };
-    //parlay::integer_sort_inplace(parlay::make_slice(flipped), compare_tup_second);
-    //auto compare_tup_first = [&] (const edge_type& elm) { return elm.first; };
-    //parlay::integer_sort_inplace(parlay::make_slice(flipped), compare_tup_first);
 
     // Compute the starts of each (modified) vertex's new edges.
     auto bool_seq = parlay::delayed_seq<bool>(flipped.size() + 1, [&] (size_t i) {
@@ -921,8 +907,6 @@ struct LDS {
     // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
     // correct size, and then insert in parallel.
     auto num_flips = parlay::sequence<size_t>(starts.size(), (size_t) 0);
-    //std::cout << "move preprocess: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
     parallel_for(0, starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE u = std::get<0>(flipped[idx]);
@@ -1012,8 +996,6 @@ struct LDS {
         // levels (and thus staying in u's Up).
       }
     });
-    //std::cout << "move vertices: " << rebalance_timer.stop() << std::endl;
-    //rebalance_timer.start();
 
     total_moved += parlay::scan_inplace(parlay::make_slice(num_flips));
     // Update current level for the dirty vertices, and reset
@@ -1222,17 +1204,12 @@ struct LDS {
         }
         //});
 
-        //size_t indegree_sum = parlay::reduce(parlay::make_slice(move_up_size), parlay::addm<size_t>{});
-        //parlay::scan_inplace(parlay::make_slice(move_up_size));
-
         L[moved_vertex_v].up.resize(indegree_sum);
-        //parallel_for(0, neighbors.size(), [&] (size_t k){
         for (size_t k = 0; k < neighbors.size(); k++) {
             if (L[neighbors[k].second].level < my_level) {
                 L[moved_vertex_v].up.insert(neighbors[k].second);
             }
         }
-        //});
       });
 
       // Update current level of the moved vertices and reset the desired level
@@ -1253,7 +1230,6 @@ struct LDS {
 
       total_moved += nodes_to_move_seq.size();
       cur_level_id++;
-      //return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
     }
     return total_moved;
   }
@@ -1303,7 +1279,6 @@ struct LDS {
     });
     auto insertions = parlay::pack(parlay::make_slice(insertions_dup), not_dup_seq);
 
-
     // Compute the starts of each (modified) vertex's new edges.
     auto bool_seq = parlay::delayed_seq<bool>(insertions.size() + 1, [&] (size_t i) {
       return (i == 0) || (i == insertions.size()) || (std::get<0>(insertions[i-1]) != std::get<0>(insertions[i]));
@@ -1325,31 +1300,29 @@ struct LDS {
     parallel_for(0, starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE vtx = std::get<0>(insertions[idx]);
-      uintE our_level = L[vtx].level;
-      uintE incoming_degree = starts[i+1] - starts[i];
-      auto neighbors = parlay::make_slice(insertions.begin() + idx,
-          insertions.begin() + idx + incoming_degree);
+      if (!L[vtx].is_small) {
+        uintE our_level = L[vtx].level;
+        uintE incoming_degree = starts[i+1] - starts[i];
+        auto neighbors = parlay::make_slice(insertions.begin() + idx,
+            insertions.begin() + idx + incoming_degree);
 
-      // Map the incident edges to (level, neighbor_id).
-      for (size_t off = 0; off < incoming_degree; off++) {
-        auto [u, v] = neighbors[off];
-        assert(vtx == u);
-        uintE neighbor_level = L[v].level;
-        if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
-        neighbors[off] = {neighbor_level, v};
+        // Map the incident edges to (level, neighbor_id).
+        for (size_t off = 0; off < incoming_degree; off++) {
+            auto [u, v] = neighbors[off];
+            assert(vtx == u);
+            uintE neighbor_level = L[v].level;
+            if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
+                neighbors[off] = {neighbor_level, v};
+        }
+
+        // Sort neighbors by level.
+        auto compare_neighbors_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
+        parlay::internal::quicksort_serial(neighbors.begin(), neighbors.size(), compare_neighbors_tup);
+
+        // Insert moving neighbors.
+        insert_neighbors(vtx, neighbors);
       }
-
-      // Sort neighbors by level.
-      auto compare_neighbors_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
-      parlay::internal::quicksort_serial(neighbors.begin(), neighbors.size(), compare_neighbors_tup);
-      //parlay::sort_inplace(neighbors);
-
-      // Insert moving neighbors.
-      insert_neighbors(vtx, neighbors);
-
     }, 1);
-    //std::cout << "insert preprocess: " << insert_timer.stop() << std::endl;
-    //insert_timer.start();
 
     // New edges are done being deleted. Update the level structure.
     // Interface: supply vertex seq -> process will settle everything.
@@ -1362,8 +1335,6 @@ struct LDS {
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(G, std::move(levels), 0, cutoff);
-
-    //std::cout << "insert rebalance: " << insert_timer.stop() << std::endl;
 
     return total_moved;
   }
