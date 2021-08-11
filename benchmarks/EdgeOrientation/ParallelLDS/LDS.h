@@ -98,6 +98,14 @@ struct LDS {
         return down_n.size() + up_n.size();
     }
 
+    inline uintE destroy_structures() {
+        auto num_elems = up.num_elms();
+        up.clear();
+        up.resize_down(num_elems);
+
+        down.resize(0);
+    }
+
     // Used when Invariant 1 (upper invariant) is violated.
     template <class Levels, class Graph>
     inline uintE get_desire_level_upwards(Graph& G, uintE vtx_id,
@@ -485,13 +493,19 @@ struct LDS {
   // Input: dirty vertices
   // Output: Levels structure containing vertices at their desire-level
   template <class Seq, class Levels, class Graph>
-  void update_desire_levels(Graph& G, Seq&& possibly_dirty, Levels& levels) {
+  void update_desire_levels(Graph& G, Seq&& possibly_dirty, Levels& levels, size_t cutoff) {
     using level_and_vtx = std::pair<uintE, uintE>;
 
     // Compute dirty vertices that violate lower threshold
     auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i){
         uintE v = possibly_dirty[i];
         uintE desire_level = UINT_E_MAX;
+
+        auto degree = G.get_vertex(v).out_degree();
+        if (degree < cutoff) {
+            L[v].destroy_structures();
+        }
+
         // TODO: Perhaps we can make the following faster by storing all
         // vertices which have already been queried instead of querying them
         // each time.
@@ -1019,7 +1033,9 @@ struct LDS {
   // Used to balance the level data structure for deletions
   // Returns the total number of moved vertices
   template <class Levels, class Graph>
-  size_t rebalance_deletions(Graph& G, Levels&& levels, size_t actual_cur_level_id, size_t total_moved = 0) {
+  size_t rebalance_deletions(Graph& G, Levels&& levels, size_t actual_cur_level_id,
+          size_t cutoff, size_t total_moved = 0) {
+    using W = typename Graph::weight_type;
     size_t cur_level_id = actual_cur_level_id;
     if (cur_level_id >= levels.size()) {
       return total_moved;
@@ -1044,24 +1060,45 @@ struct LDS {
       // Compute the number of neighbors we affect
       auto degrees = parlay::map(parlay::make_slice(nodes_to_move_seq),
               [&] (auto v) {
-          auto desire_level = L[v].desire_level;
-          assert(desire_level < L[v].level);
-          return L[v].num_neighbors_higher_than_level(desire_level);
+          if (!L[v].is_small) {
+            auto desire_level = L[v].desire_level;
+            assert(desire_level < L[v].level);
+            return L[v].num_neighbors_higher_than_level(desire_level);
+          } else {
+            return G.get_vertex(v).out_degree();
+          }
       });
       size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
 
       // Write the affected neighbors into an array of (affected_neighbor,
       // moved_id) edge pairs.
-      auto flipped = sequence<edge_type>::uninitialized(sum_degrees);
+      auto unfiltered_flipped = sequence<edge_type>::uninitialized(sum_degrees);
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
         uintE v = nodes_to_move_seq[i];
         size_t offset = degrees[i];
         size_t end_offset = ((i == nodes_to_move_seq.size() - 1) ? sum_degrees : degrees[i + 1]);
 
-        auto output = flipped.cut(offset, end_offset);
-        size_t written = L[v].emit_neighbors_higher_than_level(output, v, L[v].desire_level);
-        assert(written == (end_offset - offset));
+        auto output = unfiltered_flipped.cut(offset, end_offset);
+
+        if (!L[v].is_small) {
+            size_t written = L[v].emit_neighbors_higher_than_level(output,
+                    v, L[v].desire_level);
+            assert(written == (end_offset - offset));
+        } else {
+            size_t counter = 0;
+            auto map_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
+                uintE w_id = UINT_E_MAX;
+                if (levelset::valid(w) && !L[w].is_small &&
+                    L[w].level <= L[v].level && L[w].level > L[v].desire_level) w_id = w;
+                output[counter] = std::make_pair(w_id, v);
+                counter++;
+            };
+            G.get_vertex(v).out_neighbors().map(map_f, false);
+        }
       });
+
+      auto flipped = parlay::filter(parlay::make_slice(unfiltered_flipped),
+            [&] (const edge_type& e) { return e.first != UINT_E_MAX; });
 
       // Sort by neighbor vertex index
       auto compare_tup = [&] (const edge_type& l, const edge_type& r) {return l < r;};
@@ -1083,7 +1120,7 @@ struct LDS {
 
       // First, update the down-levels of vertices that do not move (not in
       // nodes_to_move). Then, all vertices which moved to the same level should
-      // be both in each other's up adjacency lists.
+      // both be in each other's up adjacency lists.
       parallel_for(0, starts.size() - 1, [&] (size_t i) {
         size_t idx = starts[i];
         uintE u = std::get<0>(flipped[idx]);
@@ -1106,7 +1143,6 @@ struct LDS {
             auto my_level = L[u].level;
             auto neighbor_levels = sequence<size_t>::uninitialized(neighbors.size());
             for (size_t j = 0; j < neighbors.size(); j++) {
-            //parallel_for(0, neighbors.size(), [&] (size_t i) {
                 auto neighbor_id = neighbors[j].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
@@ -1121,7 +1157,6 @@ struct LDS {
                     L[u].up.remove(neighbor_id);
                     neighbor_levels[j] = my_level;
                 }
-            //});
             }
 
             // Get the num deleted by sorting the levels of all neighbors
@@ -1133,7 +1168,6 @@ struct LDS {
                  });
             auto new_starts = parlay::pack_index(new_bool_seq);
 
-            //parallel_for (0, new_starts.size() - 1, [&] (size_t j){
             for (size_t j = 0; j < new_starts.size() - 1; j++) {
                 size_t idx = new_starts[j];
                 size_t n_level = neighbor_levels[idx];
@@ -1142,7 +1176,6 @@ struct LDS {
                     L[u].up.resize_down(num_deleted);
                 else
                     L[u].down[n_level].resize_down(num_deleted);
-            //});
             }
         }
       });
@@ -1168,65 +1201,54 @@ struct LDS {
       // Update the data structures (vertices kept at each level) of each vertex
       // that moved.
       //
-      //NOTE: this should be a parallel for loop (as above) but I was running
-      //into concurrency issues.
-      //for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
       parallel_for(0, reverse_starts.size() - 1, [&] (size_t i) {
         size_t idx = reverse_starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
-        size_t idx_plus = reverse_starts[i+1];
-        uintE next_v = (idx_plus == flipped_reverse.size()) ? UINT_E_MAX : std::get<0>(flipped_reverse[idx_plus]);
-        assert(moved_vertex_v < next_v);
-        uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
+        if (!L[moved_vertex_v].is_small) {
+            size_t idx_plus = reverse_starts[i+1];
+            uintE next_v = (idx_plus == flipped_reverse.size()) ? UINT_E_MAX :
+                    std::get<0>(flipped_reverse[idx_plus]);
+            assert(moved_vertex_v < next_v);
+            uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
 
-        auto neighbors = parlay::make_slice(flipped_reverse.begin() + idx,
+            auto neighbors = parlay::make_slice(flipped_reverse.begin() + idx,
                 flipped_reverse.begin() + idx + num_neighbors);
 
-        auto my_level = L[moved_vertex_v].level;
-        size_t indegree_sum = 0;
-        //auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
-        //parallel_for (0, neighbors.size(), [&] (size_t j) {
-        for (size_t j = 0; j < neighbors.size(); j++) {
-            //auto neighbor_id = neighbors[j].second;
-            //auto neighbor = L[neighbor_id];
-            //auto neighbor_level = neighbor.level;
-            //assert(neighbor_level >= cur_level_id);
-            assert(moved_vertex_v == neighbors[j].first);
+            auto my_level = L[moved_vertex_v].level;
+            size_t indegree_sum = 0;
+            for (size_t j = 0; j < neighbors.size(); j++) {
+                assert(moved_vertex_v == neighbors[j].first);
 
-            if (L[neighbors[j].second].level < my_level) {
-                //move_up_size[j] = 1;
-                indegree_sum++;
-                //assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
+                if (L[neighbors[j].second].level < my_level)
+                    indegree_sum++;
             }
-            //else {
-            //    move_up_size[j] = 0;
-            //}
-        }
-        //});
 
-        L[moved_vertex_v].up.resize(indegree_sum);
-        for (size_t k = 0; k < neighbors.size(); k++) {
-            if (L[neighbors[k].second].level < my_level) {
-                L[moved_vertex_v].up.insert(neighbors[k].second);
+            L[moved_vertex_v].up.resize(indegree_sum);
+            for (size_t k = 0; k < neighbors.size(); k++) {
+                if (L[neighbors[k].second].level < my_level)
+                    L[moved_vertex_v].up.insert(neighbors[k].second);
             }
-        }
-      });
+          }
+        });
 
       // Update current level of the moved vertices and reset the desired level
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
         uintE v = nodes_to_move_seq[i];
         L[v].level = cur_level_id;
         L[v].desire_level = kNotMoving;
-        L[v].down.resize(cur_level_id);
-        assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
-        assert(L[v].lower_invariant(levels_per_group, eps));
+        if (!L[v].is_small) {
+            L[v].down.resize(cur_level_id);
+            assert(L[v].upper_invariant(levels_per_group,
+                    UpperConstant, eps, optimized_insertion));
+            assert(L[v].lower_invariant(levels_per_group, eps));
+        }
       });
 
       size_t size_down = levels[cur_level_id].num_elms();
       levels[cur_level_id].clear();
       levels[cur_level_id].resize_down(size_down);
       // update the levels with neighbors
-      update_desire_levels(G, std::move(affected), levels);
+      update_desire_levels(G, std::move(affected), levels, cutoff);
 
       total_moved += nodes_to_move_seq.size();
       cur_level_id++;
@@ -1345,7 +1367,6 @@ struct LDS {
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
 
-
     // Duplicate the edges in both directions and sort.
     auto deletions_dup = sequence<edge_type>::uninitialized(2*deletions_filtered.size());
     parallel_for(0, deletions_filtered.size(), [&] (size_t i) {
@@ -1386,33 +1407,31 @@ struct LDS {
     parallel_for(0, starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE vtx = std::get<0>(deletions[idx]);
-      uintE our_level = L[vtx].level;
+      if (!L[vtx].is_small) {
+        uintE our_level = L[vtx].level;
 
-      // Number of edges deleted that are adjacent to vtx
-      uintE outgoing_degree = starts[i+1] - starts[i];
+        // Number of edges deleted that are adjacent to vtx
+        uintE outgoing_degree = starts[i+1] - starts[i];
 
-      // Neighbors incident to deleted edges
-      auto neighbors = parlay::make_slice(deletions.begin() + idx,
-          deletions.begin() + idx + outgoing_degree);
+        // Neighbors incident to deleted edges
+        auto neighbors = parlay::make_slice(deletions.begin() + idx,
+            deletions.begin() + idx + outgoing_degree);
 
-      // Map the incident edges to (level, neighbor_id).
-      //parallel_for(0, outgoing_degree, [&] (size_t off) {
-      for (size_t off = 0; off < outgoing_degree; off++) {
-        auto [u, v] = neighbors[off];
-        assert(vtx == u);
-        //assert(edge_exists({vtx, v}) || edge_exists({v, vtx}));
-        uintE neighbor_level = L[v].level;
-        if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
-        neighbors[off] = {neighbor_level, v};
-      //});
+        // Map the incident edges to (level, neighbor_id).
+        for (size_t off = 0; off < outgoing_degree; off++) {
+            auto [u, v] = neighbors[off];
+            assert(vtx == u);
+            uintE neighbor_level = L[v].level;
+            if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
+            neighbors[off] = {neighbor_level, v};
+        }
+
+        // Sort neighbors by level.
+        parlay::sort_inplace(neighbors);
+
+        // Delete moving neighbors.
+        delete_neighbors(vtx, neighbors);
       }
-
-      // Sort neighbors by level.
-      parlay::sort_inplace(neighbors);
-
-      // Delete moving neighbors.
-      delete_neighbors(vtx, neighbors);
-
     }, 1);
 
     // New edges are done being inserted. Update the level structure.
@@ -1428,10 +1447,10 @@ struct LDS {
     // level and then re-update the dirty vertices and repeat.
     // First, start by finding all the dirty vertices via the below method that
     // are adjacent to an edge deletion.
-    update_desire_levels(G, std::move(affected), levels);
+    update_desire_levels(G, std::move(affected), levels, cutoff);
 
     // Update the level structure (basically a sparse bucketing structure).
-    size_t total_moved = rebalance_deletions(G, std::move(levels), 0);
+    size_t total_moved = rebalance_deletions(G, std::move(levels), 0, cutoff);
 
     return total_moved;
   }
