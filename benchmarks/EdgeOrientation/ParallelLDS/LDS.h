@@ -1481,7 +1481,10 @@ struct LDS {
 
   uintE max_degree() const {
     auto outdegrees = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
-        return L[i].up.size();
+        if (!L[i].is_small)
+            return L[i].up.size();
+        else
+            return 1;
     });
     uintE max_degree = pbbslib::reduce_max(outdegrees);
     return max_degree;
