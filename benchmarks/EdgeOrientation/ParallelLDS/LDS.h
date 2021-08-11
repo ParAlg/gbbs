@@ -41,6 +41,7 @@ struct LDS {
         using W = typename Graph::weight_type;
         is_small = false;
         levelset neighbors;
+        std::cout << "BUILD STRUCTURES!" << std::endl;
         neighbors.resize(G.get_vertex(vtx_id).out_degree());
 
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -104,6 +105,8 @@ struct LDS {
         up.resize_down(num_elems);
 
         down.resize(0);
+
+        is_small = true;
     }
 
     // Used when Invariant 1 (upper invariant) is violated.
@@ -187,8 +190,6 @@ struct LDS {
             const size_t levels_per_group,
             double upper_constant, double eps) const {
         using W = typename Graph::weight_type;
-        assert(!lower_invariant(levels_per_group, eps));
-        assert(level > 0);
 
         // This is the current level of the node.
         uintE cur_level = desire_level;
@@ -467,8 +468,11 @@ struct LDS {
             }
             return L[v].up.contains(u);
         }
-    } else
-        return true;
+    } else {
+        //TODO: this needs to be replaced with something that searches for edges
+        //in CSR format.
+        return false;
+    }
   }
 
   // Invariant checking for an edge e that we expect to exist
@@ -1283,6 +1287,8 @@ struct LDS {
     auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
         [&] (const edge_type& e) { return !edge_exists(e); });
 
+    std::cout << "Filtered insertions size: " << insertions_filtered.size() << std::endl;
+
     // Duplicate the edges in both directions and sort.
     auto insertions_dup = sequence<edge_type>::uninitialized(2*insertions_filtered.size());
     parallel_for(0, insertions_filtered.size(), [&] (size_t i) {
@@ -1343,6 +1349,8 @@ struct LDS {
 
         // Insert moving neighbors.
         insert_neighbors(vtx, neighbors);
+      } else {
+        std::cout << "OUTDEGREE: " << G.get_vertex(vtx).out_degree() << std::endl;
       }
     }, 1);
 
