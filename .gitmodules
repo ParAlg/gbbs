@@ -3,8 +3,8 @@
 	url = https://github.com/lemire/SIMDCompressionAndIntersection
 [submodule "parlaylib"]
 	path = external/parlaylib
-        url = https://github.com/cmuparlay/parlaylib
-        branch = bazel
+  url = https://github.com/cmuparlay/parlaylib
+  branch = bazel
 [submodule "PAM"]
 	path = external/PAM
 	url = https://github.com/ldhulipala/PAM
