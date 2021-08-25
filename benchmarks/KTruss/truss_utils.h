@@ -217,24 +217,6 @@ namespace truss_utils {
 
     }
 
-    inline void check_consistency() {
-
-      par_for(0, n, [&] (size_t i) {
-        size_t off = offsets[i];
-        size_t sz = offsets[i+1] - off;
-        sz -= 2; // 2 cell's padding
-        auto table_loc = big_table + offsets[i];
-        auto table_start = table_loc + 1;
-        auto table_end = table_loc + sz + 1;
-      });
-
-      par_for(0, big_size, [&] (size_t i) {
-        if (std::get<1>(big_table[i]) != empty_val) {
-          size_t idx = u_for_id(i);
-        }
-      });
-    }
-
     inline size_t size() {
       return big_size;
     }

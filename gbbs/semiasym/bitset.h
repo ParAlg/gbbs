@@ -157,7 +157,7 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
   }
 }
 
-static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,
+static inline uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,
                           uintE degree) {
   metadata* block_metadata = (metadata*)finger;
   uintE offset = block_metadata[block_num].offset;

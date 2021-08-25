@@ -85,7 +85,12 @@ template <template <class inner_wgh> class vtx_type, class wgh_type,
               int>::type = 0>
 static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
     symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-  auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, wgh_type>(G, pred);
+  auto ret = filter_graph<vtx_type, wgh_type>(G, pred);
+  auto newN = std::get<0>(ret);
+  auto newM = std::get<1>(ret);
+  auto newVData = std::get<2>(ret);
+  auto newEdges = std::get<3>(ret);
+
   assert(newN == G.num_vertices());
   return symmetric_graph<symmetric_vertex, wgh_type>(
       newVData, newN, newM,
@@ -102,7 +107,12 @@ template <
         int>::type = 0>
 static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
     symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-  auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, wgh_type>(G, pred);
+  auto ret = filter_graph<vtx_type, wgh_type>(G, pred);
+  auto newN = std::get<0>(ret);
+  auto newM = std::get<1>(ret);
+  auto newVData = std::get<2>(ret);
+  auto newEdges = std::get<3>(ret);
+
   assert(newN == G.num_vertices());
   return symmetric_graph<csv_byte, wgh_type>(
       newVData, newN, newM,

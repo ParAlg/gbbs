@@ -90,7 +90,7 @@ namespace labelprop_cc {
         });
       }
       vs = vertexSubset(n, std::move(all));
-      std::cout << "### initial vs = " << vs.size() << std::endl;
+      std::cout << "### initial vs = " << vs.size() << " # frequent_comp = " << frequent_comp << std::endl;
 
       size_t rounds = 0;
       auto changed = sequence<uint8_t>(n, (uint8_t)0);

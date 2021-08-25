@@ -59,7 +59,7 @@ namespace pbbslib {
       gbbs::par_for(0, size, [&](size_t i){ret[i] = A[i];});
       size = 0;
       A = nullptr;
-      return std::move(ret);
+      return ret;
     }
 
     void clear() { size = 0; }

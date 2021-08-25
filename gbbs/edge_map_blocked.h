@@ -269,7 +269,7 @@ struct emhelper {
         vec.clear();
       }, 1);
     }
-    return std::move(all_blocks);
+    return all_blocks;
   }
 
 
@@ -441,6 +441,6 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   our_emhelper.del();
 
 //  our_em_block.reset(); (handled by get_all_blocks)
-  return std::move(ret);
+  return ret;
 }
 }  // namespace gbbs

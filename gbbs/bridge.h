@@ -543,7 +543,7 @@ namespace pbbslib {
 
   template <class T>
   auto make_delayed(T* A, size_t n) {
-    return make_delayed<T>(n, [&] (size_t i) { return A[i]; });
+    return make_delayed<T>(n, [=] (size_t i) { return A[i]; });
   }
 
   template <class T>

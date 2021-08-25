@@ -66,8 +66,7 @@ sequence<char> arrayToString(S& A) {
   xToString(out.begin() + L[n-1],A[n-1]);
   out[m-1] = '\n';
 
-  auto real_out = filter(out, [&] (char c) { return c != (char)0; });
-  return std::move(real_out);
+  return filter(out, [&] (char c) { return c != (char)0; });
 }
 
 template <class S>

@@ -19,6 +19,8 @@ test --test_strategy=standalone
 
 
 # By default build in C++17 mode using the Homegrown scheduler for parallelism.
+#build --repo_env=CC=clang++-12
+build --repo_env=CC=g++
 build --cxxopt=-std=c++17
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
@@ -30,6 +32,7 @@ build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
 build --cxxopt=-fvisibility=hidden
 build --cxxopt=-fvisibility-inlines-hidden
+build --cxxopt=-fsized-deallocation  # https://github.com/pybind/pybind11/issues/1604 (for clang)
 build -c opt
 
 # C++ warning flags.

@@ -48,6 +48,7 @@ struct SVAlgorithm {
 
     bool changed = true;
     size_t rounds = 0;
+    std::cout << "# frequent_comp = " << frequent_comp << std::endl;
 
     /* generate candidates based on frequent_comp (if using sampling) */
     size_t candidates_size = n;

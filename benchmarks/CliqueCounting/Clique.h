@@ -229,7 +229,6 @@ inline size_t Clique_enum(Graph& GA, size_t k, long order_type, double epsilon,
   if (k <= 3) ABORT("k must be > 3: " <<  k);
 
   using W = typename Graph::weight_type;
-  const size_t n = GA.n;
 
   // Obtain vertex ordering
   timer t_rank; t_rank.start();

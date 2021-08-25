@@ -120,7 +120,7 @@ namespace labelprop_sf {
         });
       }
       vs = vertexSubset(n, std::move(all));
-      std::cout << "### initial vs = " << vs.size() << std::endl;
+      std::cout << "### initial vs = " << vs.size() << " frequent_comp = " << frequent_comp << std::endl;
 
       auto PrevParents = Parents;
 

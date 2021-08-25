@@ -148,7 +148,6 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
       auto min_edge = *(CG.clusters[u].highest_priority_edge());
       auto ngh_u = min_edge.first;
       if (ngh_u != v && (min_edge.second > wgh)) {
-        auto true_v_wgh = *CG.clusters[u].neighbors.find(v);
         auto ent = std::make_pair(u, min_edge);
         the_heap.insert(ent);  // replace
         restart = true;

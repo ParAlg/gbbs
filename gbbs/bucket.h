@@ -426,7 +426,7 @@ struct buckets {
     }
     auto ret = bucket(cur_bkt_num, std::move(filtered));
     ret.num_filtered = size;
-    return std::move(ret);
+    return ret;
   }
 };
 

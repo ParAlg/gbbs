@@ -181,7 +181,7 @@ struct clustered_graph {
     auto first_merge = neighbor_map::map_union(
         small_pre_merge,
         large_pre_merge);
-    uintE merged_size = first_merge.size();
+    debug(uintE merged_size = first_merge.size(););
     first_merge.~neighbor_map();
 
 
@@ -230,8 +230,6 @@ struct clustered_graph {
       auto new_value = Weights::UpdateWeight(clusters, found_value, new_cluster_size);
       auto larger_ent = std::make_pair(larger, new_value);
 
-      auto larger_value = w_one.find(larger);
-
       w_one.insert(larger_ent, linkage);
 
       // Move the neighbors back.
@@ -254,8 +252,8 @@ struct clustered_graph {
       auto update_ngh_f = [&] (const auto& entry) {
         uintE ngh_id = entry.first;
         auto val = entry.second;
-        uintE val_id = val.first;
-        assert(ngh_id == val_id);
+        debug(uintE val_id = val.first;
+        assert(ngh_id == val_id););
 
         val.first = larger; // place our id
         auto updated_val = Weights::UpdateWeight(clusters, val, new_cluster_size);  // update weight

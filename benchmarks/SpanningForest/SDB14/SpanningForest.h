@@ -163,7 +163,7 @@ namespace workefficient_sf {
     if (GC.m == 0) {
       auto D = pbbslib::dyn_arr<edge>(edges.size());
       D.copyIn(edges, edges.size());
-      return std::move(D);
+      return D;
     }
 
     auto empty_val = std::make_pair(UINT_E_MAX, UINT_E_MAX);

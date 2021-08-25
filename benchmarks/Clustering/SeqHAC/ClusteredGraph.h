@@ -75,14 +75,22 @@ struct clustered_graph {
       neighbors = neighbor_map(edges);
     }
 
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     std::optional<edge> highest_priority_edge() {
-      if (size() == 0) return {};
+      if (size() == 0) return std::optional<edge>();
       W m = neighbors.aug_val();
       edge entry;
       entry = *neighbors.aug_eq(m);
       assert(entry.second == m);
       return entry;
     }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     uintE size() {
       return neighbors.size();
