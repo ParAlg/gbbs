@@ -25,7 +25,6 @@
 
 #include <cassert>
 #include "gbbs/gbbs.h"
-#include "gbbs/union_find.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
 #include "benchmarks/SpanningForest/SDB14/SpanningForest.h"

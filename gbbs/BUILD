@@ -285,16 +285,6 @@ cc_library(
 )
 
 cc_library(
-  name = "union_find",
-  hdrs = ["union_find.h"],
-  srcs = ["union_find.cc"],
-  deps = [
-  ":macros",
-  ":speculative_for"
-  ]
-)
-
-cc_library(
   name = "uncompressed_intersection",
   hdrs = ["uncompressed_intersection.h"],
   deps = [
