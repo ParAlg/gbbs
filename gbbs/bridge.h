@@ -1,8 +1,5 @@
 // This file is a bridge connecting the "lib interface" gbbs exports and the
-// interfact that the current pbbslib exports. We would like to support both
-// C++11 users, and the current (C++17) implementation of the lib. Using this
-// bridge will hopefully simplify having two separate implementations of the lib
-// interface.
+// interface that the current parlaylib exports.
 
 #pragma once
 
@@ -76,7 +73,6 @@ namespace gbbs {
                                  long end, F f, long granularity,
                                  bool conservative) {
     alloc_holder<A> alloc;
-
     parallel_for_1(start, end,
                    [&](size_t i) {
                      init_alloc(&alloc.imp_.view());
@@ -119,7 +115,6 @@ namespace gbbs {
   }
 #endif
 #endif
-
 
 
   template <class E>
@@ -176,12 +171,6 @@ namespace gbbs {
   parlay::slice<It, S> make_slice(It it, S s) {
     return parlay::make_slice<It, S>(it, s);
   }
-
-//  // Create a slice from an explicit iterator range
-//  template<typename It, typename S>
-//  auto make_slice(It it, S s) {
-//    return parlay::slice<It, S>(it, s);
-//  }
 
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
 

@@ -386,8 +386,10 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 
     E stk[1000];
     E* block_outputs;
+    parlay::sequence<E> alloc;
     if (num_blocks > 1000) {
-      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+      alloc = parlay::sequence<E>::uninitialized(num_blocks);
+      block_outputs = alloc.begin();
     } else {
       block_outputs = (E*)stk;
     }
@@ -413,110 +415,11 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 
     auto im = pbbslib::make_range(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, reduce);
-    if (num_blocks > 1000) {
-      gbbs::free_array(block_outputs, num_blocks);
-    }
     return res;
   } else {
     return reduce.identity;
   }
 }
-
-
-
-//#define SEQ_THRESH 10
-//
-//// Represents the sequence from [...[|cur_block|...|cur_block+num_blocks|]...]
-//struct seq_info {
-//  uchar* edge_start;
-//  uintE degree;
-//  uintE source_id;
-//  uintE total_blocks;
-//
-//  uintE start;
-//  uintE end;
-//
-//  seq_info(uchar* es, uintE d, uintE sid, uintE tb, uintE s, uintE e)
-//      : edge_start(es),
-//        degree(d),
-//        source_id(sid),
-//        total_blocks(tb),
-//        start(s),
-//        end(e) {}
-//
-//  uchar* get_start_of_block(const uintE& block_id) {
-//    if (total_blocks == 1) {
-//      return edge_start;
-//    }
-//    uintE* offs = (uintE*)edge_start;
-//    return edge_start + offs[block_id - 1];
-//  }
-//
-//  uintE get_pivot() {
-//    uintE* offs = (uintE*)edge_start;
-//    uintE mid_block = (end + start) / 2;
-//    uchar* finger = edge_start + offs[mid_block];
-//    return eatFirstEdge(finger, source_id);
-//  }
-//
-//  uintE pivot_block() { return (end + start) / 2; }
-//
-//  uintE binary_search(uintE pivot) {
-//    uintE* offs = (uintE*)edge_start;
-//    auto start_f = [&](size_t i) {
-//      uchar* finger = edge_start + offs[start + i];
-//      return eatFirstEdge(finger, source_id);
-//    };
-//    auto start_im = pbbslib::make_delayed<uintE>(size(), start_f);
-//    uintE ind =
-//        pbbslib::binary_search(start_im, pivot, std::greater<uintE>());  // check
-//    // ind is the first block index (from start) <= our pivot.
-//    //    decode_block<
-//
-//    return ind;
-//  }
-//
-//  seq_info cut(uintE l, uintE r) {
-//    return seq_info(edge_start, degree, source_id, total_blocks, l, r);
-//  }
-//
-//  uintE size() { return end - start; }
-//};
-//
-//inline uintE seq_intersect_full(seq_info u, seq_info v) {
-//  assert(false);  // not implemented
-//  return 0;
-//}
-//
-//inline uintE seq_intersect(seq_info u, seq_info v) {
-//  assert(false);  // not implemented
-//  return 0;
-//  //  decode_block<gbbs::empty>(finger, (std::tuple<uintE, gbbs::empty>*)ngh_u,
-//  //  0,
-//}
-//
-//inline uintE intersect(seq_info u, seq_info v) {
-//  // Might need to swap here
-//  uintE nA = u.size();
-//  uintE nB = v.size();
-//  if (nA + nB < SEQ_THRESH) {
-//    return seq_intersect_full(u, v);
-//  } else if (nA == 1) {  // merge base
-//    return seq_intersect(u, v);
-//  } else if (nB == 0) {
-//    return 0;
-//  } else {  // (large, large)
-//    uintE pivot = u.get_pivot();
-//    uintE mU = u.pivot_block();
-//    uintE mV = v.binary_search(pivot);
-//    uintE lA = 0, rA = 0;
-//    par_do([&]() { lA = intersect(u.cut(0, mU), v.cut(0, mV)); },
-//           [&]() { rA = intersect(u.cut(mU, mU), v.cut(0, mV)); }, false);
-//    return lA + rA;
-//  }
-//}
-
-
 
 template <class W>
 inline size_t compute_block_size(std::tuple<uintE, W>* edges, size_t start, size_t end,
@@ -544,8 +447,10 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
     size_t num_blocks = 1 + (d - 1) / PARALLEL_DEGREE;
     uintE stk[100];
     uintE* block_bytes;
+    parlay::sequence<uintE> alloc;
     if (num_blocks > 100) {
-      block_bytes = pbbslib::new_array_no_init<uintE>(num_blocks);
+      alloc = parlay::sequence<uintE>::uninitialized(num_blocks);
+      block_bytes = alloc.begin();
     } else {
       block_bytes = (uintE*)stk;
     }
@@ -560,9 +465,6 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
 
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
-    if (num_blocks > 100) {
-      gbbs::free_array(block_bytes, num_blocks);
-    }
     return total_space;
   } else {
     return 0;
@@ -695,8 +597,10 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
   size_t num_blocks = 1 + (d - 1) / PARALLEL_DEGREE;
   uintE stk[101];
   uintE* block_bytes;
+  parlay::sequence<uintE> alloc;
   if (num_blocks > 100) {
-    block_bytes = pbbslib::new_array_no_init<uintE>(num_blocks + 1);
+    alloc = parlay::sequence<uintE>::uninitialized(num_blocks + 1);
+    block_bytes = alloc.begin();
   } else {
     block_bytes = (uintE*)stk;
   }

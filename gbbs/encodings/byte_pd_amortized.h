@@ -334,7 +334,6 @@ struct simple_iter {
         }
       }
       if ((num_blocks > 2) && parallel) {
-//        cilk_for(size_t i=1; i<num_blocks; i++) {
         parallel_for(1, num_blocks, [&] (size_t i) {
           uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
           uintE start_offset = *((uintE*)finger);
@@ -466,55 +465,6 @@ inline void decode_block_cond(T t, uchar* edge_start, const uintE& source,
   }
 }
 
-//// r: E -> E -> E
-//template <class W, class E, class M, class Monoid>
-//inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-//                    M& m, Monoid& reduce, const bool par = true) {
-//  if (degree > 0) {
-//    uintE virtual_degree = *((uintE*)edge_start);
-//    size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-//    uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
-//    uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
-//                        sizeof(uintE);  // block offs + virtual_degree
-//
-////    E stk[100];
-////    E* block_outputs;
-////    if (num_blocks > 100) {
-////      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
-////    } else {
-////      block_outputs = (E*)stk;
-////    }
-//
-////    par_for(0, num_blocks, 1, [&] (size_t i) {
-//    auto cur = reduce.identity;
-//    for (size_t i=0; i<num_blocks; i++) {
-//      uchar* finger =
-//          (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
-//      uintE start_offset = *((uintE*)finger);
-//      uintE end_offset = (i == (num_blocks - 1))
-//                             ? degree
-//                             : (*((uintE*)(edge_start + block_offsets[i])));
-//      finger += sizeof(uintE);
-//
-//      if (start_offset < end_offset) {
-//        // Eat first edge, which is compressed specially
-//        uintE ngh = eatFirstEdge(finger, source);
-//        W wgh = eatWeight<W>(finger);
-//        cur = reduce.f(cur, m(source, ngh, wgh));
-//        for (size_t j = start_offset + 1; j < end_offset; j++) {
-//          ngh += eatEdge(finger);
-//          W wgh = eatWeight<W>(finger);
-//          cur = reduce.f(cur, m(source, ngh, wgh));
-//        }
-//      }
-//    }
-//
-//    return cur;
-//  } else {
-//    return reduce.identity;
-//  }
-//}
-
 // r: E -> E -> E
 template <class W, class M, class Monoid>
 inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
@@ -529,15 +479,16 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 
     E stk[100];
     E* block_outputs;
+    parlay::sequence<E> alloc;
     if (num_blocks > 100) {
-      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+      alloc = parlay::sequence<E>::uninitialized(num_blocks);
+      block_outputs = alloc.begin();
     } else {
       block_outputs = (E*)stk;
     }
 
     par_for(0, num_blocks, 1, [&] (size_t i) {
     auto cur = reduce.identity;
-//    for (size_t i=0; i<num_blocks; i++) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -563,11 +514,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 
     auto im = pbbslib::make_range(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, reduce);
-    if (num_blocks > 100) {
-      gbbs::free_array(block_outputs, num_blocks);
-    }
     return res;
-//    return cur;
   } else {
     return reduce.identity;
   }
@@ -670,100 +617,6 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 uintE get_num_blocks(uchar* edge_start,  uintE degree);
 
 uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num);
-
-//  #define SEQ_THRESH 10
-//  // Represents the sequence from
-//  [...[|cur_block|...|cur_block+num_blocks|]...] struct seq_info {
-//    uchar* edge_start;
-//    uintE degree;
-//    uintE source_id;
-//    uintE total_blocks;
-//
-//    uintE start;
-//    uintE end;
-//
-//    seq_info(uchar* es, uintE d, uintE sid, uintE tb, uintE s, uintE e) :
-//      edge_start(es), degree(d), source_id(sid), total_blocks(tb), start(s),
-//      end(e) { }
-//
-//    uchar* get_start_of_block(const uintE& block_id) {
-//      if (total_blocks == 1) {
-//        return edge_start;
-//      }
-//      uintE* offs = (uintE*)edge_start;
-//      return edge_start + offs[block_id-1];
-//    }
-//
-//    uintE get_pivot() {
-//      uintE* offs = (uintE*)edge_start;
-//      uintE mid_block = (end + start) / 2;
-//      uchar* finger = edge_start + offs[mid_block];
-//      return eatFirstEdge(finger, source_id);
-//    }
-//
-//    uintE pivot_block() {
-//      return (end + start) / 2;
-//    }
-//
-//    uintE binary_search(uintE pivot) {
-//      uintE* offs = (uintE*)edge_start;
-//      auto start_im = pbbslib::make_delayed<uintE>(size(), [&] (size_t i) {
-//        uchar* finger = edge_start + offs[start + i];
-//        return eatFirstEdge(finger, source_id);
-//      });
-//      uintE ind = pbbslib::binary_search(start_im, pivot, std::greater<uintE>());
-//      // check
-//      // ind is the first block index (from start) <= our pivot.
-//      uintE db[1000];
-//  //    decode_block<
-//
-//      return ind;
-//    }
-//
-//    seq_info cut(uintE l, uintE r) {
-//      return seq_info(edge_start, degree, source_id, total_blocks, l, r);
-//    }
-//
-//    uintE size() {
-//      return end - start;
-//    }
-//  };
-//
-//  inline uintE seq_intersect_full(seq_info u, seq_info v) {
-//    uintE nghs[10000];
-//    // decode and intersect
-//    return 0;
-//  }
-//
-//  inline uintE seq_intersect(seq_info u, seq_info v) { uintE ngh_u[1000];
-//    uchar* finger = u.get_start_of_block(u.start);
-//    return 0;
-//  //  decode_block<gbbs::empty>(finger, (std::tuple<uintE,
-//  gbbs::empty>*)ngh_u, 0,
-//  }
-//
-//  inline uintE intersect(seq_info u, seq_info v) {
-//    // Might need to swap here
-//    uintE nA = u.size();
-//    uintE nB = v.size();
-//    if (nA + nB < SEQ_THRESH) {
-//      return seq_intersect_full(u, v);
-//    } else if (nA == 1) { // merge base
-//      return seq_intersect(u, v);
-//    } else if (nB == 0) {
-//      return 0;
-//    } else { // (large, large)
-//      uintE pivot = u.get_pivot();
-//      uintE mU = u.pivot_block();
-//      uintE mV = v.binary_search(pivot);
-//      uintE lA = 0, rA = 0;
-//      par_do(true,
-//        [&] () { lA = intersect(u.cut(0, mU), v.cut(0, mV)); },
-//        [&] () { rA = intersect(u.cut(mU, mU), v.cut(0, mV)); }
-//      );
-//      return lA + rA;
-//    }
-//  }
 
 template <class W>
 inline void repack_sequential(const uintE& source, const uintE& degree,
@@ -910,8 +763,10 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     using uintEW = std::tuple<uintE, W>;
     uintEW tmp_stack[100];
     uintEW* U = tmp_stack;
+    parlay::sequence<uintEW> alloc;
     if (degree > 100) {
-      U = pbbslib::new_array_no_init<uintEW>(degree);
+      alloc = parlay::sequence<uintEW>::uninitialized(degree);
+      U = alloc.begin();
     }
     par_for(0, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
@@ -938,8 +793,12 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // 2. Repack from edge_start
     size_t new_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE offs_stack[100];
-    uintE* offs =
-        ((new_blocks + 1) <= 100) ? offs_stack : pbbslib::new_array_no_init<uintE>(new_blocks + 1);
+    uintE* offs = offs_stack;
+    parlay::sequence<uintE> offs_alloc;
+    if ((new_blocks + 1) > 100) {
+      offs_alloc = parlay::sequence<uintE>::uninitialized(new_blocks + 1);
+      offs = offs_alloc.begin();
+    }
 
     // 3. Compute #bytes per new block
     par_for(0, new_blocks, 2, [&] (size_t i) {
@@ -1003,13 +862,6 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
         last_ngh = std::get<0>(nw);
       }
     }, par);
-
-    if ((new_blocks + 1) > 100) {
-      gbbs::free_array(offs, new_blocks + 1);
-    }
-    if (degree > 100) {
-      gbbs::free_array(U, degree);
-    }
   }
 }
 
@@ -1026,8 +878,12 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
                       sizeof(uintE);  // block offs + virtual_degree
 
   size_t block_cts_stack[100];
-  size_t* block_cts =
-      (num_blocks > 100) ? pbbslib::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
+  parlay::sequence<size_t> alloc;
+  size_t* block_cts = block_cts_stack;
+  if (num_blocks > 100) {
+    alloc = parlay::sequence<size_t>::uninitialized(num_blocks + 1);
+    block_cts = alloc.begin();
+  }
 
   par_for(0, num_blocks, 2, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1097,10 +953,6 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     uintE* block_deg_ptr = (uintE*)finger;
     *block_deg_ptr = scan_cts[i];
   });
-
-  if (num_blocks > 100) {
-    gbbs::free_array(block_cts, num_blocks + 1);
-  }
 
   // Can comment out this call to avoid repacking; this can make algorithms,
   // e.g. set-cover no longer theoreticaly efficient
@@ -1253,7 +1105,6 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
         std::cout << "# first enc: " << source << " and " << last_ngh
                   << " got back " << decf << "\n";
       }
-      //        assert(eatFirstEdge(test_fing, source) == last_ngh);
       current_offset =
           compressWeight<W>(edgeArray, current_offset, std::get<1>(lst));
       for (size_t edgeI = 1; edgeI < end; edgeI++) {
@@ -1267,7 +1118,6 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
           std::cout << "# src = " << source << " enc = " << std::get<0>(nxt)
                     << "\n";
         }
-        //          assert(eatEdge(test_fing) == std::get<0>(nxt));
         current_offset =
             compressWeight<W>(edgeArray, current_offset, std::get<1>(nxt));
         last_ngh = std::get<0>(nxt);
