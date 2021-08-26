@@ -40,8 +40,8 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
                             s_size_t end, s_size_t* counts,
                             s_size_t num_buckets) {
   s_size_t n = end - start;
-  s_size_t* offsets = new_array_no_init<s_size_t>(num_buckets);
-  b_size_t* tmp = new_array_no_init<b_size_t>(n);
+  auto offsets = parlay::sequence<s_size_t>::uninitialized(num_buckets);
+  auto tmp = parlay::sequence<b_size_t>::uninitialized(n);
 
   for (s_size_t i = 0; i < num_buckets; i++) {
     offsets[i] = 0;
@@ -62,8 +62,6 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
     // otherwise equivalent to: Out[k+start] = In[j+start];
     pbbslib::move_uninitialized(Out[k + start], In[j + start]);
   }
-  pbbslib::free_array(offsets, num_buckets);
-  pbbslib::free_array(tmp, n);
 }
 
 // Parallel internal version that returns the un-transposed result
@@ -71,7 +69,7 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
 // internally sorted into num_buckets buckets.
 template <typename b_size_t, typename s_size_t, typename E, typename I,
           typename F>
-inline std::tuple<E*, s_size_t*, s_size_t, s_size_t> _count_sort(I& A, F& get_key,
+inline std::tuple<parlay::sequence<E>, parlay::sequence<s_size_t>, s_size_t, s_size_t> _count_sort(I& A, F& get_key,
                                                        s_size_t n,
                                                        s_size_t num_buckets) {
   // pad to 16 buckets to avoid false sharing (does not affect results)
@@ -83,9 +81,9 @@ inline std::tuple<E*, s_size_t*, s_size_t, s_size_t> _count_sort(I& A, F& get_ke
 
   // if insufficient parallelism, sort sequentially
   if (n < _cs_seq_threshold || num_blocks == 1) {
-    s_size_t* counts = new_array_no_init<s_size_t>(num_buckets + 1);
-    E* B = new_array_no_init<E>(n);
-    _seq_count_sort<b_size_t>(A, B, get_key, (s_size_t)0, n, counts,
+    auto counts = parlay::sequence<s_size_t>::uninitialized(num_buckets + 1);
+    auto B = parlay::sequence<E>::uninitialized(n);
+    _seq_count_sort<b_size_t>(A, B.begin(), get_key, (s_size_t)0, n, counts.begin(),
                               num_buckets);
     return std::make_tuple(B, counts, (s_size_t)1, num_buckets + 1);
   }
@@ -94,18 +92,18 @@ inline std::tuple<E*, s_size_t*, s_size_t, s_size_t> _count_sort(I& A, F& get_ke
   s_size_t m = num_blocks * num_buckets;
 
   // need new_array<E>(n) if E is not trivially constructable
-  E* B = new_array_no_init<E>(n);
-  s_size_t* counts = new_array_no_init<s_size_t>(m);
+  auto B = parlay::sequence<E>::uninitialized(n);
+  auto counts = parlay::sequence<s_size_t>::uninitialized(m);
 
   // sort each block
   parallel_for(0, num_blocks, [&] (size_t i) {
     s_size_t start = std::min(i * block_size, n);
     s_size_t end = std::min(start + block_size, n);
-    _seq_count_sort<b_size_t>(A, B, get_key, start, end,
-                              counts + i * num_buckets, num_buckets);
+    _seq_count_sort<b_size_t>(A, B.begin(), get_key, start, end,
+                              counts.begin() + i * num_buckets, num_buckets);
   }, 1);
 
-  return std::make_tuple(B, counts, num_blocks, m);
+  return std::make_tuple(std::move(B), std::move(counts), num_blocks, m);
 }
 
 }  // namespace pbbslib

@@ -259,33 +259,6 @@ inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
   }
 }
 
-// TODO
-// template <class O,
-//          class Apply,
-//          class VS,
-//          class Graph>
-// inline vertexSubsetData<O> srcReduce(Graph& GA, VS& vs, Apply& apply_f,
-//                                     const flags fl = 0) {
-//  size_t n = GA.n;
-//  if (vs.dense()) {
-//    using OT = std::tuple<bool, O>;
-//    auto out = pbbslib::new_array_no_init<OT>(n);
-//    parallel_for(0, n, [&] (size_t i) {
-//      if (vs.isIn(i)) {
-//        out[i] = {true, G.get_vertex(i).out_degree()};
-//      } else {
-//        std::get<0>(out[i]) = false;
-//      }
-//    });
-//  } else {
-//    auto out = pbbslib::new_array_no_init<OT>(vs.size());
-//    parallel_for(0, vs.size(), [&] (size_t i) {
-//      uintE v = vs.vtx(i);
-//      out[i] = {v, G.get_vertex(v).out_degree()};
-//    });
-//  }
-//}
-
 template <class V, class Graph>
 struct EdgeMap {
   using K = uintE;  // keys are always uintE's (vertex-identifiers)
@@ -555,7 +528,6 @@ struct EdgeMap {
     }
   }
 
-  ~EdgeMap() { ht.del(); }
 };
 
 }  // namespace gbbs

@@ -8,13 +8,12 @@ namespace pbbslib {
 /* Note the temporary bad hack around usage---see note on reset() */
 template <class T>
 struct atomic_sum_counter {
-  T* entries;
+  parlay::sequence<T> entries;
   size_t stride;
   size_t num_elms;
   size_t num_workers_;
   atomic_sum_counter() {
     initialize();
-//    num_workers_ = 0;
   }
 
   void initialize() {
@@ -22,15 +21,9 @@ struct atomic_sum_counter {
     stride = pbbslib::log2_up(stride);
     num_workers_ = num_workers();
     num_elms = num_workers_ << stride;
-    entries = pbbslib::new_array_no_init<T>(num_elms);
+    entries = parlay::sequence<T>::uninitialized(num_elms);
     for (size_t i=0; i<num_workers_; i++) {
       entries[i << stride] = (T)0;
-    }
-  }
-
-  ~atomic_sum_counter() {
-    if (entries != nullptr) {
-      pbbslib::free_array(entries, num_elms);
     }
   }
 
