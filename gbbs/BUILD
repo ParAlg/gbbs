@@ -14,6 +14,7 @@ cc_library(
   ":get_time",
   ":interface",
   ":macros",
+  ":parse_command_line",
   ":vertex_subset",
   ]
 )
@@ -246,10 +247,8 @@ cc_library(
 cc_library(
   name = "benchmark",
   hdrs = ["benchmark.h"],
-  srcs = ["benchmark.cc"],
   deps = [
   ":graph_io",
-  ":parse_command_line",
   ]
 )
 
