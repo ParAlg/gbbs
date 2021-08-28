@@ -517,7 +517,7 @@ struct uncompressed_bitset_neighbors {
     uintE int_stk[kBlockAllocThreshold];
     uint8_t* tmp_space = (uint8_t*)stk;
     parlay::sequence<uint8_t> tmp_alloc;
-    uintE* tmp_ints = (uintE*)int_stk;
+    uintE* tmp_ints = int_stk;
     parlay::sequence<uintE> int_alloc;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
@@ -613,7 +613,6 @@ struct uncompressed_bitset_neighbors {
     });
 
     // 5. Update num_blocks info both locally and in v_infos
-    uintE old_vtx_num_blocks = vtx_num_blocks;
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
   }
@@ -627,17 +626,6 @@ struct uncompressed_bitset_neighbors {
       return 0;
     }
     metadata* block_metadata = (metadata*)blocks_start;
-    uintE int_stk[kBlockAllocThreshold];
-    uintE* tmp_ints = (uintE*)int_stk;
-    parlay::sequence<uintE> int_alloc;
-    uintE old_vtx_num_blocks = vtx_num_blocks;
-    if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      int_alloc = parlay::sequence<uintE>::uninitialized(vtx_num_blocks);
-      tmp_ints = int_alloc.begin();
-    }
-    if (tmp) {
-      tmp_ints = (uintE*)tmp;
-    }
 
     // 1. pack each block
     parallel_for(0, vtx_num_blocks,
@@ -1140,7 +1128,6 @@ struct compressed_bitset_neighbors {
     });
 
     // 5. Update num_blocks info both locally and in v_infos
-    uintE old_vtx_num_blocks = vtx_num_blocks;
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
   }
@@ -1154,18 +1141,6 @@ struct compressed_bitset_neighbors {
       return 0;
     }
     metadata* block_metadata = (metadata*)blocks_start;
-
-    uintE int_stk[kBlockAllocThreshold];
-    uintE* tmp_ints = (uintE*)int_stk;
-    parlay::sequence<uintE> int_alloc;
-    uintE old_vtx_num_blocks = vtx_num_blocks;
-    if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      int_alloc = parlay::sequence<uintE>::uninitialized(vtx_num_blocks);
-      tmp_ints = int_alloc.begin();
-    }
-    if (tmp) {
-      tmp_ints = (uintE*)tmp;
-    }
 
     // 1. pack each block
     parallel_for(

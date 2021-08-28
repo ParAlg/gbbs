@@ -25,7 +25,7 @@
 
 #include "bridge.h"
 #include "macros.h"
-#include "uncompressed_intersection.h"
+#include "intersect.h"
 
 namespace gbbs {
 namespace vertex_ops {

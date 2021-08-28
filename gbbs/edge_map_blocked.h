@@ -298,7 +298,9 @@ void alloc_init(Graph& G) {
 }
 
 // Call this to clean up at the end of a program that invokes `alloc_init`.
-void alloc_finish();
+inline void alloc_finish() {
+  data_block_allocator::finish();
+}
 
 template <class data  /* data associated with vertices in the output vertex_subset */,
           class Graph /* graph type */,

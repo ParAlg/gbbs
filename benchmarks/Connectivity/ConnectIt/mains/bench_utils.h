@@ -49,8 +49,7 @@ std::vector<double> repeat(Graph& G, size_t rounds, sequence<parent>& correct, F
   return R;
 }
 
-template <class CPUStats>
-void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint, double maxt, CPUStats& stats, commandLine& P) {
+void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint, double maxt, commandLine& P) {
   std::cout << "{" << std::endl;
   std::cout << "  \"test_type\": \"static_connectivity_result\"," << std::endl;
   std::cout << "  \"test_name\" : \"" << name << "\"," << std::endl;
@@ -59,15 +58,6 @@ void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint,
   std::cout << "  \"medt\" : " << std::setprecision(5) << medt << "," << std::endl;
   std::cout << "  \"mint\" : " << mint << "," << std::endl;
   std::cout << "  \"maxt\" : " << maxt << "," << std::endl;
-  std::cout << "  \"ipc\" : " << std::to_string(stats.get_ipc()) << "," << std::endl;
-  std::cout << "  \"total_cycles\" : " << std::to_string(stats.get_total_cycles()) << "," << std::endl;
-  std::cout << "  \"l2_hit_ratio\" : " << std::to_string(stats.get_l2_hit_ratio()) << "," << std::endl;
-  std::cout << "  \"l3_hit_ratio\" : " << std::to_string(stats.get_l3_hit_ratio()) << "," << std::endl;
-  std::cout << "  \"l2_misses\" : " << std::to_string(stats.get_l2_misses()) << "," << std::endl;
-  std::cout << "  \"l2_hits\" : " << std::to_string(stats.get_l2_hits()) << "," << std::endl;
-  std::cout << "  \"l3_misses\" : " << std::to_string(stats.get_l3_misses()) << "," << std::endl;
-  std::cout << "  \"l3_hits\" : " << std::to_string(stats.get_l3_hits()) << "," << std::endl;
-  std::cout << "  \"throughput\" : " << std::to_string(stats.get_throughput()) << "," << std::endl;
   std::cout << "  \"max_path_len\" : " << std::to_string(max_pathlen.get_value()) << "," << std::endl;
   std::cout << "  \"total_path_len\" : " << std::to_string(total_pathlen.get_value()) << std::endl;
   std::cout << "}" << std::endl;
@@ -76,24 +66,13 @@ void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint,
 template<typename Graph, typename F>
 bool run_multiple(Graph& G, size_t rounds, sequence<parent>& correct,
 		  std::string name, commandLine& P, F test) {
-#ifdef USE_PCM_LIB
-  auto before_state = get_pcm_state();
-  timer ot; ot.start();
-#endif
   std::vector<double> t = repeat(G, rounds, correct, test, P);
-#ifdef USE_PCM_LIB
-  double elapsed = ot.stop();
-  auto after_state = get_pcm_state();
-  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
-#else
-  cpu_stats stats;
-#endif
 
   double mint = reduce(t, minf);
   double maxt = reduce(t, maxf);
   double med = median(t);
 
-  print_cpu_stats(name, rounds, med, mint, maxt, stats, P);
+  print_cpu_stats(name, rounds, med, mint, maxt, P);
   return 1;
 }
 

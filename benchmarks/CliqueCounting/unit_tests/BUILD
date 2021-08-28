@@ -6,8 +6,8 @@ gbbs_cc_test(
     deps = [
         "//benchmarks/CliqueCounting:Clique",
         "//gbbs:graph",
-        "//gbbs:graph_test_utils",
         "//gbbs:macros",
+        "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",
     ],
     size="small"

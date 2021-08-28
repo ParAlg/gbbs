@@ -75,7 +75,6 @@ cc_library(
 cc_library(
   name = "edge_map_blocked",
   hdrs = ["edge_map_blocked.h"],
-  srcs = ["edge_map_blocked.cc"],
   deps = [
   ":bridge",
   ":edge_map_utils",
@@ -202,19 +201,6 @@ cc_library(
   ]
 )
 
-cc_library(
-  name = "graph_test_utils",
-  hdrs = ["graph_test_utils.h"],
-  srcs = ["graph_test_utils.cc"],
-  deps = [
-  ":graph",
-  ":bridge",
-  ":macros",
-  ":undirected_edge",
-  ":vertex",
-  "@googletest//:gtest",
-  ]
-)
 
 cc_library(
   name = "histogram",
@@ -276,8 +262,8 @@ cc_library(
 )
 
 cc_library(
-  name = "uncompressed_intersection",
-  hdrs = ["uncompressed_intersection.h"],
+  name = "intersect",
+  hdrs = ["intersect.h"],
   deps = [
     ":macros",
   ]
@@ -290,14 +276,13 @@ cc_library(
   ":bridge",
   ":macros",
   ":speculative_for",
-  ":uncompressed_intersection"
+  ":intersect"
   ]
 )
 
 cc_library(
   name = "vertex_subset",
   hdrs = ["vertex_subset.h"],
-  srcs = ["vertex_subset.cc"],
   deps = [
   ":bridge",
   ":flags",

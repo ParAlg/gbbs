@@ -87,7 +87,7 @@ template <class Stats>
 void print_cpu_stats(Stats& stats, commandLine& P) {
   std::cout <<
     "Stats = { \"ipc\":" + std::to_string(stats.get_ipc())
-    + " ,\"total_cycles\":" + std::to_string(stats.get_total_cycles())
+    + " ,\"total_cycles\":" + std::to_string(stats.total_time_cycles())
     + " ,\"l2_hit_ratio\":" + std::to_string(stats.get_l2_hit_ratio())
     + " ,\"l3_hit_ratio\":" + std::to_string(stats.get_l3_hit_ratio())
     + " ,\"l2_misses\":" + std::to_string(stats.get_l2_misses())
@@ -101,4 +101,5 @@ void print_cpu_stats(Stats& stats, commandLine& P) {
     + " ,\"total_uf_tries\":" + std::to_string(total_uf_tries.get_value())
     + "}" << std::endl;
 }
+
 }  // namespace gbbs

@@ -5,8 +5,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "gbbs/graph.h"
-#include "gbbs/graph_test_utils.h"
 #include "gbbs/macros.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;

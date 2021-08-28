@@ -491,15 +491,27 @@ inline vertexSubset vertexFilter(VS& vs, F filter, flags fl = 0) {
   return vertexFilter_sparse(vs, filter);
 }
 
-void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts);
-
-// template <class VS,
-//          typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
-//                                  int>::type = 0>
-// void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts, size_t
-// granulairty=kDefaultGranularity) {
-//  std::cout << "Currently unimplemented" << std::endl;
-//  exit(-1);
-//}
+inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
+  if (vs.isDense) {
+    parallel_for(0, num_new_verts, [&] (size_t i)
+                    { vs.d[new_verts[i]] = true; });
+    vs.m += num_new_verts;
+  } else {
+    const size_t vs_size = vs.numNonzeros();
+    const size_t new_size = num_new_verts + vs_size;
+    auto all_verts = sequence<uintE>(new_size);
+    par_for(0, new_size, kDefaultGranularity, [&] (size_t i)
+                    {
+                      if (i < vs_size) {
+                        all_verts[i] = vs.s[i];
+                      } else {
+                        all_verts[i] = new_verts[i - vs_size];
+                      }
+                    });
+    auto old_s = std::move(vs.s);
+    vs.s = all_verts;
+    vs.m = new_size;
+  }
+}
 
 }  // namespace gbbs

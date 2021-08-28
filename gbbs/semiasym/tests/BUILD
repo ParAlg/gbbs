@@ -7,7 +7,7 @@ gbbs_cc_test(
       "//gbbs:gbbs",
       "//gbbs:graph",
       "//gbbs/semiasym:graph_filter",
-      "//gbbs:graph_test_utils",
+      "//gbbs/unit_tests:graph_test_utils",
       "@googletest//:gtest_main",
     ],
 )

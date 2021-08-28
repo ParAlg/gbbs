@@ -75,7 +75,6 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
   using W = typename Graph::weight_type;
-  auto before_state = get_pcm_state();
   timer t;
   t.start();
 
@@ -139,10 +138,6 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   auto dist_im = pbbslib::make_delayed<size_t>(n, dist_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
-
-  double time_per_iter = t.stop();
-  auto after_state = get_pcm_state();
-  print_pcm_stats(before_state, after_state, 1, time_per_iter);
 
   return dists;
 }

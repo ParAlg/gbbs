@@ -4,8 +4,8 @@
 #include <unordered_set>
 
 #include "benchmarks/SCAN/IndexBased/unit_tests/similarity_measure_test_utils.h"
-#include "gbbs/graph_test_utils.h"
 #include "gbbs/macros.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 

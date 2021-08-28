@@ -1,4 +1,4 @@
-#include "gbbs/graph_test_utils.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 
 #include <tuple>
 
