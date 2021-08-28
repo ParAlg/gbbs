@@ -51,34 +51,6 @@ using slice = parlay::slice<T*, T*>;
 template <typename T>
 using range = slice<T>;
 
-template <typename F>
-static void par_for(size_t start, size_t end, size_t granularity, F f,
-                    bool parallel = true) {
-  if (!parallel) {
-    for (size_t i = start; i < end; i++) {
-      f(i);
-    }
-  } else {
-    parallel_for(start, end, f, granularity);
-  }
-}
-
-template <typename F>
-static void par_for(size_t start, size_t end, F f, bool parallel = true,
-                    size_t granularity = std::numeric_limits<size_t>::max()) {
-  if (!parallel) {
-    for (size_t i = start; i < end; i++) {
-      f(i);
-    }
-  } else {
-    if (granularity == std::numeric_limits<size_t>::max()) {
-      parallel_for(start, end, f);
-    } else {
-      parallel_for(start, end, f, granularity);
-    }
-  }
-}
-
 #ifdef CILK
 // TODO try parallel_for_1
 template <typename A, typename Af, typename Df, typename F>

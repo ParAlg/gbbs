@@ -24,7 +24,7 @@ namespace gbbs {
     {
       auto degrees = sequence<uintE>(n);
       auto byte_offsets = sequence<uintT>(n+1);
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         size_t total_bytes = 0;
         uintE last_ngh = 0;
         size_t deg = 0;
@@ -64,7 +64,7 @@ namespace gbbs {
 
       // 2. Create compressed format in-memory
       auto edges = sequence<uchar>(total_space);
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.get_vertex(i).out_neighbors().get_iter();
@@ -93,7 +93,7 @@ namespace gbbs {
       // 1. Calculate total size
       auto degrees = sequence<uintE>(n);
       auto byte_offsets = sequence<uintT>(n+1);
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         size_t total_bytes = 0;
         uintE last_ngh = 0;
         size_t deg = 0;
@@ -133,7 +133,7 @@ namespace gbbs {
 
       // 2. Create compressed format in-memory
       auto edges = sequence<uchar>(total_space);
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.get_vertex(i).in_neighbors().get_iter();
@@ -238,7 +238,7 @@ namespace gbbs {
     // 1. Calculate total size
     auto degrees = sequence<uintE>(n);
     auto byte_offsets = sequence<uintT>(n+1);
-    par_for(0, n, [&] (size_t i) {
+    parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
       uintE last_ngh = 0;
       size_t deg = 0;
@@ -283,7 +283,7 @@ namespace gbbs {
 
     // 2. Create compressed format in-memory
     auto edges = sequence<uchar>(total_space);
-    par_for(0, n, [&] (size_t i) {
+    parallel_for(0, n, [&] (size_t i) {
       uintE deg = degrees[i];
       if (deg > 0) {
         auto it = GA.get_vertex(i).out_neighbors().get_iter();

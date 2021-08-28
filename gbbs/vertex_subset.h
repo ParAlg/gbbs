@@ -440,7 +440,7 @@ inline vertexSubset vertexFilter_sparse(
   if (m == 0) {
     return vertexSubset(n);
   }
-  bool* bits = pbbslib::new_array_no_init<bool>(m);
+  auto bits = parlay::sequence<bool>::uninitialized(m);
   V.toSparse();
   parallel_for(0, m,
                [&](size_t i) {
@@ -456,10 +456,7 @@ inline vertexSubset vertexFilter_sparse(
                granularity);
   auto v_imap =
       pbbslib::make_delayed<uintE>(m, [&](size_t i) { return V.vtx(i); });
-  auto bits_m =
-      pbbslib::make_delayed<bool>(m, [&](size_t i) { return bits[i]; });
-  auto out = pbbslib::pack(v_imap, bits_m);
-  pbbslib::free_array(bits, m);
+  auto out = pbbslib::pack(v_imap, parlay::make_slice(bits));
   return vertexSubset(n, std::move(out));
 }
 

@@ -322,11 +322,11 @@ namespace bytepd {
 
     timer t;
     t.start();
-    par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
       return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { r[o[i]] = i; });
     t.stop();
     debug(t.next("Rank time"););
@@ -712,11 +712,11 @@ namespace bytepd_amortized {
 
     timer t;
     t.start();
-    par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
       return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { r[o[i]] = i; });
     t.stop();
     debug(t.next("Rank time"););
@@ -927,7 +927,7 @@ void edgearray(Graph& GA, std::ofstream& out) {
   size_t m = GA.m;
 
   auto degs = pbbslib::sequence<uintT>(n);
-  par_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).out_degree(); });
+  parallel_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).out_degree(); });
   pbbslib::scan_inplace(make_slice(degs));
 
   auto edges = pbbslib::sequence<std::tuple<uintE, uintE, W>>(m);

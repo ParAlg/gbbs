@@ -97,7 +97,7 @@ void writeWeightedAdj(graph<vertex<W>>& GA, string& outfile) {
   auto r = pbbs::random();
 
   auto degs = pbbs::sequence<uintT>(n + 1);
-  par_for(0, n, [&] (size_t i) { degs[i] = GA.V[i].getOutDegree(); });
+  parallel_for(0, n, [&] (size_t i) { degs[i] = GA.V[i].getOutDegree(); });
   degs[n] = 0;
   size_t total_offs = pbbs::scan_inplace(make_slice(degs), pbbs::addm<uintT>());
   std::cout << "total offs = " << total_offs << " m = " << m << std::endl;

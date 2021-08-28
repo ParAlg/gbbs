@@ -93,7 +93,7 @@ struct MinMaxF {
 };
 
 template <template <typename W> class vertex, class W, class Seq>
-inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<vertex, W>& GA,
+inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::sequence<uintE>> preorder_number(symmetric_graph<vertex, W>& GA,
                                                            sequence<uintE>& Parents,
                                                            Seq& Sources) {
   size_t n = GA.n;
@@ -140,8 +140,8 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   // Create directed BFS tree
 
-  auto v_out = pbbslib::new_array_no_init<vertex_data>(n);
-  auto v_in = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_out = parlay::sequence<vertex_data>::uninitialized(n);
+  auto v_in = parlay::sequence<vertex_data>::uninitialized(n);
   parallel_for(0, n, [&] (size_t i) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
@@ -157,10 +157,10 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       v_in[i].offset = i;
     }
   });
-  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, gbbs::empty>*)nghs.begin(), (std::tuple<uintE, gbbs::empty>*)Parents.begin());
+  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(v_out.begin(), v_in.begin(), n, nghs.size(), [](){}, (std::tuple<uintE, gbbs::empty>*)nghs.begin(), (std::tuple<uintE, gbbs::empty>*)Parents.begin());
 
   // 1. Leaffix for Augmented Sizes
-  auto aug_sizes = pbbslib::new_array_no_init<uintE>(n);
+  auto aug_sizes = parlay::sequence<uintE>::uninitialized(n);
   parallel_for(0, n, [&] (size_t i) { aug_sizes[i] = 1; });
   auto cts =
       sequence<intE>::from_function(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
@@ -180,7 +180,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     vs = edgeMap(
-        Tree, vs, wrap_em_f<gbbs::empty>(AugF(aug_sizes, cts.begin())),
+        Tree, vs, wrap_em_f<gbbs::empty>(AugF(aug_sizes.begin(), cts.begin())),
         -1, in_edges | sparse_blocked | fine_parallel);
     vs.toSparse();
   }
@@ -195,7 +195,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   timer pren;
   pren.start();
-  auto PN = pbbslib::new_array_no_init<uintE>(n);
+  auto PN = parlay::sequence<uintE>::uninitialized(n);
   vs = vertexSubset(n, std::move(s_copy));
   parallel_for(0, Sources.size(), [&] (size_t i) {
     uintE v = vs.vtx(i);
@@ -252,7 +252,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   timer map_e;
   map_e.start();
   // Map all edges and update labels.
-  auto MM = pbbslib::new_array_no_init<labels>(n);
+  auto MM = parlay::sequence<labels>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) {
     uintE pn_i = PN[i];
     MM[i] = std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
@@ -295,19 +295,17 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     vs = edgeMap(
-        Tree, vs, wrap_em_f<gbbs::empty>(MinMaxF(MM, cts.begin())), -1,
+        Tree, vs, wrap_em_f<gbbs::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
         in_edges | sparse_blocked | fine_parallel);
   }
   // Delete tree
-  pbbslib::free_array(v_out, n);
-  pbbslib::free_array(v_in, n);
   nghs.clear();
   leaff.stop();
   debug(leaff.next("leaffix to update min max time"););
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
-  return std::make_tuple(MM, PN, aug_sizes);
+  return std::make_tuple(std::move(MM), std::move(PN), std::move(aug_sizes));
 }
 
 // Deterministic version
@@ -419,14 +417,11 @@ inline sequence<uintE> cc_sources(Seq& labels) {
 
 template <template <class W> class vertex, class W>
 inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
-    symmetric_graph<vertex, W>& GA, sequence<uintE>&& Parents, labels* MM_A, uintE* PN_A,
-    uintE* aug_sizes_A, char* out_f) {
+    symmetric_graph<vertex, W>& GA, sequence<uintE>&& Parents, sequence<labels>&& MM, sequence<uintE>&& PN,
+    sequence<uintE>&& aug_sizes, char* out_f) {
   timer ccc;
   ccc.start();
   size_t n = GA.n;
-  auto MM = pbbslib::make_range<labels>(MM_A, n);
-  auto PN = pbbslib::make_range<uintE>(PN_A, n);
-  auto aug_sizes = pbbslib::make_range<uintE>(aug_sizes_A, n);
 
   parallel_for(0, n, [&] (size_t i) {
     uintE pi = Parents[i];
@@ -458,15 +453,11 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   timer ccpred;
   ccpred.start();
   // 1. Pack out all critical edges
-  auto active = pbbslib::new_array_no_init<bool>(n);
-  parallel_for(0, n, [&] (size_t i) { active[i] = true; });
-//  auto vs_active = vertexSubset(n, n, active);
   auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
     return !not_critical_edge(src, ngh);
   };
   timer ft; ft.start();
   filterEdges(GA, pack_predicate);
-//  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
   ft.stop(); debug(ft.next("filter edges time"););
 
   // 2. Run CC on the graph with the critical edges removed to compute
@@ -511,9 +502,6 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   }
   debug(std::cout << "Bicc done"
             << "\n";);
-  pbbslib::free_array(MM_A, n);
-  pbbslib::free_array(PN_A, n);
-  pbbslib::free_array(aug_sizes_A, n);
   ccc.stop();
   debug(ccc.next("critical conn time"););
   return std::make_tuple(std::move(Parents), std::move(cc));
@@ -548,15 +536,15 @@ auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   timer pn;
   pn.start();
 
-  labels* min_max;
-  uintE* preorder_num;
-  uintE* aug_sizes;
+  parlay::sequence<labels> min_max;
+  parlay::sequence<uintE> preorder_num;
+  parlay::sequence<uintE> aug_sizes;
   std::tie(min_max, preorder_num, aug_sizes) =
       preorder_number(GA, Parents, Sources_copy);
   pn.stop();
   debug(pn.next("preorder time"););
 
-  return critical_connectivity(GA, std::move(Parents), min_max, preorder_num, aug_sizes,
+  return critical_connectivity(GA, std::move(Parents), std::move(min_max), std::move(preorder_num), std::move(aug_sizes),
                                out_f);
 }
 
