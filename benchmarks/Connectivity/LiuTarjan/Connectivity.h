@@ -198,7 +198,7 @@ struct LiuTarjanAlgorithm {
           parents_changed = true;
         }
       });
-      pc.stop(); pc.reportTotal("# pc time");
+      pc.stop(); pc.next("# pc time");
 
       // Update local neighborhoods
       timer ut; ut.start();
@@ -234,7 +234,7 @@ struct LiuTarjanAlgorithm {
           flags[P[v]] = false;
         }
       });
-      ut.stop(); ut.reportTotal("# update time");
+      ut.stop(); ut.next("# update time");
 
       // Shortcut
       timer sc; sc.start();
@@ -249,7 +249,7 @@ struct LiuTarjanAlgorithm {
           messages[v] = P[v];
         }
       });
-      sc.stop(); sc.reportTotal("# shortcut time");
+      sc.stop(); sc.next("# shortcut time");
 
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
@@ -282,7 +282,7 @@ struct LiuTarjanAlgorithm {
         });
         inserts = new_inserts;
       }
-      at.stop(); at.reportTotal("# alter time");
+      at.stop(); at.next("# alter time");
     }
 
     // Process queries

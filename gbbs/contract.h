@@ -67,7 +67,7 @@ namespace contract {
     parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
     auto edges = edge_table.entries();
     edge_table.del();
-    ins_t.stop(); debug(ins_t.reportTotal("insertion time"););
+    ins_t.stop(); debug(ins_t.next("insertion time"););
     debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
     return edges;
@@ -97,7 +97,7 @@ namespace contract {
     deg_map[n] = 0;
     pbbslib::scan_inplace(make_slice(deg_map));
     count_t.stop();
-    debug(count_t.reportTotal("count time"););
+    debug(count_t.next("count time"););
 
     timer ins_t;
     ins_t.start();
@@ -125,7 +125,7 @@ namespace contract {
     auto edges = edge_table.entries();
     edge_table.del();
     ins_t.stop();
-    debug(ins_t.reportTotal("ins time"););
+    debug(ins_t.next("ins time"););
     debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
     return edges;
@@ -171,7 +171,7 @@ namespace contract {
     auto edges = edge_table.entries();
     edge_table.del();
     ins_t.stop();
-    debug(ins_t.reportTotal("ins time"););
+    debug(ins_t.next("ins time"););
     debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
     return edges;

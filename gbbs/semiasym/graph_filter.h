@@ -123,7 +123,7 @@ std::tuple<parlay::sequence<vtx_info>, parlay::sequence<uint8_t>, size_t> init_b
                                     vtx_bytes);
       });
 
-  ibm.stop(); ibm.reportTotal("init block memory time");
+  ibm.stop(); ibm.next("init block memory time");
   return {std::move(VI), std::move(blocks), block_mem_to_alloc};
 }
 

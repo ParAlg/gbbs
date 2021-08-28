@@ -43,7 +43,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
       multi_table.insert(u, std::make_tuple(v,0));
     }
   });
-  it.stop(); it.reportTotal("insertion time");
+  it.stop(); it.next("insertion time");
 
   // 2. Triangle count, update trussness scores for each edge
   // 2.(a) Rank vertices based on degree
@@ -63,7 +63,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   };
   timer tct; tct.start();
   truss_utils::TCDirected(DG, inc_truss_f);
-  tct.stop(); tct.reportTotal("TC time");
+  tct.stop(); tct.next("TC time");
 
   DG.del();
 }
@@ -334,11 +334,11 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     }
   }
 
-  peeling_t.stop(); peeling_t.reportTotal("peeling time");
-  ct.reportTotal("Compaction time");
-  bt.reportTotal("Bucketing time");
-  em_t.reportTotal("EdgeMap time");
-  decrement_t.reportTotal("Decrement trussness time");
+  peeling_t.stop(); peeling_t.next("peeling time");
+  ct.next("Compaction time");
+  bt.next("Bucketing time");
+  em_t.next("EdgeMap time");
+  decrement_t.next("Decrement trussness time");
 
   // == Important: The actual trussness is the stored trussness value + 1.
   // Edges with trussness 0 had their values stored as std::numeric_limits<int>::max()

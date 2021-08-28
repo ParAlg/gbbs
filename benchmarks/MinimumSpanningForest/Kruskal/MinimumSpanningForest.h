@@ -52,7 +52,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_gra
     return std::get<2>(l) < std::get<2>(r);
   };
   pbbslib::sample_sort_inplace(make_slice(edges), comp);
-  st.stop(); st.reportTotal("sort time");
+  st.stop(); st.next("sort time");
 
   auto components = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });
   constexpr auto find{find_variants::find_compress};
@@ -69,7 +69,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_gra
       MST[k++] = {u,v,w};
     }
   }
-  kt.stop(); kt.reportTotal("kruskal time (excluding G.get_edges() to convert graph to edge-list format)");
+  kt.stop(); kt.next("kruskal time (excluding G.get_edges() to convert graph to edge-list format)");
   std::cout << "MST weight = " << weight << std::endl;
   MST.resize(k);
   return MST;

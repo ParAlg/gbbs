@@ -22,7 +22,7 @@ template <
       timer sample_t; sample_t.start();
       auto parents = sampler.initial_components();
       sample_t.stop();
-      sample_t.reportTotal("sample time");
+      sample_t.next("sample time");
 
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = connectit::sample_frequent_element(parents);
@@ -388,7 +388,7 @@ struct LDDSamplingTemplate {
   sequence<parent> initial_components() {
     timer lddt; lddt.start();
     auto clusters = LDD(GA, beta, permute);
-    lddt.stop(); lddt.reportTotal("## ldd time");
+    lddt.stop(); lddt.next("## ldd time");
     return clusters;
   }
 };

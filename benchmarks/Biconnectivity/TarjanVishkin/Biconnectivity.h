@@ -129,7 +129,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     }
   }
   seq.stop();
-  debug(seq.reportTotal("seq time"););
+  debug(seq.next("seq time"););
 
   auto nghs = sequence<uintE>::from_function(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
@@ -185,7 +185,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     vs.toSparse();
   }
   augs.stop();
-  debug(augs.reportTotal("aug size time"););
+  debug(augs.next("aug size time"););
 
   // Optional: Prefix sum over sources with aug-size (if we want distinct
   // preorder #s)
@@ -247,7 +247,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     vs = vertexSubset(n, std::move(next_vs));
   }
   pren.stop();
-  debug(pren.reportTotal("preorder number from sizes time"););
+  debug(pren.next("preorder number from sizes time"););
 
   timer map_e;
   map_e.start();
@@ -280,7 +280,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   };
   par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   map_e.stop();
-  debug(map_e.reportTotal("map edges time"););
+  debug(map_e.next("map edges time"););
 
   timer leaff;
   leaff.start();
@@ -303,7 +303,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   pbbslib::free_array(v_in, n);
   nghs.clear();
   leaff.stop();
-  debug(leaff.reportTotal("leaffix to update min max time"););
+  debug(leaff.next("leaffix to update min max time"););
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
@@ -467,13 +467,13 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   timer ft; ft.start();
   filterEdges(GA, pack_predicate);
 //  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
-  ft.stop(); debug(ft.reportTotal("filter edges time"););
+  ft.stop(); debug(ft.next("filter edges time"););
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
   auto cc = workefficient_cc::CC(GA, 0.2, true);
   ccpred.stop();
-  debug(ccpred.reportTotal("cc pred time"););
+  debug(ccpred.next("cc pred time"););
 
 //  //Note that counting components here will count initially isolated vertices
 //  //as distinct components.
@@ -515,7 +515,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   pbbslib::free_array(PN_A, n);
   pbbslib::free_array(aug_sizes_A, n);
   ccc.stop();
-  debug(ccc.reportTotal("critical conn time"););
+  debug(ccc.next("critical conn time"););
   return std::make_tuple(std::move(Parents), std::move(cc));
 }
 
@@ -529,7 +529,7 @@ auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   fcc.start();
   sequence<uintE> Components = workefficient_cc::CC(GA, 0.2, false);
   fcc.stop();
-  debug(fcc.reportTotal("first cc"););
+  debug(fcc.next("first cc"););
 
   timer sc;
   sc.start();
@@ -542,7 +542,7 @@ auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
 //  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();
-  debug(sc.reportTotal("sc, multibfs time"););
+  debug(sc.next("sc, multibfs time"););
 
   // Returns ((min, max), preorder#, and augmented sizes) of each subtree.
   timer pn;
@@ -554,7 +554,7 @@ auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   std::tie(min_max, preorder_num, aug_sizes) =
       preorder_number(GA, Parents, Sources_copy);
   pn.stop();
-  debug(pn.reportTotal("preorder time"););
+  debug(pn.next("preorder time"););
 
   return critical_connectivity(GA, std::move(Parents), min_max, preorder_num, aug_sizes,
                                out_f);

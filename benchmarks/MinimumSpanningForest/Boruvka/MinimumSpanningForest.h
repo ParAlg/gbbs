@@ -77,7 +77,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
       min_edges[v] = std::make_pair(UINT_E_MAX, std::numeric_limits<int32_t>::max());
     });
     init_t.stop();
-    debug(init_t.reportTotal("init time"););
+    debug(init_t.next("init time"););
 
     // 1. write_min to select the minimum edge out of each component.
     timer min_t;
@@ -90,7 +90,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
       pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
     });
     min_t.stop();
-    debug(min_t.reportTotal("write min time"););
+    debug(min_t.next("write min time"););
 
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
@@ -123,7 +123,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
       }
     });
     mark_t.stop();
-    debug(mark_t.reportTotal("mark time"););
+    debug(mark_t.next("mark time"););
 
     // 3. filter out the new MinimumSpanningForest edges.
     timer filter_t;
@@ -133,7 +133,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     debug(std::cout << "      " << n_in_mst << " edges added to mst."
               << "\n";);
     filter_t.stop();
-    debug(filter_t.reportTotal("filter time"););
+    debug(filter_t.next("filter time"););
 
     // 4. pointer jump to find component centers.
     timer jump_t;
@@ -147,7 +147,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
       }
     });
     jump_t.stop();
-    debug(jump_t.reportTotal("jump time"););
+    debug(jump_t.next("jump time"););
 
     // 5. compact the vertices (pack out the roots)
     timer compact_t;
@@ -157,7 +157,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_range(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();
-    debug(compact_t.reportTotal("compact time"););
+    debug(compact_t.next("compact time"););
     debug(std::cout << "      " << n << " vertices remain."
               << "\n";);
 
@@ -180,7 +180,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
       }
     });
     relab_t.stop();
-    debug(relab_t.reportTotal("relabel time"););
+    debug(relab_t.next("relabel time"););
 
     // 7. filter (or ignore) self-edges.
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
@@ -278,7 +278,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   debug(std::cout << "split wgh is: " << split_weight << "\n";
   std::cout << "fraction of sample composed by split_wgh = "
             << split_wgh_fraction << "\n";);
-  st.stop(); debug(st.reportTotal("startup time"););
+  st.stop(); debug(st.next("startup time"););
 
   // 3. filter edges based on splitter
   if (split_wgh_fraction < 0.2) {
@@ -365,7 +365,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     auto E = (round < n_filter_steps) ? get_top_k(GA, split_idx, r, round == 0)
                                       : get_all_edges(GA);
     get_t.stop();
-    debug(get_t.reportTotal("get time"););
+    debug(get_t.next("get time"););
     size_t n_edges = E.size();
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
@@ -391,7 +391,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
         Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
     auto edge_ids = pbbslib::make_range(mst, n_in_mst);
     bt.stop();
-    debug(bt.reportTotal("boruvka time"););
+    debug(bt.next("boruvka time"););
 
     mst_edges.copyInF([&](size_t i) { return edges_save[edge_ids[i]]; },
                       edge_ids.size());
@@ -405,7 +405,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     auto vtx_range = pbbslib::make_range(vtxs+n_active, vtxs+n);
     n_active += pbbslib::pack_index_out(make_slice(exhausted), vtx_range);
     pack_t.stop();
-    debug(pack_t.reportTotal("reactivation pack"););
+    debug(pack_t.next("reactivation pack"););
 
     par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (exhausted[i]) exhausted[i] = false;
@@ -433,11 +433,11 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     filter_t.start();
     filter_edges(GA, filter_pred);
     filter_t.stop();
-    filter_t.reportTotal("filter time");
+    filter_t.next("filter time");
     std::cout << "After filter, m is now " << GA.m << "\n";
     round++;
     round_t.stop();
-    round_t.reportTotal("round time");
+    round_t.next("round time");
 
     r = r.next();
   }

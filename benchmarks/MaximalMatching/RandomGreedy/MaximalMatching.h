@@ -101,7 +101,7 @@ namespace mm {
     E.E = std::move(out);
     E.n = G.n;
     perm_t.stop();
-    perm_t.reportTotal("permutation time");
+    perm_t.next("permutation time");
     return E;
   }
 
@@ -131,7 +131,7 @@ namespace mm {
     fet.start();
     edge_array<W> E = filterEdges(G, pred);
     fet.stop();
-    fet.reportTotal("Filter edges time");
+    fet.next("Filter edges time");
 
     // permute the retrieved edges
 
@@ -146,7 +146,7 @@ namespace mm {
     E.E = std::move(out);
     E.n = G.n;
     perm_t.stop();
-    perm_t.reportTotal("permutation time");
+    perm_t.next("permutation time");
     return E;
   }
 
@@ -216,9 +216,9 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   std::cout << "matching size = " << matching.size << "\n";
   auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
   mt.stop();
-  eff.reportTotal("eff for time");
-  gete.reportTotal("get edges time");
-  mt.reportTotal("Matching time");
+  eff.next("eff for time");
+  gete.next("get edges time");
+  mt.next("Matching time");
   return output;
 }
 

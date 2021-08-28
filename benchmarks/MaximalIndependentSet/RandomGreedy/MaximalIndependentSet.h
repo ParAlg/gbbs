@@ -133,7 +133,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
   });
   init_t.stop();
-  debug(init_t.reportTotal("init"););
+  debug(init_t.next("init"););
 
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
@@ -166,7 +166,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     auto new_roots =
         edgeMap(G, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
     nr.stop();
-    nr.reportTotal("## new roots time");
+    nr.next("## new roots time");
 
     // update finished with roots and removed. update roots.
     finished += roots.size();

@@ -26,7 +26,7 @@ operator<<(std::ostream& os, const CoreThreshold& core_threshold) {
 
 void ReportTime([[maybe_unused]] const timer& t) {
 #ifdef SCAN_DETAILED_TIMES
-  t.reportTotal("");
+  t.next("");
 #endif
 }
 

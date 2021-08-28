@@ -11,7 +11,6 @@ cc_library(
   ":bridge",
   ":flags",
   ":graph",
-  ":get_time",
   ":interface",
   ":macros",
   ":parse_command_line",
@@ -35,9 +34,9 @@ cc_library(
   hdrs = ["bridge.h"],
   srcs = ["bridge.cc"],
   deps = [
-  ":get_time",
   "@parlaylib//parlay/internal:binary_search",
   "@parlaylib//parlay/internal:file_map",
+  "@parlaylib//parlay/internal:get_time",
   "@parlaylib//parlay/internal/posix:file_map_impl_posix",
   "@parlaylib//parlay:primitives",
   "@parlaylib//parlay:monoid",
@@ -122,19 +121,12 @@ cc_library(
 )
 
 cc_library(
-  name = "get_time",
-  hdrs = ["get_time.h"],
-  srcs = ["get_time.cc"],
-)
-
-cc_library(
   name = "graph_mutation",
   hdrs = ["graph_mutation.h"],
   deps = [
   ":bridge",
   ":compressed_vertex",
   ":edge_array",
-  ":get_time",
   ":vertex",
   ":vertex_subset",
   ]

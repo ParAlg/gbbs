@@ -30,7 +30,7 @@ template <
 
       auto [Parents, Edges] = sampler.initial_spanning_forest();
       sample_t.stop();
-      sample_t.reportTotal("sample time");
+      sample_t.next("sample time");
 
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = connectit::sample_frequent_element(Parents);

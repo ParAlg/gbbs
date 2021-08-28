@@ -5,7 +5,6 @@
 #include "graph_io.h"
 
 #define run_app(G, APP, rounds)                                            \
-  gbbs::timer st;                                                          \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
     total_time += APP(G, P);                                               \

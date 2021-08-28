@@ -69,7 +69,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.reportTotal("bucket time"););
+  debug(bt.next("bucket time"););
   return D;
 }
 
@@ -192,7 +192,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.reportTotal("bucket time"););
+  debug(bt.next("bucket time"););
   return degeneracy_order;
 }
 

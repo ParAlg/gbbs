@@ -130,7 +130,7 @@ namespace workefficient_sf {
     auto clusters = std::move(clusters_and_parents.first);
     auto parents = std::move(clusters_and_parents.second);
     ldd_t.stop();
-    debug(ldd_t.reportTotal("ldd time"););
+    debug(ldd_t.next("ldd time"););
 
     // Filter out tree edges added this round (ids are in the current level)
     auto delayed_edges = pbbslib::make_delayed<edge>(parents.size(), [&] (size_t i) {
@@ -146,7 +146,7 @@ namespace workefficient_sf {
     relabel_t.start();
     size_t num_clusters = contract_sf::RelabelIds(clusters);
     relabel_t.stop();
-    debug(relabel_t.reportTotal("relabel time"););
+    debug(relabel_t.next("relabel time"););
 
     timer contract_t;
     contract_t.start();
@@ -156,7 +156,7 @@ namespace workefficient_sf {
     // multiple original vertices.
     auto GC_and_new_mapping = contract_sf::contract(G, clusters, num_clusters, edge_mapping);
     contract_t.stop();
-    debug(contract_t.reportTotal("contract time"););
+    debug(contract_t.next("contract time"););
     auto GC = GC_and_new_mapping.first;
     auto& new_mapping = GC_and_new_mapping.second; // sparse_table<edge, edge>
 

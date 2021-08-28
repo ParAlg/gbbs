@@ -253,7 +253,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   auto PG = get_empty_packed_graph(GA);
 
   initt.stop();
-  initt.reportTotal("init");
+  initt.next("init");
 
 //  // Run the first search (using two BFSs)
 //  {
@@ -315,14 +315,14 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      std::cout << "PG.m is initially: " << PG.m << std::endl;
 //
 //      gbbs::sage::filter_graph(PG, pred_f);
-//      fg.stop(); fg.reportTotal("Filter Graph (first) time");
+//      fg.stop(); fg.next("Filter Graph (first) time");
 //      std::cout << "PG.m is now: " << PG.m << std::endl;
 //
 //      pbbslib::free_array(visited_in);
 //      pbbslib::free_array(visited_out);
 //      label_offset += 1;
 //      hd.stop();
-//      hd.reportTotal("big scc time");
+//      hd.next("big scc time");
 //    }
 //  }
 
@@ -419,7 +419,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       std::cout << "PG.m is now: " << PG.m << std::endl;
 
       ft.stop();
-      ft.reportTotal("first scc time");
+      ft.next("first scc time");
       continue;
     }
 
@@ -435,7 +435,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     std::cout << "Finished in search"
               << "\n";
 //    in_table.analyze();
-    ins.stop(); ins.reportTotal("insearch time");
+    ins.stop(); ins.next("insearch time");
 
     timer outs; outs.start();
     auto out_f = vertexSubset(n, std::move(centers_copy));
@@ -447,7 +447,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
               << "\n";
 //    out_table.analyze();
-    outs.stop(); outs.reportTotal("outsearch time");
+    outs.stop(); outs.next("outsearch time");
     multi_search_t.stop();
 
     auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
@@ -608,17 +608,17 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     out_table.del();
 
     rt.stop();
-    rt.reportTotal("Round time");
+    rt.next("Round time");
   }
 
   MS.stop();
-  MS.reportTotal("MultiSearch Time");
-  clear_vertices_t.reportTotal("Clear Vertices time");
-  CT.reportTotal("Compression time");
-  int_t.reportTotal("Intersection time");
-  multi_search_t.reportTotal("MultiSearch time");
-  to_process_t.reportTotal("To Process time");
-  reset_t.reportTotal("Reset Time");
+  MS.next("MultiSearch Time");
+  clear_vertices_t.next("Clear Vertices time");
+  CT.next("Compression time");
+  int_t.next("Intersection time");
+  multi_search_t.next("MultiSearch time");
+  to_process_t.next("To Process time");
+  reset_t.next("Reset Time");
 
   return labels;
 }

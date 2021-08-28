@@ -329,7 +329,7 @@ namespace bytepd {
     par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { r[o[i]] = i; });
     t.stop();
-    debug(t.reportTotal("Rank time"););
+    debug(t.next("Rank time"););
     return r;
   }
 
@@ -719,7 +719,7 @@ namespace bytepd_amortized {
     par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { r[o[i]] = i; });
     t.stop();
-    debug(t.reportTotal("Rank time"););
+    debug(t.next("Rank time"););
     return r;
   }
 

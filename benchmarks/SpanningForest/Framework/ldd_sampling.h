@@ -97,7 +97,7 @@ struct LDDSamplingTemplate {
 
     timer lddt; lddt.start();
     auto [Parents, Edges] = LDD_sample_edges(GA, 0.2, /* permute = */false);
-    lddt.stop(); lddt.reportTotal("## ldd time");
+    lddt.stop(); lddt.next("## ldd time");
 
     return std::make_pair(Parents, Edges);
   }

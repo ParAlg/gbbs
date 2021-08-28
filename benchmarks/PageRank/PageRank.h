@@ -108,7 +108,7 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
     parallel_for(0, n, [&] (size_t i) { p_curr[i] = static_cast<double>(0); });
     std::swap(p_curr,p_next);
 
-    debug(t.stop(); t.reportTotal("iteration time"););
+    debug(t.stop(); t.next("iteration time"););
   }
   auto max_pr = pbbslib::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
@@ -157,7 +157,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
     // SpMV
     timer tt; tt.start();
     EM.template edgeMapReduce_dense<double, double>(Frontier, cond_f, map_f, reduce_f, apply_f, 0.0, no_output);
-    tt.stop(); tt.reportTotal("em time");
+    tt.stop(); tt.next("em time");
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
@@ -171,7 +171,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
 
     // Reset p_curr
     std::swap(p_curr,p_next);
-    t.stop(); t.reportTotal("iteration time");
+    t.stop(); t.next("iteration time");
   }
   auto max_pr = pbbslib::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
@@ -239,7 +239,7 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* 
     timer dt; dt.start();
     EM.template edgeMapReduce_dense<gbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl | no_output);
 
-    dt.stop(); dt.reportTotal("dense time");
+    dt.stop(); dt.next("dense time");
   } else {
     edgeMap(G,Frontier,PR_Delta_F<Graph>(G,Delta,nghSum),G.m/2, no_output);
   }
@@ -355,7 +355,7 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
     parallel_for(0, n, [&] (size_t i) { nghSum[i] = static_cast<double>(0); });
 
     Frontier = std::move(active);
-    debug(t.stop(); t.reportTotal("iteration time"););
+    debug(t.stop(); t.next("iteration time"););
   }
   auto max_pr = pbbslib::reduce_max(p);
   std::cout << "max_pr = " << max_pr << std::endl;

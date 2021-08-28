@@ -129,7 +129,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
   auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map = pbbslib::make_delayed<bool>(n, zero_map_f);
   auto roots = vertexSubset(n, pbbslib::pack_index<uintE>(zero_map));
-  debug(initt.reportTotal("init time"););
+  debug(initt.next("init time"););
 
   size_t finished = 0, rounds = 0;
   timer color_t;
@@ -156,8 +156,8 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     rounds++;
   }
   std::cout << "### Total rounds = " << rounds << "\n";
-  debug(color_t.reportTotal("coloring time");
-  em_t.reportTotal("edge map time"););
+  debug(color_t.next("coloring time");
+  em_t.next("edge map time"););
   return colors;
 }
 

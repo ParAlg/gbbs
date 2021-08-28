@@ -143,7 +143,7 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
      vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  debug(bt.reportTotal("back total time"););
+  debug(bt.next("back total time"););
 
   // Update dependencies scores
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
@@ -206,7 +206,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, sequenc
       }
     });
 
-    dt.stop(); dt.reportTotal("dense time");
+    dt.stop(); dt.next("dense time");
     return output;
   } else {
     vertexSubset output = edgeMap(G, Frontier, make_bc_f<W>(NumPaths, Visited),
@@ -244,7 +244,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
     Frontier = std::move(output);
   }
   Levels.push_back(std::move(Frontier));
-  fwd.stop(); debug(fwd.reportTotal("forward time"));
+  fwd.stop(); debug(fwd.next("forward time"));
 
   for (size_t i=0; i<100; i++) {
     std::cout << NumPaths[i] << std::endl;
@@ -276,7 +276,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  debug(bt.reportTotal("back total time"););
+  debug(bt.next("back total time"););
 
 
   // Update dependencies scores
@@ -365,7 +365,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
     }
   }
   Levels.push_back(std::move(Frontier));
-  fwd.stop(); fwd.reportTotal("forward time");
+  fwd.stop(); fwd.next("forward time");
 
 
 
@@ -418,7 +418,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
     }
   }
   bt.stop();
-  debug(bt.reportTotal("back total time"););
+  debug(bt.next("back total time"););
 
 
   // Update dependencies scores

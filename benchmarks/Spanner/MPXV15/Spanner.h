@@ -64,7 +64,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
   deg_map[n] = 0;
   pbbslib::scan_inplace(deg_map);
   count_t.stop();
-  debug(count_t.reportTotal("count time"););
+  debug(count_t.next("count time"););
 
   timer ins_t;
   ins_t.start();
@@ -92,7 +92,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
   auto edge_pairs = edge_table.entries();
   edge_table.del();
   ins_t.stop();
-  debug(ins_t.reportTotal("ins time"););
+  debug(ins_t.next("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
   auto edges = sequence<edge>::from_function(edge_pairs.size(), [&] (size_t i) {
@@ -143,7 +143,7 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
   auto edge_pairs = edge_table.entries();
   edge_table.del();
   ins_t.stop();
-  debug(ins_t.reportTotal("ins time"););
+  debug(ins_t.next("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
   auto edges = sequence<edge>::from_function(edge_pairs.size(), [&] (size_t i) {
@@ -271,13 +271,13 @@ inline sequence<edge> Spanner_impl(Graph& G, double beta) {
   ldd_t.start();
   auto clusters_and_parents = LDD_parents(G, beta, permute);
   ldd_t.stop();
-  debug(ldd_t.reportTotal("ldd time"););
+  debug(ldd_t.next("ldd time"););
 
   timer build_el_t;
   build_el_t.start();
   auto spanner_edges = tree_and_intercluster_edges(G, clusters_and_parents);
   build_el_t.stop();
-  debug(build_el_t.reportTotal("build spanner edges time"););
+  debug(build_el_t.next("build spanner edges time"););
 
   // return spanner as an edge-list.
   debug(std::cout << "Spanner size = " << spanner_edges.size() << std::endl;);

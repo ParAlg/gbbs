@@ -134,7 +134,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
     vertex_perm = pbbslib::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
-  gs.stop(); debug(gs.reportTotal("generate shifts time"););
+  gs.stop(); debug(gs.next("generate shifts time"););
   auto cluster_ids = sequence<uintE>(n, UINT_E_MAX);
 
   timer add_t; timer vt;
@@ -178,8 +178,8 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
     round++;
   }
   debug(
-  add_t.reportTotal("add vertices time");
-  vt.reportTotal("edge map time"););
+  add_t.next("add vertices time");
+  vt.next("edge map time"););
   return cluster_ids;
 }
 

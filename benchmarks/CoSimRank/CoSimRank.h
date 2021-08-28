@@ -89,7 +89,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     parallel_for(0, n, [&] (size_t i) { p_curr_u[i] = static_cast<double>(0); });
     std::swap(p_curr_u,p_next_u);
 
-    debug(t.stop(); t.reportTotal("iteration time"););
+    debug(t.stop(); t.next("iteration time"););
   }
 
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
@@ -158,7 +158,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     timer tt; tt.start();
     auto Frontier_v_new = EM_v.template edgeMapReduce_dense<double, double>(Frontier_v, cond_f, map_f_v, reduce_f, apply_f_v, 0.0, 0);
     auto Frontier_u_new = EM_u.template edgeMapReduce_dense<double, double>(Frontier_u, cond_f, map_f_u, reduce_f, apply_f_u, 0.0, 0); //, no_output
-    tt.stop(); //tt.reportTotal("em time");
+    tt.stop(); //tt.next("em time");
 
     sim += ((double) pow(c, iter) * inner_product(p_next_u, p_next_v));
 
@@ -184,7 +184,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     // Reset p_curr
     std::swap(p_curr_v,p_next_v);
     std::swap(p_curr_u,p_next_u);
-    t.stop(); //t.reportTotal("iteration time");
+    t.stop(); //t.next("iteration time");
   }
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);

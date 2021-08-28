@@ -203,7 +203,7 @@ namespace connectit {
 
     timer init_t; init_t.start();
     alg.initialize(parents);
-    init_t.stop(); init_t.reportTotal("#alg initialization time");
+    init_t.stop(); init_t.next("#alg initialization time");
 
     /* process batches */
     timer tt; tt.start();

@@ -222,7 +222,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   size_t label_offset = zero.size() + 1;
 
   initt.stop();
-  initt.reportTotal("init");
+  initt.next("init");
 
   // Run the first search (BFS)
   {
@@ -257,7 +257,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       });
       label_offset += 1;
       hd.stop();
-      hd.reportTotal("big scc time");
+      hd.next("big scc time");
     }
   }
 
@@ -312,7 +312,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
         }
       });
       ft.stop();
-      ft.reportTotal("first round time");
+      ft.next("first round time");
       continue;
     }
 
@@ -323,7 +323,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
     std::cout << "Finished in search"
               << "\n";
-    ins.stop(); ins.reportTotal("insearch time");
+    ins.stop(); ins.next("insearch time");
 
     timer outs; outs.start();
     auto out_f = vertexSubset(n, std::move(centers_2));
@@ -332,7 +332,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
               << "\n";
     std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
               << "\n";
-    outs.stop(); outs.reportTotal("outsearch time");
+    outs.stop(); outs.next("outsearch time");
 
     auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
     auto& larger_t = (in_table.m > out_table.m) ? in_table : out_table;
@@ -364,7 +364,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     in_table.del();
     out_table.del();
     rt.stop();
-    rt.reportTotal("Round time");
+    rt.next("Round time");
   }
 
   parallel_for(0, labels.size(), [&] (size_t i) {

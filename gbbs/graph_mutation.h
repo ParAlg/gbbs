@@ -3,7 +3,6 @@
 #include "bridge.h"
 #include "compressed_vertex.h"
 #include "edge_array.h"
-#include "get_time.h"
 #include "vertex.h"
 #include "vertex_subset.h"
 
@@ -207,7 +206,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const fl
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res), 0);
     }
   }, 1);
-  reduce_t.stop(); reduce_t.reportTotal("reduce time");
+  reduce_t.stop(); reduce_t.next("reduce time");
   vtx_offs[n] = std::make_tuple(0, 0, 0);
   auto scan_f = [](const std::tuple<uintT, uintT, uintT>& l,
                    const std::tuple<uintT, uintT, uintT>& r) {

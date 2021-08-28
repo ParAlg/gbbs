@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "parlay/internal/binary_search.h"
+#include "parlay/internal/get_time.h"
 #include "parlay/primitives.h"
 #include "parlay/monoid.h"
 #include "parlay/parallel.h"
@@ -17,8 +18,6 @@
 #include "parlay/slice.h"
 #include "parlay/range.h"
 #include "parlay/utilities.h"
-
-#include "get_time.h"
 
 namespace gbbs {
   // ================== parallel primitives ===================
@@ -173,6 +172,9 @@ namespace gbbs {
   }
 
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
+
+  // ========================= timer  ==========================
+  using parlay::internal::timer;
 
 }  // namespace gbbs
 

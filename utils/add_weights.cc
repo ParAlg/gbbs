@@ -202,7 +202,7 @@ void writeWeightedBytePDADirected(graph<vertex<W>>& GA, string& outfile) {
       byte_offsets[i] = total_bytes;
     }, 1);
     calc_t.stop();
-    calc_t.reportTotal("total size time");
+    calc_t.next("total size time");
 
     byte_offsets[n] = 0;
     size_t total_space = pbbs::scan_inplace(make_slice(byte_offsets));
@@ -297,7 +297,7 @@ void writeWeightedBytePDA(graph<vertex<W>>& GA, string& outfile,
     byte_offsets[i] = total_bytes;
   }, 1);
   calc_t.stop();
-  calc_t.reportTotal("total size time");
+  calc_t.next("total size time");
 
   byte_offsets[n] = 0;
   size_t total_space = pbbs::scan_inplace(make_slice(byte_offsets));

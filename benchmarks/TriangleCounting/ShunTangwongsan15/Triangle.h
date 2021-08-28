@@ -177,7 +177,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   // 1. Rank vertices based on degree
   timer rt; rt.start();
   uintE* rank = rankNodes(G, G.n);
-  rt.stop(); rt.reportTotal("rank time");
+  rt.stop(); rt.next("rank time");
 
   // 2. Direct edges to point from lower to higher rank vertices.
   // Note that we currently only store out-neighbors for this graph to save
@@ -188,7 +188,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   auto DG = filterGraph(G, pack_predicate);
   //auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
-  gt.reportTotal("build graph time");
+  gt.next("build graph time");
 
   // 3. Count triangles on the digraph
   timer ct;
@@ -198,7 +198,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   std::cout << "### Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
-  ct.reportTotal("count time");
+  ct.next("count time");
   pbbslib::free_array(rank, G.n);
   return count;
 }
@@ -215,7 +215,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
 
   timer rt; rt.start();
   auto ordering = ordering_fn(G);
-  rt.stop(); rt.reportTotal("rank time");
+  rt.stop(); rt.next("rank time");
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (ordering[u] < ordering[v]);
   };
@@ -223,7 +223,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
   auto DG = filterGraph(G, pack_predicate);
  // auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
-  gt.reportTotal("build graph time");
+  gt.next("build graph time");
 
   // 3. Count triangles on the digraph
   timer ct;
@@ -233,7 +233,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
   std::cout << "### Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
-  ct.reportTotal("count time");
+  ct.next("count time");
   return count;
 }
 

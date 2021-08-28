@@ -81,7 +81,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   size_t rounds = 0;
   pbbslib::dyn_arr<uintE> cover = pbbslib::dyn_arr<uintE>();
   auto r = pbbslib::random();
-  it.stop(); it.reportTotal("initialization time");
+  it.stop(); it.next("initialization time");
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
@@ -184,11 +184,11 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   }
   b.del();
 
-  bktt.reportTotal("bucket");
-  nbt.reportTotal("next bucket time");
-  packt.reportTotal("pack");
-  permt.reportTotal("perm");
-  emt.reportTotal("emap");
+  bktt.next("bucket");
+  nbt.next("next bucket time");
+  packt.next("pack");
+  permt.next("perm");
+  emt.next("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
   auto elm_cov = pbbslib::make_delayed<uintE>(G.n, elm_cov_f);
   size_t elms_cov = pbbslib::reduce_add(elm_cov);

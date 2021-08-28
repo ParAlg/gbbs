@@ -98,7 +98,7 @@ namespace contract_sf {
     deg_map[n] = 0;
     pbbslib::scan_inplace(deg_map);
     count_t.stop();
-    debug(count_t.reportTotal("count time"););
+    debug(count_t.next("count time"););
 
     timer ins_t;
     ins_t.start();

@@ -135,7 +135,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
     auto ret = (fl & dense_forward)
                ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
-    dt.stop(); debug(dt.reportTotal("dense time"););
+    dt.stop(); debug(dt.next("dense time"););
     return ret;
   }
 
@@ -160,11 +160,11 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
     auto ret = (fl & dense_forward)
                ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
-    st.stop(); debug(st.reportTotal("dense convert time"););
+    st.stop(); debug(st.next("dense convert time"););
     return ret;
   } else {
     auto vs_out = edgeMapChunked<Data, Graph, VS, F>(GA, vs, f, fl);
-    st.stop(); debug(st.reportTotal("sparse time"););
+    st.stop(); debug(st.next("sparse time"););
 //    auto vs_out = edgeMapBlocked<Data, Graph, VS, F>(GA, vs, f, fl);
 //    auto vs_out = edgeMapSparse<Data, Graph, VS, F>(GA, vs, f, fl);
     return vs_out;

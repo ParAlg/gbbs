@@ -71,8 +71,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   }
   auto output = sequence<uintE>::from_function(n, [&] (size_t i) { return ret.A[i]; });
   debug(
-  kt.reportTotal("kth time");
-  ft.reportTotal("filter time"););
+  kt.next("kth time");
+  ft.next("filter time"););
   return output;
 }
 

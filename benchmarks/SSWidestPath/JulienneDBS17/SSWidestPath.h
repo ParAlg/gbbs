@@ -88,7 +88,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     };
     G.get_vertex(i).out_neighbors().map(map_f);
   }, 1);
-  mw.stop(); mw.reportTotal("max weight time");
+  mw.stop(); mw.next("max weight time");
   std::cout << "max_weight = " << max_weight << std::endl;
 
   timer init;
@@ -122,7 +122,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   };
 
   init.stop();
-  init.reportTotal("init time");
+  init.next("init time");
   timer bt, emt;
   auto bkt = b.next_bucket();
   size_t rd = 0;
@@ -147,8 +147,8 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     bt.stop();
     rd++;
   }
-  bt.reportTotal("bucket time");
-  emt.reportTotal("edge map time");
+  bt.next("bucket time");
+  emt.next("edge map time");
   std::cout << "n rounds = " << rd << "\n";
 
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == (uintE)(-1))) ? 0 : width[i]; }; // noop?
