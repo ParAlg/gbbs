@@ -59,7 +59,7 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
     size_t ms = pbbslib::chars_to_int_t<unsigned long>(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
-    par_for(0, ms, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, ms, kDefaultGranularity, [&] (size_t i) {
       matching[i] =
         std::make_tuple(pbbslib::chars_to_int_t<uintE>(Words[1 + 2 * i]), pbbslib::chars_to_int_t<uintE>(Words[2 + 2 * i]));
     });

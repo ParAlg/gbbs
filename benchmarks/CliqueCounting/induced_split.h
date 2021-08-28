@@ -16,7 +16,7 @@ namespace induced_split {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
       return DG.get_vertex(v).out_degree();
     };
-    par_for(0, DG.n, [&] (size_t i) {
+    parallel_for(0, DG.n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
       parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });

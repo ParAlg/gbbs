@@ -51,7 +51,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
   sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
         [] (auto x) { return parlay::make_slice(x); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     labels[i] =
         std::make_tuple(pbbslib::chars_to_int_t<uintE>(tokens[2 * i]), pbbslib::chars_to_int_t<uintE>(tokens[2 * i + 1]));
   });
@@ -95,7 +95,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
       }
     }
   };
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { GA.get_vertex(i).out_neighbors().map(map_bc_label); });
 
   if (component_id == UINT_E_MAX) {

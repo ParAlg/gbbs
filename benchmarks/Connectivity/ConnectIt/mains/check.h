@@ -7,7 +7,7 @@ template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }

@@ -53,7 +53,7 @@ namespace truss_utils {
     }
 
     static void clearA(V* A, long n, V kv) {
-      par_for(0, n, kDefaultGranularity, [&] (size_t i)
+      parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                       { A[i] = kv; });
     }
 
@@ -100,7 +100,7 @@ namespace truss_utils {
     }
 
     void clear() {
-      par_for(0, m, [&] (size_t i) { table[i] = empty; });
+      parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
     }
 
   };
@@ -180,7 +180,7 @@ namespace truss_utils {
     multi_table(size_t n, V empty_val, GS size_func) : n(n), empty_val(empty_val) {
       // compute offsets
       offsets = sequence<size_t>(n+1);
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         size_t table_elms = size_func(i);
         offsets[i] = (1 << pbbslib::log2_up((size_t)(table_elms*1.2))) + 2; // 2 cell padding (l, r)
       });
@@ -193,7 +193,7 @@ namespace truss_utils {
       big_size = total_space;
 
       tables = pbbslib::new_array_no_init<inner_table>(n);
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         size_t off = offsets[i];
         size_t sz = offsets[i+1] - off;
         sz -= 2; // 2 cell's padding
@@ -206,12 +206,12 @@ namespace truss_utils {
         // clear i's table
         V val = empty_val;
         auto empty_i = std::make_tuple((K)i, val);
-        par_for(0, sz+2, [&] (size_t j) { // sz + 2 cell padding
+        parallel_for(0, sz+2, [&] (size_t j) { // sz + 2 cell padding
           table_loc[j] = empty_i;
         });
       });
 
-  //    par_for(0, big_size, [&] (size_t i) {
+  //    parallel_for(0, big_size, [&] (size_t i) {
   //      assert(std::get<1>(big_table[i]) == empty_val);
   //    });
 
@@ -290,7 +290,7 @@ namespace truss_utils {
   void TCDirected(Graph& DG, F f) {
     size_t n = DG.n;
     auto frontier = sequence<bool>::uninitialized(n);
-    par_for(0, n, [&] (size_t i) { frontier[i] = 1; });
+    parallel_for(0, n, [&] (size_t i) { frontier[i] = 1; });
     vertexSubset Frontier(n, n, std::move(frontier));
     emdf(DG, Frontier, countF<F, Graph>(DG, f), no_output);
   }
@@ -301,11 +301,11 @@ namespace truss_utils {
     auto r = sequence<uintE>(n);
     auto o = sequence<uintE>(n);
 
-    par_for(0, n, [&] (size_t i) { o[i] = i; });
+    parallel_for(0, n, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
       return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
     });
-    par_for(0, n, [&] (size_t i) { r[o[i]] = i; });
+    parallel_for(0, n, [&] (size_t i) { r[o[i]] = i; });
     return r;
   }
 

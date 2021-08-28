@@ -70,7 +70,7 @@ struct SVAlgorithm {
     while (changed) {
       changed = false;
       rounds++;
-      parallel_for(0, candidates.size(), [&] (uintE i) {
+      parallel_for(0, candidates.size(), 1, [&] (uintE i) {
         uintE u = candidates[i];
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = PrevParents[u];
@@ -84,9 +84,9 @@ struct SVAlgorithm {
         };
         GA.get_vertex(u).out_neighbors().map(map_f);
 
-      }, 1);
+      });
 
-      parallel_for(0, candidates.size(), [&] (uintE i) {
+      parallel_for(0, candidates.size(), 1, [&] (uintE i) {
         uintE u = candidates[i];
         auto map_f_2 = [&] (const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = PrevParents[u];
@@ -100,7 +100,7 @@ struct SVAlgorithm {
           }
         };
         GA.get_vertex(u).out_neighbors().map(map_f_2);
-      }, 1);
+      });
 
       // compress
       parallel_for(0, n, [&] (uintE u) {

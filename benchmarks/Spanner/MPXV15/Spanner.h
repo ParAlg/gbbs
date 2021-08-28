@@ -59,7 +59,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
     uintE c_ngh = clusters[ngh];
     return c_src < c_ngh;
   };
-  par_for(0, n, 1, [&] (size_t i)
+  parallel_for(0, n, 1, [&] (size_t i)
                   { deg_map[i] = G.get_vertex(i).out_neighbors().count(pred); });
   deg_map[n] = 0;
   pbbslib::scan_inplace(deg_map);
@@ -88,7 +88,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
           std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)));
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
+  parallel_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
   auto edge_pairs = edge_table.entries();
   edge_table.del();
   ins_t.stop();
@@ -243,7 +243,7 @@ inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool perm
       auto pred = [&](uintE v) { return clusters[v].cluster == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), kDefaultGranularity,
+      parallel_for(0, new_centers.size(), kDefaultGranularity,
         [&] (size_t i) {
             uintE v = new_centers[i];
             clusters[new_centers[i]] = cluster_and_parent(v, v);

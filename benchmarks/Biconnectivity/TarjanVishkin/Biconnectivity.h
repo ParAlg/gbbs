@@ -100,7 +100,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   using edge = std::tuple<uintE, uintE>;
   auto out_edges = sequence<edge>::from_function(
       n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     uintE p_i = Parents[i];
     if (p_i != i) {
       out_edges[i] = std::make_tuple(p_i, i);
@@ -114,7 +114,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   pbbslib::sample_sort_inplace(make_slice(edges), sort_tup);
 
   auto starts = sequence<uintE>::from_function(n + 1, [](size_t i) { return UINT_E_MAX; });
-  par_for(0, edges.size(), [&] (size_t i) {
+  parallel_for(0, edges.size(), [&] (size_t i) {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
       starts[std::get<0>(edges[i])] = i;
     }
@@ -142,7 +142,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   auto v_out = pbbslib::new_array_no_init<vertex_data>(n);
   auto v_in = pbbslib::new_array_no_init<vertex_data>(n);
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
     v_out[i].offset = out_off;
@@ -197,7 +197,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   pren.start();
   auto PN = pbbslib::new_array_no_init<uintE>(n);
   vs = vertexSubset(n, std::move(s_copy));
-  par_for(0, Sources.size(), [&] (size_t i) {
+  parallel_for(0, Sources.size(), [&] (size_t i) {
     uintE v = vs.vtx(i);
     PN[v] = 0;
   });
@@ -212,7 +212,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     });
     auto tot = pbbslib::scan_inplace(offsets);
     auto next_vs = sequence<uintE>::uninitialized(tot);
-    par_for(0, vs.size(), 1, [&] (size_t i) {
+    parallel_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
       uintE deg_v = Tree.get_vertex(v).out_degree();
@@ -231,12 +231,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
         }
       } else {
         auto A = sequence<uintE>::uninitialized(deg_v);
-        par_for(0, deg_v, [&] (size_t j) {
+        parallel_for(0, deg_v, [&] (size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
         });
         pbbslib::scan_inplace(A);
-        par_for(0, deg_v, [&] (size_t j) {
+        parallel_for(0, deg_v, [&] (size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
@@ -278,14 +278,14 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       }
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
+  parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   map_e.stop();
   debug(map_e.next("map edges time"););
 
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { cts[i] = Tree.get_vertex(i).out_degree(); });
 
   vs = vertexSubset(n, std::move(leafs));
@@ -330,7 +330,7 @@ inline sequence<uintE> multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
   auto Parents = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  par_for(0, frontier.size(), 2000, [&] (size_t i) {
+  parallel_for(0, frontier.size(), 2000, [&] (size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
   });
@@ -390,7 +390,7 @@ sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& fron
   auto visited = sequence<bool>::from_function(n, [] (size_t i) { return false; });
   auto Parents = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  par_for(0, frontier.size(), [&] (size_t i) {
+  parallel_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
     visited[v] = true;
@@ -409,7 +409,7 @@ template <class Seq>
 inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return UINT_E_MAX; });
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     uintE label = labels[i];
     pbbslib::write_min(&flags[label], (uintE)i);
   });
@@ -428,7 +428,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   auto PN = pbbslib::make_range<uintE>(PN_A, n);
   auto aug_sizes = pbbslib::make_range<uintE>(aug_sizes_A, n);
 
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     uintE pi = Parents[i];
     if (pi != i) {
       labels clab = MM[i];
@@ -459,7 +459,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   ccpred.start();
   // 1. Pack out all critical edges
   auto active = pbbslib::new_array_no_init<bool>(n);
-  par_for(0, n, [&] (size_t i) { active[i] = true; });
+  parallel_for(0, n, [&] (size_t i) { active[i] = true; });
 //  auto vs_active = vertexSubset(n, n, active);
   auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
     return !not_critical_edge(src, ngh);
@@ -478,7 +478,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
 //  //Note that counting components here will count initially isolated vertices
 //  //as distinct components.
 //   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
-//   par_for(0, n, [&] (size_t i) {
+//   parallel_for(0, n, [&] (size_t i) {
 //     if (!flags[cc[i]]) {
 //       flags[cc[i]] = 1;
 //     }
@@ -498,7 +498,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
 //    }
 
     auto tups = sequence<std::pair<uintE, uintE>>::uninitialized(n);
-    par_for(0, n, [&] (size_t i) {
+    parallel_for(0, n, [&] (size_t i) {
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     auto C = pbbslib::sequence_to_string(tups);

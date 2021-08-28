@@ -114,7 +114,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
     auto P = pbbslib::random_permutation<uintE>(still_active.size(), r);
-    par_for(0, still_active.size(), kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, still_active.size(), kDefaultGranularity, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
                       uintE pv = P[i];
                       perm[v] = pv;

@@ -51,7 +51,7 @@ template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     size_t label = labels[i];
     if ((label != kUnfinished) && !flags[label]) {
       flags[label] = 1;

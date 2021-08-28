@@ -38,12 +38,12 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
       d[ngh] = 1;
     }
   };
-  par_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
       G.get_vertex(i).out_neighbors().map(map_f);
     }
   });
-  par_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
       assert(!d[i]);
     }
@@ -124,7 +124,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   // compute the priority DAG
   auto priorities = sequence<intE>(n);  // why intE?
   auto perm = pbbslib::random_permutation<uintE>(n);
-  par_for(0, n, 1, [&] (size_t i) {
+  parallel_for(0, n, 1, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -241,7 +241,7 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>::from_function(n, [&](size_t i) { return 1; });
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };

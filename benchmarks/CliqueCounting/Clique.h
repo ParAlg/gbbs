@@ -56,13 +56,13 @@ inline sequence<uintE> degreeOrderNodes(Graph& G, size_t n) {
   sequence<uintE> r = sequence<uintE>::uninitialized(n); // to hold degree rank per vertex id
 
   sequence<uintE> o = sequence<uintE>::uninitialized(n); // to hold vertex ids in degree order
-  par_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
 
   pbbslib::integer_sort_inplace(make_slice(o), [&] (size_t p) {
     return G.get_vertex(p).out_degree();
   });
 
-  par_for(0, n, kDefaultGranularity,
+  parallel_for(0, n, kDefaultGranularity,
           [&](size_t i){ r[o[i]] = i; });
   return r;
 }
@@ -93,7 +93,7 @@ inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
   const size_t n = DG.n;
   size_t count = 0;
   auto counts = sequence<size_t>::uninitialized(n);
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) { counts[i] = 0; });
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) { // if counting in total
     auto base_f = [&](uintE a, uintE b, uintE ngh) {};

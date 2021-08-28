@@ -45,30 +45,30 @@ void ClusterCores(
   timer function_timer{"Cluster cores time"};
 
   VertexSet cores_set{MakeVertexSet(cores.size())};
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
     cores_set.insert(std::make_pair(cores[i], gbbs::empty{}));
   });
 
   // Get connected components induced by sufficiently similar core-to-core
   // edges.
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
       const uintE core{cores[i]};
       (*clustering)[core] = core;
   });
   constexpr auto find{find_variants::find_compress};
   auto unite{unite_variants::Unite<decltype(find)>{find}};
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
     const uintE core{cores[i]};
     const auto& neighbors{neighbor_order[core]};
     constexpr bool kParallelizeInnerLoop{false};
-    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+    parallel_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       if (core > neighbor && cores_set.contains(neighbor)) {
         unite(core, neighbor, *clustering);
       }
     }, kParallelizeInnerLoop);
   });
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
       const uintE core{cores[i]};
       (*clustering)[core] = find(core, *clustering);
   });
@@ -101,12 +101,12 @@ void AttachNoncoresToClusters(
   //
   // We could do something smarter like attach each non-core to its most
   // structurally similar adjacent core, but let's keep things simple for now.
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
     const uintE core{cores[i]};
     const uintE core_cluster{(*clustering)[core]};
     const auto& neighbors{neighbor_order[core]};
     constexpr bool kParallelizeInnerLoop{false};
-    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+    parallel_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       auto* neighbor_cluster_address{&(*clustering)[neighbor]};
       if (*neighbor_cluster_address == kUnclustered) {
@@ -138,11 +138,11 @@ void AttachNoncoresToClustersDeterministic(
     num_vertices,
     [](const size_t i) { return std::make_pair(-1, UINT_E_MAX); });
 
-  par_for(0, cores.size(), [&](const uintE i) {
+  parallel_for(0, cores.size(), [&](const uintE i) {
     const uintE core{cores[i]};
     const auto& neighbors{neighbor_order[core]};
     constexpr bool kParallelizeInnerLoop{false};
-    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+    parallel_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       if ((*clustering)[neighbor] == kUnclustered) {
         const float similarity{neighbors[j].similarity};
@@ -165,7 +165,7 @@ void AttachNoncoresToClustersDeterministic(
       }
     }, kParallelizeInnerLoop);
   });
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  parallel_for(0, num_vertices, [&](const size_t vertex_id) {
     if (tentative_attachments[vertex_id].first > 0.0) {
       (*clustering)[vertex_id] =
         (*clustering)[tentative_attachments[vertex_id].second];
@@ -262,20 +262,20 @@ void Index::Cluster(
 
     // ClusterCores() logic -- get connected components induced by sufficiently
     // similar core-to-core edges
-    par_for(previous_cores.size(), cores.size(), [&](const size_t j) {
+    parallel_for(previous_cores.size(), cores.size(), [&](const size_t j) {
       const uintE core{cores[j]};
       cores_set.insert(std::make_pair(core, gbbs::empty{}));
       clustering[core] = core;
     });
     constexpr auto find{find_variants::find_compress};
     auto unite{unite_variants::Unite<decltype(find)>{find}};
-    par_for(0, cores.size(), [&](const size_t j) {
+    parallel_for(0, cores.size(), [&](const size_t j) {
       const uintE core{cores[j]};
       const auto& neighbors{neighbor_order_[core]};
       constexpr bool kParallelizeInnerLoop{false};
       // only operate on new edges for this iteration, hence the ternary
       // statement
-      par_for(
+      parallel_for(
           j < previous_cores.size()
             ? previous_core_similar_edge_counts[j]
             : 0,
@@ -292,7 +292,7 @@ void Index::Cluster(
         }
       }, kParallelizeInnerLoop);
     });
-    par_for(0, cores.size(), [&](const size_t j) {
+    parallel_for(0, cores.size(), [&](const size_t j) {
         const uintE core{cores[j]};
         clustering[core] = find(core, clustering);
     });

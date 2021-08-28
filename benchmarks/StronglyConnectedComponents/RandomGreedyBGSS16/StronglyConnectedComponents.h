@@ -110,11 +110,11 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
   auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing, true);
   frontier.toSparse();
-  par_for(0, frontier.size(), [&] (size_t i) {
+  parallel_for(0, frontier.size(), kDefaultGranularity, [&] (size_t i) {
     uintE v = frontier.s[i];
     // each center initially just stores itself.
     table.insert(std::make_tuple(v, label_start + i));
-  }, (frontier.size() > 1000));
+  });
   table.update_nelms();
 
   size_t rd = 0;
@@ -137,10 +137,10 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
     size_t sum = pbbslib::reduce_add(im);
     table.maybe_resize(sum);
 
-    par_for(0, frontier.size(), [&] (size_t i) {
+    parallel_for(0, frontier.size(), kDefaultGranularity, [&] (size_t i) {
       uintE v = frontier.s[i];
       bits[v] = 0;  // reset flag
-    }, (frontier.size() > 2000));
+    });
 
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
@@ -214,7 +214,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
             << " vertices. Num remaining = " << P.size() << "\n";
 
   // Assign labels from [0...zero.size())
-  par_for(0, zero.size(), kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, zero.size(), kDefaultGranularity, [&] (size_t i)
                   { labels[zero[i]] = 1 + (i | TOP_BIT); });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
@@ -246,7 +246,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
       size_t label = label_offset;
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -302,7 +302,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
       size_t label = cur_label_offset;
 
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -387,12 +387,7 @@ template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
-    // if (labels[i] == 0) {
-    //   std::cout << "unlabeled"
-    //             << "\n";
-    //   exit(0);
-    // }
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     size_t label = labels[i] & VAL_MASK;
     if (!flags[label]) {
       flags[label] = 1;

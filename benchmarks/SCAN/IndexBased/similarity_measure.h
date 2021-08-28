@@ -234,7 +234,7 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   //     u --> v
   // There's a bijection between triangles of this form in `directed_graph` and
   // undirected triangles in `graph`.
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     auto vertex{directed_graph.get_vertex(vertex_id)};
     const uintT vertex_counter_offset{counter_offsets[vertex_id]};
     const auto intersect{[&](
@@ -261,7 +261,7 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
 
   sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+  parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const auto compute_similarity{[&](
@@ -327,7 +327,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // vertices need assignments of normal numbers for Minhash fingerprinting.
   sequence<uintE> needs_fingerprint_seq(graph->n, 0U);
   sequence<uintE> needs_normals_seq(graph->n, 0U);
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     if (vertex.out_degree() >= degree_threshold) {
       // Vertex should be fingerprinted if both it and one of its neighbors
@@ -369,7 +369,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Simhash fingerprints.
   sequence<BitArray> fingerprints{
     sequence<BitArray>::uninitialized(num_needs_fingerprint * num_bit_arrays)};
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  parallel_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
     const bool needs_fingerprint{
       vertex_id + 1 == num_vertices
@@ -382,7 +382,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     const uintE vertex_normal_offset{
       num_samples * normals_indices[vertex_id]};
     const size_t fingerprint_offset{fingerprint_index * num_bit_arrays};
-    par_for(0, num_bit_arrays, [&](const size_t bit_array_id) {
+    parallel_for(0, num_bit_arrays, [&](const size_t bit_array_id) {
       BitArray bits{0};
       const size_t max_bit_id{
         bit_array_id + 1 == num_bit_arrays
@@ -452,7 +452,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Count each of these triangles to get the number of shared neighbors between
   // vertices. However, we skip pairs of vertices that have high degree in the
   // original, undirected graph.
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     auto vertex{directed_graph.get_vertex(vertex_id)};
     const bool vertex_is_high_degree{
       graph->v_data[vertex_id].degree >= degree_threshold};
@@ -538,7 +538,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 
   sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+  parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
@@ -657,7 +657,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // Compute MinHash fingerprints for high degree vertices.
   sequence<uintE> fingerprints(
     num_needs_fingerprint * num_samples, kEmptyBucket);
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  parallel_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
     const bool needs_fingerprint{
       vertex_id + 1 == num_vertices
@@ -699,7 +699,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // Count each of these triangles to get the number of shared neighbors between
   // vertices. However, we skip pairs of vertices that have high degree in the
   // original, undirected graph.
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     auto vertex{directed_graph.get_vertex(vertex_id)};
     const bool vertex_is_high_degree{
       graph->v_data[vertex_id].degree >= degree_threshold};
@@ -741,7 +741,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
 
   sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+  parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
@@ -839,7 +839,7 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     //     u --> v
     // There's a bijection between triangles of this form in `directed_graph`
     // and undirected triangles in `graph`.
-    par_for(0, graph->n, [&](const size_t vertex_id) {
+    parallel_for(0, graph->n, [&](const size_t vertex_id) {
       auto vertex{directed_graph.get_vertex(vertex_id)};
       const uintT vertex_counter_offset{counter_offsets[vertex_id]};
       const auto intersect{[&](
@@ -885,7 +885,7 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
 
     sequence<EdgeSimilarity> similarities(graph->m);
     // Convert shared neighbor counts into similarities for each edge.
-    par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+    parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
       const uintT v_counter_offset{counter_offsets[vertex_id]};
       const auto compute_similarity{[&](
           const uintE v_id,

@@ -42,7 +42,7 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto Parents = sequence<uintE>(n);
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Parents[i] = UINT_E_MAX; });
 
   auto Edges = sequence<edge>(n, empty_edge);
@@ -66,7 +66,7 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
       auto pred = [&](uintE v) { return Parents[v] == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
+      parallel_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
         uintE v = new_centers[i];
         Parents[v] = v;
       });

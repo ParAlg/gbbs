@@ -53,7 +53,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
 
   auto density_above = sequence<size_t>(n);
 
-  par_for(0, n, 1, [&] (size_t i) {
+  parallel_for(0, n, 1, [&] (size_t i) {
     uintE pos_u = vtx_to_position[i];
     auto vtx_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       uintE pos_v = vtx_to_position[v];

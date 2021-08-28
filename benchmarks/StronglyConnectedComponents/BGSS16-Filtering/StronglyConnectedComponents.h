@@ -282,7 +282,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      auto visited_out = first_search(GA, zero, start);
 //
 //      size_t start_label = label_offset;  // The label of the SCC containing start.
-//      par_for(0, n, [&] (size_t i) {
+//      parallel_for(0, n, [&] (size_t i) {
 //        bool inv = visited_in[i];
 //        bool outv = visited_out[i];
 //        // Do not overwrite labels of isolated-SCC vertices (in zero). These are
@@ -382,7 +382,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       auto visited_out = first_search(GA, zero, start);
 
       size_t start_label = cur_label_offset;  // The label of the SCC containing start.
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         bool inv = visited_in[i];
         bool outv = visited_out[i];
         // Do not overwrite labels of isolated-SCC vertices (in zero). These are

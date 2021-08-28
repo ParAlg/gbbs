@@ -184,7 +184,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     if (k == 0 || finished == n_edges) {
       // No triangles incident to these edges. We set their trussness to MAX,
       // which is safe since there are no readers until we output.
-      par_for(0, rem_edges.size(), [&] (size_t i) {
+      parallel_for(0, rem_edges.size(), [&] (size_t i) {
         edge_t id = rem_edges[i];
         std::get<1>(trussness_multi.big_table[id]) = std::numeric_limits<int>::max(); // UINT_E_MAX is reserved
       });
@@ -200,7 +200,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
 //    std::cout << "starting decrements" << std::endl;
     decrement_t.start();
-    par_for(0, rem_edges.size(), 1, [&] (size_t i) {
+    parallel_for(0, rem_edges.size(), 1, [&] (size_t i) {
       edge_t id = rem_edges[i];
       uintE u = trussness_multi.u_for_id(id);
       uintE v = std::get<0>(trussness_multi.big_table[id]);
@@ -263,7 +263,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 //    bt.stop();
 
     // Unmark edges removed in this round, and decrement their trussness.
-    par_for(0, rem_edges.size(), [&] (size_t i) {
+    parallel_for(0, rem_edges.size(), [&] (size_t i) {
       edge_t id = rem_edges[i];
       std::get<1>(trussness_multi.big_table[id]) -= 1;
     });

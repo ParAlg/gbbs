@@ -95,7 +95,7 @@ namespace mm {
 
     auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
     auto out = sequence<edge>(e_arr.size());
-    par_for(0, e_arr.size(), kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, e_arr.size(), kDefaultGranularity, [&] (size_t i) {
       out[i] = e_arr[perm[i]];  // gather or scatter?
     });
     E.E = std::move(out);
@@ -140,7 +140,7 @@ namespace mm {
     perm_t.start();
     auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
     auto out = sequence<edge>(e_arr.size());
-    par_for(0, e_arr.size(), [&] (size_t i) {
+    parallel_for(0, e_arr.size(), [&] (size_t i) {
       out[i] = e_arr[perm[i]];  // gather or scatter?
     });
     E.E = std::move(out);
@@ -193,7 +193,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     auto e_added =
         pbbslib::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
     auto sizes = sequence<size_t>(e_added.size());
-    par_for(0, e_added.size(), [&] (size_t i) {
+    parallel_for(0, e_added.size(), [&] (size_t i) {
                       const auto& e = e_added[i];
                       uintE u = std::get<0>(e) & mm::VAL_MASK;
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
@@ -229,14 +229,14 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   auto matched = sequence<uintE>::from_function(n, [](size_t i) { return 0; });
 
   // Check that this is a valid matching
-  par_for(0, matching.size(), [&] (size_t i) {
+  parallel_for(0, matching.size(), [&] (size_t i) {
                     const auto& edge = matching[i];
                     pbbslib::write_add(&matched[std::get<0>(edge)], 1);
                     pbbslib::write_add(&matched[std::get<1>(edge)], 1);
                   });
 
   bool valid = true;
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     if (matched[i] > 1) valid = false;
   });
   assert(valid == true);
@@ -249,7 +249,7 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
+  parallel_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_im = pbbslib::make_delayed<size_t>(n, ok_f);

@@ -39,7 +39,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     else
       bits = (bool*)s_bits;
 
-    par_for(0, deg, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, deg, kDefaultGranularity, [&] (size_t i)
                     { bits[i] = 0; });
     auto map_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE color = colors[ngh];
@@ -100,7 +100,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
               << "\n";
     // LF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
-    par_for(0, n, 1, [&] (size_t i) {
+    parallel_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = G.get_vertex(i).out_degree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
@@ -114,7 +114,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
               << "\n";
     // LLF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
-    par_for(0, n, 1, [&] (size_t i) {
+    parallel_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = pbbslib::log2_up(G.get_vertex(i).out_degree());
       uintE i_p = P[i];
       // breaks ties using P
@@ -141,7 +141,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
 
     // color the rootset
     color_t.start();
-    par_for(0, roots.size(), 1, [&] (size_t i) {
+    parallel_for(0, roots.size(), 1, [&] (size_t i) {
       uintE v = roots.vtx(i);
       colors[v] = coloring::color(G, v, colors);
     });
@@ -166,7 +166,7 @@ inline void verify_coloring(Graph& G, Seq& colors) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>(n);
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     uintE src_color = colors[i];
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       uintE ngh_color = colors[ngh];

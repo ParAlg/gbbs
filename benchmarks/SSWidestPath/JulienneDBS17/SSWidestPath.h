@@ -80,14 +80,14 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
 
   timer mw; mw.start();
   W max_weight = (W)0;
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, 1, [&] (size_t i) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (wgh > max_weight) {
         pbbslib::write_max(&max_weight, wgh);
       }
     };
     G.get_vertex(i).out_neighbors().map(map_f);
-  }, 1);
+  });
   mw.stop(); mw.next("max weight time");
   std::cout << "max_weight = " << max_weight << std::endl;
 
@@ -203,7 +203,7 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, kDefaultGranularity, [&] (size_t i)
+      parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                       { width[i] = -(INT_E_MAX / 2); });
       break;
     }

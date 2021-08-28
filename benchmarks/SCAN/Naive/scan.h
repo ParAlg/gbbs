@@ -85,7 +85,7 @@ Clustering Cluster(
 
   // Cluster all the non-cores by attaching them to the clusters of
   // epsilon-similar neighboring cores.
-  par_for(0, num_vertices, [&](const uintE vertex_id) {
+  parallel_for(0, num_vertices, [&](const uintE vertex_id) {
     if (clustering[vertex_id].empty()) {
       auto vertex{graph->get_vertex(vertex_id)};
       const uintE degree{vertex.out_degree()};

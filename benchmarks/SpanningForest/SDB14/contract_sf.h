@@ -29,15 +29,15 @@ namespace contract_sf {
     using T = typename Seq::value_type;
     size_t n = ids.size();
     auto inverse_map = sequence<T>(n + 1);
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { inverse_map[i] = 0; });
-    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
     pbbslib::scan_inplace(inverse_map);
 
     size_t new_n = inverse_map[n];
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { ids[i] = inverse_map[ids[i]]; });
     return new_n;
   }
@@ -69,7 +69,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
+    parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
 
     return edge_table;
   }
@@ -93,7 +93,7 @@ namespace contract_sf {
       uintE c_ngh = clusters[ngh];
       return c_src < c_ngh;
     };
-    par_for(0, n, 1, [&] (size_t i)
+    parallel_for(0, n, 1, [&] (size_t i)
                     { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); });
     deg_map[n] = 0;
     pbbslib::scan_inplace(deg_map);
@@ -119,7 +119,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
+    parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
     return edge_table;
   }
 
@@ -151,7 +151,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge), &abort);
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
+    parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
     if (abort) {
       debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
       return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);
@@ -175,7 +175,7 @@ namespace contract_sf {
     // Pack out singleton clusters
     auto flags = sequence<uintE>(num_clusters + 1, static_cast<uintE>(0));
 
-    par_for(0, edges_size, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, edges_size, kDefaultGranularity, [&] (size_t i) {
                       auto e = std::get<0>(edges[i]);
                       uintE u = e.first;
                       uintE v = e.second;
@@ -186,7 +186,7 @@ namespace contract_sf {
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     auto mapping = sequence<uintE>(num_ns_clusters);
-    par_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
                       if (flags[i] != flags[i + 1]) {
                         mapping[flags[i]] = i;
                       }

@@ -81,14 +81,14 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
   // `vertex_degrees[i].degree >= j`.
   sequence<uintE> degree_offsets = sequence<uintE>::uninitialized(max_degree + 1);
   const size_t min_degree{vertex_degrees[0].degree};
-  par_for(0, min_degree + 1, [&](const size_t j) {
+  parallel_for(0, min_degree + 1, [&](const size_t j) {
     degree_offsets[j] = 0;
   });
-  par_for(1, vertex_degrees.size(), [&](const size_t i) {
+  parallel_for(1, vertex_degrees.size(), [&](const size_t i) {
     const size_t degree{vertex_degrees[i].degree};
     const size_t prev_degree{vertex_degrees[i - 1].degree};
     if (degree != prev_degree) {
-      par_for(prev_degree + 1, degree + 1, [&](const size_t j) {
+      parallel_for(prev_degree + 1, degree + 1, [&](const size_t j) {
         degree_offsets[j] = i;
       });
     }
