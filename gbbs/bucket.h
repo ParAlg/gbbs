@@ -95,7 +95,7 @@ struct buckets {
         num_elms(0),
         allocated(true) {
     // Initialize array consisting of the materialized buckets.
-    bkts = pbbslib::new_array<id_dyn_arr>(total_buckets);
+    bkts = parlay::sequence<id_dyn_arr>(total_buckets);
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
@@ -178,7 +178,7 @@ struct buckets {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].clear();
       }
-      pbbslib::free_array(bkts, total_buckets);
+      bkts.clear();
       allocated = false;
     }
   }
@@ -305,7 +305,7 @@ struct buckets {
   bool allocated;
 
   size_t cur_range;
-  id_dyn_arr* bkts;
+  parlay::sequence<id_dyn_arr> bkts;
 
   template <class F>
   inline size_t update_buckets_seq(F& f, size_t k) {
