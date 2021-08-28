@@ -42,15 +42,15 @@ char* commandLine::getOptionValue(const std::string& option) const {
   return NULL;
 }
 
-std::string commandLine::getOptionValue(
-    const std::string& option, const std::string& defaultValue) const {
+std::string commandLine::getOptionValue(const std::string& option,
+                                        const std::string& defaultValue) const {
   for (int i = 1; i < argc - 1; i++)
     if ((std::string)argv[i] == option) return (std::string)argv[i + 1];
   return defaultValue;
 }
 
-int commandLine::getOptionIntValue(
-    const std::string& option, int defaultValue) const {
+int commandLine::getOptionIntValue(const std::string& option,
+                                   int defaultValue) const {
   for (int i = 1; i < argc - 1; i++)
     if ((std::string)argv[i] == option) {
       int r = atoi(argv[i + 1]);
@@ -59,8 +59,8 @@ int commandLine::getOptionIntValue(
   return defaultValue;
 }
 
-size_t commandLine::getOptionLongValue(
-    const std::string& option, size_t defaultValue) const {
+size_t commandLine::getOptionLongValue(const std::string& option,
+                                       size_t defaultValue) const {
   for (int i = 1; i < argc - 1; i++)
     if ((std::string)argv[i] == option) {
       long r = atol(argv[i + 1]);
@@ -69,8 +69,8 @@ size_t commandLine::getOptionLongValue(
   return defaultValue;
 }
 
-double commandLine::getOptionDoubleValue(
-    const std::string& option, double defaultValue) const {
+double commandLine::getOptionDoubleValue(const std::string& option,
+                                         double defaultValue) const {
   for (int i = 1; i < argc - 1; i++)
     if ((std::string)argv[i] == option) {
       double val;

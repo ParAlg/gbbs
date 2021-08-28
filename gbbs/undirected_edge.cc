@@ -4,19 +4,20 @@
 
 namespace std {
 
-size_t hash<gbbs::UndirectedEdge>::operator()(const gbbs::UndirectedEdge& edge) const {
-  return pbbslib::hash_combine(
-     pbbslib::hash64_2(edge.edge_.first), pbbslib::hash64_2(edge.edge_.second));
+size_t hash<gbbs::UndirectedEdge>::operator()(
+    const gbbs::UndirectedEdge& edge) const {
+  return pbbslib::hash_combine(pbbslib::hash64_2(edge.edge_.first),
+                               pbbslib::hash64_2(edge.edge_.second));
 }
 
 }  // namespace std
 
 namespace gbbs {
 UndirectedEdge::UndirectedEdge(const uintE u, const uintE v)
-  : edge_{std::minmax(u, v)} {}
+    : edge_{std::minmax(u, v)} {}
 
 UndirectedEdge::UndirectedEdge(const std::pair<uintE, uintE>& edge)
-  : edge_{std::minmax(edge.first, edge.second)} {}
+    : edge_{std::minmax(edge.first, edge.second)} {}
 
 bool UndirectedEdge::operator==(const UndirectedEdge& other) const {
   return edge_ == other.edge_;
@@ -32,7 +33,7 @@ const std::pair<uintE, uintE>& UndirectedEdge::endpoints() const {
 
 std::ostream& operator<<(std::ostream& os, const UndirectedEdge& edge) {
   const std::pair<uintE, uintE>& endpoints{edge.endpoints()};
-  os<< "{" << endpoints.first << ", " << endpoints.second << "}";
+  os << "{" << endpoints.first << ", " << endpoints.second << "}";
   return os;
 }
 }  // namespace gbbs

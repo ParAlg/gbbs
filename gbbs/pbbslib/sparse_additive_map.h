@@ -41,7 +41,7 @@ class sparse_additive_map {
   bool alloc;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for(0, n, [&] (size_t i) { A[i] = kv; });
+    parallel_for(0, n, [&](size_t i) { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
@@ -126,7 +126,7 @@ class sparse_additive_map {
   }
 
   void clear() {
-    parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
+    parallel_for(0, m, [&](size_t i) { table[i] = empty; });
   }
 };
 

@@ -33,8 +33,10 @@ namespace block_vertex_ops {
 
 template <class It>
 size_t intersect(It& a, It& b) {
-  size_t i=0; size_t j=0;
-  size_t nA = a.degree(); size_t nB = b.degree();
+  size_t i = 0;
+  size_t j = 0;
+  size_t nA = a.degree();
+  size_t nB = b.degree();
   size_t ans = 0;
   bool advance_a = false;
   bool advance_b = false;
@@ -50,7 +52,9 @@ size_t intersect(It& a, It& b) {
     if (a.cur() == b.cur()) {
       advance_a = true;
       advance_b = true;
-      i++; j++; ans++;
+      i++;
+      j++;
+      ans++;
     } else if (a.cur() < b.cur()) {
       advance_a = true;
       i++;
@@ -64,14 +68,18 @@ size_t intersect(It& a, It& b) {
 
 template <class S, class It>
 size_t intersect_seq(S& a, It& b) {
-  size_t i=0; size_t j=0;
-  size_t nA = a.size(); size_t nB = b.degree();
+  size_t i = 0;
+  size_t j = 0;
+  size_t nA = a.size();
+  size_t nB = b.degree();
   size_t ans = 0;
   uintE b_cur;
   if (j < nB) b_cur = b.cur();
   while (i < nA && j < nB) {
     if (a[i] == b_cur) {
-      i++; j++; ans++;
+      i++;
+      j++;
+      ans++;
       if (j < nB) {
         b_cur = b.next();
       }
@@ -109,9 +117,8 @@ size_t seq_merge(SeqA& A, SeqB& B) {
   return ct;
 }
 
-
-//template <class S, class It>
-//size_t intersect_batch_seq(S& a, It& b) {
+// template <class S, class It>
+// size_t intersect_batch_seq(S& a, It& b) {
 //  size_t b_size = 128;
 //  uintE block[b_size];
 //  size_t n_blocks = pbbslib::num_blocks(b.degree(), b_size);
@@ -143,18 +150,16 @@ size_t seq_merge(SeqA& A, SeqB& B) {
 //  return ans;
 //}
 
-
 /* Used to map over the edges incident to v */
 template <class BM /* block_manager */, class W /* weight */,
           class F /* user-specified mapping function */>
 inline void map_nghs(uintE vtx_id, BM& block_manager, F& f, bool parallel) {
-  parallel_for(0, block_manager.num_blocks(),
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  f(vtx_id, ngh, wgh);
-                });
-          }, 1);
+  parallel_for(0, block_manager.num_blocks(), 1, [&](size_t block_num) {
+    block_manager.decode_block(
+        block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+          f(vtx_id, ngh, wgh);
+        });
+  });
 }
 
 /* Map over edges incident to v using M, reduce using Monoid */
@@ -179,16 +184,14 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
       block_outputs = (T*)stk;
     }
 
-    parallel_for(0, num_blocks,
-            [&](size_t block_num) {
-              T cur = reduce.identity;
-              block_manager.decode_block(
-                  block_num,
-                  [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                    cur = reduce.f(cur, m(vtx_id, ngh, wgh));
-                  });
-              block_outputs[block_num] = cur;
-            }, 1);
+    parallel_for(0, num_blocks, 1, [&](size_t block_num) {
+      T cur = reduce.identity;
+      block_manager.decode_block(
+          block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+            cur = reduce.f(cur, m(vtx_id, ngh, wgh));
+          });
+      block_outputs[block_num] = cur;
+    });
 
     auto im = pbbslib::make_range(block_outputs, num_blocks);
     T res = pbbslib::reduce(im, reduce);
@@ -206,14 +209,13 @@ template <class BM /* block_manager */, class W /* weight */,
           class F /* mapping function */, class G /* output function */>
 inline void copyNghs(uintE vtx_id, BM& block_manager, uintT o, F& f, G& g,
                      bool parallel) {
-  parallel_for(0, block_manager.num_blocks(),
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  auto val = f(vtx_id, ngh, wgh);
-                  g(ngh, o + edge_num, val);
-                });
-          }, 1);
+  parallel_for(0, block_manager.num_blocks(), 1, [&](size_t block_num) {
+    block_manager.decode_block(
+        block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+          auto val = f(vtx_id, ngh, wgh);
+          g(ngh, o + edge_num, val);
+        });
+  });
 }
 
 /* For each out-neighbor satisfying cond, call updateAtomic */
@@ -222,18 +224,17 @@ template <class BM /* block_manager */, class W /* weight */,
           class H /* empty output function */>
 inline void decodeNghsSparse(uintE vtx_id, BM& block_manager, uintT o, F& f,
                              G& g, H& h, bool parallel) {
-  parallel_for(0, block_manager.num_blocks(), 
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  if (f.cond(ngh)) {
-                    auto m = f.updateAtomic(vtx_id, ngh, wgh);
-                    g(ngh, o + edge_num, m);
-                  } else {
-                    h(ngh, o + edge_num);
-                  }
-                });
-          }, 1);
+  parallel_for(0, block_manager.num_blocks(), 1, [&](size_t block_num) {
+    block_manager.decode_block(
+        block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+          if (f.cond(ngh)) {
+            auto m = f.updateAtomic(vtx_id, ngh, wgh);
+            g(ngh, o + edge_num, m);
+          } else {
+            h(ngh, o + edge_num);
+          }
+        });
+  });
 }
 
 /* For each out-neighbor satisfying cond, call updateAtomic */
@@ -241,14 +242,13 @@ template <class BM /* block_manager */, class W /* weight */,
           class F /* mapping function */, class G /* output function */>
 inline void decodeNghs(uintE vtx_id, BM& block_manager, F& f, G& g,
                        bool parallel) {
-  parallel_for(0, block_manager.num_blocks(),
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  auto m = f.updateAtomic(vtx_id, ngh, wgh);
-                  g(ngh, m);
-                });
-          }, 1);
+  parallel_for(0, block_manager.num_blocks(), 1, [&](size_t block_num) {
+    block_manager.decode_block(
+        block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+          auto m = f.updateAtomic(vtx_id, ngh, wgh);
+          g(ngh, m);
+        });
+  });
 }
 
 /* Sequentially process incident edges and quit if cond on self fails. */
@@ -272,7 +272,7 @@ inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
       }
     } else {
       size_t num_blocks = block_manager.num_blocks();
-      parallel_for(0, num_blocks, [&](size_t block_num) {
+      parallel_for(0, num_blocks, 1, [&](size_t block_num) {
         block_manager.decode_block_cond(
             block_num,
             [&](const uintE& ngh, const W& wgh, const size_t& edge_num) {
@@ -283,7 +283,7 @@ inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
               }
               return true;
             });
-      }, 1);
+      });
     }
   }
 }

@@ -18,11 +18,11 @@
 // Moreover, to some extent, the input message can be treated like a stream:
 //     int x = 0;
 //     ABORT("Unexpected value of x: " << x);
-#define ABORT(message) \
-  do { \
-    std::cerr << __FILE__ << ":" << __LINE__ << ": Abort: "  \
-         << message << std::endl; \
-    std::terminate(); \
+#define ABORT(message)                                                 \
+  do {                                                                 \
+    std::cerr << __FILE__ << ":" << __LINE__ << ": Abort: " << message \
+              << std::endl;                                            \
+    std::terminate();                                                  \
   } while (false)
 
 // Prints out enum value and terminates the program.
@@ -46,9 +46,10 @@
 //       // call like `ReturnOneOrTwo(static_cast<OneOrTwo>(3))`.
 //       ABORT_INVALID_ENUM(OneOrTwo, one_or_two)
 //     }
-#define ABORT_INVALID_ENUM(EnumType, enum_value) \
-  ABORT("Unexpected " #EnumType " value: " << \
-      static_cast<typename std::underlying_type<EnumType>::type>(enum_value));
+#define ABORT_INVALID_ENUM(EnumType, enum_value)                       \
+  ABORT("Unexpected " #EnumType " value: "                             \
+        << static_cast<typename std::underlying_type<EnumType>::type>( \
+            enum_value));
 
 // Asserts on a condition, printing an error and terminating if the condition is
 // false.
@@ -79,7 +80,6 @@
 //     ABORT(x > 0, "x must be positive, was " << x << " instead");
 #define ASSERT(...) _GET_MACRO(__VA_ARGS__, _ASSERT2, _ASSERT1)(__VA_ARGS__)
 
-
 //////////////
 // Internal //
 //////////////
@@ -91,21 +91,22 @@
 #define _GET_MACRO(_1, _2, NAME, ...) NAME
 
 // Implementation of ASSERT with one argument.
-#define _ASSERT1(condition) \
-  do { \
-    if (!(condition)) { \
-      std::cerr << __FILE__ << ":" << __LINE__ << ": Failed assertion `"  \
-          #condition "`" << std::endl; \
-      std::terminate(); \
-    } \
+#define _ASSERT1(condition)                                            \
+  do {                                                                 \
+    if (!(condition)) {                                                \
+      std::cerr << __FILE__ << ":" << __LINE__                         \
+                << ": Failed assertion `" #condition "`" << std::endl; \
+      std::terminate();                                                \
+    }                                                                  \
   } while (false)
 
 // Implementation of ASSERT with two arguments.
-#define _ASSERT2(condition, message) \
-  do { \
-    if (!(condition)) { \
-      std::cerr << __FILE__ << ":" << __LINE__ << ": Failed assertion `"  \
-          #condition "`: " << message << std::endl; \
-      std::terminate(); \
-    } \
+#define _ASSERT2(condition, message)                                  \
+  do {                                                                \
+    if (!(condition)) {                                               \
+      std::cerr << __FILE__ << ":" << __LINE__                        \
+                << ": Failed assertion `" #condition "`: " << message \
+                << std::endl;                                         \
+      std::terminate();                                               \
+    }                                                                 \
   } while (false)

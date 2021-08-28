@@ -182,8 +182,8 @@ struct vertexSubsetData {
   void toDense() {
     if (d.size() == 0) {
       d = sequence<D>(n);
-      par_for(0, n, [&](size_t i) { std::get<0>(d[i]) = false; });
-      par_for(0, m, [&](size_t i) {
+      parallel_for(0, n, [&](size_t i) { std::get<0>(d[i]) = false; });
+      parallel_for(0, m, [&](size_t i) {
         d[std::get<0>(s[i])] = std::make_tuple(true, std::get<1>(s[i]));
       });
     }
@@ -204,7 +204,8 @@ struct vertexSubsetData<gbbs::empty> {
   using D = bool;
 
   // Move constructor
-  vertexSubsetData<gbbs::empty>(vertexSubsetData<gbbs::empty>&& other) noexcept {
+  vertexSubsetData<gbbs::empty>(
+      vertexSubsetData<gbbs::empty>&& other) noexcept {
     n = other.n;
     m = other.m;
     s = std::move(other.s);
@@ -214,7 +215,8 @@ struct vertexSubsetData<gbbs::empty> {
   }
 
   // Move assignment
-  vertexSubsetData<gbbs::empty>& operator=(vertexSubsetData<gbbs::empty>&& other) noexcept {
+  vertexSubsetData<gbbs::empty>& operator=(
+      vertexSubsetData<gbbs::empty>&& other) noexcept {
     if (this != &other) {
       n = other.n;
       m = other.m;
@@ -288,9 +290,7 @@ struct vertexSubsetData<gbbs::empty> {
 
   // Sparse
   inline uintE& vtx(const uintE& i) { return s[i]; }
-  inline gbbs::empty vtxData(const uintE& i) {
-    return gbbs::empty();
-  }
+  inline gbbs::empty vtxData(const uintE& i) { return gbbs::empty(); }
   inline std::tuple<uintE, gbbs::empty> vtxAndData(const uintE& i) const {
     return std::make_tuple(s[i], gbbs::empty());
   }
@@ -299,19 +299,16 @@ struct vertexSubsetData<gbbs::empty> {
   __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
     return d[v];
   }
-  inline gbbs::empty ithData(const uintE& v) const {
-    return gbbs::empty();
-  }
+  inline gbbs::empty ithData(const uintE& v) const { return gbbs::empty(); }
 
   // Returns (uintE) -> std::optional<std::tuple<vertex, vertex-data>>.
-  auto get_fn_repr() const -> std::function<
-      std::optional<std::tuple<uintE, gbbs::empty>>(uintE)> {
-    std::function<std::optional<std::tuple<uintE, gbbs::empty>>(
-        const uintE&)>
+  auto get_fn_repr() const
+      -> std::function<std::optional<std::tuple<uintE, gbbs::empty>>(uintE)> {
+    std::function<std::optional<std::tuple<uintE, gbbs::empty>>(const uintE&)>
         fn;
     if (isDense) {
-      fn = [&](
-          const uintE& v) -> std::optional<std::tuple<uintE, gbbs::empty>> {
+      fn =
+          [&](const uintE& v) -> std::optional<std::tuple<uintE, gbbs::empty>> {
         if (d[v]) {
           return std::optional<std::tuple<uintE, gbbs::empty>>(
               std::make_tuple(v, gbbs::empty()));
@@ -320,8 +317,8 @@ struct vertexSubsetData<gbbs::empty> {
         }
       };
     } else {
-      fn = [&](
-          const uintE& i) -> std::optional<std::tuple<uintE, gbbs::empty>> {
+      fn =
+          [&](const uintE& i) -> std::optional<std::tuple<uintE, gbbs::empty>> {
         return std::optional<std::tuple<uintE, gbbs::empty>>(
             std::make_tuple(s[i], gbbs::empty()));
       };
@@ -348,8 +345,8 @@ struct vertexSubsetData<gbbs::empty> {
                   << std::endl;
         std::cout << "# bad stored value of m"
                   << "\n";
-        std::cout << "# out.size = " << s.size() << " m = " << m
-                  << " n = " << n << "\n";
+        std::cout << "# out.size = " << s.size() << " m = " << m << " n = " << n
+                  << "\n";
         abort();
       }
     }
@@ -360,8 +357,8 @@ struct vertexSubsetData<gbbs::empty> {
   void toDense() {
     if (d.size() == 0) {
       d = sequence<bool>(n);
-      par_for(0, n, [&](size_t i) { d[i] = 0; });
-      par_for(0, m, [&](size_t i) { d[s[i]] = 1; });
+      parallel_for(0, n, [&](size_t i) { d[i] = 0; });
+      parallel_for(0, m, [&](size_t i) { d[s[i]] = 1; });
     }
     isDense = true;
   }
@@ -382,17 +379,14 @@ using vertexSubset = vertexSubsetData<gbbs::empty>;
 template <class F, class VS,
           typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f,
-                      size_t granularity = kDefaultGranularity) {
+inline void vertexMap(VS& V, F f, size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   if (V.isIn(i)) {
-                     f(i, V.ithData(i));
-                   }
-                 },
-                 granularity);
+    parallel_for(0, n, [&](size_t i) {
+      if (V.isIn(i)) {
+        f(i, V.ithData(i));
+      }
+    });
   } else {
     parallel_for(0, m, [&](size_t i) { f(V.vtx(i), V.vtxData(i)); },
                  granularity);
@@ -405,17 +399,14 @@ inline void vertexMap(VS& V, F f,
 template <class VS, class F,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f,
-                      size_t granularity = kDefaultGranularity) {
+inline void vertexMap(VS& V, F f, size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   if (V.isIn(i)) {
-                     f(i);
-                   }
-                 },
-                 granularity);
+    parallel_for(0, n, [&](size_t i) {
+      if (V.isIn(i)) {
+        f(i);
+      }
+    });
   } else {
     parallel_for(0, m, [&](size_t i) { f(V.vtx(i)); }, granularity);
   }
@@ -429,17 +420,15 @@ inline vertexSubset vertexFilter_dense(
   V.toDense();
   auto d_out = sequence<bool>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) { d_out[i] = 0; }, granularity);
-  parallel_for(0, n,
-               [&](size_t i) {
-                 if
-                   constexpr(std::is_same<Data, gbbs::empty>::value) {
-                     if (V.isIn(i)) d_out[i] = filter(i);
-                   }
-                 else {
-                   if (V.isIn(i)) d_out[i] = filter(i, V.ithData(i));
-                 }
-               },
-               granularity);
+  parallel_for(0, n, [&](size_t i) {
+    if
+      constexpr(std::is_same<Data, gbbs::empty>::value) {
+        if (V.isIn(i)) d_out[i] = filter(i);
+      }
+    else {
+      if (V.isIn(i)) d_out[i] = filter(i, V.ithData(i));
+    }
+  });
   return vertexSubset(n, std::move(d_out));
 }
 
@@ -491,23 +480,23 @@ inline vertexSubset vertexFilter(VS& vs, F filter, flags fl = 0) {
   return vertexFilter_sparse(vs, filter);
 }
 
-inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
+inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
+                           uintE num_new_verts) {
   if (vs.isDense) {
-    parallel_for(0, num_new_verts, [&] (size_t i)
-                    { vs.d[new_verts[i]] = true; });
+    parallel_for(0, num_new_verts,
+                 [&](size_t i) { vs.d[new_verts[i]] = true; });
     vs.m += num_new_verts;
   } else {
     const size_t vs_size = vs.numNonzeros();
     const size_t new_size = num_new_verts + vs_size;
     auto all_verts = sequence<uintE>(new_size);
-    par_for(0, new_size, kDefaultGranularity, [&] (size_t i)
-                    {
-                      if (i < vs_size) {
-                        all_verts[i] = vs.s[i];
-                      } else {
-                        all_verts[i] = new_verts[i - vs_size];
-                      }
-                    });
+    parallel_for(0, new_size, [&](size_t i) {
+      if (i < vs_size) {
+        all_verts[i] = vs.s[i];
+      } else {
+        all_verts[i] = new_verts[i - vs_size];
+      }
+    });
     auto old_s = std::move(vs.s);
     vs.s = all_verts;
     vs.m = new_size;

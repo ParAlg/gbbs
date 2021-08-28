@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include <tuple>
 #include <cassert>
+#include <tuple>
 
 #include "gbbs/bridge.h"
 
@@ -42,12 +42,10 @@ class sparse_table {
   bool alloc;
   KeyHash key_hash;
 
-  size_t size() const {
-    return m;
-  }
+  size_t size() const { return m; }
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for(0, n, [&] (size_t i) { A[i] = kv; });
+    parallel_for(0, n, [&](size_t i) { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) const { return h & mask; }
@@ -86,14 +84,14 @@ class sparse_table {
       auto old_table = table;
       size_t old_m = m;
       std::cout << "# Resizing table, was: " << m;
-      size_t new_size = 1 << pbbslib::log2_up(2*(m + incoming));
+      size_t new_size = 1 << pbbslib::log2_up(2 * (m + incoming));
       m = new_size;
       mask = m - 1;
       table = pbbslib::new_array_no_init<T>(m);
       clearA(table, m, empty);
       alloc = true;
       std::cout << "#  is now: " << m << std::endl;
-      parallel_for(0, old_m, [&] (size_t i) {
+      parallel_for(0, old_m, [&](size_t i) {
         if (std::get<0>(old_table[i]) != empty_key) {
           insert(old_table[i]);
         }
@@ -105,7 +103,6 @@ class sparse_table {
     }
   }
 
-
   sparse_table() : m(0) {
     mask = 0;
     alloc = false;
@@ -113,10 +110,8 @@ class sparse_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1)
-      : empty(_empty),
-        empty_key(std::get<0>(empty)),
-        key_hash(_key_hash) {
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult = -1)
+      : empty(_empty), empty_key(std::get<0>(empty)), key_hash(_key_hash) {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;
     m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m) + 1);
@@ -128,7 +123,8 @@ class sparse_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_table(size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, T* _tab,
+               bool clear = true)
       : m(_m),
         mask(m - 1),
         empty(_empty),
@@ -177,7 +173,7 @@ class sparse_table {
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
         if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
-//          std::get<1>(table[h]) = std::get<1>(kv);
+          //          std::get<1>(table[h]) = std::get<1>(kv);
           f(&std::get<1>(table[h]), kv);
           return true;
         }
@@ -208,7 +204,9 @@ class sparse_table {
   }
 
   bool insert_check(std::tuple<K, V> kv, bool* abort) {
-    if (*abort) { return false; }
+    if (*abort) {
+      return false;
+    }
     K k = std::get<0>(kv);
     size_t h = firstIndex(k);
     size_t n_probes = 0;
@@ -274,7 +272,7 @@ class sparse_table {
 
   template <class F>
   void map(F f) {
-    parallel_for(0, m, [&] (size_t i) {
+    parallel_for(0, m, [&](size_t i) {
       if (std::get<0>(table[i]) != empty_key) {
         f(table[i]);
       }
@@ -288,7 +286,7 @@ class sparse_table {
   }
 
   void clear() {
-    parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
+    parallel_for(0, m, [&](size_t i) { table[i] = empty; });
   }
 };
 
@@ -296,7 +294,7 @@ template <class K, class V, class KeyHash>
 inline sparse_table<K, V, KeyHash> make_sparse_table(size_t m,
                                                      std::tuple<K, V> empty,
                                                      KeyHash key_hash,
-                                                     long space_mult=-1) {
+                                                     long space_mult = -1) {
   return sparse_table<K, V, KeyHash>(m, empty, key_hash, space_mult);
 }
 
@@ -304,7 +302,8 @@ template <class K, class V, class KeyHash>
 inline sparse_table<K, V, KeyHash> make_sparse_table(std::tuple<K, V>* tab,
                                                      size_t m,
                                                      std::tuple<K, V> empty,
-                                                     KeyHash key_hash, bool clear=true) {
+                                                     KeyHash key_hash,
+                                                     bool clear = true) {
   return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab, clear);
 }
 

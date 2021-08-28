@@ -51,13 +51,13 @@ struct commandLine {
 
   bool getOption(const std::string& option) const;
   char* getOptionValue(const std::string& option) const;
-  std::string getOptionValue(
-      const std::string& option, const std::string& defaultValue) const;
+  std::string getOptionValue(const std::string& option,
+                             const std::string& defaultValue) const;
   int getOptionIntValue(const std::string& option, int defaultValue) const;
-  size_t
-  getOptionLongValue(const std::string& option, size_t defaultValue) const;
-  double
-  getOptionDoubleValue(const std::string& option, double defaultValue) const;
+  size_t getOptionLongValue(const std::string& option,
+                            size_t defaultValue) const;
+  double getOptionDoubleValue(const std::string& option,
+                              double defaultValue) const;
 };
 
 }  // namespace gbbs

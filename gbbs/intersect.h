@@ -50,8 +50,7 @@ inline size_t intersect_f(Nghs* A, Nghs* B, const F& f) {
   uintT i = 0, j = 0, nA = A->degree, nB = B->degree;
   auto nghA = A->neighbors;
   auto nghB = B->neighbors;
-  uintE a = A->id,
-        b = B->id;
+  uintE a = A->id, b = B->id;
   size_t ans = 0;
   while (i < nA && j < nB) {
     if (std::get<0>(nghA[i]) == std::get<0>(nghB[j])) {
@@ -97,7 +96,7 @@ size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   using T = typename SeqA::value_type;
   size_t nA = A.size();
   size_t ct = 0;
-  for (size_t i=0; i < nA; i++) {
+  for (size_t i = 0; i < nA; i++) {
     const T& a = A[i];
     size_t mB = pbbslib::binary_search(B, a, std::less<T>());
     if (mB < B.size() && a == B[mB]) {
@@ -114,19 +113,22 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;
-  if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
+  if (nR < _seq_merge_thresh) {  // handles (small, small) using linear-merge
     return intersection::seq_merge_full(A, B, f);
   } else if (nB < nA) {
     return intersection::merge(B, A, f);
   } else if (nA < _bs_merge_base) {
     return intersection::seq_merge(A, B, f);
   } else {
-    size_t mA = nA/2;
+    size_t mA = nA / 2;
     size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
     size_t m_left = 0;
     size_t m_right = 0;
-    par_do([&] () { m_left = intersection::merge(A.cut(0, mA), B.cut(0, mB), f);},
-     [&] () { m_right = intersection::merge(A.cut(mA, nA), B.cut(mB, nB), f);});
+    par_do(
+        [&]() { m_left = intersection::merge(A.cut(0, mA), B.cut(0, mB), f); },
+        [&]() {
+          m_right = intersection::merge(A.cut(mA, nA), B.cut(mB, nB), f);
+        });
     return m_left + m_right;
   }
 }
@@ -143,9 +145,7 @@ inline size_t intersect_f_par(Nghs* A, Nghs* B, const F& f) {
 
   uintE a = A->id;
   uintE b = B->id;
-  auto merge_f = [&] (uintE ngh) {
-    f(a, b, ngh);
-  };
+  auto merge_f = [&](uintE ngh) { f(a, b, ngh); };
   return intersection::merge(seqA, seqB, merge_f);
 }
 

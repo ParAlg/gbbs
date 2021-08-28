@@ -69,9 +69,9 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
 // internally sorted into num_buckets buckets.
 template <typename b_size_t, typename s_size_t, typename E, typename I,
           typename F>
-inline std::tuple<parlay::sequence<E>, parlay::sequence<s_size_t>, s_size_t, s_size_t> _count_sort(I& A, F& get_key,
-                                                       s_size_t n,
-                                                       s_size_t num_buckets) {
+inline std::tuple<parlay::sequence<E>, parlay::sequence<s_size_t>, s_size_t,
+                  s_size_t>
+_count_sort(I& A, F& get_key, s_size_t n, s_size_t num_buckets) {
   // pad to 16 buckets to avoid false sharing (does not affect results)
 
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
@@ -83,8 +83,8 @@ inline std::tuple<parlay::sequence<E>, parlay::sequence<s_size_t>, s_size_t, s_s
   if (n < _cs_seq_threshold || num_blocks == 1) {
     auto counts = parlay::sequence<s_size_t>::uninitialized(num_buckets + 1);
     auto B = parlay::sequence<E>::uninitialized(n);
-    _seq_count_sort<b_size_t>(A, B.begin(), get_key, (s_size_t)0, n, counts.begin(),
-                              num_buckets);
+    _seq_count_sort<b_size_t>(A, B.begin(), get_key, (s_size_t)0, n,
+                              counts.begin(), num_buckets);
     return std::make_tuple(B, counts, (s_size_t)1, num_buckets + 1);
   }
 
@@ -96,12 +96,12 @@ inline std::tuple<parlay::sequence<E>, parlay::sequence<s_size_t>, s_size_t, s_s
   auto counts = parlay::sequence<s_size_t>::uninitialized(m);
 
   // sort each block
-  parallel_for(0, num_blocks, [&] (size_t i) {
+  gbbs::parallel_for(0, num_blocks, 1, [&](size_t i) {
     s_size_t start = std::min(i * block_size, n);
     s_size_t end = std::min(start + block_size, n);
     _seq_count_sort<b_size_t>(A, B.begin(), get_key, start, end,
                               counts.begin() + i * num_buckets, num_buckets);
-  }, 1);
+  });
 
   return std::make_tuple(std::move(B), std::move(counts), num_blocks, m);
 }

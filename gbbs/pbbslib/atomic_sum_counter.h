@@ -12,17 +12,15 @@ struct atomic_sum_counter {
   size_t stride;
   size_t num_elms;
   size_t num_workers_;
-  atomic_sum_counter() {
-    initialize();
-  }
+  atomic_sum_counter() { initialize(); }
 
   void initialize() {
-    stride = 128/sizeof(T);
+    stride = 128 / sizeof(T);
     stride = pbbslib::log2_up(stride);
     num_workers_ = num_workers();
     num_elms = num_workers_ << stride;
     entries = parlay::sequence<T>::uninitialized(num_elms);
-    for (size_t i=0; i<num_workers_; i++) {
+    for (size_t i = 0; i < num_workers_; i++) {
       entries[i << stride] = (T)0;
     }
   }
@@ -31,15 +29,15 @@ struct atomic_sum_counter {
     // bad hack; must call reset() before using.
     if (num_workers_ == 0) {
       initialize();
-    } // else already initialized
-    for (size_t i=0; i<num_workers_; i++) {
+    }  // else already initialized
+    for (size_t i = 0; i < num_workers_; i++) {
       entries[i << stride] = (T)0;
     }
   }
 
   T get_value() {
     T sum = 0;
-    for (size_t i=0; i<num_workers_; i++) {
+    for (size_t i = 0; i < num_workers_; i++) {
       sum += entries[i << stride];
     }
     return sum;

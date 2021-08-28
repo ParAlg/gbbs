@@ -11,7 +11,6 @@ class UndirectedEdge;
 
 }  // namespace gbbs
 
-
 namespace std {
 
 template <>
@@ -20,7 +19,6 @@ struct hash<gbbs::UndirectedEdge> {
 };
 
 }  // namespace std
-
 
 namespace gbbs {
 
@@ -43,8 +41,8 @@ class UndirectedEdge {
   const std::pair<uintE, uintE>& endpoints() const;
 
  private:
-  friend size_t
-  std::hash<UndirectedEdge>::operator()(const UndirectedEdge&) const;
+  friend size_t std::hash<UndirectedEdge>::operator()(
+      const UndirectedEdge&) const;
 
   std::pair<uintE, uintE> edge_;
 };
@@ -52,4 +50,3 @@ class UndirectedEdge {
 std::ostream& operator<<(std::ostream& os, const UndirectedEdge&);
 
 }  // namespace gbbs
-

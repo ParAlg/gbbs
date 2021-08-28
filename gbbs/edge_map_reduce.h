@@ -116,7 +116,7 @@ inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA, VS& vs,
   }
   uintE empty_key = std::get<0>(ht.empty);
   auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(GA, vs, map_f, cond_f,
-                                                          empty_key, fl);
+                                                       empty_key, fl);
   oneHop.toSparse();
 
   auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
@@ -167,7 +167,6 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
     return vertexSubsetData<O>(n);
   } else {
     auto out = sequence<OT>::uninitialized(n);
-    std::cout << "Starting loop!" << std::endl;
     parallel_for(0, n,
                  [&](size_t i) {
                    if (cond_f(i)) {
@@ -186,7 +185,6 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
                    }
                  },
                  1);
-    std::cout << "Finished loop!" << std::endl;
     return vertexSubsetData<O>(n, std::move(out));
   }
 }
@@ -354,9 +352,11 @@ struct EdgeMap {
       auto out = sequence<OT>(n);
       parallel_for(0, n,
                    [&](size_t i) {
-                     if constexpr (!std::is_same<O, gbbs::empty>()) {
+                     if
+                       constexpr(!std::is_same<O, gbbs::empty>()) {
                          std::get<0>(out[i]) = false;
-                       } else {
+                       }
+                     else {
                        out[i] = false;
                      }
                      if (cond_f(i)) {
@@ -367,10 +367,12 @@ struct EdgeMap {
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);
                        if (applied_val.has_value()) {
-                         if constexpr (!std::is_same<O, gbbs::empty>()) {
-                           std::get<0>(out[i]) = true;
-                           std::get<1>(out[i]) = std::get<1>(*applied_val);
-                         } else {
+                         if
+                           constexpr(!std::is_same<O, gbbs::empty>()) {
+                             std::get<0>(out[i]) = true;
+                             std::get<1>(out[i]) = std::get<1>(*applied_val);
+                           }
+                         else {
                            out[i] = true;
                          }
                        }
@@ -435,8 +437,8 @@ struct EdgeMap {
     }
     auto cond_f = [&](const uintE& u) { return true; };
     uintE empty_key = std::get<0>(ht.empty);
-    auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(
-        G, vs, map_f, cond_f, empty_key, fl);
+    auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(G, vs, map_f, cond_f,
+                                                         empty_key, fl);
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
@@ -527,7 +529,6 @@ struct EdgeMap {
       return edgeMapCount_sparse<O>(vs, apply_f, fl);
     }
   }
-
 };
 
 }  // namespace gbbs
