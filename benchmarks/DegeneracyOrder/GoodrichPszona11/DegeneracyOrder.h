@@ -70,7 +70,6 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
   auto output = sequence<uintE>::from_function(n, [&] (size_t i) { return ret.A[i]; });
-  ret.del();
   debug(
   kt.reportTotal("kth time");
   ft.reportTotal("filter time"););

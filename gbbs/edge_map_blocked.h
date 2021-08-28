@@ -133,17 +133,17 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   size_t n_threads = pbbslib::num_blocks(outEdgeCount, kEMBlockSize);
   auto thread_offs = parlay::sequence<size_t>::uninitialized(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
-  par_for(0, n_threads, 1, [&](size_t i) {  // TODO: granularity of 1?
+  parallel_for(0, n_threads, [&](size_t i) {
     size_t start_off = i * kEMBlockSize;
     thread_offs[i] = pbbslib::binary_search(degrees, start_off, lt);
-  });
+  }, 1);
   thread_offs[n_threads] = num_blocks;
 
   // 4. Run each thread in parallel
   auto cts = parlay::sequence<uintE>(n_threads + 1);
   auto outEdges = parlay::sequence<S>::uninitialized(outEdgeCount);
   auto g = get_emsparse_blocked_gen<data>(outEdges);
-  par_for(0, n_threads, 1, [&](size_t i) {
+  parallel_for(0, n_threads, [&](size_t i) {
     size_t start = thread_offs[i];
     size_t end = thread_offs[i + 1];
     // <= kEMBlockSize edges in this range, sequentially process
@@ -165,13 +165,13 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
     } else {
       cts[i] = 0;
     }
-  });
+  }, 1);
   cts[n_threads] = 0;
   size_t out_size = pbbslib::scan_inplace(make_slice(cts));
 
   // 5. Use cts to get
   auto out = parlay::sequence<S>::uninitialized(out_size);
-  par_for(0, n_threads, 1, [&](size_t i) {
+  parallel_for(0, n_threads, [&](size_t i) {
     size_t start = thread_offs[i];
     size_t end = thread_offs[i + 1];
     if (start != end) {
@@ -182,7 +182,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
         out[out_offset + j] = outEdges[start_offset + j];
       }
     }
-  });
+  }, 1);
   cts.clear();
   vertex_offs.clear();
   blocks.clear();
@@ -321,7 +321,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = parlay::sequence<uintE>(indices.size() + 1);
-  par_for(0, indices.size(), kDefaultGranularity,
+  parallel_for(0, indices.size(),
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_inplace(make_slice(vertex_offs));
@@ -330,13 +330,13 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   auto degrees = parlay::sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan degree array.
-  par_for(0, indices.size(), kDefaultGranularity, [&](size_t i) {
+  parallel_for(0, indices.size(), [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
     size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
     auto neighbors = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
-    par_for(0, num_vertex_blocks, kDefaultGranularity, [&](size_t j) {
+    parallel_for(0, num_vertex_blocks, [&](size_t j) {
       size_t block_deg = neighbors.block_degree(j);
       // assert(block_deg <= PARALLEL_DEGREE); // only for compressed
       blocks[vtx_off + j] = block(i, j);  // j-th block of the i-th vertex.

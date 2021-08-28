@@ -66,7 +66,7 @@ struct packed_symmetric_vertex {
 // Initializes the block memory for each vertex.
 // Returns a pair of (vtx_info*, blocks*)
 template <class Graph, class Pred>
-std::tuple<vtx_info*, uint8_t*, size_t> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred, gbbs::flags fl= 0) {
+std::tuple<parlay::sequence<vtx_info>, parlay::sequence<uint8_t>, size_t> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred, gbbs::flags fl= 0) {
   timer ibm; ibm.start();
   size_t n = GA.n;
 
@@ -96,8 +96,8 @@ std::tuple<vtx_info*, uint8_t*, size_t> init_block_memory(Graph& GA, size_t bs, 
 //  std::cout << "# total blocks = " << total_blocks << std::endl;
 
   // allocate blocks
-  auto blocks = pbbslib::new_array_no_init<uint8_t>(block_mem_to_alloc);
-  auto VI = pbbslib::new_array_no_init<vtx_info>(n);
+  auto blocks = parlay::sequence<uint8_t>::uninitialized(block_mem_to_alloc);
+  auto VI = parlay::sequence<vtx_info>::uninitialized(n);
   std::cout << "# packed graph: block_size = " << bs << std::endl;
   std::cout << "# sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << std::endl;
   std::cout << "# total memory usage = " << (block_mem_to_alloc + (n*sizeof(vtx_info))) << " bytes; in_edges = " << (fl & in_edges) << std::endl;
@@ -118,18 +118,18 @@ std::tuple<vtx_info*, uint8_t*, size_t> init_block_memory(Graph& GA, size_t bs, 
         VI[v] = vtx_info(degree, num_blocks, block_byte_offset);
 
         // initialize blocks corresponding to v's neighbors
-        uint8_t* our_block_start = blocks + block_byte_offset;
+        uint8_t* our_block_start = blocks.begin() + block_byte_offset;
         bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, bs_in_bytes,
                                     vtx_bytes);
       });
 
   ibm.stop(); ibm.reportTotal("init block memory time");
-  return {VI, blocks, block_mem_to_alloc};
+  return {std::move(VI), std::move(blocks), block_mem_to_alloc};
 }
 
 
 template <class Graph>
-std::tuple<vtx_info*, uint8_t*, size_t> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, gbbs::flags fl= 0) {
+std::tuple<parlay::sequence<vtx_info>, parlay::sequence<uint8_t>, size_t> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, gbbs::flags fl= 0) {
   auto pred_true = [&] (const uintE& v) {
     return true;
   };
@@ -149,8 +149,8 @@ struct symmetric_packed_graph {
   using weight_type = W;
   using E = typename vertex::edge_type;
 
-  vtx_info* VI;  // metadata for each vertex into the blocks structure
-  uint8_t* blocks;  // stores the block information for each vertex's neighbors
+  parlay::sequence<vtx_info >VI;  // metadata for each vertex into the blocks structure
+  parlay::sequence<uint8_t> blocks;  // stores the block information for each vertex's neighbors
   size_t blocks_mem;
 
   size_t bs;  // number of vertices in each block
@@ -209,11 +209,7 @@ struct symmetric_packed_graph {
     auto vtx_data = GA.v_data[v];
     uintE original_degree = vtx_data.degree;
     uintT offset = vtx_data.offset;
-#ifndef SAGE
-    auto sym_blocks = neighborhood_type(v, blocks, original_degree, VI, GA.e0 + offset);
-#else
-    auto sym_blocks = neighborhood_type(v, blocks, original_degree, VI, GA.e0 + offset, GA.e1 + offset);
-#endif
+    auto sym_blocks = neighborhood_type(v, blocks.begin(), original_degree, VI.begin(), GA.e0 + offset);
     return packed_symmetric_vertex<W, neighborhood_type>(std::move(sym_blocks));
   }
 
@@ -228,11 +224,7 @@ struct symmetric_packed_graph {
     auto vtx_data = GA.v_data[v];
     uintE original_degree = vtx_data.degree;
     size_t offset = vtx_data.offset;
-#ifndef SAGE
-    auto sym_blocks = neighborhood_type(v, blocks, original_degree, VI, GA.e0 + offset);
-#else
-    auto sym_blocks = neighborhood_type(v, blocks, original_degree, VI, GA.e0 + offset, GA.e1 + offset);
-#endif
+    auto sym_blocks = neighborhood_type(v, blocks.begin(), original_degree, VI.begin(), GA.e0 + offset);
     return packed_symmetric_vertex<W, neighborhood_type>(std::move(sym_blocks));
   }
 
@@ -244,16 +236,14 @@ struct symmetric_packed_graph {
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
-    par_for(0, n, 1, [&](size_t v) {
+    parallel_for(0, n, [&](size_t v) {
       auto vert_v = get_vertex(v);
       vert_v.out_neighbors().map(f, parallel_inner_map);
-    });
+    }, 1);
   }
 
+  // TODO: remove!
   void del() {
-    std::cout << "# deleting packed_graph" << std::endl;
-    pbbslib::free_array(VI, n);
-    pbbslib::free_array(blocks, blocks_mem);
   }
 };
 
@@ -344,12 +334,12 @@ struct asymmetric_packed_graph {
   using weight_type = W;
   using E = typename vertex::edge_type;
 
-  vtx_info* in_VI;  // metadata for each vertex into the in_blocks structure
-  uint8_t* in_blocks;  // stores the block information for each vertex's in_neighbors
+  parlay::sequence<vtx_info> in_VI;  // metadata for each vertex into the in_blocks structure
+  parlay::sequence<uint8_t> in_blocks;  // stores the block information for each vertex's in_neighbors
   size_t in_blocks_mem;
 
-  vtx_info* out_VI;  // metadata for each vertex into the out_blocks structure
-  uint8_t* out_blocks;  // stores the block information for each vertex's out_neighbors
+  parlay::sequence<vtx_info> out_VI;  // metadata for each vertex into the out_blocks structure
+  parlay::sequence<uint8_t> out_blocks;  // stores the block information for each vertex's out_neighbors
   size_t out_blocks_mem;
 
   size_t bs;  // number of vertices in each block
@@ -425,13 +415,8 @@ struct asymmetric_packed_graph {
     uintE out_original_degree = out_vtx_data.degree;
     uintT out_offset = out_vtx_data.offset;
 
-#ifndef SAGE
-    auto in_neighborhood = neighborhood_type(v, in_blocks, in_original_degree, in_VI, GA->in_edges_0 + in_offset);
-    auto out_neighborhood = neighborhood_type(v, out_blocks, out_original_degree, out_VI, GA->out_edges_0 + out_offset);
-#else
-    auto in_neighborhood = neighborhood_type(v, in_blocks, in_original_degree, in_VI, GA->in_edges_0 + in_offset, GA->in_eddes_1 + in_offset);
-    auto out_neighborhood = neighborhood_type(v, out_blocks, out_original_degree, out_VI, GA->out_edges_0 + out_offset, GA->out_edges_1 + out_offset);
-#endif
+    auto in_neighborhood = neighborhood_type(v, in_blocks.begin(), in_original_degree, in_VI.begin(), GA->in_edges + in_offset);
+    auto out_neighborhood = neighborhood_type(v, out_blocks.begin(), out_original_degree, out_VI.begin(), GA->out_edges + out_offset);
     return packed_asymmetric_vertex<W, neighborhood_type>(std::move(in_neighborhood), std::move(out_neighborhood));
   }
 
@@ -452,13 +437,8 @@ struct asymmetric_packed_graph {
     uintE out_original_degree = out_vtx_data.degree;
     uintT out_offset = out_vtx_data.offset;
 
-#ifndef SAGE
-    auto in_neighborhood = neighborhood_type(v, in_blocks, in_original_degree, in_VI, GA->in_edges_0 + in_offset);
-    auto out_neighborhood = neighborhood_type(v, out_blocks, out_original_degree, out_VI, GA->out_edges_0 + out_offset);
-#else
-    auto in_neighborhood = neighborhood_type(v, in_blocks, in_original_degree, in_VI, GA->in_edges_0 + in_offset, GA->in_edges_1 + in_offset);
-    auto out_neighborhood = neighborhood_type(v, out_blocks, out_original_degree, out_VI, GA->out_edges_0 + out_offset, GA->out_edges_1 + out_offset);
-#endif
+    auto in_neighborhood = neighborhood_type(v, in_blocks.begin(), in_original_degree, in_VI.begin(), GA->in_edges + in_offset);
+    auto out_neighborhood = neighborhood_type(v, out_blocks.begin(), out_original_degree, out_VI.begin(), GA->out_edges + out_offset);
     return packed_asymmetric_vertex<W, neighborhood_type>(std::move(in_neighborhood), std::move(out_neighborhood));
   }
 
@@ -470,10 +450,10 @@ struct asymmetric_packed_graph {
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
-    par_for(0, n, 1, [&](size_t v) {
+    parallel_for(0, n, [&](size_t v) {
       auto vert_v = get_vertex(v);
       vert_v.out_neighbors().map(f, parallel_inner_map);
-    });
+    }, 1);
   }
 
   // Clears all vertices (zeros out their in-/out-degree) that do not satisfy
@@ -541,12 +521,9 @@ struct asymmetric_packed_graph {
     std::cout << "# Filtered graph, new m = " << m << std::endl;
   }
 
+  // TODO: remove
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
-    pbbslib::free_array(out_VI,n);
-    pbbslib::free_array(in_VI,n);
-    pbbslib::free_array(out_blocks,out_blocks_mem);
-    pbbslib::free_array(in_blocks,in_blocks_mem);
   }
 
   private:

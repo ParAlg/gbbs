@@ -216,7 +216,6 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   std::cout << "matching size = " << matching.size << "\n";
   auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
   mt.stop();
-  matching.del();
   eff.reportTotal("eff for time");
   gete.reportTotal("get edges time");
   mt.reportTotal("Matching time");

@@ -92,27 +92,27 @@ inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F
     auto next = sequence<D>(n);
     auto g = get_emdense_forward_gen<Data>(next.begin());
     if constexpr (std::is_same<Data, gbbs::empty>()) {
-      par_for(0, n, kDefaultGranularity,
-              [&](size_t i) { next[i] = 0; });
+      parallel_for(0, n,
+              [&](size_t i) { next[i] = 0; }, kDefaultGranularity);
     } else {
-      par_for(0, n, kDefaultGranularity,
-              [&](size_t i) { std::get<0>(next[i]) = 0; });
+      parallel_for(0, n,
+              [&](size_t i) { std::get<0>(next[i]) = 0; }, kDefaultGranularity);
     }
-    par_for(0, n, 1, [&](size_t i) {
+    parallel_for(0, n, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
         auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
         neighbors.decode(f, g);
       }
-    });
+    }, 1);
     return vertexSubsetData<Data>(n, std::move(next));
   } else {
     auto g = get_emdense_forward_nooutput_gen<Data>();
-    par_for(0, n, 1, [&](size_t i) {
+    parallel_for(0, n, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
         auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
         neighbors.decode(f, g);
       }
-    });
+    }, 1);
     return vertexSubsetData<Data>(n);
   }
 }

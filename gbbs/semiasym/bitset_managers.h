@@ -25,9 +25,9 @@
 
 #include "bitset.h"
 
+#include "gbbs/encodings/byte_pd.h"
 #include "gbbs/flags.h"
 #include "gbbs/macros.h"
-#include "gbbs/encodings/byte_pd.h"
 // #include "gbbs/encodings/byte_pd_amortized.h"
 
 #include "utils.h"
@@ -38,8 +38,10 @@ namespace block_vertex_ops {
 
 template <class It>
 size_t intersect(It& a, It& b) {
-  size_t i=0; size_t j=0;
-  size_t nA = a.degree(); size_t nB = b.degree();
+  size_t i = 0;
+  size_t j = 0;
+  size_t nA = a.degree();
+  size_t nB = b.degree();
   size_t ans = 0;
   bool advance_a = false;
   bool advance_b = false;
@@ -55,7 +57,9 @@ size_t intersect(It& a, It& b) {
     if (a.cur() == b.cur()) {
       advance_a = true;
       advance_b = true;
-      i++; j++; ans++;
+      i++;
+      j++;
+      ans++;
     } else if (a.cur() < b.cur()) {
       advance_a = true;
       i++;
@@ -69,14 +73,18 @@ size_t intersect(It& a, It& b) {
 
 template <class S, class It>
 size_t intersect_seq(S& a, It& b) {
-  size_t i=0; size_t j=0;
-  size_t nA = a.size(); size_t nB = b.degree();
+  size_t i = 0;
+  size_t j = 0;
+  size_t nA = a.size();
+  size_t nB = b.degree();
   size_t ans = 0;
   uintE b_cur;
   if (j < nB) b_cur = b.cur();
   while (i < nA && j < nB) {
     if (a[i] == b_cur) {
-      i++; j++; ans++;
+      i++;
+      j++;
+      ans++;
       if (j < nB) {
         b_cur = b.next();
       }
@@ -114,93 +122,53 @@ size_t seq_merge(SeqA& A, SeqB& B) {
   return ct;
 }
 
-
-//template <class S, class It>
-//size_t intersect_batch_seq(S& a, It& b) {
-//  size_t b_size = 128;
-//  uintE block[b_size];
-//  size_t n_blocks = pbbslib::num_blocks(b.degree(), b_size);
-//  size_t ans = 0;
-//  size_t i=0;
-//  size_t block_id=0;
-//
-//  while (i < nA && block_id < n_blocks) {
-//    size_t block_start =
-//
-//  }
-//
-//  size_t j=0;
-//  size_t nA = a.size(); size_t nB = b.degree();
-//
-//  while (i < nA && j < nB) {
-//    if (a[i] == b_cur) {
-//      i++; j++; ans++;
-//      if (b.has_next()) b.next();
-//      b_cur = std::get<0>(b.cur());
-//    } else if (a[i] < std::get<0>(b.cur())) {
-//      i++;
-//    } else {
-//      j++;
-//      if (b.has_next()) b.next();
-//      b_cur = std::get<0>(b.cur());
-//    }
-//  }
-//  return ans;
-//}
-
-
 /* Used to map over the edges incident to v */
-template <class W /* weight */,
-          class F /* user-specified mapping function */,
+template <class W /* weight */, class F /* user-specified mapping function */,
           class BM /* block_manager */>
 inline void map_nghs(uintE vtx_id, BM& block_manager, F& f, bool parallel) {
-  par_for(0, block_manager.num_blocks(), 1,
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  f(vtx_id, ngh, wgh);
-                });
-          },
-          parallel);
+  parallel_for(0, block_manager.num_blocks(),
+               [&](size_t block_num) {
+                 block_manager.decode_block(
+                     block_num, [&](const uintE& ngh, const W& wgh,
+                                    uintE edge_num) { f(vtx_id, ngh, wgh); });
+               },
+               1);
 }
 
 /* Map over edges incident to v using M, reduce using Monoid */
-template <class W /* weight */,
-          class M /* mapping function */, class Monoid /* reduction monoid */, class BM /* block_manager */>
+template <class W /* weight */, class M /* mapping function */,
+          class Monoid /* reduction monoid */, class BM /* block_manager */>
 inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
                        bool parallel = true) -> typename Monoid::T {
   using T = typename Monoid::T;
   size_t num_blocks = block_manager.num_blocks();
   if (num_blocks >= 1) {
     T stk[100];
-    T* block_outputs;
+    T* block_outputs = stk;
+    parlay::sequence<T> alloc;
     if (num_blocks > 100) {
       // TODO: should the interface for reduce_nghs expect a tmp memory
       // allocation for sizes larger than 100 (reduce_alloc_thresh)? Concern is
       // that in-line memory allocation for large vertices is far slower than
       // doing a bulk-memory allocation up front and receiving offsets.
-      block_outputs = pbbslib::new_array_no_init<T>(num_blocks);
-    } else {
-      block_outputs = (T*)stk;
+      alloc = parlay::sequence<T>::uninitialized(num_blocks);
+      block_outputs = alloc.begin();
     }
 
-    par_for(0, num_blocks, 1,
-            [&](size_t block_num) {
-              T cur = reduce.identity;
-              block_manager.decode_block(
-                  block_num,
-                  [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                    cur = reduce.f(cur, m(vtx_id, ngh, wgh));
-                  });
-              block_outputs[block_num] = cur;
-            },
-            parallel);
+    parallel_for(0, num_blocks,
+                 [&](size_t block_num) {
+                   T cur = reduce.identity;
+                   block_manager.decode_block(
+                       block_num,
+                       [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                         cur = reduce.f(cur, m(vtx_id, ngh, wgh));
+                       });
+                   block_outputs[block_num] = cur;
+                 },
+                 1);
 
     auto im = pbbslib::make_range(block_outputs, num_blocks);
     T res = pbbslib::reduce(im, reduce);
-    if (num_blocks > 100) {
-      pbbslib::free_array(block_outputs, num_blocks);
-    }
     return res;
   } else {
     return reduce.identity;
@@ -208,62 +176,65 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
 }
 
 /* Used to copy edges incident to a vertex */
-template <class W /* weight */,
-          class F /* mapping function */, class G /* output function */, class BM /* block_manager */>
+template <class W /* weight */, class F /* mapping function */,
+          class G /* output function */, class BM /* block_manager */>
 inline void copyNghs(uintE vtx_id, BM& block_manager, uintT o, F& f, G& g,
                      bool parallel) {
-  par_for(0, block_manager.num_blocks(), 1,
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  auto val = f(vtx_id, ngh, wgh);
-                  g(ngh, o + edge_num, val);
-                });
-          },
-          parallel);
+  parallel_for(0, block_manager.num_blocks(),
+               [&](size_t block_num) {
+                 block_manager.decode_block(
+                     block_num,
+                     [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                       auto val = f(vtx_id, ngh, wgh);
+                       g(ngh, o + edge_num, val);
+                     });
+               },
+               1);
 }
 
 /* For each out-neighbor satisfying cond, call updateAtomic */
-template <class W /* weight */,
-          class F /* mapping function */, class G /* full output function */,
+template <class W /* weight */, class F /* mapping function */,
+          class G /* full output function */,
           class H /* empty output function */, class BM /* block_manager */>
 inline void decodeNghsSparse(uintE vtx_id, BM& block_manager, uintT o, F& f,
                              G& g, H& h, bool parallel) {
-  par_for(0, block_manager.num_blocks(), 1,
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  if (f.cond(ngh)) {
-                    auto m = f.updateAtomic(vtx_id, ngh, wgh);
-                    g(ngh, o + edge_num, m);
-                  } else {
-                    h(ngh, o + edge_num);
-                  }
-                });
-          },
-          parallel);
+  parallel_for(0, block_manager.num_blocks(),
+               [&](size_t block_num) {
+                 block_manager.decode_block(
+                     block_num,
+                     [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                       if (f.cond(ngh)) {
+                         auto m = f.updateAtomic(vtx_id, ngh, wgh);
+                         g(ngh, o + edge_num, m);
+                       } else {
+                         h(ngh, o + edge_num);
+                       }
+                     });
+               },
+               1);
 }
 
 /* For each out-neighbor satisfying cond, call updateAtomic */
-template <class W /* weight */,
-          class F /* mapping function */, class G /* output function */, class BM /* block_manager */>
+template <class W /* weight */, class F /* mapping function */,
+          class G /* output function */, class BM /* block_manager */>
 inline void decodeNghs(uintE vtx_id, BM& block_manager, F& f, G& g,
                        bool parallel) {
-  par_for(0, block_manager.num_blocks(), 1,
-          [&](size_t block_num) {
-            block_manager.decode_block(
-                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
-                  auto m = f.updateAtomic(vtx_id, ngh, wgh);
-                  g(ngh, m);
-                });
-          },
-          parallel);
+  parallel_for(0, block_manager.num_blocks(),
+               [&](size_t block_num) {
+                 block_manager.decode_block(
+                     block_num,
+                     [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                       auto m = f.updateAtomic(vtx_id, ngh, wgh);
+                       g(ngh, m);
+                     });
+               },
+               1);
 }
 
 /* Sequentially process incident edges and quit if cond on self fails. */
-template <class W /* weight */,
-          class F /* mapping function */, class G /* output function */,
-          class VS /* vertex_subset type */, class BM /* block_manager */>
+template <class W /* weight */, class F /* mapping function */,
+          class G /* output function */, class VS /* vertex_subset type */,
+          class BM /* block_manager */>
 inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
                                  VS& vertexSubset, F& f, G& g, bool parallel) {
   if (block_manager.get_degree() > 0) {
@@ -281,24 +252,26 @@ inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
       }
     } else {
       size_t num_blocks = block_manager.num_blocks();
-      par_for(0, num_blocks, 1, [&](size_t block_num) {
-        block_manager.decode_block_cond(
-            block_num,
-            [&](const uintE& ngh, const W& wgh, const size_t& edge_num) {
-              if (vertexSubset.isIn(ngh)) {
-                auto m = f.updateAtomic(ngh, vtx_id, wgh);
-                g(vtx_id, m);
-                return f.cond(vtx_id);
-              }
-              return true;
-            });
-      });
+      parallel_for(0, num_blocks,
+                   [&](size_t block_num) {
+                     block_manager.decode_block_cond(
+                         block_num, [&](const uintE& ngh, const W& wgh,
+                                        const size_t& edge_num) {
+                           if (vertexSubset.isIn(ngh)) {
+                             auto m = f.updateAtomic(ngh, vtx_id, wgh);
+                             g(vtx_id, m);
+                             return f.cond(vtx_id);
+                           }
+                           return true;
+                         });
+                   },
+                   1);
     }
   }
 }
 
-template <class W /* weight */,
-          class F /* edgemap struct */, class G /* output function */, class BM /* block manager */>
+template <class W /* weight */, class F /* edgemap struct */,
+          class G /* output function */, class BM /* block manager */>
 inline size_t decode_block(uintE vtx_id, BM& block_manager, uintT o,
                            uintE block_num, F& f, G& g) {
   size_t k = 0;
@@ -315,42 +288,7 @@ inline size_t decode_block(uintE vtx_id, BM& block_manager, uintT o,
   return k;
 }
 
-//// functions to pack
-//// Caller is responsible for setting the degree on v.
-// template <class BM, class W, class P, class E>
-// inline size_t packNghs(uintE vtx_id, BM& block_manager, P& p,
-//                       E* tmp) {
-//  // 1. Pack out all live blocks
-//  par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-//    block_manager.pack_block(block_num, p);
-//  }, parallel);
-//
-//  block_manager.pack_blocks(p);
-//
-//  if (d < vertex_ops::kAllocThreshold) {
-//    uintE k = 0;
-//    for (size_t i = 0; i < d; i++) {
-//      auto nw = nghs[i];
-//      uintE ngh = std::get<0>(nw);
-//      W wgh = std::get<1>(nw);
-//      if (p(vtx_id, ngh, wgh)) {
-//        nghs[k++] = std::make_tuple(ngh, wgh);
-//      }
-//    }
-//    return k;
-//  } else {
-//    // copy to tmp
-//    par_for(0, d, kDefaultGranularity, [&] (size_t i) { tmp[i] =
-//    nghs[i]; }); auto pc = [&](const std::tuple<uintE, W>& nw) {
-//      return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
-//    };
-//    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
-//    return k;
-//  }
-//}
-
 }  // namespace block_vertex_ops
-
 
 template <template <class W> class vertex, class W>
 struct uncompressed_bitset_neighbors {
@@ -376,27 +314,14 @@ struct uncompressed_bitset_neighbors {
   static constexpr uintE kBlockAllocThreshold = 20;
 
   E* e0;
-#ifdef SAGE
-  E* e1;
-#endif
 
   uncompressed_bitset_neighbors(const uintE vtx_id, uint8_t* blocks,
-                     uintE vtx_original_degree, vtx_info* v_infos,
-#ifndef SAGE
-                     E* e0
-#else
-                     E* e0, E* e1
-#endif
-                     )
+                                uintE vtx_original_degree, vtx_info* v_infos,
+                                E* e0)
       : vtx_id(vtx_id),
         vtx_original_degree(vtx_original_degree),
         v_infos(v_infos),
-#ifndef SAGE
-        e0(e0)
-#else
-        e0(e0), e1(e1)
-#endif
-        {
+        e0(e0) {
     auto& v_info = v_infos[vtx_id];
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
@@ -406,17 +331,7 @@ struct uncompressed_bitset_neighbors {
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
   }
 
-  __attribute__((always_inline)) inline E* get_edges() {
-#ifndef SAGE
-    return e0;
-#else
-    if (pbbslib::numanode() == 0) {
-      return e0;
-    } else {
-      return e1;
-    }
-#endif
-  }
+  __attribute__((always_inline)) inline E* get_edges() { return e0; }
 
   __attribute__((always_inline)) inline uintE get_degree() {
     return vtx_degree;
@@ -430,10 +345,10 @@ struct uncompressed_bitset_neighbors {
     return vtx_num_blocks;
   }
 
-//  uintE vtx_num_blocks;     // number of blocks associated with v
-//  size_t vtx_block_offset;  // pointer into the block structure
-//
-//  E* vtx_edges;  // pointer to the original edges (prevents one random read)
+  //  uintE vtx_num_blocks;     // number of blocks associated with v
+  //  size_t vtx_block_offset;  // pointer into the block structure
+  //
+  //  E* vtx_edges;  // pointer to the original edges (prevents one random read)
 
   inline void clear_vertex() {
     vtx_degree = 0;
@@ -447,15 +362,15 @@ struct uncompressed_bitset_neighbors {
                                  vtx_degree);
   }
 
-
   template <class P>
-  inline size_t pack(P& p, uint8_t* tmp, bool parallel = true, const flags fl = 0) {
+  inline size_t pack(P& p, uint8_t* tmp, bool parallel = true,
+                     const flags fl = 0) {
     return pack_blocks(vtx_id, p, tmp, parallel, fl);
   }
 
   inline size_t calculateTemporarySpaceBytes() {
     if (vtx_degree > 0) {
-      size_t nblocks =  vtx_num_blocks;
+      size_t nblocks = vtx_num_blocks;
       if (nblocks > kBlockAllocThreshold) {
         return (sizeof(uintE) * nblocks) + (bytes_per_block * nblocks);
       }
@@ -470,9 +385,10 @@ struct uncompressed_bitset_neighbors {
   }
 
   template <class M, class Monoid>
-  inline auto reduce(M& m, Monoid& reduce, bool parallel = true) -> typename Monoid::T {
-    return block_vertex_ops::map_reduce<W, M, Monoid>(vtx_id, *this,
-                                                          m, reduce, parallel);
+  inline auto reduce(M& m, Monoid& reduce, bool parallel = true) ->
+      typename Monoid::T {
+    return block_vertex_ops::map_reduce<W, M, Monoid>(vtx_id, *this, m, reduce,
+                                                      parallel);
   }
 
   template <class F>
@@ -484,15 +400,14 @@ struct uncompressed_bitset_neighbors {
   /* edgemap primitives */
   template <class F, class G, class H>
   inline void decodeSparse(uintT o, F& f, G& g, H& h, bool parallel = true) {
-    block_vertex_ops::decodeNghsSparse<W, F>(vtx_id, *this, o, f, g,
-                                             h, parallel);
+    block_vertex_ops::decodeNghsSparse<W, F>(vtx_id, *this, o, f, g, h,
+                                             parallel);
   }
 
   template <class F, class G>
-  inline size_t decode_block(uintT o, uintE block_num, F& f,
-                            G& g) {
-    return block_vertex_ops::decode_block<W, F, G>(vtx_id, *this, o,
-                                                   block_num, f, g);
+  inline size_t decode_block(uintT o, uintE block_num, F& f, G& g) {
+    return block_vertex_ops::decode_block<W, F, G>(vtx_id, *this, o, block_num,
+                                                   f, g);
   }
 
   template <class F, class G>
@@ -501,15 +416,13 @@ struct uncompressed_bitset_neighbors {
   }
 
   template <class VS, class F, class G>
-  inline void decodeBreakEarly(VS& vertexSubset, F& f, G& g, bool parallel = false) {
+  inline void decodeBreakEarly(VS& vertexSubset, F& f, G& g,
+                               bool parallel = false) {
     block_vertex_ops::decodeNghsBreakEarly<W, F, G, VS>(
         vtx_id, *this, vertexSubset, f, g, parallel);
   }
 
-
-
   /* ===================== Implementations ====================== */
-
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
@@ -533,7 +446,7 @@ struct uncompressed_bitset_neighbors {
     E* e = get_edges();
 
     size_t block_size = block_end - block_start;
-    size_t block_size_num_longs = (block_size+64-1)/64;
+    size_t block_size_num_longs = (block_size + 64 - 1) / 64;
 
     // "select" on a block
     uint64_t* long_block_bits = (uint64_t*)block_bits;
@@ -541,13 +454,14 @@ struct uncompressed_bitset_neighbors {
     for (size_t idx = 0; idx < block_size_num_longs; idx++) {
       uint64_t cur_long = long_block_bits[idx];
       while (cur_long > 0) {
-        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+        unsigned select_idx =
+            _tzcnt_u64(cur_long);  // #trailing zeros in cur_long
         auto& ee = e[cur_offset + select_idx];
         f(std::get<0>(ee), std::get<1>(ee), offset++);
         assert((cur_long & (1UL << select_idx)) > 0);
-        cur_long = _blsr_u64(cur_long); // clears lowest set bit
+        cur_long = _blsr_u64(cur_long);  // clears lowest set bit
       }
-      cur_offset += 64; // next long
+      cur_offset += 64;  // next long
     }
   }
 
@@ -575,7 +489,7 @@ struct uncompressed_bitset_neighbors {
     E* e = get_edges();
 
     size_t block_size = block_end - block_start;
-    size_t block_size_num_longs = (block_size+64-1)/64;
+    size_t block_size_num_longs = (block_size + 64 - 1) / 64;
 
     // "select" on a block
     uint64_t* long_block_bits = (uint64_t*)block_bits;
@@ -583,30 +497,16 @@ struct uncompressed_bitset_neighbors {
     for (size_t idx = 0; idx < block_size_num_longs; idx++) {
       uint64_t cur_long = long_block_bits[idx];
       while (cur_long > 0) {
-        unsigned select_idx = _tzcnt_u64(cur_long); // index of first nz bit
+        unsigned select_idx = _tzcnt_u64(cur_long);  // index of first nz bit
         auto& ee = e[cur_offset + select_idx];
         if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
           return;
         }
         assert((cur_long & (1UL << select_idx)) > 0);
-        cur_long = _blsr_u64(cur_long); // reset lowest bit
+        cur_long = _blsr_u64(cur_long);  // reset lowest bit
       }
-      cur_offset += 64; // next long
+      cur_offset += 64;  // next long
     }
-
-//    // This is one way of decoding (check bit at a time). The other way is to
-//    // use a fetch_next_bit function.
-//    // Probably also faster to have a look-up table on the byte
-//    for (size_t k = 0; k < (block_end - block_start); k++) {
-//      //      bool isset = bitsets::is_bit_set(block_bits, k);
-//      //      assert(isset);
-//      if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
-//        auto& ee = e[block_start + k];           // if so, fetch the k-th edge
-//        bool ret = f(std::get<0>(ee), std::get<1>(ee),
-//                     offset++);  // and apply f with the correct offset
-//        if (!ret) break;
-//      }
-//    }
   }
 
   /* Only called when the discrepency between full and total blocks is large.
@@ -616,11 +516,15 @@ struct uncompressed_bitset_neighbors {
     uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
     uintE int_stk[kBlockAllocThreshold];
     uint8_t* tmp_space = (uint8_t*)stk;
+    parlay::sequence<uint8_t> tmp_alloc;
     uintE* tmp_ints = (uintE*)int_stk;
+    parlay::sequence<uintE> int_alloc;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_space = pbbslib::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_alloc = parlay::sequence<uint8_t>::uninitialized(total_bytes);
+      tmp_space = tmp_alloc.begin();
+      int_alloc = parlay::sequence<uintE>::uninitialized(vtx_num_blocks);
+      tmp_ints = int_alloc.begin();
     }
 
     // caller supplies:
@@ -633,30 +537,31 @@ struct uncompressed_bitset_neighbors {
 
     metadata* block_metadata = (metadata*)blocks_start;
 
-    size_t n_full_blocks = vtx_num_blocks - 1; // full blocks
-    size_t bytes_to_copy = n_full_blocks*bytes_per_block;
+    size_t n_full_blocks = vtx_num_blocks - 1;  // full blocks
+    size_t bytes_to_copy = n_full_blocks * bytes_per_block;
     {
       // fetch original block
-      size_t last_block_num = vtx_num_blocks-1;
+      size_t last_block_num = vtx_num_blocks - 1;
       size_t orig_block_num = block_metadata[last_block_num].block_num;
 
       // get block size
       size_t block_start = orig_block_num * edges_per_block;
-      size_t block_end =
-          std::min(block_start + edges_per_block, static_cast<size_t>(vtx_original_degree));
+      size_t block_end = std::min(block_start + edges_per_block,
+                                  static_cast<size_t>(vtx_original_degree));
 
       // #bytes for this block
       size_t last_block_size = block_end - block_start;
-      size_t last_block_bytes = sizeof(metadata) + bitsets::get_bitset_block_size_in_bytes(last_block_size);
+      size_t last_block_bytes =
+          sizeof(metadata) +
+          bitsets::get_bitset_block_size_in_bytes(last_block_size);
 
       bytes_to_copy += last_block_bytes;
     }
-    assert(bytes_to_copy <= ((n_full_blocks+1)*bytes_per_block));
+    assert(bytes_to_copy <= ((n_full_blocks + 1) * bytes_per_block));
 
     // Is a blocked memcpy faster here?
-    parallel_for(0, bytes_to_copy, [&] (size_t i) {
-      tmp_space[i] = blocks_start[i];
-    }, 512);
+    parallel_for(0, bytes_to_copy,
+                 [&](size_t i) { tmp_space[i] = blocks_start[i]; }, 512);
 
     // Tmp space for integers starts consecutively after tmp block space
     if (tmp) {
@@ -696,7 +601,8 @@ struct uncompressed_bitset_neighbors {
             std::min(block_start + edges_per_block, vtx_original_degree);
 
         size_t this_block_size = block_end - block_start;
-        size_t num_bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
+        size_t num_bytes_to_copy =
+            bitsets::get_bitset_block_size_in_bytes(this_block_size);
         assert(num_bytes_to_copy <= bytes_per_block);
 
         // (b) copy bitset data
@@ -710,88 +616,73 @@ struct uncompressed_bitset_neighbors {
     uintE old_vtx_num_blocks = vtx_num_blocks;
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
-
-    if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_space, total_bytes);
-      pbbslib::free_array(tmp_ints, vtx_num_blocks);
-    }
   }
 
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel, const flags fl) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel,
+                            const flags fl) {
     if (vtx_degree == 0) {
       return 0;
     }
     metadata* block_metadata = (metadata*)blocks_start;
     uintE int_stk[kBlockAllocThreshold];
     uintE* tmp_ints = (uintE*)int_stk;
+    parlay::sequence<uintE> int_alloc;
     uintE old_vtx_num_blocks = vtx_num_blocks;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
+      int_alloc = parlay::sequence<uintE>::uninitialized(vtx_num_blocks);
+      tmp_ints = int_alloc.begin();
     }
     if (tmp) {
       tmp_ints = (uintE*)tmp;
     }
 
     // 1. pack each block
-    par_for(0, vtx_num_blocks, 1,
-            [&](size_t block_id) {
-              uintE orig_block_num = block_metadata[block_id].block_num;
-              uint8_t* block_bits =
-                  block_data_start + bitset_bytes_per_block * block_id;
+    parallel_for(0, vtx_num_blocks,
+                 [&](size_t block_id) {
+                   uintE orig_block_num = block_metadata[block_id].block_num;
+                   uint8_t* block_bits =
+                       block_data_start + bitset_bytes_per_block * block_id;
 
-              uintE block_start = orig_block_num * edges_per_block;
-              uintE block_end =
-                  std::min(block_start + edges_per_block, vtx_original_degree);
+                   uintE block_start = orig_block_num * edges_per_block;
+                   uintE block_end = std::min(block_start + edges_per_block,
+                                              vtx_original_degree);
 
-              E* e = get_edges();
+                   E* e = get_edges();
 
-              size_t block_size = block_end - block_start;
-              size_t block_size_num_longs = (block_size+64-1)/64;
+                   size_t block_size = block_end - block_start;
+                   size_t block_size_num_longs = (block_size + 64 - 1) / 64;
 
-              // "select" on a block
-              uint64_t* long_block_bits = (uint64_t*)block_bits;
-              size_t cur_offset = block_start;
-              size_t live_edges = 0;
-              for (size_t idx = 0; idx < block_size_num_longs; idx++) {
-                uint64_t cur_long = long_block_bits[idx];
-                // size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
-                uint64_t long_to_write = cur_long;
-                while (cur_long > 0) {
-                  unsigned select_idx = _tzcnt_u64(cur_long);
-                  auto& ee = e[cur_offset + select_idx];
-                  if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
-                    long_to_write ^= (1UL << select_idx);
-                  } else {
-                    live_edges++;
-                  }
-                  assert((cur_long & (1UL << select_idx)) > 0);
-                  cur_long = _blsr_u64(cur_long);
-                }
-                long_block_bits[idx] = long_to_write;
-                cur_offset += 64; // next long
-              }
+                   // "select" on a block
+                   uint64_t* long_block_bits = (uint64_t*)block_bits;
+                   size_t cur_offset = block_start;
+                   size_t live_edges = 0;
+                   for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+                     uint64_t cur_long = long_block_bits[idx];
+                     // size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to
+                     // one
+                     uint64_t long_to_write = cur_long;
+                     while (cur_long > 0) {
+                       unsigned select_idx = _tzcnt_u64(cur_long);
+                       auto& ee = e[cur_offset + select_idx];
+                       if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
+                         long_to_write ^= (1UL << select_idx);
+                       } else {
+                         live_edges++;
+                       }
+                       assert((cur_long & (1UL << select_idx)) > 0);
+                       cur_long = _blsr_u64(cur_long);
+                     }
+                     long_block_bits[idx] = long_to_write;
+                     cur_offset += 64;  // next long
+                   }
 
-//              size_t live_edges = 0;
-//              for (size_t k = 0; k < (block_end - block_start); k++) {
-//                if (bitsets::is_bit_set(block_bits, k)) {     // k-th edge is present in G
-//                  auto& ee = e[block_start + k];  // fetch the k-th edge
-//                  if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
-//                    // unset the k-th bit
-//                    bitsets::flip_bit(block_bits, k);
-//                  } else {
-//                    // otherwise increment the count of live edges
-//                    live_edges++;
-//                  }
-//                }
-//              }
-
-              // Temporarily store #live_edges in offset positions.
-              block_metadata[block_id].offset = live_edges;
-            },
-            parallel);
+                   // Temporarily store #live_edges in offset positions.
+                   block_metadata[block_id].offset = live_edges;
+                 },
+                 1);
 
     // 2. Reduce to get the #empty_blocks
     auto full_block_seq =
@@ -804,23 +695,13 @@ struct uncompressed_bitset_neighbors {
         ((full_blocks < vtx_num_blocks) && (fl & compact_blocks))) {
       repack_blocks_par(tmp, parallel);
     }
-
-//    // Update offset values.
-//    auto ptr_seq = indirect_value_seq<uintE>(
-//        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-//    uintE sum = pbbslib::scan_inplace(ptr_seq, pbbslib::no_flag, tmp_ints);
-//    vtx_degree = sum;
     uintE sum = 0;
-    for (size_t i=0; i<vtx_num_blocks; i++) {
+    for (size_t i = 0; i < vtx_num_blocks; i++) {
       uintE cur = block_metadata[i].offset;
       block_metadata[i].offset = sum;
       sum += cur;
     }
     vtx_degree = sum;
-
-    if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_ints, vtx_num_blocks);
-    }
 
     // Update the degree in vtx_info.
     v_infos[vtx_id].vtx_degree = sum;
@@ -830,17 +711,16 @@ struct uncompressed_bitset_neighbors {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_delayed<size_t>(vtx_num_blocks, [&] (size_t ind) {
-      return block_metadata[ind].offset;
-    });
+    auto offsets_imap = pbbslib::make_delayed<size_t>(
+        vtx_num_blocks, [&](size_t ind) { return block_metadata[ind].offset; });
 
     auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
     size_t block = pbbslib::binary_search(offsets_imap, i, lte);
     assert(block > 0);
-    block = block-1;
+    block = block - 1;
 
     std::tuple<uintE, W> out;
-    auto decode_f = [&] (const uintE& v, const W& wgh, const uintE& offset) {
+    auto decode_f = [&](const uintE& v, const W& wgh, const uintE& offset) {
       if (offset == i) {
         out = std::make_tuple(v, wgh);
         return false;
@@ -859,10 +739,10 @@ struct uncompressed_bitset_neighbors {
     uint8_t* blocks_start;
     uint8_t* block_data_start;
 
-    uintE cur_block; // block id
-    uintE cur_block_degree; // #live edges
-    uintE cur_block_start; // start offset (in edges)
-    uintE cur_block_num_longs; // block size (in terms of #longs)
+    uintE cur_block;            // block id
+    uintE cur_block_degree;     // #live edges
+    uintE cur_block_start;      // start offset (in edges)
+    uintE cur_block_num_longs;  // block size (in terms of #longs)
 
     uint64_t* cur_block_longs;
     uint64_t cur_long_value;
@@ -872,28 +752,25 @@ struct uncompressed_bitset_neighbors {
     uintE proc;
     uintE proc_cur_block;
 
-    iter(E* edges,
-        uintE vtx_degree,
-        uintE vtx_original_degree,
-        uintE vtx_num_blocks,
-        uint8_t* blocks_start,
-        uint8_t* block_data_start) :
-        edges(edges),
-        vtx_degree(vtx_degree),
-        vtx_original_degree(vtx_original_degree),
-        vtx_num_blocks(vtx_num_blocks),
-        blocks_start(blocks_start),
-        block_data_start(block_data_start),
-        proc(0) {
+    iter(E* edges, uintE vtx_degree, uintE vtx_original_degree,
+         uintE vtx_num_blocks, uint8_t* blocks_start, uint8_t* block_data_start)
+        : edges(edges),
+          vtx_degree(vtx_degree),
+          vtx_original_degree(vtx_original_degree),
+          vtx_num_blocks(vtx_num_blocks),
+          blocks_start(blocks_start),
+          block_data_start(block_data_start),
+          proc(0) {
       proc = 0;
       if (vtx_degree > 0) {
         next_nonempty_block(/* on_initialization = */ true);
-        next(); // sets last_ngh
+        next();  // sets last_ngh
       }
     }
 
     // precondition: there is a subsequent non-empty block
-    __attribute__((always_inline)) inline void next_nonempty_block(bool on_initialization=false) {
+    __attribute__((always_inline)) inline void next_nonempty_block(
+        bool on_initialization = false) {
       if (on_initialization) {
         cur_block = 0;
       } else {
@@ -916,12 +793,13 @@ struct uncompressed_bitset_neighbors {
       uintE orig_block_num = block_metadata[cur_block].block_num;
       cur_block_start = orig_block_num * edges_per_block;
       uintE cur_block_end =
-        std::min(cur_block_start + edges_per_block, vtx_original_degree);
+          std::min(cur_block_start + edges_per_block, vtx_original_degree);
       uintE cur_block_size = cur_block_end - cur_block_start;
-      cur_block_num_longs = (cur_block_size+64-1)/64;
+      cur_block_num_longs = (cur_block_size + 64 - 1) / 64;
 
       // set cur_block_longs
-      cur_block_longs = (uint64_t*)(block_data_start + bitset_bytes_per_block * cur_block);
+      cur_block_longs =
+          (uint64_t*)(block_data_start + bitset_bytes_per_block * cur_block);
 
       // initialize value to read, and the idx.
       cur_long_value = cur_block_longs[0];
@@ -933,7 +811,7 @@ struct uncompressed_bitset_neighbors {
 
     // updates last_ngh
     __attribute__((always_inline)) inline uintE next() {
-      while(cur_long_value == 0) {
+      while (cur_long_value == 0) {
         // done with block?
         cur_long_idx++;
         proc_cur_block += 64;
@@ -944,9 +822,11 @@ struct uncompressed_bitset_neighbors {
       }
       // cur_long_value > 0
 
-      unsigned select_idx = _tzcnt_u64(cur_long_value); // #trailing zeros in cur_long
-      cur_long_value = _blsr_u64(cur_long_value); // clears lowest set bit
-      last_ngh = std::get<0>(edges[cur_block_start + proc_cur_block + select_idx]);
+      unsigned select_idx =
+          _tzcnt_u64(cur_long_value);  // #trailing zeros in cur_long
+      cur_long_value = _blsr_u64(cur_long_value);  // clears lowest set bit
+      last_ngh =
+          std::get<0>(edges[cur_block_start + proc_cur_block + select_idx]);
       proc++;
       return last_ngh;
     }
@@ -957,12 +837,8 @@ struct uncompressed_bitset_neighbors {
   };
 
   auto get_iter() {
-    return iter(get_edges(),
-        vtx_degree,
-        vtx_original_degree,
-        vtx_num_blocks,
-        blocks_start,
-        block_data_start);
+    return iter(get_edges(), vtx_degree, vtx_original_degree, vtx_num_blocks,
+                blocks_start, block_data_start);
   }
 };
 
@@ -984,32 +860,20 @@ struct compressed_bitset_neighbors {
   vtx_info* v_infos;
 
   static constexpr uintE edges_per_block = PARALLEL_DEGREE;
-  static constexpr uintE bytes_per_block = edges_per_block / 8 + sizeof(metadata);
+  static constexpr uintE bytes_per_block =
+      edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(metadata);
 
   E* e0;
-#ifdef SAGE
-  E* e1;
-#endif
 
   compressed_bitset_neighbors(const uintE vtx_id, uint8_t* blocks,
-                                uintE vtx_original_degree, vtx_info* v_infos,
-#ifndef SAGE
-                     E* e0
-#else
-                     E* e0, E* e1
-#endif
-                                )
+                              uintE vtx_original_degree, vtx_info* v_infos,
+                              E* e0)
       : vtx_id(vtx_id),
-      vtx_original_degree(vtx_original_degree),
-      v_infos(v_infos),
-#ifndef SAGE
-        e0(e0)
-#else
-        e0(e0), e1(e1)
-#endif
-  {
+        vtx_original_degree(vtx_original_degree),
+        v_infos(v_infos),
+        e0(e0) {
     auto& v_info = v_infos[vtx_id];
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
@@ -1018,17 +882,7 @@ struct compressed_bitset_neighbors {
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
   }
 
-  __attribute__((always_inline)) inline E* get_edges() {
-#ifndef SAGE
-    return e0;
-#else
-    if (pbbslib::numanode() == 0) {
-      return e0;
-    } else {
-      return e1;
-    }
-#endif
-  }
+  __attribute__((always_inline)) inline E* get_edges() { return e0; }
 
   __attribute__((always_inline)) inline uintE get_degree() {
     return vtx_degree;
@@ -1055,13 +909,14 @@ struct compressed_bitset_neighbors {
   }
 
   template <class P>
-  inline size_t pack(P& p, uint8_t* tmp, bool parallel = true, const flags fl = 0) {
+  inline size_t pack(P& p, uint8_t* tmp, bool parallel = true,
+                     const flags fl = 0) {
     return pack_blocks(vtx_id, p, tmp, parallel, fl);
   }
 
   inline size_t calculateTemporarySpaceBytes() {
     if (vtx_degree > 0) {
-      size_t nblocks =  vtx_num_blocks;
+      size_t nblocks = vtx_num_blocks;
       if (nblocks > kBlockAllocThreshold) {
         return (sizeof(uintE) * nblocks) + (bytes_per_block * nblocks);
       }
@@ -1076,9 +931,10 @@ struct compressed_bitset_neighbors {
   }
 
   template <class M, class Monoid>
-  inline auto reduce(M& m, Monoid& reduce, bool parallel = true) -> typename Monoid::T {
-    return block_vertex_ops::map_reduce<W, M, Monoid>(vtx_id, *this,
-                                                          m, reduce, parallel);
+  inline auto reduce(M& m, Monoid& reduce, bool parallel = true) ->
+      typename Monoid::T {
+    return block_vertex_ops::map_reduce<W, M, Monoid>(vtx_id, *this, m, reduce,
+                                                      parallel);
   }
 
   template <class F>
@@ -1090,15 +946,14 @@ struct compressed_bitset_neighbors {
   /* edgemap primitives */
   template <class F, class G, class H>
   inline void decodeSparse(uintT o, F& f, G& g, H& h, bool parallel = true) {
-    block_vertex_ops::decodeNghsSparse<W, F>(vtx_id, *this, o, f, g,
-                                             h, parallel);
+    block_vertex_ops::decodeNghsSparse<W, F>(vtx_id, *this, o, f, g, h,
+                                             parallel);
   }
 
   template <class F, class G>
-  inline size_t decode_block(uintT o, uintE block_num, F& f,
-                             G& g) {
-    return block_vertex_ops::decode_block<W, F, G>(vtx_id, *this, o,
-                                                   block_num, f, g);
+  inline size_t decode_block(uintT o, uintE block_num, F& f, G& g) {
+    return block_vertex_ops::decode_block<W, F, G>(vtx_id, *this, o, block_num,
+                                                   f, g);
   }
 
   template <class F, class G>
@@ -1107,12 +962,11 @@ struct compressed_bitset_neighbors {
   }
 
   template <class VS, class F, class G>
-  inline void decodeBreakEarly(VS& vertexSubset, F& f, G& g, bool parallel = false) {
+  inline void decodeBreakEarly(VS& vertexSubset, F& f, G& g,
+                               bool parallel = false) {
     block_vertex_ops::decodeNghsBreakEarly<W, F, G, VS>(
         vtx_id, *this, vertexSubset, f, g, parallel);
   }
-
-
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
@@ -1129,40 +983,31 @@ struct compressed_bitset_neighbors {
       assert(k < edges_per_block);
       block_decode[k++] = std::make_tuple(ngh, wgh);
     };
-    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-                                               orig_block_num);
+    bytepd_amortized::template decode_block<W>(
+        t_f, e, vtx_id, vtx_original_degree, orig_block_num);
 
-    uint64_t* long_block_bits = (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
+    uint64_t* long_block_bits =
+        (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
     uintE block_start = orig_block_num * edges_per_block;
     size_t block_end =
         std::min(block_start + edges_per_block, vtx_original_degree);
     size_t block_size = block_end - block_start;
-    size_t block_size_num_longs = (block_size+64-1)/64;
+    size_t block_size_num_longs = (block_size + 64 - 1) / 64;
 
     // "select" on a block
     size_t cur_offset = 0;
     for (size_t idx = 0; idx < block_size_num_longs; idx++) {
       uint64_t cur_long = long_block_bits[idx];
       while (cur_long > 0) {
-        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+        unsigned select_idx =
+            _tzcnt_u64(cur_long);  // #trailing zeros in cur_long
         auto& ee = block_decode[cur_offset + select_idx];
         f(std::get<0>(ee), std::get<1>(ee), offset++);
         assert((cur_long & (1UL << select_idx)) > 0);
-        cur_long = _blsr_u64(cur_long); // clears lowest set bit
+        cur_long = _blsr_u64(cur_long);  // clears lowest set bit
       }
-      cur_offset += 64; // next long
+      cur_offset += 64;  // next long
     }
-
-//    size_t k = 0;
-//    uint8_t* block_bits = block_data_start + bitset_bytes_per_block * block_id;
-//    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-//      if (bitsets::is_bit_set(block_bits,
-//                              k++)) {  // check if the k-th bit is set
-//        f(ngh, wgh, offset++);         // and apply f with the correct offset
-//      }
-//    };
-//    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-//                                               orig_block_num);
   }
 
   template <class F>
@@ -1174,53 +1019,22 @@ struct compressed_bitset_neighbors {
 
     E* e = get_edges();
 
-//    size_t k = 0;
-//    std::tuple<uintE, W> block_decode[edges_per_block];
-//    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-//      block_decode[k++] = std::make_tuple(ngh, wgh);
-//    };
-//    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-//                                               orig_block_num);
-//
-//    uint64_t* long_block_bits = (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
-//    uintE block_start = orig_block_num * edges_per_block;
-//    size_t block_end =
-//        std::min(block_start + edges_per_block, vtx_original_degree);
-//    size_t block_size = block_end - block_start;
-//    size_t block_size_num_longs = (block_size+64-1)/64;
-//
-//    // "select" on a block
-//    size_t cur_offset = 0;
-//    for (size_t idx = 0; idx < block_size_num_longs; idx++) {
-//      uint64_t cur_long = long_block_bits[idx];
-//      while (cur_long > 0) {
-//        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
-//        auto& ee = block_decode[cur_offset + select_idx];
-//        if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
-//          return;
-//        }
-//        assert((cur_long & (1UL << select_idx)) > 0);
-//        cur_long = _blsr_u64(cur_long); // clears lowest set bit
-//      }
-//      cur_offset += 64; // next long
-//    }
-
     size_t k = 0;
     uint8_t* block_bits = block_data_start + bitset_bytes_per_block * block_id;
     auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-     if (bitsets::is_bit_set(block_bits, // about 7% overhead
-                              k++)) {  // check if the k-th bit is set
+      if (bitsets::is_bit_set(block_bits,  // about 7% overhead
+                              k++)) {      // check if the k-th bit is set
         return f(ngh, wgh, offset++);  // and apply f with the correct offset
       }
       return true;
     };
-    bytepd_amortized::template decode_block_cond<W>(t_f, e, vtx_id, vtx_original_degree,
-                                                    orig_block_num);
-//    debug(uintE block_start = orig_block_num * edges_per_block;
-//    uintE block_end =
-//        std::min(block_start + edges_per_block, vtx_original_degree);
-//    assert(k == (block_end - block_start));
-//    );
+    bytepd_amortized::template decode_block_cond<W>(
+        t_f, e, vtx_id, vtx_original_degree, orig_block_num);
+    //    debug(uintE block_start = orig_block_num * edges_per_block;
+    //    uintE block_end =
+    //        std::min(block_start + edges_per_block, vtx_original_degree);
+    //    assert(k == (block_end - block_start));
+    //    );
   }
 
   /* Only called when the discrepency between full and total blocks is large.
@@ -1229,12 +1043,17 @@ struct compressed_bitset_neighbors {
   inline void repack_blocks_par(uint8_t* tmp, bool parallel) {
     uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
     uintE int_stk[kBlockAllocThreshold];
+
     uint8_t* tmp_space = (uint8_t*)stk;
+    parlay::sequence<uint8_t> tmp_alloc;
     uintE* tmp_ints = (uintE*)int_stk;
+    parlay::sequence<uintE> int_alloc;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_space = pbbslib::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_alloc = parlay::sequence<uint8_t>::uninitialized(total_bytes);
+      tmp_space = tmp_alloc.begin();
+      int_alloc = parlay::sequence<uintE>::uninitialized(vtx_num_blocks);
+      tmp_ints = int_alloc.begin();
     }
 
     // caller supplies:
@@ -1247,29 +1066,30 @@ struct compressed_bitset_neighbors {
 
     metadata* block_metadata = (metadata*)blocks_start;
 
-    size_t n_full_blocks = vtx_num_blocks - 1; // full blocks
-    size_t bytes_to_copy = n_full_blocks*bytes_per_block;
+    size_t n_full_blocks = vtx_num_blocks - 1;  // full blocks
+    size_t bytes_to_copy = n_full_blocks * bytes_per_block;
     {
       // fetch original block
-      size_t last_block_num = vtx_num_blocks-1;
+      size_t last_block_num = vtx_num_blocks - 1;
       size_t orig_block_num = block_metadata[last_block_num].block_num;
 
       // get block size
       size_t block_start = orig_block_num * edges_per_block;
-      size_t block_end =
-          std::min(block_start + edges_per_block, static_cast<size_t>(vtx_original_degree));
+      size_t block_end = std::min(block_start + edges_per_block,
+                                  static_cast<size_t>(vtx_original_degree));
 
       // #bytes for this block
       size_t last_block_size = block_end - block_start;
-      size_t last_block_bytes = sizeof(metadata) + bitsets::get_bitset_block_size_in_bytes(last_block_size);
+      size_t last_block_bytes =
+          sizeof(metadata) +
+          bitsets::get_bitset_block_size_in_bytes(last_block_size);
 
       bytes_to_copy += last_block_bytes;
     }
 
     // Is a blocked memcpy faster here?
-    parallel_for(0, bytes_to_copy, [&] (size_t i) {
-      tmp_space[i] = blocks_start[i];
-    }, 512);
+    parallel_for(0, bytes_to_copy,
+                 [&](size_t i) { tmp_space[i] = blocks_start[i]; }, 512);
 
     // Tmp space for integers starts consecutively after tmp block space
     if (tmp) {
@@ -1309,7 +1129,8 @@ struct compressed_bitset_neighbors {
             std::min(block_start + edges_per_block, vtx_original_degree);
 
         size_t this_block_size = block_end - block_start;
-        size_t block_bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
+        size_t block_bytes_to_copy =
+            bitsets::get_bitset_block_size_in_bytes(this_block_size);
 
         // (b) copy bitset data
         for (size_t i = 0; i < block_bytes_to_copy; i++) {
@@ -1322,17 +1143,13 @@ struct compressed_bitset_neighbors {
     uintE old_vtx_num_blocks = vtx_num_blocks;
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
-
-    if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_space, total_bytes);
-      pbbslib::free_array(tmp_ints, vtx_num_blocks);
-    }
   }
 
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel, const flags fl) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel,
+                            const flags fl) {
     if (vtx_degree == 0) {
       return 0;
     }
@@ -1340,86 +1157,68 @@ struct compressed_bitset_neighbors {
 
     uintE int_stk[kBlockAllocThreshold];
     uintE* tmp_ints = (uintE*)int_stk;
+    parlay::sequence<uintE> int_alloc;
     uintE old_vtx_num_blocks = vtx_num_blocks;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
+      int_alloc = parlay::sequence<uintE>::uninitialized(vtx_num_blocks);
+      tmp_ints = int_alloc.begin();
     }
     if (tmp) {
       tmp_ints = (uintE*)tmp;
     }
 
-
     // 1. pack each block
-    par_for(0, vtx_num_blocks, 1, [&](size_t block_id) {
-        uintE orig_block_num = block_metadata[block_id].block_num;
-        E* e = get_edges();
+    parallel_for(
+        0, vtx_num_blocks,
+        [&](size_t block_id) {
+          uintE orig_block_num = block_metadata[block_id].block_num;
+          E* e = get_edges();
 
-        // (i) decode the block
+          // (i) decode the block
 
-        size_t k = 0;
-        std::tuple<uintE, W> block_decode[edges_per_block];
-        auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-          assert(k < edges_per_block);
-          block_decode[k++] = std::make_tuple(ngh, wgh);
-        };
-        bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-                                                   orig_block_num);
+          size_t k = 0;
+          std::tuple<uintE, W> block_decode[edges_per_block];
+          auto t_f = [&](const uintE& ngh, const W& wgh,
+                         const uintE& orig_edge_id) {
+            assert(k < edges_per_block);
+            block_decode[k++] = std::make_tuple(ngh, wgh);
+          };
+          bytepd_amortized::template decode_block<W>(
+              t_f, e, vtx_id, vtx_original_degree, orig_block_num);
 
-        uint64_t* long_block_bits = (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
-        uintE block_start = orig_block_num * edges_per_block;
-        size_t block_end =
-            std::min(block_start + edges_per_block, vtx_original_degree);
-        size_t block_size = block_end - block_start;
-        size_t block_size_num_longs = (block_size+64-1)/64;
+          uint64_t* long_block_bits =
+              (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
+          uintE block_start = orig_block_num * edges_per_block;
+          size_t block_end =
+              std::min(block_start + edges_per_block, vtx_original_degree);
+          size_t block_size = block_end - block_start;
+          size_t block_size_num_longs = (block_size + 64 - 1) / 64;
 
-        // "select" on a block
-        size_t cur_offset = 0;
-        size_t live_edges = 0;
-        for (size_t idx = 0; idx < block_size_num_longs; idx++) {
-          uint64_t cur_long = long_block_bits[idx];
-          uint64_t long_to_write = cur_long;
-          while (cur_long > 0) {
-            unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
-            auto& ee = block_decode[cur_offset + select_idx];
-            if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
-              long_to_write ^= (1UL << select_idx);
-            } else {
-              live_edges++;
+          // "select" on a block
+          size_t cur_offset = 0;
+          size_t live_edges = 0;
+          for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+            uint64_t cur_long = long_block_bits[idx];
+            uint64_t long_to_write = cur_long;
+            while (cur_long > 0) {
+              unsigned select_idx =
+                  _tzcnt_u64(cur_long);  // #trailing zeros in cur_long
+              auto& ee = block_decode[cur_offset + select_idx];
+              if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
+                long_to_write ^= (1UL << select_idx);
+              } else {
+                live_edges++;
+              }
+              assert((cur_long & (1UL << select_idx)) > 0);
+              cur_long = _blsr_u64(cur_long);  // clears lowest set bit
             }
-            assert((cur_long & (1UL << select_idx)) > 0);
-            cur_long = _blsr_u64(cur_long); // clears lowest set bit
+            long_block_bits[idx] = long_to_write;
+            cur_offset += 64;  // next long
           }
-          long_block_bits[idx] = long_to_write;
-          cur_offset += 64; // next long
-        }
-        // Temporarily store #live_edges in offset positions.
-        block_metadata[block_id].offset = live_edges;
-
-//        size_t k = 0;
-//        size_t live_edges = 0;
-//        auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-//          if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
-//            if (!p(vtx_id, ngh, wgh)) {
-//              // unset the k-th bit
-//              bitsets::flip_bit(block_bits, k);
-//            } else {
-//              // otherwise increment the count of live edges
-//              live_edges++;
-//            }
-//          }
-//          k += 1;
-//        };
-//        bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-//                                                   orig_block_num);
-//
-//        debug(uintE block_start = orig_block_num * edges_per_block;
-//        uintE block_end =
-//            std::min(block_start + edges_per_block, vtx_original_degree);
-//        assert(k == (block_end - block_start)););
-//
-//        // Temporarily store #live_edges in offset positions.
-//        block_metadata[block_id].offset = live_edges;
-    }, parallel);
+          // Temporarily store #live_edges in offset positions.
+          block_metadata[block_id].offset = live_edges;
+        },
+        1);
 
     // 2. Reduce to get the #empty_blocks
     auto full_block_seq =
@@ -1428,30 +1227,18 @@ struct compressed_bitset_neighbors {
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
 
-
     if ((full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) ||
         ((full_blocks < vtx_num_blocks) && (fl & compact_blocks))) {
       repack_blocks_par(tmp, parallel);
     }
 
-    // Update offset values.
-//    auto ptr_seq = indirect_value_seq<uintE>(
-//        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-//    uintE sum = pbbslib::scan_inplace(make_slice(ptr_seq), (uintE*)tmp_ints);
-//    vtx_degree = sum;
-
     uintE sum = 0;
-    for (size_t i=0; i<vtx_num_blocks; i++) {
+    for (size_t i = 0; i < vtx_num_blocks; i++) {
       uintE cur = block_metadata[i].offset;
       block_metadata[i].offset = sum;
       sum += cur;
     }
     vtx_degree = sum;
-
-
-    if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_ints, vtx_num_blocks);
-    }
 
     // Update the degree in vtx_info.
     v_infos[vtx_id].vtx_degree = sum;
@@ -1460,17 +1247,16 @@ struct compressed_bitset_neighbors {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_delayed<size_t>(vtx_num_blocks, [&] (size_t ind) {
-      return block_metadata[ind].offset;
-    });
+    auto offsets_imap = pbbslib::make_delayed<size_t>(
+        vtx_num_blocks, [&](size_t ind) { return block_metadata[ind].offset; });
 
     auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
     size_t block = pbbslib::binary_search(offsets_imap, i, lte);
     assert(block > 0);
-    block = block-1;
+    block = block - 1;
 
     std::tuple<uintE, W> out;
-    auto decode_f = [&] (const uintE& v, const W& wgh, const uintE& offset) {
+    auto decode_f = [&](const uintE& v, const W& wgh, const uintE& offset) {
       if (offset == i) {
         out = std::make_tuple(v, wgh);
         return false;
@@ -1490,10 +1276,10 @@ struct compressed_bitset_neighbors {
     uint8_t* blocks_start;
     uint8_t* block_data_start;
 
-    uintE cur_block; // block id
-    uintE cur_block_degree; // #live edges
-    uintE cur_block_start; // start offset (in edges)
-    uintE cur_block_num_longs; // block size (in terms of #longs)
+    uintE cur_block;            // block id
+    uintE cur_block_degree;     // #live edges
+    uintE cur_block_start;      // start offset (in edges)
+    uintE cur_block_num_longs;  // block size (in terms of #longs)
 
     uint64_t* cur_block_longs;
     uint64_t cur_long_value;
@@ -1505,30 +1291,26 @@ struct compressed_bitset_neighbors {
     uintE proc;
     uintE proc_cur_block;
 
-    iter(E* edges,
-        uintE vtx_id,
-        uintE vtx_degree,
-        uintE vtx_original_degree,
-        uintE vtx_num_blocks,
-        uint8_t* blocks_start,
-        uint8_t* block_data_start) :
-        edges(edges),
-        vtx_id(vtx_id),
-        vtx_degree(vtx_degree),
-        vtx_original_degree(vtx_original_degree),
-        vtx_num_blocks(vtx_num_blocks),
-        blocks_start(blocks_start),
-        block_data_start(block_data_start),
-        proc(0) {
+    iter(E* edges, uintE vtx_id, uintE vtx_degree, uintE vtx_original_degree,
+         uintE vtx_num_blocks, uint8_t* blocks_start, uint8_t* block_data_start)
+        : edges(edges),
+          vtx_id(vtx_id),
+          vtx_degree(vtx_degree),
+          vtx_original_degree(vtx_original_degree),
+          vtx_num_blocks(vtx_num_blocks),
+          blocks_start(blocks_start),
+          block_data_start(block_data_start),
+          proc(0) {
       proc = 0;
       if (vtx_degree > 0) {
         next_nonempty_block(/* on_initialization = */ true);
-        next(); // sets last_ngh
+        next();  // sets last_ngh
       }
     }
 
     // precondition: there is a subsequent non-empty block
-    __attribute__((always_inline)) inline void next_nonempty_block(bool on_initialization=false) {
+    __attribute__((always_inline)) inline void next_nonempty_block(
+        bool on_initialization = false) {
       if (on_initialization) {
         cur_block = 0;
       } else {
@@ -1551,12 +1333,13 @@ struct compressed_bitset_neighbors {
       uintE orig_block_num = block_metadata[cur_block].block_num;
       cur_block_start = orig_block_num * edges_per_block;
       uintE cur_block_end =
-        std::min(cur_block_start + edges_per_block, vtx_original_degree);
+          std::min(cur_block_start + edges_per_block, vtx_original_degree);
       uintE cur_block_size = cur_block_end - cur_block_start;
-      cur_block_num_longs = (cur_block_size+64-1)/64;
+      cur_block_num_longs = (cur_block_size + 64 - 1) / 64;
 
       // set cur_block_longs
-      cur_block_longs = (uint64_t*)(block_data_start + bitset_bytes_per_block * cur_block);
+      cur_block_longs =
+          (uint64_t*)(block_data_start + bitset_bytes_per_block * cur_block);
 
       // initialize value to read, and the idx.
       cur_long_value = cur_block_longs[0];
@@ -1564,10 +1347,11 @@ struct compressed_bitset_neighbors {
 
       // decode current compressed block into block_decode
       size_t k = 0;
-      auto map_f = [&] (const uintE& v, const W& wgh, size_t off) {
+      auto map_f = [&](const uintE& v, const W& wgh, size_t off) {
         block_decode[k++] = v;
       };
-      bytepd_amortized::template decode_block<W>(map_f, edges, vtx_id, vtx_original_degree, orig_block_num);
+      bytepd_amortized::template decode_block<W>(
+          map_f, edges, vtx_id, vtx_original_degree, orig_block_num);
     }
 
     __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
@@ -1575,7 +1359,7 @@ struct compressed_bitset_neighbors {
 
     // updates last_ngh
     __attribute__((always_inline)) inline uintE next() {
-      while(cur_long_value == 0) {
+      while (cur_long_value == 0) {
         // done with block?
         cur_long_idx++;
         proc_cur_block += 64;
@@ -1586,8 +1370,9 @@ struct compressed_bitset_neighbors {
       }
       // cur_long_value > 0
 
-      unsigned select_idx = _tzcnt_u64(cur_long_value); // #trailing zeros in cur_long
-      cur_long_value = _blsr_u64(cur_long_value); // clears lowest set bit
+      unsigned select_idx =
+          _tzcnt_u64(cur_long_value);  // #trailing zeros in cur_long
+      cur_long_value = _blsr_u64(cur_long_value);  // clears lowest set bit
 
       last_ngh = block_decode[proc_cur_block + select_idx];
       proc++;
@@ -1600,13 +1385,8 @@ struct compressed_bitset_neighbors {
   };
 
   auto get_iter() {
-    return iter(get_edges(),
-        vtx_id,
-        vtx_degree,
-        vtx_original_degree,
-        vtx_num_blocks,
-        blocks_start,
-        block_data_start);
+    return iter(get_edges(), vtx_id, vtx_degree, vtx_original_degree,
+                vtx_num_blocks, blocks_start, block_data_start);
   }
 };
 

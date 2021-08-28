@@ -259,7 +259,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (!t(source, ngh, gbbs::empty(), edge_id)) return;
     }}
     // do remaining chunks in parallel
-    par_for(1, num_blocks, 1, [&] (size_t i) {
+    parallel_for(1, num_blocks, [&] (size_t i) {
       size_t o = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
@@ -271,7 +271,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
         ngh += eatEdge(finger);
         if (!t(source, ngh, gbbs::empty(), edge_id)) break;
       }
-    }, par);
+    }, 1);
   }
 }
 
@@ -300,7 +300,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (!t(source, ngh, weight, edge_id)) return;
     }}
     // do remaining chunks in parallel
-    par_for(1, num_blocks, 1, [&] (size_t i) {
+    parallel_for(1, num_blocks, [&] (size_t i) {
       size_t o = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
@@ -314,7 +314,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
         weight = eatWeight<W>(finger);
         if (!t(source, ngh, weight, edge_id)) break;
       }
-    }, par);
+    }, 1);
   }
 }
 
@@ -394,7 +394,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
       block_outputs = (E*)stk;
     }
 
-    par_for(0, num_blocks, 2, [&] (size_t i) {
+    parallel_for(0, num_blocks, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
@@ -411,7 +411,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
         cur = reduce.f(cur, m(source, ngh, wgh));
       }
       block_outputs[i] = cur;
-    }, par);
+    }, 1);
 
     auto im = pbbslib::make_range(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, reduce);
@@ -454,12 +454,12 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
     } else {
       block_bytes = (uintE*)stk;
     }
-    par_for(0, num_blocks, 10, [&] (size_t i) {
+    parallel_for(0, num_blocks, [&] (size_t i) {
       // calculate size in bytes of this block
       uintE start = i * PARALLEL_DEGREE;
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
-    });
+    }, 1);
     auto bytes_imap = pbbslib::make_range(block_bytes, num_blocks);
     size_t total_space = pbbslib::scan_inplace(bytes_imap);
 
@@ -513,15 +513,6 @@ template <class W, class P>
 inline size_t packBlock(uchar* edge_start, const uintE& source, const uintE& degree,
                  P& pred) {
   uchar* finger = edge_start;
-
-  //  auto map_f = [&] (const uintE& src, const uintE& ngh, const W& w) {
-  //    assert(src < 3072627);
-  //    assert(ngh < 3072627);
-  //    return 1;
-  //  };
-  //  auto red_f = [&] (size_t l, size_t r) { return l + r; };
-  //  map_reduce<W>(edge_start, source, degree, 0, map_f, red_f, true);
-  //
   size_t ct = 0;
 
   std::tuple<uintE, W> tmp[PARALLEL_DEGREE];
@@ -605,11 +596,11 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
     block_bytes = (uintE*)stk;
   }
 
-  par_for(0, num_blocks, 1, [&] (size_t i) {
+  parallel_for(0, num_blocks, [&] (size_t i) {
     uintE start = i * PARALLEL_DEGREE;
     uintE end = std::min<uintE>(start + PARALLEL_DEGREE, d);
     block_bytes[i] = compute_block_size(edges, start, end, source);
-  });
+  }, 1);
   block_bytes[num_blocks] = 0;
 
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
@@ -628,12 +619,12 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
               << "\n";
   }
 
-  par_for(1, num_blocks, 1, [&] (size_t i) {
+  parallel_for(1, num_blocks, [&] (size_t i) {
     // store offset to start of this block from edgeArray
     block_offsets[i - 1] = edges_offset + bytes_imap[i];
-  });
+  }, 1);
 
-  par_for(0, num_blocks, 1, [&] (size_t i) {
+  parallel_for(0, num_blocks, [&] (size_t i) {
     uintE start = i * PARALLEL_DEGREE;
     uintE end = std::min<uintE>(start + PARALLEL_DEGREE, d);
     long write_offset = (i == 0) ? edges_offset : block_offsets[i - 1];
@@ -650,7 +641,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
           compressWeight<W>(edgeArray, write_offset, std::get<1>(nw));
       last_edge = std::get<0>(nw);
     }
-  });
+  }, 1);
   if (num_blocks > 100) {
     gbbs::free_array(block_bytes, num_blocks + 1);
   }
@@ -677,17 +668,8 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
       our_tmp = tmp;
     }
 
-    //    auto map_f = [&] (const uintE& src, const uintE& ngh, const W& w) {
-    //      assert(src < 3072627);
-    //      assert(ngh < 3072627);
-    //      return 1;
-    //    };
-    //    auto red_f = [&] (size_t l, size_t r) { return l + r; };
-    //    size_t ct = map_reduce<W>(edge_start, source, degree, 0, map_f, red_f,
-    //    true);
-
     uchar* mf = 0;
-    par_for(0, num_blocks, 1, [&] (size_t i) {
+    parallel_for(0, num_blocks, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
@@ -696,7 +678,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
       if (i == num_blocks - 1) {
         mf = last_finger;
       }
-    });
+    }, 1);
 
     // filter edges into tmp2
     std::tuple<uintE, W>* tmp2 = our_tmp + degree;
@@ -749,13 +731,13 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE* block_offsets = (uintE*)edge_start;
 
-    par_for(0, num_blocks, 1, [&] (size_t i) {
+    parallel_for(0, num_blocks, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
                                              : block_offsets[i - 1]);
       decode_block(finger, tmp, start, end, source);
-    });
+    }, 1);
 
     // filter edges into tmp2
     std::tuple<uintE, W>* tmp2 = tmp + degree;
@@ -763,7 +745,7 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
     uintE k = pbbslib::filterf(tmp, tmp2, degree, pd);
-    par_for(0, k, 2000, [&] (size_t i) { out(i, tmp2[i]); });
+    parallel_for(0, k, [&] (size_t i) { out(i, tmp2[i]); });
     return k;
   }
   return 0;

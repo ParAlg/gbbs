@@ -110,24 +110,19 @@ struct symmetric_graph {
   symmetric_graph()
       : v_data(nullptr),
         e0(nullptr),
-        e1(nullptr),
         n(0),
         m(0),
         deletion_fn([]() {}) {}
 
   symmetric_graph(vertex_data* v_data, size_t n, size_t m,
-                  std::function<void()> _deletion_fn, edge_type* _e0,
-                  edge_type* _e1 = nullptr)
+                  std::function<void()> _deletion_fn, edge_type* _e0)
       : v_data(v_data),
         e0(_e0),
-        e1(_e1),
         n(n),
         m(m),
-        deletion_fn(_deletion_fn) {
-    if (_e1 == nullptr) {
-      e1 = e0;  // handles NVM case when graph is stored in symmetric memory
-    }
-  }
+        deletion_fn(_deletion_fn) { }
+
+  // TODO: remove, change to destructors.
   void del() { deletion_fn(); }
 
   // creates an in-memory copy of the graph.
@@ -146,24 +141,12 @@ struct symmetric_graph {
     }, ed);
   }
 
-#ifndef SAGE
   vertex get_vertex(uintE i) { return vertex(e0, v_data[i], i); }
-#else
-  vertex get_vertex(uintE i) {
-    if (pbbslib::numanode() == 0) {
-      return vertex(e0, v_data[i], i);
-    } else {
-      return vertex(e1, v_data[i], i);
-    }
-  }
-#endif
 
   // Graph Data
   vertex_data* v_data;
   // Pointer to edges
   edge_type* e0;
-  // Pointer to second copy of edges--relevant if using 2-socket NVM
-  edge_type* e1;
 
   // number of vertices in G
   size_t n;
@@ -250,6 +233,8 @@ struct symmetric_ptr_graph {
         edge_list_sizes(_edge_list_sizes),
         deletion_fn(_deletion_fn) {
   }
+
+  // TODO: remove: change to destructors.
   void del() { deletion_fn(); }
 
   // creates an in-memory copy of the graph.
@@ -286,8 +271,7 @@ struct symmetric_ptr_graph {
   }
 
   // Note that observers recieve a handle to a vertex object which is only valid
-  // so long as this graph's memory is valid (i.e., before del() has been
-  // called).
+  // so long as this graph's memory is valid.
   vertex get_vertex(uintE i) { return vertices[i]; }
 
   // number of vertices in G
@@ -335,28 +319,14 @@ struct asymmetric_graph {
   vertex_data* v_in_data;
 
   /* Pointer to out-edges */
-  edge_type* out_edges_0;
-  /* Pointer to second copy of out-edges--relevant if using 2-socket NVM */
-  edge_type* out_edges_1;
+  edge_type* out_edges;
 
   /* Pointer to in-edges */
-  edge_type* in_edges_0;
-  /* Pointer to second copy of in-edges--relevant if using 2-socket NVM */
-  edge_type* in_edges_1;
+  edge_type* in_edges;
 
-#ifndef SAGE
   vertex get_vertex(size_t i) {
-    return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i], i);
+    return vertex(out_edges, v_out_data[i], in_edges, v_in_data[i], i);
   }
-#else
-  vertex get_vertex(size_t i) {
-    if (pbbslib::numanode() == 0) {
-      return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i], i);
-    } else {
-      return vertex(out_edges_1, v_out_data[i], in_edges_1, v_in_data[i], i);
-    }
-  }
-#endif
 
   asymmetric_graph()
       : n(0),
@@ -364,33 +334,21 @@ struct asymmetric_graph {
         deletion_fn([]() {}),
         v_out_data(nullptr),
         v_in_data(nullptr),
-        out_edges_0(nullptr),
-        out_edges_1(nullptr),
-        in_edges_0(nullptr),
-        in_edges_1(nullptr) {}
+        out_edges(nullptr),
+        in_edges(nullptr) {}
 
   asymmetric_graph(vertex_data* v_out_data, vertex_data* v_in_data, size_t n,
                    size_t m, std::function<void()> _deletion_fn,
-                   edge_type* _out_edges_0, edge_type* _in_edges_0,
-                   edge_type* _out_edges_1 = nullptr,
-                   edge_type* _in_edges_1 = nullptr)
+                   edge_type* _out_edges, edge_type* _in_edges)
       : n(n),
         m(m),
         deletion_fn(_deletion_fn),
         v_out_data(v_out_data),
         v_in_data(v_in_data),
-        out_edges_0(_out_edges_0),
-        out_edges_1(_out_edges_0),
-        in_edges_0(_in_edges_0),
-        in_edges_1(_in_edges_0) {
-    if (_out_edges_1) {
-      out_edges_1 = _out_edges_1;
-    }
-    if (_in_edges_1) {
-      in_edges_1 = _in_edges_1;
-    }
-  }
+        out_edges(_out_edges),
+        in_edges(_in_edges) {}
 
+  // TODO: remove
   void del() { deletion_fn(); }
 
   template <class F>

@@ -185,7 +185,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
 
 #define S_STRIDE 64
   auto bkt_counts = parlay::sequence<size_t>::uninitialized(num_buckets * S_STRIDE);
-  par_for(0, num_buckets, 1, [&] (size_t i) {
+  parallel_for(0, num_buckets, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_buckets - 1)) {
       size_t ct = 0;
@@ -202,7 +202,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
       }
       bkt_counts[i * S_STRIDE] = ct;
     }
-  });
+  }, 1);
 
   sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
   sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
@@ -264,7 +264,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
       }
       out_offs[i] = k;
     };
-    par_for(0, num_buckets, 1, [&] (size_t i) { inner_for(i); });
+    parallel_for(0, num_buckets, [&] (size_t i) { inner_for(i); }, 1);
   }
 
   // (4) scan
@@ -279,7 +279,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
   auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
-  par_for(0, num_buckets, 1, [&] (size_t i) {
+  parallel_for(0, num_buckets, [&] (size_t i) {
     size_t o = out_offs[i];
     size_t k = out_offs[(i + 1)] - o;
 
@@ -294,7 +294,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
         my_ht[j] = empty;
       }
     }
-  });
+  }, 1);
 
   return res;
 }
@@ -364,7 +364,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
 
 #define S_STRIDE 64
   auto bkt_counts = parlay::sequence<size_t>::uninitialized(num_total_buckets * S_STRIDE);
-  par_for(0, num_actual_buckets, 1, [&] (size_t i) {
+  parallel_for(0, num_actual_buckets, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_total_buckets - 1)) {
       size_t ct = 0;
@@ -382,7 +382,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
       }
       bkt_counts[i * S_STRIDE] = ct;
     }
-  });
+  }, 1);
 
   sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
   sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
@@ -502,8 +502,8 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
         }
       }
     };
-    par_for(0, num_actual_buckets, 1, [&] (size_t i)
-                    { for_inner(i); });
+    parallel_for(0, num_actual_buckets, [&] (size_t i)
+                    { for_inner(i); }, 1);
   }
 
   // (4) scan
@@ -528,7 +528,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
   auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
-  par_for(0, num_buckets, 1, [&] (size_t i) {
+  parallel_for(0, num_buckets, [&] (size_t i) {
     size_t o = out_offs[i];
     size_t k = out_offs[(i + 1)] - o;
 
@@ -543,7 +543,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
         my_ht[j] = empty;
       }
     }
-  });
+  }, 1);
 
   if (heavy) {
     size_t heavy_off = 0;
@@ -626,7 +626,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
 
 #define S_STRIDE 64
   auto bkt_counts = parlay::sequence<size_t>::uninitialized(num_buckets * S_STRIDE);
-  par_for(0, num_buckets, 1, [&] (size_t i) {
+  parallel_for(0, num_buckets, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_buckets - 1)) {
       size_t ct = 0;
@@ -643,7 +643,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
       }
       bkt_counts[i * S_STRIDE] = ct;
     }
-  });
+  }, 1);
 
   sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
   sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
@@ -700,7 +700,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
       }
       out_offs[i] = k;
     };
-    par_for(0, num_buckets, 1, [&] (size_t i) { for_inner(i); });
+    parallel_for(0, num_buckets, [&] (size_t i) { for_inner(i); }, 1);
   }
 
   // (4) scan
@@ -715,7 +715,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
-  par_for(0, num_buckets, 1, [&] (size_t i) {
+  parallel_for(0, num_buckets, [&] (size_t i) {
     size_t o = out_offs[i];
     size_t k = out_offs[(i + 1)] - o;
 
@@ -729,7 +729,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
         res[o + j] = my_out[j];
       }
     }
-  });
+  }, 1);
 
   return res;
 }

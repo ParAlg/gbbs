@@ -81,9 +81,8 @@ inline sequence<bool> first_search(Graph& GA, Seq& zero, uintE start, const flag
   auto frontier = vertexSubset(n, start);
   size_t rd = 0;
   while (!frontier.isEmpty()) {
-    vertexSubset output = edgeMap(
+    frontier = edgeMap(
         GA, frontier, wrap_em_f<W>(make_first_search(Flags)), -1, fl);
-    frontier = std::move(output);
     rd++;
   }
   return Flags;
@@ -188,10 +187,9 @@ inline auto multi_search(Graph& GA,
       bits[v] = 0;  // reset visted flag
     });
 
-    vertexSubset output = edgeMap(
+    frontier = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
     table.update_nelms();
-    frontier = std::move(output);
     rd++;
   }
   return std::make_pair(table, elts);
@@ -415,8 +413,8 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      PG.clear_vertices(labeled);
 //      clear_vertices_t.stop();
 
-      PG = std::move(gbbs::sage::build_asymmetric_packed_graph(GA, [&] (uintE v) { return labels[v] == kUnfinished; }));
-       gbbs::sage::filter_graph(PG, pred_f);
+      PG = gbbs::sage::build_asymmetric_packed_graph(GA, [&] (uintE v) { return labels[v] == kUnfinished; });
+      gbbs::sage::filter_graph(PG, pred_f);
       CT.stop();
       std::cout << "PG.m is now: " << PG.m << std::endl;
 

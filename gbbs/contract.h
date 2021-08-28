@@ -21,16 +21,15 @@ namespace contract {
     using T = typename Seq::value_type;
     size_t n = ids.size();
     auto inverse_map = sequence<T>::uninitialized(n + 1);
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
-                    { inverse_map[i] = 0; });
-    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, n, [&] (size_t i) { inverse_map[i] = 0; }, kDefaultGranularity);
+    parallel_for(0, n, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
-    });
+    }, kDefaultGranularity);
     pbbslib::scan_inplace(make_slice(inverse_map));
 
     size_t new_n = inverse_map[n];
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
-                    { ids[i] = inverse_map[ids[i]]; });
+    parallel_for(0, n, [&] (size_t i)
+                    { ids[i] = inverse_map[ids[i]]; }, kDefaultGranularity);
     return new_n;
   }
 
@@ -65,7 +64,7 @@ namespace contract {
             std::make_tuple(std::make_tuple(c_src, c_ngh), gbbs::empty()));
       }
     };
-    par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
     auto edges = edge_table.entries();
     edge_table.del();
     ins_t.stop(); debug(ins_t.reportTotal("insertion time"););
@@ -93,8 +92,8 @@ namespace contract {
       uintE c_ngh = clusters[ngh];
       return c_src < c_ngh;
     };
-    par_for(0, n, 1, [&] (size_t i)
-                    { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); });
+    parallel_for(0, n, [&] (size_t i)
+                    { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); }, 1);
     deg_map[n] = 0;
     pbbslib::scan_inplace(make_slice(deg_map));
     count_t.stop();
@@ -122,7 +121,7 @@ namespace contract {
             std::make_tuple(std::make_tuple(c_src, c_ngh), gbbs::empty()));
       }
     };
-    par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
     auto edges = edge_table.entries();
     edge_table.del();
     ins_t.stop();
@@ -214,22 +213,22 @@ namespace contract {
     // Pack out singleton clusters
     auto flags = sequence<uintE>(num_clusters + 1, static_cast<uintE>(0));
 
-    par_for(0, edges.size(), kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, edges.size(), [&] (size_t i) {
                       auto e = std::get<0>(edges[i]);
                       uintE u = std::get<0>(e);
                       uintE v = std::get<1>(e);
                       if (!flags[u]) flags[u] = 1;
                       if (!flags[v]) flags[v] = 1;
-                    });
+                    }, kDefaultGranularity);
     pbbslib::scan_inplace(make_slice(flags));
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     auto mapping = sequence<uintE>::uninitialized(num_ns_clusters);
-    par_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, num_clusters, [&] (size_t i) {
                       if (flags[i] != flags[i + 1]) {
                         mapping[flags[i]] = i;
                       }
-                    });
+                    }, kDefaultGranularity);
 
     auto sym_edges = sequence<K>::from_function(2 * edges.size(), [&](size_t i) {
       size_t src_edge = i / 2;

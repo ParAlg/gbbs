@@ -251,7 +251,6 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
     auto ff = [&] (Graph& graph) -> sequence<uintE> {
       auto dyn_arr = DegeneracyOrder(graph);
       auto ret = sequence<uintE>::from_function(graph.n, [&] (size_t i) { return dyn_arr.A[i]; });
-      dyn_arr.del();
       return ret;
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
