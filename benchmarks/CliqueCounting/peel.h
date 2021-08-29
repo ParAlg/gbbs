@@ -118,7 +118,7 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
 
   // Sum of all out-degrees in active set
   size_t active_deg = 0;
-  auto degree_map = pbbslib::make_delayed<size_t>(active_size, [&] (size_t i) {
+  auto degree_map = parlay::delayed_seq<size_t>(active_size, [&] (size_t i) {
     return G.get_vertex(get_active(i)).out_degree();
   });
   active_deg += pbbslib::reduce_add(degree_map);
@@ -192,7 +192,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Sum of all out-degrees in active set
   size_t active_deg = 0;
-  auto degree_map = pbbslib::make_delayed<size_t>(active_size, [&] (size_t i) {
+  auto degree_map = parlay::delayed_seq<size_t>(active_size, [&] (size_t i) {
     return G.get_vertex(get_active(i)).out_degree();
   });
   active_deg += pbbslib::reduce_add(degree_map);
@@ -346,7 +346,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     // for max_density
     if (use_max_density) {
       auto degree_f = [&] (size_t i) { return cliques[i]; };
-      auto degree_seq = pbbslib::make_delayed<size_t>(n, degree_f);
+      auto degree_seq = parlay::delayed_seq<size_t>(n, degree_f);
       auto edges_remaining = pbbslib::reduce_add(degree_seq);
       auto vtxs_remaining = n - finished;
       double current_density = ((double)edges_remaining) / ((double)vtxs_remaining);
@@ -436,7 +436,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     timer t2; t2.start();
   const size_t n = G.n;
   auto D = sequence<size_t>::from_function(n, [&](size_t i) { return cliques[i]; });
-  auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
+  auto vertices_remaining = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
   size_t round = 1;
   sequence<uintE> last_arr;
@@ -464,7 +464,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
-    auto keep_seq = pbbslib::make_delayed<bool>(n, [&] (size_t i) {
+    auto keep_seq = parlay::delayed_seq<bool>(n, [&] (size_t i) {
       return !(D[i] <= target_density);
     });
 
@@ -490,13 +490,13 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   while (num_vertices_remaining > 0) {
     uintE* start = last_arr.begin() + remaining_offset;
     uintE* end = start + num_vertices_remaining;
-    auto vtxs_remaining = pbbslib::make_range(start, end);
+    auto vtxs_remaining = parlay::make_range(start, end);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];
       return static_cast<size_t>(D[v]);
     };
-    auto degree_seq = pbbslib::make_delayed<size_t>(vtxs_remaining.size(), degree_f);
+    auto degree_seq = parlay::delayed_seq<size_t>(vtxs_remaining.size(), degree_f);
     long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // Update density
@@ -505,7 +505,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
-    auto keep_seq = pbbslib::make_delayed<bool>(vtxs_remaining.size(), [&] (size_t i) {
+    auto keep_seq = parlay::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 

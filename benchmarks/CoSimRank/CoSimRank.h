@@ -25,7 +25,7 @@ struct Co_PR_F {
 };
 
 double inner_product(sequence<double>& arr1, sequence<double>& arr2) {
-  auto prod = pbbslib::make_delayed<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
+  auto prod = parlay::delayed_seq<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
   auto sum = pbbslib::reduce_add(prod);
   return sum;
 }
@@ -70,12 +70,12 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences_v = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_v = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr_v[i]-p_next_v[i]);
     });
     double L1_norm_v = pbbslib::reduce(differences_v, pbbslib::addm<double>());
 
-    auto differences_u = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_u = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr_u[i]-p_next_u[i]);
     });
     double L1_norm_u = pbbslib::reduce(differences_u, pbbslib::addm<double>());
@@ -166,14 +166,14 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences_v = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_v = parlay::delayed_seq<double>(n, [&] (size_t i) {
       auto x = p_curr_v[i];
       p_curr_v[i] = 0;
       return fabs(x-p_next_v[i]);
     });
     double L1_norm_v = pbbslib::reduce(differences_v, pbbslib::addm<double>());
 
-    auto differences_u = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_u = parlay::delayed_seq<double>(n, [&] (size_t i) {
       auto x = p_curr_u[i];
       p_curr_u[i] = 0;
       return fabs(x-p_next_u[i]);

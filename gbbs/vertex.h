@@ -128,7 +128,7 @@ struct uncompressed_neighbors {
       auto nw = neighbors[i];
       return f(id, std::get<0>(nw), std::get<1>(nw));
     };
-    auto im = pbbslib::make_delayed<size_t>(degree, im_f);
+    auto im = parlay::delayed_seq<size_t>(degree, im_f);
     return pbbslib::reduce_add(im);
   }
 
@@ -140,7 +140,7 @@ struct uncompressed_neighbors {
       auto nw = neighbors[i];
       return m(id, std::get<0>(nw), std::get<1>(nw));
     };
-    auto im = pbbslib::make_delayed<T>(degree, im_f);
+    auto im = parlay::delayed_seq<T>(degree, im_f);
     return pbbslib::reduce(im, reduce);
   }
 
@@ -203,9 +203,9 @@ struct uncompressed_neighbors {
         auto pc = [&](const std::tuple<uintE, W>& nw) {
           return p(id, std::get<0>(nw), std::get<1>(nw));
         };
-        auto in_im = pbbslib::make_range(neighbors, degree);
+        auto in_im = parlay::make_range(neighbors, degree);
         size_t k =
-            pbbslib::filter_out(in_im, pbbslib::make_range(tmp, degree), pc);
+            pbbslib::filter_out(in_im, parlay::make_range(tmp, degree), pc);
         parallel_for(0, k, [&](size_t i) { out(i, tmp[i]); });
       }
     }

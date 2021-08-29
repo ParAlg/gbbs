@@ -91,7 +91,7 @@ namespace workefficient_sf {
           else
             return static_cast<uintE>(num_added + i);
         };
-        auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
+        auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
         auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
         auto new_centers = pbbslib::filter(candidates, pred);
         add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
@@ -133,7 +133,7 @@ namespace workefficient_sf {
     debug(ldd_t.next("ldd time"););
 
     // Filter out tree edges added this round (ids are in the current level)
-    auto delayed_edges = pbbslib::make_delayed<edge>(parents.size(), [&] (size_t i) {
+    auto delayed_edges = parlay::delayed_seq<edge>(parents.size(), [&] (size_t i) {
         return std::make_pair(parents[i], i); });
     auto edges = pbbslib::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
     // Apply the mapping to map

@@ -49,7 +49,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     };
     G.get_vertex(v).out_neighbors().map(map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
-    auto im = pbbslib::make_delayed<uintE>(deg, im_f);
+    auto im = parlay::delayed_seq<uintE>(deg, im_f);
     uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
     if (deg > 1000) {
       pbbslib::free_array(bits, deg);
@@ -127,7 +127,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
   }
 
   auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
-  auto zero_map = pbbslib::make_delayed<bool>(n, zero_map_f);
+  auto zero_map = parlay::delayed_seq<bool>(n, zero_map_f);
   auto roots = vertexSubset(n, pbbslib::pack_index<uintE>(zero_map));
   debug(initt.next("init time"););
 
@@ -176,7 +176,7 @@ inline void verify_coloring(Graph& G, Seq& colors) {
     ok[i] = (ct > 0);
   });
   auto im_f = [&](size_t i) { return (size_t)ok[i]; };
-  auto im = pbbslib::make_delayed<size_t>(n, im_f);
+  auto im = parlay::delayed_seq<size_t>(n, im_f);
   size_t ct = pbbslib::reduce_add(im);
   std::cout << "ct = " << ct << "\n";
   if (ct > 0) {

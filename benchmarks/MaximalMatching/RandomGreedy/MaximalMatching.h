@@ -180,7 +180,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                      : mm::get_all_edges(G, matched.begin(), r);
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
-    auto eim = pbbslib::make_delayed<edge>(e_arr.size(), eim_f);
+    auto eim = parlay::delayed_seq<edge>(e_arr.size(), eim_f);
     gete.stop();
 
     std::cout << "Got: " << e_arr.size() << " edges "
@@ -252,7 +252,7 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   parallel_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_im = pbbslib::make_delayed<size_t>(n, ok_f);
+  auto ok_im = parlay::delayed_seq<size_t>(n, ok_f);
   size_t n_ok = pbbslib::reduce_add(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";

@@ -152,9 +152,9 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 5. compact the vertices (pack out the roots)
     timer compact_t;
     compact_t.start();
-    auto vtxs_im = pbbslib::make_range<uintE>(vtxs, n);
+    auto vtxs_im = parlay::make_range<uintE>(vtxs, n);
 
-    n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_range(next_vtxs, m));
+    n = pbbslib::pack_out(vtxs_im, is_root, parlay::make_range(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();
     debug(compact_t.next("compact time"););
@@ -184,9 +184,9 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
 
     // 7. filter (or ignore) self-edges.
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
-    auto self_loop_im = pbbslib::make_delayed<bool>(n, self_loop_f);
-    auto edge_ids_im = pbbslib::make_range(edge_ids, m);
-    m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_range(next_edge_ids, m));
+    auto self_loop_im = parlay::delayed_seq<bool>(n, self_loop_f);
+    auto edge_ids_im = parlay::make_range(edge_ids, m);
+    m = pbbslib::pack_out(edge_ids_im, self_loop_im, parlay::make_range(next_edge_ids, m));
 
     debug(std::cout << "filter, m is now " << m << " n is now " << n << "\n";);
     std::swap(edge_ids, next_edge_ids);
@@ -389,7 +389,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     uintE* mst = pbbslib::new_array_no_init<uintE>(n);
     size_t n_in_mst =
         Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
-    auto edge_ids = pbbslib::make_range(mst, n_in_mst);
+    auto edge_ids = parlay::make_range(mst, n_in_mst);
     bt.stop();
     debug(bt.next("boruvka time"););
 
@@ -402,7 +402,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     timer pack_t;
     pack_t.start();
 
-    auto vtx_range = pbbslib::make_range(vtxs+n_active, vtxs+n);
+    auto vtx_range = parlay::make_range(vtxs+n_active, vtxs+n);
     n_active += pbbslib::pack_index_out(make_slice(exhausted), vtx_range);
     pack_t.stop();
     debug(pack_t.next("reactivation pack"););
@@ -443,7 +443,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
   }
   std::cout << "#edges in output mst: " << mst_edges.size << "\n";
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = pbbslib::make_delayed<size_t>(
+  auto wgh_imap = parlay::delayed_seq<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 

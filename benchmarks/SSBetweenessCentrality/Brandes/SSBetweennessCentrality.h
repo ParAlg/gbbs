@@ -163,13 +163,13 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, sequenc
       }
       return static_cast<size_t>(0);
     };
-    auto degree_imap = pbbslib::make_delayed<size_t>(Frontier.size(), degree_f);
+    auto degree_imap = parlay::delayed_seq<size_t>(Frontier.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_imap);
   } else {
     auto degree_f = [&](size_t i) -> size_t {
       return (fl & in_edges) ? G.get_vertex(i).in_neighbors().get_virtual_degree() : G.get_vertex(i).out_neighbors().get_virtual_degree();
     };
-    auto degree_imap = pbbslib::make_delayed<size_t>(Frontier.size(), degree_f);
+    auto degree_imap = parlay::delayed_seq<size_t>(Frontier.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_imap);
   }
 

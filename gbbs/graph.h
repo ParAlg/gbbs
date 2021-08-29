@@ -108,7 +108,7 @@ struct symmetric_graph {
   template <class M, class R>
   typename R::T reduceEdges(M map_f, R reduce_f) {
     using T = typename R::T;
-    auto D = pbbslib::make_delayed<T>(n, [&](size_t i) {
+    auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
       return get_vertex(i).out_neighbors().reduce(map_f, reduce_f);
     });
     return pbbslib::reduce(D, reduce_f);
@@ -217,7 +217,7 @@ struct symmetric_ptr_graph {
   template <class M, class R>
   typename R::T reduceEdges(M map_f, R reduce_f) {
     using T = typename R::T;
-    auto D = pbbslib::make_delayed<T>(n, [&](size_t i) {
+    auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
       return get_vertex(i).out_neighbors().reduce(i, map_f, reduce_f);
     });
     return pbbslib::reduce(D, reduce_f);

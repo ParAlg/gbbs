@@ -200,7 +200,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     per_vert = inverse_per_vert;
   }
 
-  auto per_vert_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return per_vert[i]; });
+  auto per_vert_seq = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
   if (!approx_peel) {
   // Exact vertex peeling

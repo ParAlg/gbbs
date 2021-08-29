@@ -171,7 +171,7 @@ inline auto multi_search(Graph& GA,
       elts.insert({frontier.s[i], gbbs::empty()});
     });
 
-    auto work_upperbound_seq = pbbslib::make_delayed<size_t>(frontier.size(), [&](size_t i) {
+    auto work_upperbound_seq = parlay::delayed_seq<size_t>(frontier.size(), [&](size_t i) {
       uintE v = frontier.s[i];
       size_t n_labels = table.num_appearances(v);
       size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).in_degree()
@@ -226,7 +226,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Split vertices into those with zero in/out degree (zero), and those with non-zero
   // in- and out-degree (non_zero).
-  auto v_im = pbbslib::make_delayed<uintE>(n, [](size_t i) { return i; });
+  auto v_im = parlay::delayed_seq<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
@@ -263,7 +263,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    auto deg_im_f = [&](size_t i) {
 //      return std::make_tuple(i, GA.get_vertex(i).out_degree() + GA.get_vertex(i).in_degree());
 //    };
-//    auto deg_im = pbbslib::make_delayed<std::tuple<uintE, uintE>>(n, deg_im_f);
+//    auto deg_im = parlay::delayed_seq<std::tuple<uintE, uintE>>(n, deg_im_f);
 //    auto red_f = [](const std::tuple<uintE, uintE>& l,
 //                    const std::tuple<uintE, uintE>& r) {
 //          return (std::get<1>(l) > std::get<1>(r)) ? l : r;
@@ -293,7 +293,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      });
 //
 //
-//      auto imap = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
+//      auto imap = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
 //
 //      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
 //      exit(0);
@@ -358,7 +358,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = pbbslib::make_delayed<uintE>(
+    auto centers_pre_filter = parlay::delayed_seq<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
     auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return labels[v] == kUnfinished; });
@@ -392,7 +392,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
         }
       });
 
-//      auto imap = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
+//      auto imap = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
 //      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
 //      exit(0);
 
@@ -573,7 +573,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     // Prune the graph.
     CT.start();
-    auto elts_seq = pbbslib::make_delayed<uintE>(elts.size(), [&] (size_t i) {
+    auto elts_seq = parlay::delayed_seq<uintE>(elts.size(), [&] (size_t i) {
       return std::get<0>(elts[i]);
     });
 

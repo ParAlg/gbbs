@@ -278,7 +278,7 @@ namespace gbbs {
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "total space = " << total_space << std::endl;
     auto deg_f = [&] (size_t i) { return degrees[i]; };
-    auto deg_im = pbbslib::make_delayed<size_t>(n, deg_f);
+    auto deg_im = parlay::delayed_seq<size_t>(n, deg_f);
     std::cout << "sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     // 2. Create compressed format in-memory

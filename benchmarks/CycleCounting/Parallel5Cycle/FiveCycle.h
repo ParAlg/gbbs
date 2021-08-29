@@ -126,7 +126,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       }
 
       // neighbor with largest index first.
-      pbbslib::sample_sort_inplace(pbbslib::make_range(new_nghs, d), cmp_by_dest_order);
+      pbbslib::sample_sort_inplace(parlay::make_range(new_nghs, d), cmp_by_dest_order);
     }
   }, 1);
 
@@ -682,7 +682,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
 
     if (degree == 0) continue; //return;
-    auto nghs_seq = pbbslib::make_delayed<uintE>(degree, [&] (size_t j) { return nghs[j]; });
+    auto nghs_seq = parlay::delayed_seq<uintE>(degree, [&] (size_t j) { return nghs[j]; });
 
 
     uintE viOutDegree  = OUTG.get_vertex(i).out_degree();
@@ -725,7 +725,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
       uintE vj_degree = GDO.get_vertex(vj).out_degree();
 
       if (vj_degree == 0) continue;
-      auto nghs_vj_seq = pbbslib::make_delayed<uintE>(vj_degree, [&] (size_t k) { return nghs_vj[k]; });
+      auto nghs_vj_seq = parlay::delayed_seq<uintE>(vj_degree, [&] (size_t k) { return nghs_vj[k]; });
 
 
       for (uintE k = 0; k < vjInDegree; k++) {
@@ -884,7 +884,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
 
 
       if (degree == 0) continue; //return;
-      auto nghs_seq = pbbslib::make_delayed<uintE>(degree, [&] (size_t j) { return nghs[j]; });
+      auto nghs_seq = parlay::delayed_seq<uintE>(degree, [&] (size_t j) { return nghs[j]; });
 
 
       uintE viOutDegree  = OUTG.get_vertex(i).out_degree();
@@ -923,7 +923,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
         uintE vj_degree = GDO.get_vertex(vj).out_degree();
 
         if (vj_degree == 0) continue;
-        auto nghs_vj_seq = pbbslib::make_delayed<uintE>(vj_degree, [&] (size_t k) { return nghs_vj[k]; });
+        auto nghs_vj_seq = parlay::delayed_seq<uintE>(vj_degree, [&] (size_t k) { return nghs_vj[k]; });
 
         for (uintE k = 0; k < vjInDegree; k++) {
           vk = innghs_vj[k];

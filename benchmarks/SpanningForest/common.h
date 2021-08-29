@@ -12,7 +12,7 @@ namespace spanning_forest {
   uintE largest_comp = UINT_E_MAX;
 
   auto parents_to_edges(sequence<parent>& parents) -> sequence<edge> {
-    auto all_edges = pbbslib::make_delayed<edge>(parents.size(), [&] (uintE i) {
+    auto all_edges = parlay::delayed_seq<edge>(parents.size(), [&] (uintE i) {
       return std::make_pair(i,parents[i]);
     });
     return pbbslib::filter(all_edges, [&] (const edge& e) {

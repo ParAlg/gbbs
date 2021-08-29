@@ -98,12 +98,12 @@ struct buckets {
     // Set the current range being processed based on the order.
     if (order == increasing) {
       auto imap_f = [&](size_t i) { return d[i]; };
-      auto imap = pbbslib::make_delayed<bucket_id>(n, imap_f);
+      auto imap = parlay::delayed_seq<bucket_id>(n, imap_f);
       size_t min_b = pbbslib::reduce(imap, pbbslib::minm<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
       auto imap_f = [&](size_t i) { return (d[i] == null_bkt) ? 0 : d[i]; };
-      auto imap = pbbslib::make_delayed<bucket_id>(n, imap_f);
+      auto imap = parlay::delayed_seq<bucket_id>(n, imap_f);
       size_t max_b = pbbslib::reduce(imap, pbbslib::maxm<bucket_id>());
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
@@ -357,7 +357,7 @@ struct buckets {
     size_t num_in_range = updated - bkts[open_buckets].size;
     // none in range
     if (num_in_range == 0 && bkts[open_buckets].size > 0) {
-      auto imap = pbbslib::make_delayed<bucket_t>(
+      auto imap = parlay::delayed_seq<bucket_t>(
           bkts[open_buckets].size,
           [&](size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
       if (order == increasing) {
@@ -416,7 +416,7 @@ struct buckets {
     num_elms -= size;
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
-    auto bkt_seq = pbbslib::make_delayed<ident_t>(
+    auto bkt_seq = parlay::delayed_seq<ident_t>(
         size, [&](size_t i) { return bkt.A[i]; });
     auto filtered = pbbslib::filter(bkt_seq, p);
     bkts[cur_bkt].size = 0;

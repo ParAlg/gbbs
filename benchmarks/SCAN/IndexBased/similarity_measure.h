@@ -555,7 +555,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         const size_t neighbor_fingerprint_offset{
           fingerprint_indices[u_id] * num_bit_arrays};
         const auto fingerprint_xor{
-          pbbslib::make_delayed<std::remove_const<decltype(num_samples)>::type>(
+          parlay::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
             num_bit_arrays,
             [&](const size_t i) {
               return __builtin_popcountll(
@@ -759,7 +759,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
           fingerprint_indices[u_id] * num_samples};
         const uintE fingerprint_matches{
           pbbslib::reduce_add(
-            pbbslib::make_delayed<uintE>(
+            parlay::delayed_seq<uintE>(
               num_samples,
               [&](const size_t i) {
                 return
@@ -769,7 +769,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
               }))};
         const uintE fingerprint_empty_count{
           pbbslib::reduce_add(
-            pbbslib::make_delayed<uintE>(
+            parlay::delayed_seq<uintE>(
               num_samples,
               [&](const size_t i) {
                 return

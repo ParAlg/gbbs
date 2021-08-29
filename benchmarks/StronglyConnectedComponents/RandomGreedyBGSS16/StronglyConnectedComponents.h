@@ -132,7 +132,7 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
                                                 : GA.get_vertex(v).out_neighbors().count(pred);
       return effective_degree * n_labels;
     };
-    auto im = pbbslib::make_delayed<size_t>(frontier.size(), im_f);
+    auto im = parlay::delayed_seq<size_t>(frontier.size(), im_f);
 
     size_t sum = pbbslib::reduce_add(im);
     table.maybe_resize(sum);
@@ -201,7 +201,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   auto ba = sequence<bool>(n, false);
   auto bits = ba.begin();
 
-  auto v_im = pbbslib::make_delayed<uintE>(n, [](size_t i) { return i; });
+  auto v_im = parlay::delayed_seq<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
@@ -230,7 +230,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     auto deg_im_f = [&](size_t i) {
       return std::make_tuple(i, GA.get_vertex(i).out_degree());
     };
-    auto deg_im = pbbslib::make_delayed<std::tuple<uintE, uintE>>(n, deg_im_f);
+    auto deg_im = parlay::delayed_seq<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,
                     const std::tuple<uintE, uintE>& r) {
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
@@ -277,7 +277,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = pbbslib::make_delayed<uintE>(
+    auto centers_pre_filter = parlay::delayed_seq<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
     auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
@@ -378,7 +378,7 @@ inline size_t num_done(Seq& labels) {
   auto im_f = [&](size_t i) {
     return ((size_t)((labels[i] & TOP_BIT) > 0));
   };
-  auto im = pbbslib::make_delayed<size_t>(labels.size(), im_f);
+  auto im = parlay::delayed_seq<size_t>(labels.size(), im_f);
 
   return pbbslib::reduce_add(im);
 }

@@ -110,7 +110,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
                ? G.get_vertex(indices.vtx(i)).in_neighbors().get_num_blocks()
                : G.get_vertex(indices.vtx(i)).out_neighbors().get_num_blocks();
   };
-  auto block_imap = pbbslib::make_delayed<uintE>(indices.size(), block_f);
+  auto block_imap = parlay::delayed_seq<uintE>(indices.size(), block_f);
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = parlay::sequence<uintE>(indices.size() + 1);
@@ -348,7 +348,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
                                 : G.get_vertex(vtx_id).out_neighbors();
     return nghs.get_num_blocks();
   };
-  auto block_imap = pbbslib::make_delayed<uintE>(indices.size(), block_f);
+  auto block_imap = parlay::delayed_seq<uintE>(indices.size(), block_f);
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = parlay::sequence<uintE>(indices.size() + 1);

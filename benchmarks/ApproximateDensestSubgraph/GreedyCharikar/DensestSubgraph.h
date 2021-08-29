@@ -70,7 +70,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     exit(0);
   }
 
-  auto density_seq = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+  auto density_seq = parlay::delayed_seq<double>(n, [&] (size_t i) {
     size_t dens = density_above[i];
     size_t rem = n - i;
     return static_cast<double>(dens) / static_cast<double>(rem);

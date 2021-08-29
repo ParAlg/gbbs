@@ -164,6 +164,22 @@ using parlay::internal::timer;
 
 }  // namespace gbbs
 
+
+namespace parlay {
+
+template <class T>
+inline slice<T*, T*> make_range(T* A, size_t n) {
+  return slice<T*, T*>(A, A + n);
+}
+
+template <class T>
+inline slice<T*, T*> make_range(T* start, T* end) {
+  return slice<T*, T*>(start, end);
+}
+
+}  // namespace parlay
+
+
 // Bridge to pbbslib (c++17)
 namespace pbbslib {
 
@@ -522,16 +538,6 @@ auto make_delayed(T* A, size_t n) {
   return make_delayed<T>(n, [=](size_t i) { return A[i]; });
 }
 
-template <class T>
-inline range<T> make_range(T* A, size_t n) {
-  return range<T>(A, A + n);
-}
-
-template <class T>
-inline range<T> make_range(T* start, T* end) {
-  return range<T>(start, end);
-}
-
 template <class Seq>
 inline auto reduce_add(Seq const& I) -> typename Seq::value_type {
   using T = typename Seq::value_type;
@@ -647,10 +653,10 @@ template <class Idx_Type, class D, class F>
 inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(F& f,
                                                               size_t size) {
   auto id_seq =
-      pbbslib::make_delayed<std::tuple<Idx_Type, D> >(size, [&](size_t i) {
+      parlay::delayed_seq<std::tuple<Idx_Type, D> >(size, [&](size_t i) {
         return std::make_tuple((Idx_Type)i, std::get<1>(f[i]));
       });
-  auto flgs_seq = pbbslib::make_delayed<bool>(
+  auto flgs_seq = parlay::delayed_seq<bool>(
       size, [&](size_t i) { return std::get<0>(f[i]); });
 
   return pbbslib::pack(id_seq, flgs_seq);

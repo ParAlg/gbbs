@@ -95,7 +95,7 @@ auto BellmanFord(Graph& G, uintE start) {
     round++;
   }
   auto dist_im_f = [&](size_t i) { return (SP[i] == (std::numeric_limits<Distance>::max())) ? 0 : SP[i]; };
-  auto dist_im = pbbslib::make_delayed<Distance>(n, dist_im_f);
+  auto dist_im = parlay::delayed_seq<Distance>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;

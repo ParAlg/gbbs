@@ -30,7 +30,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
     // move all vert with deg < deg_cutoff in the front
     pbbslib::integer_sort_inplace(sortD.cut(start, n), get_deg);
     //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
-    auto BS = pbbslib::make_delayed<size_t>(n - start, [&] (size_t i) -> size_t {
+    auto BS = parlay::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
       return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
     size_t end = pbbslib::reduce(BS, pbbslib::maxm<size_t>());
     if (end == start) end++; //TODO step?

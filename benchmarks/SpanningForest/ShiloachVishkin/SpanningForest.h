@@ -49,14 +49,14 @@ struct SVAlgorithm {
     size_t candidates_size = n;
     sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
-      auto all_vertices = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
+      auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
       unhooked = pbbslib::filter(all_vertices, [&] (uintE v) {
         return Parents[v] != frequent_comp;
       });
       candidates_size = unhooked.size();
     }
 
-    auto candidates = pbbslib::make_delayed<uintE>(candidates_size, [&] (size_t i) {
+    auto candidates = parlay::delayed_seq<uintE>(candidates_size, [&] (size_t i) {
       if constexpr (sampling_option == no_sampling) {
         return i;
       } else {

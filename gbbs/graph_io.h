@@ -176,7 +176,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
     }
   });
 
-  auto temp_seq = pbbslib::make_range(temp, m);
+  auto temp_seq = parlay::make_range(temp, m);
   pbbslib::integer_sort_inplace(temp_seq,
                                 [&](const triple& p) { return p.first; });
 
@@ -519,7 +519,7 @@ constexpr std::false_type always_false{};
 // return the minimal valid value of n.
 template <class weight_type>
 size_t get_num_vertices_from_edges(const sequence<Edge<weight_type>>& edges) {
-  const auto max_endpoints = pbbslib::make_delayed<size_t>(
+  const auto max_endpoints = parlay::delayed_seq<size_t>(
       edges.size(),
       [&](const size_t i) { return std::max(edges[i].from, edges[i].to); });
   return pbbslib::reduce_max(max_endpoints) + 1;
@@ -660,7 +660,7 @@ sequence<Edge<weight_type>> sort_and_dedupe(sequence<Edge<weight_type>> edges) {
       }};
   pbbslib::sample_sort_inplace(make_slice(edges), compare_endpoints);
   return pbbslib::pack(
-      edges, pbbslib::make_delayed<bool>(edges.size(), [&](const size_t i) {
+      edges, parlay::delayed_seq<bool>(edges.size(), [&](const size_t i) {
         const auto edge{edges[i]};
         const bool is_self_loop{edge.from == edge.to};
         return !is_self_loop &&

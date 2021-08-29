@@ -31,7 +31,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   while (active.size() > 0) {
     /* compute cutoff using kth-smallest */
 
-    auto active_degs = pbbslib::make_delayed<uintE>(active.size(), [&] (size_t i) {
+    auto active_degs = parlay::delayed_seq<uintE>(active.size(), [&] (size_t i) {
       uintE v = active[i];
       return D[v];
     });

@@ -160,7 +160,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
     }
   });
 
-  auto temp_seq = pbbslib::make_range(temp, m);
+  auto temp_seq = parlay::make_range(temp, m);
   pbbslib::integer_sort_inplace(temp_seq,
                                 [&](const intPair& p) { return p.first; });
 

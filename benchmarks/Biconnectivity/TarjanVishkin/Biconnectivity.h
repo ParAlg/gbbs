@@ -164,7 +164,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
   parallel_for(0, n, [&] (size_t i) { aug_sizes[i] = 1; });
   auto cts =
       sequence<intE>::from_function(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
-  auto leaf_im = pbbslib::make_delayed<bool>(n, [&](size_t i) {
+  auto leaf_im = parlay::delayed_seq<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
     size_t deg = s_n - s_i;

@@ -102,7 +102,7 @@ namespace labelprop_cc {
         auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(Parents, changed), -1, dense_forward);
 
         vs.toSparse();
-        auto this_vs = pbbslib::make_delayed<uintE>(vs.size(), [&] (size_t i) {
+        auto this_vs = parlay::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
           return vs.vtx(i);
         });
         auto new_vtxs = pbbslib::filter(this_vs, [&] (uintE v) {

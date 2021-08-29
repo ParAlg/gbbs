@@ -136,7 +136,7 @@ namespace labelprop_sf {
         edgeMap(GA, vs, LabelProp_F_2<W>(PrevParents, Parents, Edges), -1, dense_forward | no_output);
 
         vs.toSparse();
-        auto this_vs = pbbslib::make_delayed<uintE>(vs.size(), [&] (size_t i) {
+        auto this_vs = parlay::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
           return vs.vtx(i);
         });
         auto new_vtxs = pbbslib::filter(this_vs, [&] (uintE v) {

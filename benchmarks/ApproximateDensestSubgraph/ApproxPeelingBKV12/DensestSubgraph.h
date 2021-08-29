@@ -33,7 +33,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
 
   auto D = sequence<uintE>::from_function(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
-  auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
+  auto vertices_remaining = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
   auto alive = sequence<bool>::from_function(n, [&](size_t i) { return true; });
 
   size_t round = 1;
@@ -55,7 +55,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       max_density = current_density;
     }
 
-    auto keep_seq = pbbslib::make_delayed<bool>(n, [&] (size_t i) {
+    auto keep_seq = parlay::delayed_seq<bool>(n, [&] (size_t i) {
       return !(D[i] <= target_density);
     });
 
@@ -97,7 +97,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       uintE v = vtxs_remaining[i];
       return static_cast<size_t>(D[v]);
     };
-    auto degree_seq = pbbslib::make_delayed<size_t>(vtxs_remaining.size(), degree_f);
+    auto degree_seq = parlay::delayed_seq<size_t>(vtxs_remaining.size(), degree_f);
     long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // Update density
@@ -109,7 +109,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       max_density = current_density;
     }
 
-    auto keep_seq = pbbslib::make_delayed<bool>(vtxs_remaining.size(), [&] (size_t i) {
+    auto keep_seq = parlay::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 

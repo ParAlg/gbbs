@@ -88,7 +88,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   auto get_bkt = [&](const uintE& dist) -> uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : dist;
   };
-  auto get_ring = pbbslib::make_delayed<uintE>(n, [&](const size_t& v) -> uintE {
+  auto get_ring = parlay::delayed_seq<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
   });
@@ -135,7 +135,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   bt.next("bucket time");
   emt.next("edge map time");
   auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_f);
+  auto dist_im = parlay::delayed_seq<size_t>(n, dist_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
 

@@ -30,7 +30,7 @@ filter_graph(Graph& G, P& pred) {
       return static_cast<int>(
           pred(i, u_out_nghs.get_neighbor(j), u_out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_delayed<int>(u.out_degree(), out_f);
+    auto out_im = parlay::delayed_seq<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
       outOffsets[i] = pbbslib::reduce_add(out_im);
@@ -58,8 +58,8 @@ filter_graph(Graph& G, P& pred) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
-      auto n_im = pbbslib::make_delayed<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, pbbslib::make_range(dir_nghs, d), pred_c,
+      auto n_im = parlay::delayed_seq<edge>(d, n_im_f);
+      pbbslib::filter_out(n_im, parlay::make_range(dir_nghs, d), pred_c,
                           pbbslib::no_flag);
     }
   });
@@ -150,7 +150,7 @@ inline auto filter_graph(Graph& G, P& pred) {
   byte_offsets.clear();
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
-  auto deg_map = pbbslib::make_delayed<size_t>(n, deg_f);
+  auto deg_map = parlay::delayed_seq<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return std::make_tuple(G.num_vertices(), edges_size, out_vdata, edges);
@@ -271,7 +271,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred,
       }
     }
   });
-  auto degree_imap = pbbslib::make_delayed<size_t>(
+  auto degree_imap = parlay::delayed_seq<size_t>(
       n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 
   G.m = pbbslib::reduce_add(degree_imap);

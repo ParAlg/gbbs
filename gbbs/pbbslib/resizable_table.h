@@ -311,7 +311,7 @@ class resizable_table {
 
   sequence<T> entries() {
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-    auto table_seq = pbbslib::make_range<T>(table, m);
+    auto table_seq = parlay::make_range<T>(table, m);
     return pbbslib::filter(table_seq, pred);
   }
 

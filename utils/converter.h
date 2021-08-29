@@ -266,7 +266,7 @@ namespace bytepd {
     byte_offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
-    auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
+    auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
@@ -374,7 +374,7 @@ namespace bytepd {
         };
         vtx.out_neighbors().map(map_ngh_f, false);
 
-        auto new_ngh_seq = pbbslib::make_range(nghs, deg);
+        auto new_ngh_seq = parlay::make_range(nghs, deg);
         pbbslib::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
 
         uintE our_new_id = rank[i];
@@ -407,7 +407,7 @@ namespace bytepd {
     byte_offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
-    auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
+    auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
@@ -656,7 +656,7 @@ namespace bytepd_amortized {
     byte_offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
-    auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
+    auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
@@ -764,7 +764,7 @@ namespace bytepd_amortized {
         };
         vtx.out_neighbors().map(map_ngh_f, false);
 
-        auto new_ngh_seq = pbbslib::make_range(nghs, deg);
+        auto new_ngh_seq = parlay::make_range(nghs, deg);
         pbbslib::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
 
         uintE our_new_id = rank[i];
@@ -801,7 +801,7 @@ namespace bytepd_amortized {
     byte_offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
-    auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
+    auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);

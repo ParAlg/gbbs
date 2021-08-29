@@ -140,8 +140,8 @@ inline size_t intersect_f_par(Nghs* A, Nghs* B, const F& f) {
   uintE* nghB = (uintE*)(B->neighbors);
 
   // Will not work if W is not gbbs::empty, should assert.
-  auto seqA = pbbslib::make_range<uintE>(nghA, nA);
-  auto seqB = pbbslib::make_range<uintE>(nghB, nB);
+  auto seqA = parlay::make_range<uintE>(nghA, nA);
+  auto seqB = parlay::make_range<uintE>(nghB, nB);
 
   uintE a = A->id;
   uintE b = B->id;
