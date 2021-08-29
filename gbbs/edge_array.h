@@ -46,7 +46,7 @@ struct edge_array {
   size_t size() { return E.size(); }
 
   // Clears the edge array.
-  sequence<edge> to_seq() {
+  sequence<edge>&& to_seq() {
     n = 0;
     return std::move(E);
   }
