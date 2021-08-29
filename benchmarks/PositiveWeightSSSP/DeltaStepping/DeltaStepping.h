@@ -133,7 +133,7 @@ auto DeltaStepping(Graph& G, uintE src, double delta, size_t num_buckets=128) {
   }
   auto get_dist = [&] (size_t i) { return (dists[i].first == kMaxWeight) ? 0 : dists[i].first; };
   auto dist_im = parlay::delayed_seq<Distance>(n, get_dist);
-  std::cout << "max_dist = " << pbbslib::reduce_max(dist_im) << std::endl;
+  std::cout << "max_dist = " << parlay::reduce_max(dist_im) << std::endl;
   bktt.next("bucket time");
   auto ret = sequence<Distance>::from_function(n, [&] (size_t i) { return dists[i].first; });
   return ret;

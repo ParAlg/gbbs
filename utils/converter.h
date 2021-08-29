@@ -267,7 +267,7 @@ namespace bytepd {
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
-    std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
+    std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
     sizes[0] = GA.n;
@@ -408,7 +408,7 @@ namespace bytepd {
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
-    std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
+    std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
     sizes[0] = GA.n;
@@ -657,7 +657,7 @@ namespace bytepd_amortized {
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
-    std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
+    std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
     sizes[0] = GA.n;
@@ -802,7 +802,7 @@ namespace bytepd_amortized {
     size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
-    std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
+    std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
     long* sizes = pbbslib::new_array_no_init<long>(3);
     sizes[0] = GA.n;

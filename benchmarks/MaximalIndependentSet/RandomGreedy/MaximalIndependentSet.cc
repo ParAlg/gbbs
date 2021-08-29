@@ -62,7 +62,7 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
     auto size_imap =
         parlay::delayed_seq<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
-      std::cout << "MaximalIndependentSet size: " << pbbslib::reduce_add(size_imap) << "\n";
+      std::cout << "MaximalIndependentSet size: " << parlay::reduce(size_imap) << "\n";
     }
     if (P.getOptionValue("-verify")) {
       verify_MaximalIndependentSet(G, size_imap);
@@ -75,7 +75,7 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
     auto size_imap =
         parlay::delayed_seq<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
-      std::cout << "MaximalIndependentSet size: " << pbbslib::reduce_add(size_imap) << "\n";
+      std::cout << "MaximalIndependentSet size: " << parlay::reduce(size_imap) << "\n";
     }
     if (P.getOptionValue("-verify")) {
       verify_MaximalIndependentSet(G, size_imap);

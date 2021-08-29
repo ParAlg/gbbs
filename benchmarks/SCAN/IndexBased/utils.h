@@ -126,7 +126,7 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
           [&](const size_t j) {
             return get_value(seq[bucketed_indices[values_start + j]]);
           })};
-      return pbbslib::reduce(values, std::forward<Monoid>(reduce_fn));
+      return parlay::reduce(values, std::forward<Monoid>(reduce_fn));
     });
   return result;
 }
@@ -170,7 +170,7 @@ double Modularity(
   const size_t num_vertices{graph->n};
   const size_t num_clusters{
     1 +
-    pbbslib::reduce_max(parlay::delayed_seq<uintE>(
+    parlay::reduce_max(parlay::delayed_seq<uintE>(
       num_vertices,
       [&](const size_t vertex_id) {
         const uintE cluster_id{clustering[vertex_id]};
@@ -182,7 +182,7 @@ double Modularity(
 
     // Fraction of edges that fall within a cluster.
     const double intracluster_edge_proportion{
-      static_cast<double>(pbbslib::reduce_add(parlay::delayed_seq<uintT>(
+      static_cast<double>(parlay::reduce(parlay::delayed_seq<uintT>(
         num_vertices,
         [&](const size_t vertex_id) -> uintT {
           const uintE cluster_id{clustering[vertex_id]};
@@ -225,7 +225,7 @@ double Modularity(
     //   sum((sum(degree) for each vertex in cluster) / (2 * <number of edges>)
     //       for each cluster in graph)
     const double null_intracluster_proportion{
-       pbbslib::reduce_add(parlay::delayed_seq<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_clusters,
          [&](const size_t cluster_id) {
            return std::pow(
@@ -233,7 +233,7 @@ double Modularity(
                2.0);
          })) +
        // special case for unclustered vertices
-       pbbslib::reduce_add(parlay::delayed_seq<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_unclustered_vertices,
          [&](const size_t i) {
            return std::pow(
@@ -255,11 +255,11 @@ double Modularity(
           .out_neighbors().reduce(get_weight, add_weights);
       }};
     // 2 * sum of all edge weights
-    const double total_weight{pbbslib::reduce_add(weighted_degrees)};
+    const double total_weight{parlay::reduce(weighted_degrees)};
 
     // Fraction of edge weight that falls within a cluster.
     const double intracluster_edge_proportion{
-      pbbslib::reduce_add(parlay::delayed_seq<double>(
+      parlay::reduce(parlay::delayed_seq<double>(
         num_vertices,
         [&](const size_t vertex_id) {
           const uintE cluster_id{clustering[vertex_id]};
@@ -301,13 +301,13 @@ double Modularity(
     // Approximately the fraction edge weight that falls within a cluster for a
     // random graph with the same degree distribution.
     const double null_intracluster_proportion{
-       pbbslib::reduce_add(parlay::delayed_seq<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_clusters,
          [&](const size_t cluster_id) {
            return std::pow(degrees_by_cluster[cluster_id] / total_weight, 2.0);
          })) +
        // special case for unclustered vertices
-       pbbslib::reduce_add(parlay::delayed_seq<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_unclustered_vertices,
          [&](const size_t i) {
            return std::pow(

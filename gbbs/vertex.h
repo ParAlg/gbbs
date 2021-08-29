@@ -129,7 +129,7 @@ struct uncompressed_neighbors {
       return f(id, std::get<0>(nw), std::get<1>(nw));
     };
     auto im = parlay::delayed_seq<size_t>(degree, im_f);
-    return pbbslib::reduce_add(im);
+    return parlay::reduce(im);
   }
 
   template <class M, class Monoid>
@@ -141,7 +141,7 @@ struct uncompressed_neighbors {
       return m(id, std::get<0>(nw), std::get<1>(nw));
     };
     auto im = parlay::delayed_seq<T>(degree, im_f);
-    return pbbslib::reduce(im, reduce);
+    return parlay::reduce(im, reduce);
   }
 
   template <class F>

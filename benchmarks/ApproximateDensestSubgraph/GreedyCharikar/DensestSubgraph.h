@@ -75,7 +75,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     size_t rem = n - i;
     return static_cast<double>(dens) / static_cast<double>(rem);
   });
-  double max_density = pbbslib::reduce_max(density_seq);
+  double max_density = parlay::reduce_max(density_seq);
   std::cout << "### Density of 2-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }

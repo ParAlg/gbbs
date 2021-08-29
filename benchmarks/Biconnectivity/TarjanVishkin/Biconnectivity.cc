@@ -112,7 +112,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
     // reduce flags
     auto flags_f = [&](size_t i) { return (size_t)flags[i]; };
     auto flags_imap = parlay::delayed_seq<size_t>(n, flags_f);
-    std::cout << "Largest component size = " << pbbslib::reduce_add(flags_imap)
+    std::cout << "Largest component size = " << parlay::reduce(flags_imap)
               << "\n";
   }
 

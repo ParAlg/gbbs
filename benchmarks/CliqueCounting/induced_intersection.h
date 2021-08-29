@@ -105,7 +105,7 @@ namespace induced_intersection {
       } else tots[i] = 0;
     } );
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 }  // induced_intersection
 }  // namespace gbbs

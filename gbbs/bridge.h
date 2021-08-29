@@ -177,68 +177,25 @@ inline slice<T*, T*> make_range(T* start, T* end) {
   return slice<T*, T*>(start, end);
 }
 
-}  // namespace parlay
-
-
-// Bridge to pbbslib (c++17)
-namespace pbbslib {
-
-// ====================== utilities =======================
-using empty = gbbs::empty;
-
-using flags = parlay::flags;
-const flags no_flag = parlay::no_flag;
-const flags fl_sequential = parlay::fl_sequential;
-const flags fl_debug = parlay::fl_debug;
-const flags fl_time = parlay::fl_time;
-const flags fl_conservative = parlay::fl_conservative;
-const flags fl_inplace = parlay::fl_inplace;
-
-using parlay::parallel_for;
-using parlay::par_do;
-// using parlay::parallel_for_alloc; // TODO
-using parlay::num_workers;
-using parlay::worker_id;
-
-using gbbs::free_array;
-using gbbs::new_array_no_init;
-using gbbs::new_array;
-using parlay::hash32;
-using parlay::hash32_2;
-using parlay::hash32_3;
-using parlay::hash64;
-using parlay::hash64_2;
-
-template <class T>
-size_t log2_up(T i) {
-  size_t a = 0;
-  T b = i - 1;
-  while (b > 0) {
-    b = b >> 1;
-    a++;
-  }
-  return a;
+template <class Seq>
+inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
+  using T = typename Seq::value_type;
+  return reduce(make_slice(I), maxm<T>());
 }
 
-// Alias template so that sequence is exposed w/o namespacing
-template <typename T>
-using sequence = parlay::sequence<T>;
-
-template <typename T>
-using range = gbbs::range<T>;
-
-template <typename T>
-using slice = gbbs::slice<T>;
-
-template <typename T>
-inline void assign_uninitialized(T& a, const T& b) {
-  new (static_cast<void*>(std::addressof(a))) T(b);
+template <class Seq>
+inline auto reduce_min(Seq const& I) -> typename Seq::value_type {
+  using T = typename Seq::value_type;
+  return reduce(make_slice(I), minm<T>());
 }
 
-template <typename T>
-inline void move_uninitialized(T& a, const T& b) {
-  new (static_cast<void*>(std::addressof(a))) T(std::move(b));
+template <class Seq>
+inline auto reduce_xor(Seq const& I) -> typename Seq::value_type {
+  using T = typename Seq::value_type;
+  return reduce(make_slice(I), xorm<T>());
 }
+
+
 
 // Currently unused, but may be useful in the future; including commented out.
 // template <class ET>
@@ -474,6 +431,73 @@ inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
                          (hash_value_1 << 6) + (hash_value_1 >> 2));
 }
 
+
+
+}  // namespace parlay
+
+
+// Bridge to pbbslib (c++17)
+namespace pbbslib {
+
+// ====================== utilities =======================
+using empty = gbbs::empty;
+
+using flags = parlay::flags;
+const flags no_flag = parlay::no_flag;
+const flags fl_sequential = parlay::fl_sequential;
+const flags fl_debug = parlay::fl_debug;
+const flags fl_time = parlay::fl_time;
+const flags fl_conservative = parlay::fl_conservative;
+const flags fl_inplace = parlay::fl_inplace;
+
+using parlay::parallel_for;
+using parlay::par_do;
+// using parlay::parallel_for_alloc; // TODO
+using parlay::num_workers;
+using parlay::worker_id;
+
+using gbbs::free_array;
+using gbbs::new_array_no_init;
+using gbbs::new_array;
+using parlay::hash32;
+using parlay::hash32_2;
+using parlay::hash32_3;
+using parlay::hash64;
+using parlay::hash64_2;
+
+template <class T>
+size_t log2_up(T i) {
+  size_t a = 0;
+  T b = i - 1;
+  while (b > 0) {
+    b = b >> 1;
+    a++;
+  }
+  return a;
+}
+
+// Alias template so that sequence is exposed w/o namespacing
+template <typename T>
+using sequence = parlay::sequence<T>;
+
+template <typename T>
+using range = gbbs::range<T>;
+
+template <typename T>
+using slice = gbbs::slice<T>;
+
+template <typename T>
+inline void assign_uninitialized(T& a, const T& b) {
+  new (static_cast<void*>(std::addressof(a))) T(b);
+}
+
+template <typename T>
+inline void move_uninitialized(T& a, const T& b) {
+  new (static_cast<void*>(std::addressof(a))) T(std::move(b));
+}
+
+
+
 // ========================= monoid ==========================
 
 using parlay::make_monoid;
@@ -544,23 +568,6 @@ inline auto reduce_add(Seq const& I) -> typename Seq::value_type {
   return reduce(make_slice(I), addm<T>());
 }
 
-template <class Seq>
-inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), maxm<T>());
-}
-
-template <class Seq>
-inline auto reduce_min(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), minm<T>());
-}
-
-template <class Seq>
-inline auto reduce_xor(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), xorm<T>());
-}
 
 // Writes the list of indices `i` where `Fl[i] == true` to range `Out`.
 template <class Bool_Seq, class Out_Seq>

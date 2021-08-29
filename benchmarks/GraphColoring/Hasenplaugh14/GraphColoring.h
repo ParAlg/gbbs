@@ -50,7 +50,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     G.get_vertex(v).out_neighbors().map(map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = parlay::delayed_seq<uintE>(deg, im_f);
-    uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
+    uintE color = parlay::reduce(im, pbbslib::minm<uintE>());
     if (deg > 1000) {
       pbbslib::free_array(bits, deg);
     }
@@ -177,7 +177,7 @@ inline void verify_coloring(Graph& G, Seq& colors) {
   });
   auto im_f = [&](size_t i) { return (size_t)ok[i]; };
   auto im = parlay::delayed_seq<size_t>(n, im_f);
-  size_t ct = pbbslib::reduce_add(im);
+  size_t ct = parlay::reduce(im);
   std::cout << "ct = " << ct << "\n";
   if (ct > 0) {
     std::cout << "Invalid coloring"

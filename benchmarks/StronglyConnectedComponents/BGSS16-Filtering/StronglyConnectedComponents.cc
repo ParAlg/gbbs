@@ -44,7 +44,7 @@ inline size_t num_done(Seq& labels) {
   };
   auto im = parlay::delayed_seq<size_t>(labels.size(), im_f);
 
-  return pbbslib::reduce_add(im);
+  return parlay::reduce(im);
 }
 
 template <class Seq>
@@ -72,7 +72,7 @@ inline void scc_stats(Seq& labels) {
     if (label != kUnfinished)
       flags[label]++;
   }
-  size_t maxv = pbbslib::reduce_max(flags);
+  size_t maxv = parlay::reduce_max(flags);
   std::cout << "Largest StronglyConnectedComponents has " << maxv << " vertices"
             << "\n";
   for (size_t i = 0; i < n; i++) {

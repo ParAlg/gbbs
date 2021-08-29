@@ -445,7 +445,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
   auto wgh_imap = parlay::delayed_seq<size_t>(
       mst_edges.size, wgh_imap_f);
-  std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
+  std::cout << "total weight = " << parlay::reduce(wgh_imap) << "\n";
 
   auto ret = sequence<edge>::from_function(mst_edges.size, [&] (size_t i) {
     return mst_edges.A[i];

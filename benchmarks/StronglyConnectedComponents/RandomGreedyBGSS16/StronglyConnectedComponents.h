@@ -134,7 +134,7 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
     };
     auto im = parlay::delayed_seq<size_t>(frontier.size(), im_f);
 
-    size_t sum = pbbslib::reduce_add(im);
+    size_t sum = parlay::reduce(im);
     table.maybe_resize(sum);
 
     parallel_for(0, frontier.size(), kDefaultGranularity, [&] (size_t i) {
@@ -238,7 +238,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     auto id = std::make_tuple<uintE, uintE>(0, 0);
     auto monoid = pbbslib::make_monoid(red_f, id);
     std::tuple<uintE, uintE> sAndD =
-        pbbslib::reduce(deg_im, monoid);
+        parlay::reduce(deg_im, monoid);
     uintE start = std::get<0>(sAndD);
 
 
@@ -380,7 +380,7 @@ inline size_t num_done(Seq& labels) {
   };
   auto im = parlay::delayed_seq<size_t>(labels.size(), im_f);
 
-  return pbbslib::reduce_add(im);
+  return parlay::reduce(im);
 }
 
 template <class Seq>
@@ -407,7 +407,7 @@ inline void scc_stats(Seq& labels) {
     size_t label = labels[i] & VAL_MASK;
     flags[label]++;
   }
-  size_t maxv = pbbslib::reduce_max(flags);
+  size_t maxv = parlay::reduce_max(flags);
   std::cout << "Largest StronglyConnectedComponents has " << maxv << " vertices"
             << "\n";
   for (size_t i = 0; i < n; i++) {

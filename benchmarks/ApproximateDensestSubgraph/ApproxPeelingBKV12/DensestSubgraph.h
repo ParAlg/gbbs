@@ -98,7 +98,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return static_cast<size_t>(D[v]);
     };
     auto degree_seq = parlay::delayed_seq<size_t>(vtxs_remaining.size(), degree_f);
-    long edges_remaining = pbbslib::reduce_add(degree_seq);
+    long edges_remaining = parlay::reduce(degree_seq);
 
     // Update density
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());

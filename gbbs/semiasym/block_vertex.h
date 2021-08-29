@@ -194,7 +194,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
     });
 
     auto im = parlay::make_range(block_outputs, num_blocks);
-    T res = pbbslib::reduce(im, reduce);
+    T res = parlay::reduce(im, reduce);
     if (num_blocks > 100) {
       pbbslib::free_array(block_outputs);
     }

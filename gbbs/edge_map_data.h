@@ -164,7 +164,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
                              : GA.get_vertex(vs.vtx(i)).out_degree();
     };
     auto degree_im = parlay::delayed_seq<size_t>(vs.size(), degree_f);
-    out_degrees = pbbslib::reduce_add(degree_im);
+    out_degrees = parlay::reduce(degree_im);
     vs.set_out_degrees(out_degrees);
   }
 

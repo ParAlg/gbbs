@@ -109,7 +109,7 @@ void PrintClock() {
 
 template <class Graph>
 size_t GetMaxDegree(Graph* graph) {
-  return pbbslib::reduce_max(parlay::delayed_seq<size_t>(
+  return parlay::reduce_max(parlay::delayed_seq<size_t>(
     graph->n,
     [&](const size_t i) {
       return graph->get_vertex(i).out_degree();

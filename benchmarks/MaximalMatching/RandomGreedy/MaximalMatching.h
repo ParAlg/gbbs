@@ -203,7 +203,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                       G.zeroVertexDegree(v);
                       sizes[i] = deg_u + deg_v;
                     });
-    size_t total_size = pbbslib::reduce_add(sizes);
+    size_t total_size = parlay::reduce(sizes);
     G.m -= total_size;
     std::cout << "removed: " << total_size << " many edges"
               << "\n";
@@ -253,7 +253,7 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
 
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_im = parlay::delayed_seq<size_t>(n, ok_f);
-  size_t n_ok = pbbslib::reduce_add(ok_im);
+  size_t n_ok = parlay::reduce(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
   } else {

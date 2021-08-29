@@ -382,7 +382,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
     run_intersection(start_ind, end_ind, i, V);
   });
 
-  ulong total = pbbslib::reduce_add(cycleCounts);
+  ulong total = parlay::reduce(cycleCounts);
   // ulong total = 0;
   // ulong temp;
   // std::cout << "### Number of neighbors of vertex, " << std::endl;
@@ -487,7 +487,7 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
 
   });
 
-  ulong total = pbbslib::reduce_add(cycleCounts);
+  ulong total = parlay::reduce(cycleCounts);
 
   double tt2 = t2.stop();
   std::cout << "##### Actual counting: " << tt2 << std::endl;
@@ -606,7 +606,7 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
 
   });
 
-  ulong cycleCount = pbbslib::reduce_add(cycleCounts);
+  ulong cycleCount = parlay::reduce(cycleCounts);
 
   double tt = t.stop();
   std::cout << "##### Actual counting: " << tt << std::endl;
@@ -780,7 +780,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
   }
 
-  //ulong cycleCount = pbbslib::reduce_add(cycleCounts);
+  //ulong cycleCount = parlay::reduce(cycleCounts);
 
   double tt = t.stop();
   std::cout << "##### Actual counting: " << tt << std::endl;
@@ -985,7 +985,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
     run_intersection(start_ind, end_ind, i);
   });
 
-  ulong cycleCount = pbbslib::reduce_add(cycleCounts);
+  ulong cycleCount = parlay::reduce(cycleCounts);
 
   double tt2 = t2.stop();
   std::cout << "##### Actual counting: " << tt2 << std::endl;

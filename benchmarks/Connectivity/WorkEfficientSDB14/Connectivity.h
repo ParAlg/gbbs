@@ -101,7 +101,7 @@ inline size_t largest_cc(Seq& labels) {
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
-  size_t sz = pbbslib::reduce_max(flags);
+  size_t sz = parlay::reduce_max(flags);
   std::cout << "# largest_cc has size: " << sz << "\n";
   return sz;
 }

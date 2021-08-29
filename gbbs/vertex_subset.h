@@ -101,7 +101,7 @@ struct vertexSubsetData {
         sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto df = [&](size_t i) { return (size_t)std::get<0>(d[i]); };
     auto d_map = parlay::delayed_seq<size_t>(n, df);
-    m = pbbslib::reduce_add(d_map);
+    m = parlay::reduce(d_map);
   }
 
   vertexSubsetData()
@@ -277,7 +277,7 @@ struct vertexSubsetData<gbbs::empty> {
         sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto d_f = [&](size_t i) { return d[i]; };
     auto d_map = parlay::delayed_seq<size_t>(n, d_f);
-    m = pbbslib::reduce_add(d_map);
+    m = parlay::reduce(d_map);
   }
 
   bool out_degrees_set() {

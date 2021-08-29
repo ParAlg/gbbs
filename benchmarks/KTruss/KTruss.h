@@ -98,9 +98,9 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto deg_lt = parlay::delayed_seq<uintE>(GA.n, [&] (size_t i) {
       return GA.get_vertex(i).out_degree() < (1 << 15); 
   });
-  std::cout << "count = " << pbbslib::reduce_add(deg_lt) << std::endl;
+  std::cout << "count = " << parlay::reduce(deg_lt) << std::endl;
   auto deg_lt_ct = parlay::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
-  std::cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << std::endl;
+  std::cout << "total degree = " << parlay::reduce(deg_lt_ct) << std::endl;
 
   auto counts = sequence<size_t>(GA.n, (size_t)0);
   parallel_for(0, GA.n, [&] (size_t i) {
@@ -111,7 +111,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     };
     counts[i] = GA.get_vertex(i).out_neighbors().count(count_f);
   });
-  std::cout << "total lt ct = " << pbbslib::reduce_add(counts) << std::endl;
+  std::cout << "total lt ct = " << parlay::reduce(counts) << std::endl;
 
 
 

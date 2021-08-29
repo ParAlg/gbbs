@@ -128,7 +128,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
   auto deg_map = parlay::delayed_seq<size_t>(n, deg_f);
-  uintT total_deg = pbbslib::reduce_add(deg_map);
+  uintT total_deg = parlay::reduce(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
                                       [=]() {
@@ -158,7 +158,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
     auto out_im = parlay::delayed_seq<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
-      outOffsets[rank[i]] = pbbslib::reduce_add(out_im);
+      outOffsets[rank[i]] = parlay::reduce(out_im);
     else
       outOffsets[rank[i]] = 0;
   });

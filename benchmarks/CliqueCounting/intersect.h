@@ -138,7 +138,7 @@ struct HybridSpace_lw {
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = parlay::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    num_edges = parlay::reduce(deg_seq);
   }
 
   // Perform first level recursion, using linear space to intersect
@@ -196,7 +196,7 @@ struct HybridSpace_lw {
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = parlay::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    num_edges = parlay::reduce(deg_seq);
   }
 
 
@@ -282,7 +282,7 @@ struct HybridSpace_lw {
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = parlay::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    num_edges = parlay::reduce(deg_seq);
   }
 
   // Perform first and second level recursion, using space-efficient intersection
@@ -356,7 +356,7 @@ struct HybridSpace_lw {
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = parlay::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    num_edges = parlay::reduce(deg_seq);
   }
 
   static void init(){}
@@ -499,7 +499,7 @@ struct FullSpace_orig_lw {
     DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
     auto deg_seq = parlay::make_range(induced_degs, nn);
-    num_edges[0] = pbbslib::reduce_add(deg_seq);
+    num_edges[0] = parlay::reduce(deg_seq);
   }
 
   static void init(){}

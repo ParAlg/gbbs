@@ -136,7 +136,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   emt.next("edge map time");
   auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
   auto dist_im = parlay::delayed_seq<size_t>(n, dist_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
 
   return dists;

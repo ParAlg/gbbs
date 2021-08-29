@@ -87,7 +87,7 @@ if (recursive_level < k_idx || num_induced < 2) {
         if (induced->use_base && tots[i] > 0) base_f(induced->relabel[vtx], tots[i]);
       } else tots[i] = 0;
     });
-    total_ct += pbbslib::reduce_add(tots);
+    total_ct += parlay::reduce(tots);
 }
     //for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
@@ -169,7 +169,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       }, 1, false);
       double tt2 = t2.stop();
       std::cout << "##### Actual counting: " << tt2 << std::endl;
-      return pbbslib::reduce_add(tots);
+      return parlay::reduce(tots);
     }
 
    size_t max_deg = get_max_deg(DG);
@@ -196,7 +196,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 
@@ -218,7 +218,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     }, 1, false);
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 }  // namespace induced_neighborhood

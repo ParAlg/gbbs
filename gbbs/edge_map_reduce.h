@@ -207,7 +207,7 @@ inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Cond& cond_f,
     return neighbors.get_virtual_degree();
   };
   auto degree_imap = parlay::delayed_seq<size_t>(vs.size(), degree_f);
-  auto out_degrees = pbbslib::reduce_add(degree_imap);
+  auto out_degrees = parlay::reduce(degree_imap);
   size_t degree_threshold = threshold;
   if (threshold == -1) degree_threshold = GA.m / 20;
   if (vs.size() + out_degrees > degree_threshold) {
@@ -406,7 +406,7 @@ struct EdgeMap {
       return neighbors.get_virtual_degree();
     };
     auto degree_imap = parlay::delayed_seq<uintE>(vs.size(), degree_f);
-    auto out_degrees = pbbslib::reduce_add(degree_imap);
+    auto out_degrees = parlay::reduce(degree_imap);
     if (threshold == -1) threshold = G.m / 20;
     if (vs.size() + out_degrees > threshold) {
       // dense
@@ -518,7 +518,7 @@ struct EdgeMap {
       return neighbors.get_virtual_degree();
     };
     auto degree_imap = parlay::delayed_seq<size_t>(vs.size(), degree_f);
-    auto out_degrees = pbbslib::reduce_add(degree_imap);
+    auto out_degrees = parlay::reduce(degree_imap);
     size_t degree_threshold = threshold;
     if (threshold == -1) degree_threshold = G.m / 20;
     if (vs.size() + out_degrees > degree_threshold) {

@@ -153,7 +153,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
 
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == (uintE)(-1))) ? 0 : width[i]; }; // noop?
   auto dist_im = parlay::delayed_seq<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << " xor = " << parlay::reduce_xor(dist_im) << "\n";
   return width;
 }
 
@@ -218,7 +218,7 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
   }
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?
   auto dist_im = parlay::delayed_seq<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << " xor = " << parlay::reduce_xor(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return width;
 }

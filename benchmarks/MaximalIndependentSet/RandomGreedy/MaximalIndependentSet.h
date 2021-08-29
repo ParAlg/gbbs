@@ -51,8 +51,8 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
       parlay::delayed_seq<size_t>(G.n, mis_f);
-  size_t mis_size = pbbslib::reduce_add(mis_int);
-  if (pbbslib::reduce_add(d) != (G.n - mis_size)) {
+  size_t mis_size = parlay::reduce(mis_int);
+  if (parlay::reduce(d) != (G.n - mis_size)) {
     std::cout << "MaximalIndependentSet incorrect"
               << "\n";
     assert(false);
@@ -250,7 +250,7 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
   });
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_imap = parlay::delayed_seq<size_t>(n, ok_f);
-  size_t n_ok = pbbslib::reduce_add(ok_imap);
+  size_t n_ok = parlay::reduce(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MaximalIndependentSet"
               << "\n";

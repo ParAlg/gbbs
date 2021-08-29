@@ -80,7 +80,7 @@ inline size_t CountDirected(Graph& DG, size_t* counts, vertexSubset& Frontier) {
   emdf(DG, Frontier, wrap_em_f<W>(countF<Graph>(DG, counts)), no_output);
   auto count_seq =
       parlay::delayed_seq<size_t>(DG.n, [&](size_t i) { return counts[i]; });
-  size_t count = pbbslib::reduce_add(count_seq);
+  size_t count = parlay::reduce(count_seq);
   return count;
 }
 
@@ -145,7 +145,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts, const F& f) {
   });
 
   auto count_seq = parlay::make_range<size_t>(counts, DG.n);
-  size_t count = pbbslib::reduce_add(count_seq);
+  size_t count = parlay::reduce(count_seq);
 
   return count;
 }

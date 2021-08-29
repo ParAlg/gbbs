@@ -121,7 +121,7 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
   auto degree_map = parlay::delayed_seq<size_t>(active_size, [&] (size_t i) {
     return G.get_vertex(get_active(i)).out_degree();
   });
-  active_deg += pbbslib::reduce_add(degree_map);
+  active_deg += parlay::reduce(degree_map);
 
   // Hash table to contain triangle count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
@@ -195,7 +195,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
   auto degree_map = parlay::delayed_seq<size_t>(active_size, [&] (size_t i) {
     return G.get_vertex(get_active(i)).out_degree();
   });
-  active_deg += pbbslib::reduce_add(degree_map);
+  active_deg += parlay::reduce(degree_map);
 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
@@ -347,7 +347,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     if (use_max_density) {
       auto degree_f = [&] (size_t i) { return cliques[i]; };
       auto degree_seq = parlay::delayed_seq<size_t>(n, degree_f);
-      auto edges_remaining = pbbslib::reduce_add(degree_seq);
+      auto edges_remaining = parlay::reduce(degree_seq);
       auto vtxs_remaining = n - finished;
       double current_density = ((double)edges_remaining) / ((double)vtxs_remaining);
       if (current_density > max_density) max_density = current_density;
@@ -497,7 +497,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
       return static_cast<size_t>(D[v]);
     };
     auto degree_seq = parlay::delayed_seq<size_t>(vtxs_remaining.size(), degree_f);
-    long edges_remaining = pbbslib::reduce_add(degree_seq);
+    long edges_remaining = parlay::reduce(degree_seq);
 
     // Update density
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());

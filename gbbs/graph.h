@@ -111,7 +111,7 @@ struct symmetric_graph {
     auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
       return get_vertex(i).out_neighbors().reduce(map_f, reduce_f);
     });
-    return pbbslib::reduce(D, reduce_f);
+    return parlay::reduce(D, reduce_f);
   }
 
   // ======================= Constructors and fields  ========================
@@ -220,7 +220,7 @@ struct symmetric_ptr_graph {
     auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
       return get_vertex(i).out_neighbors().reduce(i, map_f, reduce_f);
     });
-    return pbbslib::reduce(D, reduce_f);
+    return parlay::reduce(D, reduce_f);
   }
 
   // ======================= Constructors and fields  ========================

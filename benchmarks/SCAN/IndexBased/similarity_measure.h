@@ -563,7 +563,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
                   fingerprints[neighbor_fingerprint_offset + i]);
             })};
         const float angle_estimate{static_cast<float>(
-            pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
+            parlay::reduce(fingerprint_xor) * M_PI / num_samples)};
         similarity = std::max(std::cos(angle_estimate), 0.0f);
       } else {  // exact similarity
         if constexpr (std::is_same<Weight, gbbs::empty>::value) {
@@ -758,7 +758,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         const size_t neighbor_fingerprint_offset{
           fingerprint_indices[u_id] * num_samples};
         const uintE fingerprint_matches{
-          pbbslib::reduce_add(
+          parlay::reduce(
             parlay::delayed_seq<uintE>(
               num_samples,
               [&](const size_t i) {
@@ -768,7 +768,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
                   fingerprints[neighbor_fingerprint_offset + i];
               }))};
         const uintE fingerprint_empty_count{
-          pbbslib::reduce_add(
+          parlay::reduce(
             parlay::delayed_seq<uintE>(
               num_samples,
               [&](const size_t i) {

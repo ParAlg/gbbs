@@ -168,7 +168,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
                  1);
 
     auto im = parlay::make_range(block_outputs, num_blocks);
-    T res = pbbslib::reduce(im, reduce);
+    T res = parlay::reduce(im, reduce);
     return res;
   } else {
     return reduce.identity;
@@ -677,7 +677,7 @@ struct uncompressed_bitset_neighbors {
         parlay::delayed_seq<size_t>(vtx_num_blocks, [&](size_t i) {
           return static_cast<size_t>(block_metadata[i].offset > 0);
         });
-    size_t full_blocks = pbbslib::reduce_add(full_block_seq);
+    size_t full_blocks = parlay::reduce(full_block_seq);
 
     if ((full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) ||
         ((full_blocks < vtx_num_blocks) && (fl & compact_blocks))) {
@@ -1200,7 +1200,7 @@ struct compressed_bitset_neighbors {
         parlay::delayed_seq<size_t>(vtx_num_blocks, [&](size_t i) {
           return static_cast<size_t>(block_metadata[i].offset > 0);
         });
-    size_t full_blocks = pbbslib::reduce_add(full_block_seq);
+    size_t full_blocks = parlay::reduce(full_block_seq);
 
     if ((full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) ||
         ((full_blocks < vtx_num_blocks) && (fl & compact_blocks))) {

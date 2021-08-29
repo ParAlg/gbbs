@@ -538,7 +538,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
     });
 
     auto im = parlay::make_range(block_outputs, num_blocks);
-    E res = pbbslib::reduce(im, reduce);
+    E res = parlay::reduce(im, reduce);
     return res;
   } else {
     return reduce.identity;

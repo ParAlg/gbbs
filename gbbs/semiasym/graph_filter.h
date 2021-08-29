@@ -97,7 +97,7 @@ init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred,
   //    size_t nb = pbbslib::num_blocks(degree, bs);
   //    return nb;
   //  });
-  //  size_t total_blocks = pbbslib::reduce_add(blocks_seq);
+  //  size_t total_blocks = parlay::reduce(blocks_seq);
   //  std::cout << "# total blocks = " << total_blocks << std::endl;
 
   // allocate blocks
@@ -282,7 +282,7 @@ symmetric_packed_graph<vertex_type, W> filter_graph(
   }
   auto degree_seq = parlay::delayed_seq<size_t>(
       GA.n, [&](size_t i) { return GA.out_degree(i); });
-  auto new_m = pbbslib::reduce_add(degree_seq);
+  auto new_m = parlay::reduce(degree_seq);
   GA.m = new_m;
   std::cout << "# Returning new packed graph, new m = " << new_m << std::endl;
   return GA;
@@ -305,7 +305,7 @@ void filter_graph(symmetric_packed_graph<vertex_type, W>& GA, P& pred_f) {
   }
   auto degree_seq = parlay::delayed_seq<size_t>(
       GA.n, [&](size_t i) { return GA.out_degree(i); });
-  auto new_m = pbbslib::reduce_add(degree_seq);
+  auto new_m = parlay::reduce(degree_seq);
   GA.m = new_m;
   std::cout << "# Packing packed graph: new m = " << new_m << std::endl;
 }
@@ -416,7 +416,7 @@ struct asymmetric_packed_graph {
         init_block_memory(GA, bs, bs_in_bytes, vtx_pred);
     auto degree_seq = parlay::delayed_seq<size_t>(
         n, [&](size_t i) { return out_VI[i].vtx_degree; });
-    m = pbbslib::reduce_add(degree_seq);
+    m = parlay::reduce(degree_seq);
   }
 
   inline size_t out_degree(uintE v) { return out_VI[v].vtx_degree; }
@@ -504,7 +504,7 @@ struct asymmetric_packed_graph {
       return out_VI[i].vtx_degree;
     });
     std::cout << "Before clearing, m = " << m << std::endl;
-    m = pbbslib::reduce_add(deg_imap);
+    m = parlay::reduce(deg_imap);
     std::cout << "After clearing, m = " << m << std::endl;
   }
 
@@ -522,7 +522,7 @@ struct asymmetric_packed_graph {
       return ret;
     });
     std::cout << "Before clearing, m = " << m << std::endl;
-    m -= pbbslib::reduce_add(deg_imap);
+    m -= parlay::reduce(deg_imap);
     std::cout << "After clearing, m = " << m << std::endl;
   }
 
@@ -538,7 +538,7 @@ struct asymmetric_packed_graph {
       uintE v = S[i];
       return out_degree(v);
     });
-    size_t pre_degrees = pbbslib::reduce_add(degree_seq);
+    size_t pre_degrees = parlay::reduce(degree_seq);
 
     parallel_for(0, S.size(),
                  [&](size_t i) {
@@ -558,7 +558,7 @@ struct asymmetric_packed_graph {
                  },
                  128);
 
-    size_t post_degrees = pbbslib::reduce_add(degree_seq);
+    size_t post_degrees = parlay::reduce(degree_seq);
     size_t delta = pre_degrees - post_degrees;
     m -= delta;
     std::cout << "# Filtered graph, new m = " << m << std::endl;
@@ -617,7 +617,7 @@ asymmetric_packed_graph<vertex_type, W> filter_graph(
   }
   auto degree_seq = parlay::delayed_seq<size_t>(
       GA.n, [&](size_t i) { return GA.out_degree(i); });
-  auto new_m = pbbslib::reduce_add(degree_seq);
+  auto new_m = parlay::reduce(degree_seq);
   GA.m = new_m;
   std::cout << "# Returning new asymmetric packed graph, new m = " << new_m
             << std::endl;
@@ -651,7 +651,7 @@ void filter_graph(asymmetric_packed_graph<vertex_type, W>& GA, P& pred_f) {
   }
   auto degree_seq = parlay::delayed_seq<size_t>(
       GA.n, [&](size_t i) { return GA.out_degree(i); });
-  auto new_m = pbbslib::reduce_add(degree_seq);
+  auto new_m = parlay::reduce(degree_seq);
   GA.m = new_m;
   std::cout << "# Packing asymmetric packed graph: new m = " << new_m
             << std::endl;
@@ -685,7 +685,7 @@ void filter_graph(asymmetric_packed_graph<vertex_type, W>& GA, Seq& S,
   }
   auto degree_seq = parlay::delayed_seq<size_t>(
       GA.n, [&](size_t i) { return GA.out_degree(i); });
-  auto new_m = pbbslib::reduce_add(degree_seq);
+  auto new_m = parlay::reduce(degree_seq);
   GA.m = new_m;
   std::cout << "# Packing asymmetric packed graph: new m = " << new_m
             << std::endl;

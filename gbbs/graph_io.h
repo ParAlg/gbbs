@@ -522,7 +522,7 @@ size_t get_num_vertices_from_edges(const sequence<Edge<weight_type>>& edges) {
   const auto max_endpoints = parlay::delayed_seq<size_t>(
       edges.size(),
       [&](const size_t i) { return std::max(edges[i].from, edges[i].to); });
-  return pbbslib::reduce_max(max_endpoints) + 1;
+  return parlay::reduce_max(max_endpoints) + 1;
 }
 
 // Given a list of edges sorted by their first endpoint, return a corresponding

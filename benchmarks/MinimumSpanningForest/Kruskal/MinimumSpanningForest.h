@@ -45,7 +45,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_gra
   timer kt; kt.start();
   auto weight_seq = parlay::delayed_seq<W>(edges.size(), [&] (size_t i) { return std::get<2>(edges[i]); });
   std::cout << weight_seq[0] << std::endl;
-  auto max_weight = pbbslib::reduce_max(weight_seq);
+  auto max_weight = parlay::reduce_max(weight_seq);
   std::cout << "max_weight = " << max_weight << std::endl;
   timer st; st.start();
   auto comp = [&] (const edge& l, const edge& r) {

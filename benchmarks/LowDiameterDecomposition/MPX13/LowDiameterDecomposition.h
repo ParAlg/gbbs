@@ -55,7 +55,7 @@ inline void num_clusters(Seq& s) {
       flags[s[i]] = 1;
     }
   });
-  std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
+  std::cout << "num. clusters = " << parlay::reduce(flags) << "\n";
 }
 
 template <class Seq>
@@ -87,7 +87,7 @@ inline void num_intercluster_edges(Graph& G, Seq& s) {
     size_t ct = G.get_vertex(i).out_neighbors().count(pred);
     ic_edges[i] = ct;
   });
-  std::cout << "num. intercluster edges = " << pbbslib::reduce_add(ic_edges)
+  std::cout << "num. intercluster edges = " << parlay::reduce(ic_edges)
             << "\n";
 }
 }  // namespace ldd_utils

@@ -174,7 +174,7 @@ namespace gbbs {
 //      GA.V[i].mapOutNgh(i, map_f, false);
 //      xors[i] = xr;
 //    }
-//    std::cout << "input graph: output red = " << pbbslib::reduce_xor(xors) << std::endl;
+//    std::cout << "input graph: output red = " << parlay::reduce_xor(xors) << std::endl;
 //
 //  auto hash_or_lt = [&] (const uintE& src, const uintE& ngh) {
 //    uint32_t src_h = pbbslib::hash32(src);
@@ -201,8 +201,8 @@ namespace gbbs {
 //      self_arr[i] = selfl;
 //      xors[i] = pri;
 //    }
-//    std::cout << "input graph: priorities = " << pbbslib::reduce_add(xors) << std::endl;
-//    std::cout << "input graph: self-loops = " << pbbslib::reduce_add(self_arr) << std::endl;
+//    std::cout << "input graph: priorities = " << parlay::reduce(xors) << std::endl;
+//    std::cout << "input graph: self-loops = " << parlay::reduce(self_arr) << std::endl;
 
 //    parallel_for(size_t i=0; i<n; i++) {
 //      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
@@ -231,8 +231,8 @@ namespace gbbs {
 //      self_arr[i] = selfl;
 //      xors[i] = pri;
 //    }
-//    std::cout << "input graph: priorities = " << pbbslib::reduce_add(xors) << std::endl;
-//    std::cout << "input graph: self-loops = " << pbbslib::reduce_add(self_arr) << std::endl;
+//    std::cout << "input graph: priorities = " << parlay::reduce(xors) << std::endl;
+//    std::cout << "input graph: self-loops = " << parlay::reduce(self_arr) << std::endl;
 
 
     // 1. Calculate total size
@@ -279,7 +279,7 @@ namespace gbbs {
     std::cout << "total space = " << total_space << std::endl;
     auto deg_f = [&] (size_t i) { return degrees[i]; };
     auto deg_im = parlay::delayed_seq<size_t>(n, deg_f);
-    std::cout << "sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
+    std::cout << "sum degs = " << parlay::reduce(deg_im) << std::endl;
 
     // 2. Create compressed format in-memory
     auto edges = sequence<uchar>(total_space);
@@ -356,7 +356,7 @@ namespace gbbs {
 //      }
 //      xors[i] = xr;
 //    }
-//    std::cout << "output graph: output red = " << pbbslib::reduce_xor(xors) << std::endl;
+//    std::cout << "output graph: output red = " << parlay::reduce_xor(xors) << std::endl;
 
 //    parallel_for(size_t i=0; i<n; i++) {
 //      assert(degrees[i] == GA.V[i].getOutDegree());
@@ -381,8 +381,8 @@ namespace gbbs {
 //      self_arr[i] = selfl;
 //      xors[i] = pri;
 //    }
-//    std::cout << "output graph: priorities = " << pbbslib::reduce_add(xors) << std::endl;
-//    std::cout << "output graph: self-loops = " << pbbslib::reduce_add(self_arr) << std::endl;
+//    std::cout << "output graph: priorities = " << parlay::reduce(xors) << std::endl;
+//    std::cout << "output graph: self-loops = " << parlay::reduce(self_arr) << std::endl;
 
 
 //    exit(0);

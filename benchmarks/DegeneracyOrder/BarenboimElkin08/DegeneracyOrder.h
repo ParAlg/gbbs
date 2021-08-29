@@ -32,7 +32,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
     //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
     auto BS = parlay::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
       return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
-    size_t end = pbbslib::reduce(BS, pbbslib::maxm<size_t>());
+    size_t end = parlay::reduce(BS, pbbslib::maxm<size_t>());
     if (end == start) end++; //TODO step?
 
     auto num_removed = end-start;

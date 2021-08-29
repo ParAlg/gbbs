@@ -58,7 +58,7 @@ double Coloring_runner(Graph& G, commandLine P) {
   auto colors = Coloring(G, runLF);
   double tt = t.stop();
   if (P.getOption("-stats")) {
-    std::cout << "num_colors = " << pbbslib::reduce_max(colors) << "\n";
+    std::cout << "num_colors = " << parlay::reduce_max(colors) << "\n";
   }
   if (P.getOption("-verify)")) {
     verify_coloring(G, colors);

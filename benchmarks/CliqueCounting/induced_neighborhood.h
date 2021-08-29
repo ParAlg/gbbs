@@ -71,7 +71,7 @@ namespace induced_neighborhood {
       });*/
 
       auto deg_seq = parlay::make_range(new_induced_degs, induced->nn);
-      induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
+      induced->num_edges[k_idx] = parlay::reduce(deg_seq);
 
       //uintE vtx = prev_induced[i];
       //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).out_degree(), true, induced->induced + induced->num_induced[0] * k_idx);
@@ -96,7 +96,7 @@ namespace induced_neighborhood {
       } else tots[i] = 0;
     } );
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 }  // namespace induced_neighborhood

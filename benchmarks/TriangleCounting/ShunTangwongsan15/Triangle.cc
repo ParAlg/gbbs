@@ -57,7 +57,7 @@ double Triangle_runner(Graph& G, commandLine P) {
       return (deg * deg - 1) / 2;
     };
     auto wedge_im = parlay::delayed_seq<size_t>(G.n, wedge_im_f);
-    size_t n_wedges = pbbslib::reduce_add(wedge_im);
+    size_t n_wedges = parlay::reduce(wedge_im);
     std::cout << "### n_wedges = " << n_wedges << "\n";
     std::cout << "### triangle density = " << ((3.0 * count) / n_wedges) << "\n";
   }

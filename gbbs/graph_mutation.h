@@ -33,7 +33,7 @@ filter_graph(Graph& G, P& pred) {
     auto out_im = parlay::delayed_seq<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
-      outOffsets[i] = pbbslib::reduce_add(out_im);
+      outOffsets[i] = parlay::reduce(out_im);
     else
       outOffsets[i] = 0;
   });
@@ -151,7 +151,7 @@ inline auto filter_graph(Graph& G, P& pred) {
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
   auto deg_map = parlay::delayed_seq<size_t>(n, deg_f);
-  uintT total_deg = pbbslib::reduce_add(deg_map);
+  uintT total_deg = parlay::reduce(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return std::make_tuple(G.num_vertices(), edges_size, out_vdata, edges);
 }
@@ -274,7 +274,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred,
   auto degree_imap = parlay::delayed_seq<size_t>(
       n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 
-  G.m = pbbslib::reduce_add(degree_imap);
+  G.m = parlay::reduce(degree_imap);
   std::cout << "# G.m is now = " << G.m << "\n";
 
   return edge_array<W>(std::move(arr), n);

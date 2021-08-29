@@ -54,7 +54,7 @@ namespace induced_split {
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 }  // namespace induced_intersection

@@ -179,7 +179,7 @@ inline auto multi_search(Graph& GA,
       return effective_degree * n_labels;
     });
 
-    size_t work_upperbound = pbbslib::reduce_add(work_upperbound_seq);
+    size_t work_upperbound = parlay::reduce(work_upperbound_seq);
     table.maybe_resize(work_upperbound);
 
     parallel_for(0, frontier.size(), [&] (size_t i) {
@@ -271,7 +271,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    auto id = std::make_tuple<uintE, uintE>(0, 0);
 //    auto monoid = pbbslib::make_monoid(red_f, id);
 //    std::tuple<uintE, uintE> vertex_and_degree =
-//        pbbslib::reduce(deg_im, monoid);
+//        parlay::reduce(deg_im, monoid);
 //    uintE start = std::get<0>(vertex_and_degree);
 //
 //    std::cout << "start = " << start << " degree = " << std::get<1>(vertex_and_degree) << std::endl;
@@ -295,7 +295,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //
 //      auto imap = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
 //
-//      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
+//      std::cout << "num in start = " << parlay::reduce(imap) << std::endl;
 //      exit(0);
 //
 //      // Prune remaining edges based on intersection with start (O(m) work).
@@ -393,7 +393,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       });
 
 //      auto imap = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
-//      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
+//      std::cout << "num in start = " << parlay::reduce(imap) << std::endl;
 //      exit(0);
 
       // Prune remaining edges based on intersection with start (O(m) work).
