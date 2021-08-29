@@ -189,7 +189,7 @@ VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
   auto vertex_offsets = sequence<uintT>::from_function(
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(vertex_offsets);
+  parlay::scan_inplace(vertex_offsets);
   return vertex_offsets;
 }
 
@@ -355,12 +355,12 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   });
   // repurpose `needs_normals_seq` to serve as the index of a vertex into
   // `normals`, and same with `needs_fingerprint_seq`
-  const uintE num_needs_normals{pbbslib::scan_inplace(needs_normals_seq)};
+  const uintE num_needs_normals{parlay::scan_inplace(needs_normals_seq)};
   const sequence<uintE>& normals_indices{needs_normals_seq};
   const sequence<float> normals{RandomNormalNumbers(
       num_needs_normals * num_samples, pbbslib::random{random_seed})};
   const uintE num_needs_fingerprint{
-    pbbslib::scan_inplace(needs_fingerprint_seq)};
+    parlay::scan_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
 
   const size_t num_vertices{graph->n};
@@ -652,7 +652,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         return needs_fingerprint;
       });
   const uintE num_needs_fingerprint{
-    pbbslib::scan_inplace(needs_fingerprint_seq)};
+    parlay::scan_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
   // Compute MinHash fingerprints for high degree vertices.
   sequence<uintE> fingerprints(

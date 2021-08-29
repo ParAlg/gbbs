@@ -30,7 +30,7 @@ inline size_t RelabelIds(Seq& ids) {
                  if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
                },
                kDefaultGranularity);
-  pbbslib::scan_inplace(make_slice(inverse_map));
+  parlay::scan_inplace(make_slice(inverse_map));
 
   size_t new_n = inverse_map[n];
   parallel_for(0, n, [&](size_t i) { ids[i] = inverse_map[ids[i]]; },
@@ -107,7 +107,7 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
     deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred);
   });
   deg_map[n] = 0;
-  pbbslib::scan_inplace(make_slice(deg_map));
+  parlay::scan_inplace(make_slice(deg_map));
   count_t.stop();
   debug(count_t.next("count time"););
 
@@ -241,7 +241,7 @@ contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
                  if (!flags[v]) flags[v] = 1;
                },
                kDefaultGranularity);
-  pbbslib::scan_inplace(make_slice(flags));
+  parlay::scan_inplace(make_slice(flags));
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = sequence<uintE>::uninitialized(num_ns_clusters);

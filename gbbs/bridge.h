@@ -476,10 +476,6 @@ using xorm = parlay::xorm<T>;
 
 // ====================== sequence ops =======================
 
-using parlay::scan;
-using parlay::scan_inclusive;
-using parlay::scan_inplace;
-using parlay::scan_inclusive_inplace;
 using parlay::reduce;
 using parlay::pack;
 using parlay::pack_index;
@@ -637,7 +633,7 @@ auto filter_index(In_Seq const& In, F f, flags fl = no_flag)
     for (size_t j = s; j < e; j++) r += (Fl[j] = f(In[j], j));
     Sums[i] = r;
   });
-  size_t m = scan_inplace(make_slice(Sums));
+  size_t m = parlay::scan_inplace(make_slice(Sums));
   sequence<T> Out = sequence<T>::uninitialized(m);
   sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
     pack_serial_at(
@@ -720,7 +716,7 @@ inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
                },
                1);
   Sums[l] = 0;
-  size_t m = scan_inplace(make_slice(Sums));
+  size_t m = parlay::scan_inplace(make_slice(Sums));
   Sums[l] = m;
   parallel_for(0, l,
                [&](size_t i) {
@@ -760,7 +756,7 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
                },
                1);
   Sums[l] = 0;
-  size_t m = scan_inplace(make_slice(Sums));
+  size_t m = parlay::scan_inplace(make_slice(Sums));
   Sums[l] = m;
   parallel_for(0, l,
                [&](size_t i) {
@@ -808,7 +804,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty) {
                },
                1);
   Sums[l] = 0;
-  size_t m = scan_inplace(make_slice(Sums));
+  size_t m = parlay::scan_inplace(make_slice(Sums));
   Sums[l] = m;
   parallel_for(0, l,
                [&](size_t i) {
@@ -926,7 +922,7 @@ sequence<char> sequence_to_string(TSeq const& T) {
   auto S = sequence<size_t>::from_function(n, [&](size_t i) {
     return t_to_stringlen(T[i]) + 1;  // +1 for \n
   });
-  size_t m = pbbslib::scan_inplace(make_slice(S), addm<size_t>());
+  size_t m = parlay::scan_inplace(make_slice(S), addm<size_t>());
 
   auto C = sequence<char>::from_function(m, [&](size_t i) { return (char)0; });
   parallel_for(0, n - 1, [&](size_t i) {

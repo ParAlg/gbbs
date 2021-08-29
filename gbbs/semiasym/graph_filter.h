@@ -86,7 +86,7 @@ init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred,
   block_bytes_offs[n] = 0;
 
   size_t block_mem_to_alloc =
-      pbbslib::scan_inplace(make_slice(block_bytes_offs));
+      parlay::scan_inplace(make_slice(block_bytes_offs));
   std::cout << "# total memory for block memory = " << block_mem_to_alloc
             << std::endl;
 

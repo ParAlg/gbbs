@@ -42,7 +42,7 @@ inline sequence<size_t> generate_shifts(size_t n, double beta) {
   parallel_for(0, last_round, kDefaultGranularity, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbslib::scan_inplace(shifts);
+  parlay::scan_inplace(shifts);
   return shifts;
 }
 

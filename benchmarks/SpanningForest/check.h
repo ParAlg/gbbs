@@ -17,7 +17,7 @@ namespace spanning_forest {
         flags[labels[i]] = 1;
       }
     });
-    pbbslib::scan_inplace(flags);
+    parlay::scan_inplace(flags);
     std::cout << "# n_cc = " << flags[n] << "\n";
     return flags[n];
   }

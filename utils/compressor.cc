@@ -59,7 +59,7 @@ namespace gbbs {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+      size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -128,7 +128,7 @@ namespace gbbs {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+      size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -275,7 +275,7 @@ namespace gbbs {
       byte_offsets[i] = total_bytes;
     });
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "total space = " << total_space << std::endl;
     auto deg_f = [&] (size_t i) { return degrees[i]; };
     auto deg_im = pbbslib::make_delayed<size_t>(n, deg_f);

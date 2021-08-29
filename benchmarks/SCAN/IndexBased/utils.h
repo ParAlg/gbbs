@@ -114,7 +114,7 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
   integer_sort_inplace(make_slice(bucketed_indices), index_to_key);
   sequence<size_t> key_offsets{
     pbbslib::get_counts(make_slice(bucketed_indices), index_to_key, num_keys)};
-  pbbslib::scan_inplace(key_offsets);
+  parlay::scan_inplace(key_offsets);
   sequence<Value> result = sequence<Value>::from_function(
     num_keys,
     [&](const size_t i) {

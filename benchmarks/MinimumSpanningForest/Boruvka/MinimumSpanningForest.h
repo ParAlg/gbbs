@@ -233,7 +233,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   auto vertex_offs = sequence<long>(G.n);
   parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vertex_offs[i] = G.get_vertex(i).out_degree(); });
-  pbbslib::scan_inclusive_inplace(make_slice(vertex_offs));
+  parlay::scan_inclusive_inplace(make_slice(vertex_offs));
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& left, const size_t& right) { return left <= right; };

@@ -80,7 +80,7 @@ struct symmetric_graph {
     using g_edge = std::tuple<uintE, uintE, W>;
     auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
-    size_t sum_degs = pbbslib::scan_inplace(make_slice(degs));
+    size_t sum_degs = parlay::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
     auto edges = sequence<g_edge>(sum_degs);
     parallel_for(0, n,
@@ -189,7 +189,7 @@ struct symmetric_ptr_graph {
     using g_edge = std::tuple<uintE, uintE, W>;
     auto degs = sequence<size_t>(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
-    size_t sum_degs = pbbslib::scan_inplace(make_slice(degs));
+    size_t sum_degs = parlay::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
     auto edges = sequence<g_edge>(sum_degs);
     parallel_for(0, n,
@@ -253,7 +253,7 @@ struct symmetric_ptr_graph {
           (edge_list_sizes == nullptr) ? V[i].out_degree() : edge_list_sizes[i];
     });
     offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(offsets));
     edge_type* E = pbbslib::new_array_no_init<edge_type>(total_space);
     parallel_for(0, n, [&](size_t i) {
       size_t offset = offsets[i];

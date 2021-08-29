@@ -577,7 +577,7 @@ struct uncompressed_bitset_neighbors {
     });
 
     // 3. Scan new_locs to get new block indices for full blocks
-    size_t new_num_blocks = pbbslib::scan_inplace(new_locs);
+    size_t new_num_blocks = parlay::scan_inplace(new_locs);
 
     // 4. Copy saved blocks to new positions.
     auto real_metadata = (metadata*)blocks_start;
@@ -1093,7 +1093,7 @@ struct compressed_bitset_neighbors {
     });
 
     // 3. Scan new_locs to get new block indices for full blocks
-    size_t new_num_blocks = pbbslib::scan_inplace(new_locs);
+    size_t new_num_blocks = parlay::scan_inplace(new_locs);
 
     // 4. Copy saved blocks to new positions.
     auto real_metadata = (metadata*)blocks_start;

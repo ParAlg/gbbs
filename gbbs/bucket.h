@@ -241,7 +241,7 @@ struct buckets {
     parallel_for(0, last_ind, [&](size_t i) { outs[i] = get(i); });
     outs[last_ind] = 0;
 
-    pbbslib::scan_inplace(make_slice(outs), pbbslib::addm<bucket_id>());
+    parlay::scan_inplace(make_slice(outs), pbbslib::addm<bucket_id>());
     //    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.

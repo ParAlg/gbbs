@@ -37,7 +37,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
   // Let S = stores 2*#edges to vertices > in degeneracy order. Note that 2* is
   //         needed since higher-ordered vertices don't have the edge to us.
   //
-  // S = scan_add(S, fl_inplace | fl_reverse) ## reverse scan
+  // S = scan(S, fl_inplace | fl_reverse) ## reverse scan
   // density w/o vertex_i = S[i] / (n - i)
   // Compute the max over all v.
 
@@ -63,7 +63,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
   });
 
   auto density_rev = make_slice(density_above.rbegin(), density_above.rend());
-  size_t total_edges = pbbslib::scan_inplace(density_rev);
+  size_t total_edges = parlay::scan_inplace(density_rev);
   if (total_edges != GA.m) {
     std::cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
       total_edges << std::endl;

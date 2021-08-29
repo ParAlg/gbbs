@@ -125,7 +125,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
   // Note that this is the number of biconnected components excluding isolated
   // vertices (the definition maps edges -> components, so isolated vertices
   // don't contribute to any meaningful components).
-  uintE total_biccs = pbbslib::scan_inplace(bits);
+  uintE total_biccs = parlay::scan_inplace(bits);
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 

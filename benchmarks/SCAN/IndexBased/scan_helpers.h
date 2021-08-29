@@ -98,7 +98,7 @@ NeighborOrder::NeighborOrder(
   sequence<uintT> vertex_offsets = sequence<uintT>::from_function(
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(vertex_offsets);
+  parlay::scan_inplace(vertex_offsets);
   similarities_by_source_ = sequence<pbbslib::range<EdgeSimilarity>>::from_function(
       graph->n,
       [&](const size_t i) {

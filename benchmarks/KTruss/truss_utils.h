@@ -185,7 +185,7 @@ namespace truss_utils {
         offsets[i] = (1 << pbbslib::log2_up((size_t)(table_elms*1.2))) + 2; // 2 cell padding (l, r)
       });
       offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(offsets);
+      size_t total_space = parlay::scan_inplace(offsets);
       std::cout << "total space = " << total_space << std::endl;
       std::cout << "empty val is " << empty_val << std::endl;
 

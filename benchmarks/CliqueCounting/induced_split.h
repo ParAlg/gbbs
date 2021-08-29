@@ -21,7 +21,7 @@ namespace induced_split {
       parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
     }
-    size_t total_work = pbbslib::scan_inplace(make_slice(parallel_work));
+    size_t total_work = parlay::scan_inplace(make_slice(parallel_work));
 
     size_t block_size = 50000;
     size_t n_blocks = total_work/block_size + 1;

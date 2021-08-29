@@ -47,7 +47,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
     uintE degree = (fl & in_edges) ? v.in_degree() : v.out_degree();
     degrees[i] = degree;
   });
-  long edgeCount = pbbslib::scan_inplace(make_slice(degrees));
+  long edgeCount = parlay::scan_inplace(make_slice(degrees));
   if (edgeCount == 0) {
     return vertexSubsetData<E>(G.n);
   }

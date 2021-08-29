@@ -182,7 +182,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
 
   auto M = pbbslib::minm<uintT>();
   M.identity = m;
-  pbbslib::scan_inclusive_inplace(t_seq, M);
+  parlay::scan_inclusive_inplace(t_seq, M);
 
   auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {

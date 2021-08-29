@@ -50,7 +50,7 @@ namespace byte {
       byte_offsets[i] = total_bytes;
     }, 1);
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total_space = " << total_space << std::endl;
 
     // 2. Create compressed format in-memory
@@ -130,7 +130,7 @@ namespace bytepd {
         byte_offsets[i] = total_bytes;
       }, 1);
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+      size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
       std::cout << "# total out-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -195,7 +195,7 @@ namespace bytepd {
         byte_offsets[i] = total_bytes;
       }, 1);
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+      size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
       std::cout << "# total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -264,7 +264,7 @@ namespace bytepd {
       byte_offsets[i] = total_bytes;
     }, 1);
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
@@ -405,7 +405,7 @@ namespace bytepd {
       byte_offsets[i] = total_bytes;
     }, 1);
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
@@ -512,7 +512,7 @@ namespace bytepd_amortized {
         byte_offsets[i] = total_bytes;
       }, 1);
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+      size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
       std::cout << "# total out-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -581,7 +581,7 @@ namespace bytepd_amortized {
         byte_offsets[i] = total_bytes;
       }, 1);
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+      size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
       std::cout << "# total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -654,7 +654,7 @@ namespace bytepd_amortized {
       byte_offsets[i] = total_bytes;
     }, 1);
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
@@ -799,7 +799,7 @@ namespace bytepd_amortized {
       byte_offsets[i] = total_bytes;
     }, 1);
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
+    size_t total_space = parlay::scan_inplace(make_slice(byte_offsets));
     std::cout << "# total space = " << total_space << std::endl;
     auto deg_im = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
@@ -867,7 +867,7 @@ namespace binary_format {
       offsets[i] = GA.get_vertex(i).out_degree();
     });
     offsets[n] = 0;
-    size_t offset_scan = pbbslib::scan_inplace(make_slice(offsets));
+    size_t offset_scan = parlay::scan_inplace(make_slice(offsets));
     std::cout << "# offset_scan = " << offset_scan << " m = " << m << std::endl;
     assert(offset_scan == m);
 
@@ -928,7 +928,7 @@ void edgearray(Graph& GA, std::ofstream& out) {
 
   auto degs = pbbslib::sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(make_slice(degs));
+  parlay::scan_inplace(make_slice(degs));
 
   auto edges = pbbslib::sequence<std::tuple<uintE, uintE, W>>(m);
 

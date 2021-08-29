@@ -210,7 +210,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
       uintE v = vs.s[i];
       return Tree.get_vertex(v).out_degree();
     });
-    auto tot = pbbslib::scan_inplace(offsets);
+    auto tot = parlay::scan_inplace(offsets);
     auto next_vs = sequence<uintE>::uninitialized(tot);
     parallel_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
@@ -235,7 +235,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
           uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
         });
-        pbbslib::scan_inplace(A);
+        parlay::scan_inplace(A);
         parallel_for(0, deg_v, [&] (size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           uintE pn = preorder_number + A[j];
@@ -475,7 +475,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
 //     }
 //   });
 //   flags[n] = 0;
-//   pbbslib::scan_inplace(make_slice(flags));
+//   parlay::scan_inplace(make_slice(flags));
 //   size_t n_cc = flags[n];
 //   std::cout << "num biconnected components, including isolated vertices = "
 //   << flags[n] << "\n";

@@ -393,7 +393,7 @@ inline size_t num_scc(Seq& labels) {
       flags[label] = 1;
     }
   });
-  pbbslib::scan_inplace(flags);
+  parlay::scan_inplace(flags);
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;

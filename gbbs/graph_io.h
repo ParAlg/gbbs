@@ -198,7 +198,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   auto t_seq = make_slice(tOffsets.rbegin(), tOffsets.rend());
   auto M = pbbslib::minm<uintT>();
   M.identity = m;
-  pbbslib::scan_inclusive_inplace(t_seq, M);
+  parlay::scan_inclusive_inplace(t_seq, M);
 
   auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
@@ -479,7 +479,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
   sequence<size_t> offsets = sequence<size_t>::from_function(
       num_vertices,
       [&](const size_t i) { return graph.get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(make_slice(offsets));
+  parlay::scan_inplace(make_slice(offsets));
 
   file << (is_weighted_graph ? internal::kWeightedAdjGraphHeader
                              : internal::kUnweightedAdjGraphHeader)

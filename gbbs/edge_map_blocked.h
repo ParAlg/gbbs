@@ -24,7 +24,7 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G, VS& indices, F& f,
       return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).in_degree()
                              : G.get_vertex(indices.vtx(i)).out_degree();
     });
-    size_t outEdgeCount = pbbslib::scan_inplace(make_slice(offsets));
+    size_t outEdgeCount = parlay::scan_inplace(make_slice(offsets));
 
     auto outEdges = parlay::sequence<S>(outEdgeCount);
     auto g = get_emsparse_gen_full<data>(outEdges.begin());
@@ -117,7 +117,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   parallel_for(0, indices.size(),
                [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_inplace(make_slice(vertex_offs));
+  size_t num_blocks = parlay::scan_inplace(make_slice(vertex_offs));
   std::cout << "# num_blocks = " << num_blocks << std::endl;
 
   auto blocks = parlay::sequence<block>(num_blocks);
@@ -141,7 +141,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
         });
       },
       1);
-  pbbslib::scan_inclusive_inplace(make_slice(degrees));
+  parlay::scan_inclusive_inplace(make_slice(degrees));
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
@@ -190,7 +190,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
                },
                1);
   cts[n_threads] = 0;
-  size_t out_size = pbbslib::scan_inplace(make_slice(cts));
+  size_t out_size = parlay::scan_inplace(make_slice(cts));
 
   // 5. Use cts to get
   auto out = parlay::sequence<S>::uninitialized(out_size);
@@ -355,7 +355,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   parallel_for(0, indices.size(),
                [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_inplace(make_slice(vertex_offs));
+  size_t num_blocks = parlay::scan_inplace(make_slice(vertex_offs));
 
   auto blocks = parlay::sequence<block>(num_blocks);
   auto degrees = parlay::sequence<uintT>(num_blocks);
@@ -375,7 +375,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
       degrees[vtx_off + j] = block_deg;
     });
   });
-  pbbslib::scan_inclusive_inplace(make_slice(degrees));
+  parlay::scan_inclusive_inplace(make_slice(degrees));
   vertex_offs.clear();
   size_t outEdgeCount = degrees[num_blocks - 1];
 
@@ -443,7 +443,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   parlay::sequence<em_data_block*> all_blocks = our_emhelper.get_all_blocks();
   auto block_offsets = parlay::sequence<size_t>::from_function(
       all_blocks.size(), [&](size_t i) { return all_blocks[i]->block_size; });
-  size_t output_size = pbbslib::scan_inplace(make_slice(block_offsets));
+  size_t output_size = parlay::scan_inplace(make_slice(block_offsets));
   vertexSubsetData<data> ret(n);
   if (output_size > 0) {
     auto out = parlay::sequence<S>(output_size);

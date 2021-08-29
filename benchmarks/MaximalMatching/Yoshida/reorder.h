@@ -13,7 +13,7 @@ auto reorder_graph(Graph& G, F& edge_pri) {
     offs[i] = G.get_vertex(i).out_degree();
   });
   offs[n] = 0;
-  size_t m = pbbslib::scan_inplace(make_slice(offs));
+  size_t m = parlay::scan_inplace(make_slice(offs));
   assert(G.m == m);
 
 

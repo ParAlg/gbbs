@@ -39,7 +39,7 @@ filter_graph(Graph& G, P& pred) {
   });
 
   outOffsets[n] = 0;
-  uintT outEdgeCount = pbbslib::scan_inplace(outOffsets);
+  uintT outEdgeCount = parlay::scan_inplace(outOffsets);
 
   // assert(G.m / 2 == outEdgeCount);
 
@@ -115,7 +115,7 @@ inline auto filter_graph(Graph& G, P& pred) {
     byte_offsets[i] = total_bytes;
   });
   byte_offsets[n] = 0;
-  size_t last_offset = pbbslib::scan_inplace(byte_offsets);
+  size_t last_offset = parlay::scan_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
   size_t edges_size = last_offset;
@@ -227,7 +227,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred,
                            std::get<1>(l) + std::get<1>(r),
                            std::get<2>(l) + std::get<2>(r));
   };
-  pbbslib::scan_inplace(make_slice(vtx_offs),
+  parlay::scan_inplace(make_slice(vtx_offs),
                         pbbslib::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
 
   size_t total_space =
@@ -300,7 +300,7 @@ edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p,
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(make_slice(offs),
+  parlay::scan_inplace(make_slice(offs),
                         pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
@@ -356,7 +356,7 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(make_slice(vtx_offs),
+  parlay::scan_inplace(make_slice(vtx_offs),
                         pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
@@ -393,7 +393,7 @@ inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
   parallel_for(0, n, [&](size_t i) {
     space[i] = G.get_vertex(i).out_neighbors().calculateTemporarySpace();
   });
-  size_t total_space = pbbslib::scan_inplace(space);
+  size_t total_space = parlay::scan_inplace(space);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
 
   auto for_inner = [&](size_t i) {
@@ -422,7 +422,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
     space[i] = G.get_vertex(v).out_neighbors().calculateTemporarySpaceBytes();
   });
   space[m] = 0;
-  size_t total_space = pbbslib::scan_inplace(space);
+  size_t total_space = parlay::scan_inplace(space);
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
     tmp = pbbslib::new_array_no_init<uint8_t>(total_space);
