@@ -32,7 +32,6 @@ cc_library(
 cc_library(
   name = "bridge",
   hdrs = ["bridge.h"],
-  srcs = ["bridge.cc"],
   deps = [
   "@parlaylib//parlay/internal:binary_search",
   "@parlaylib//parlay/internal:file_map",

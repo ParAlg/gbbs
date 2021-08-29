@@ -663,24 +663,19 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
 
 // String utilities
 
-int t_to_stringlen(long a);
-void type_to_string(char* s, long a);
+inline int t_to_stringlen(long a) { return 21; }
+inline void type_to_string(char* s, long a) { sprintf(s, "%ld", a); }
+inline int t_to_stringlen(unsigned long a) { return 21; }
+inline void type_to_string(char* s, unsigned long a) { sprintf(s, "%lu", a); }
+inline uint t_to_stringlen(uint a) { return 12; }
+inline void type_to_string(char* s, uint a) { sprintf(s, "%u", a); }
+inline int t_to_stringlen(int a) { return 12; }
+inline void type_to_string(char* s, int a) { sprintf(s, "%d", a); }
+inline int t_to_stringlen(double a) { return 18; }
+inline int t_to_stringlen(char* a) { return strlen(a) + 1; }
+inline void type_to_string(char* s, char* a) { sprintf(s, "%s", a); }
+inline void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
 
-int t_to_stringlen(unsigned long a);
-void type_to_string(char* s, unsigned long a);
-
-uint t_to_stringlen(uint a);
-void type_to_string(char* s, uint a);
-
-int t_to_stringlen(int a);
-void type_to_string(char* s, int a);
-
-int t_to_stringlen(double a);
-
-int t_to_stringlen(char* a);
-void type_to_string(char* s, char* a);
-
-void type_to_string(char* s, double a);
 
 template <class A, class B>
 inline int t_to_stringlen(std::pair<A, B> a) {
