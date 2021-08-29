@@ -209,10 +209,7 @@ struct buckets {
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
     size_t hists_size = (num_blocks + 1) * total_buckets * CACHE_LINE_S;
-    bucket_id* hists = pbbslib::new_array_no_init<bucket_id>(hists_size);
-    //    bucket_id* outs =
-    //        pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) *
-    //        total_buckets);
+    auto hists = parlay::sequence<bucket_id>::uninitialized(hists_size);
 
     // 1. Compute per-block histograms
     parallel_for(0, num_blocks, 1, [&](size_t i) {
@@ -288,8 +285,6 @@ struct buckets {
       m += num_inc;
     }
 
-    pbbslib::free_array(hists, hists_size);
-    // pbbslib::free_array(outs);
     return num_elms - ne_before;
   }
 
