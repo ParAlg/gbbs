@@ -85,7 +85,7 @@ struct compressed_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto monoid = pbbslib::addm<size_t>();
+    auto monoid = parlay::addm<size_t>();
     return C::template map_reduce<W>(neighbors, id, degree, f, monoid,
                                      parallel);
   }

@@ -136,7 +136,7 @@ struct KOutSamplingTemplate {
     auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {
@@ -183,7 +183,7 @@ struct KOutSamplingTemplate {
     auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {
@@ -202,7 +202,7 @@ struct KOutSamplingTemplate {
                 return left;
               }
             };
-            auto reduce_m = pbbslib::make_monoid(reduce_f, std::make_pair(0, 0));
+            auto reduce_m = parlay::make_monoid(reduce_f, std::make_pair(0, 0));
             auto [ngh, degree] = u_vtx.reduceOutNgh(u, map_f, reduce_m);
             (void)degree;
             link(u, ngh, parents);
@@ -239,7 +239,7 @@ struct KOutSamplingTemplate {
     auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     // Using random neighbor---some overhead (and faster for some graphs), also
     // theoretically defensible
@@ -350,7 +350,7 @@ struct BFSSamplingTemplate {
 
     sequence<parent> parents;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     timer st; st.start();
 
     /* Assume that G has a massive component with size at least 10% of the

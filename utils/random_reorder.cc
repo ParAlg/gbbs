@@ -11,7 +11,7 @@ void randomReorder(Graph& GA, std::string& outfile) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
   size_t m = GA.m;
-  auto perm = pbbslib::random_permutation<uintE>(n);
+  auto perm = parlay::random_permutation<uintE>(n);
 
   auto edges = sequence<uintE>(m);
   auto offs = sequence<uintT>(n);

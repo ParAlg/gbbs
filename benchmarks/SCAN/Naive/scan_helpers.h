@@ -95,7 +95,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
           [&](uintE, const uintE neighbor, NoWeight) {
             return larger_degree_vertex_neighbors.contains(neighbor);
           }};
-        const auto addition_monoid{pbbslib::addm<size_t>()};
+        const auto addition_monoid{parlay::addm<size_t>()};
         const size_t num_shared_neighbors{
           smaller_degree_vertex->out_neighbors().reduce(
               is_shared_neighbor,

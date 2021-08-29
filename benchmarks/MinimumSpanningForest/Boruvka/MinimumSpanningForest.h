@@ -205,7 +205,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
 constexpr size_t sample_size = 2000;
 inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
 
-inline size_t key_for_pair(uint32_t k1, uintE k2, pbbslib::random rnd) {
+inline size_t key_for_pair(uint32_t k1, uintE k2, parlay::random rnd) {
   size_t key = (static_cast<size_t>(k1) << 32) + static_cast<size_t>(k2);
   return rnd.ith_rand(key);
 }
@@ -219,7 +219,7 @@ inline edge_array<W> get_all_edges(symmetric_graph<vertex, W>& G) {
 }
 
 template <template <class W> class vertex, class W>
-inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib::random r,
+inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, parlay::random r,
                                bool first_round = false) {
   if (k == static_cast<size_t>(G.m)) {
     return get_all_edges(G);
@@ -323,7 +323,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
 
   size_t n = GA.n;
   std::cout << "n = " << n << "\n";
-  auto r = pbbslib::random();
+  auto r = parlay::random();
 
   auto exhausted = sequence<bool>::from_function(n, [](size_t i) { return false; });
   auto parents = sequence<uintE>::from_function(n, [](size_t i) { return i; });

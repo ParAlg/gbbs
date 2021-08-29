@@ -164,7 +164,7 @@ DivideRoundingUp(const size_t numerator, const size_t denominator) {
 
 // Pseudorandomly generate `num_numbers` random normal numbers, each with zero
 // mean and unit variance.
-sequence<float> RandomNormalNumbers(size_t num_numbers, pbbslib::random rng);
+sequence<float> RandomNormalNumbers(size_t num_numbers, parlay::random rng);
 
 // Create a directed version of `graph`, pointing edges from lower degree
 // vertices to higher degree vertices. This upper bounds the out-degree of each
@@ -358,7 +358,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   const uintE num_needs_normals{parlay::scan_inplace(needs_normals_seq)};
   const sequence<uintE>& normals_indices{needs_normals_seq};
   const sequence<float> normals{RandomNormalNumbers(
-      num_needs_normals * num_samples, pbbslib::random{random_seed})};
+      num_needs_normals * num_samples, parlay::random{random_seed})};
   const uintE num_needs_fingerprint{
     parlay::scan_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
@@ -631,7 +631,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   constexpr uintE kEmptyBucket{UINT_E_MAX};
   const size_t num_vertices{graph->n};
   const sequence<uintE> vertex_permutation{
-    pbbslib::random_permutation<uintE>(num_vertices, pbbslib::random{random_seed})};
+    parlay::random_permutation<uintE>(num_vertices, parlay::random{random_seed})};
 
   auto needs_fingerprint_seq = sequence<uintE>::from_function(
       graph->n,

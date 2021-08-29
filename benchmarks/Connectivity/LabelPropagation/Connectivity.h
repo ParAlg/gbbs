@@ -125,7 +125,7 @@ namespace labelprop_cc {
     size_t n = G.n;
     sequence<parent> Parents;
     if constexpr (use_permutation) {
-      Parents = pbbslib::random_permutation<uintE>(n);
+      Parents = parlay::random_permutation<uintE>(n);
     } else {
       Parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     }

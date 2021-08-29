@@ -393,7 +393,7 @@ struct uncompressed_bitset_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto reduce_f = pbbslib::addm<size_t>();
+    auto reduce_f = parlay::addm<size_t>();
     return reduce(f, reduce_f, parallel);
   }
 
@@ -927,7 +927,7 @@ struct compressed_bitset_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto reduce_f = pbbslib::addm<size_t>();
+    auto reduce_f = parlay::addm<size_t>();
     return reduce(f, reduce_f, parallel);
   }
 

@@ -319,7 +319,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
       return GDO.get_vertex(v).out_degree();
     };
     parallel_for(0, GA.n, [&] (size_t i) {
-      auto monoid = pbbslib::addm<size_t>();
+      auto monoid = parlay::addm<size_t>();
       parallel_work[i] = GDO.get_vertex(i).out_neighbors().reduce(map_f, monoid); // summing the degrees of the neighbors for each vertex?
     });
   }
@@ -330,7 +330,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   //     return pre_parallel_work[v];
   //   };
   //   parallel_for(0, GA.n, [&] (size_t i) {
-  //     auto monoid = pbbslib::addm<size_t>();
+  //     auto monoid = parlay::addm<size_t>();
   //     parallel_work[i] = GDO.get_vertex(i).our_neighbors().reduce(map_f, monoid); // summing the degrees of the neighbors for each vertex?
   //   });
   // }
@@ -853,7 +853,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
       return GDO.get_vertex(v).out_degree();
     };
     parallel_for(0, GA.n, [&] (size_t i) {
-      auto monoid = pbbslib::addm<size_t>();
+      auto monoid = parlay::addm<size_t>();
       parallel_work[i] = GDO.get_vertex(i).out_neighbors().reduce(map_f, monoid); // summing the degrees of the neighbors for each vertex?
     });
   }

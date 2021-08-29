@@ -131,7 +131,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbslib::random_permutation<uintE>(n);
+    vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   gs.stop(); debug(gs.next("generate shifts time"););

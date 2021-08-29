@@ -123,7 +123,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
 
   // compute the priority DAG
   auto priorities = sequence<intE>(n);  // why intE?
-  auto perm = pbbslib::random_permutation<uintE>(n);
+  auto perm = parlay::random_permutation<uintE>(n);
   parallel_for(0, n, 1, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
@@ -212,7 +212,7 @@ struct MaximalIndependentSetstep {
                              std::get<1>(l) + std::get<1>(r));
     };
     auto id = std::make_tuple(0, 0);
-    auto monoid = pbbslib::make_monoid(red_f, id);
+    auto monoid = parlay::make_monoid(red_f, id);
     auto res = G.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;

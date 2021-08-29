@@ -209,7 +209,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     return (GA.get_vertex(i).out_degree() > 0) && (GA.get_vertex(i).in_degree() > 0);
   });
 
-  auto P = pbbslib::random_shuffle(NZ);
+  auto P = parlay::random_shuffle(NZ);
   std::cout << "Filtered: " << zero.size()
             << " vertices. Num remaining = " << P.size() << "\n";
 
@@ -236,7 +236,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
     };
     auto id = std::make_tuple<uintE, uintE>(0, 0);
-    auto monoid = pbbslib::make_monoid(red_f, id);
+    auto monoid = parlay::make_monoid(red_f, id);
     std::tuple<uintE, uintE> sAndD =
         parlay::reduce(deg_im, monoid);
     uintE start = std::get<0>(sAndD);

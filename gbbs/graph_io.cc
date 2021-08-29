@@ -161,7 +161,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
   });
 
   auto temp_seq = parlay::make_range(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq,
+  parlay::integer_sort_inplace(temp_seq,
                                 [&](const intPair& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
@@ -180,7 +180,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
   // offset to the right
   auto t_seq = parlay::make_slice(tOffsets.rbegin(), tOffsets.rend());
 
-  auto M = pbbslib::minm<uintT>();
+  auto M = parlay::minm<uintT>();
   M.identity = m;
   parlay::scan_inclusive_inplace(t_seq, M);
 

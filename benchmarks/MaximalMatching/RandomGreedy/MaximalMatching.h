@@ -72,7 +72,7 @@ namespace mm {
 
   inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
 
-  inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
+  inline size_t key_for_pair(uintE k1, uintE k2, parlay::random rnd) {
     size_t l = std::min(k1, k2);
     size_t r = std::max(k1, k2);
     size_t key = (l << 32) + r;
@@ -81,7 +81,7 @@ namespace mm {
 
   template <template <class W> class vertex, class W>
   inline edge_array<W> get_all_edges(symmetric_graph<vertex, W>& G, bool* matched,
-                                     pbbslib::random rnd) {
+                                     parlay::random rnd) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
@@ -93,7 +93,7 @@ namespace mm {
     using edge = std::tuple<uintE, uintE, W>;
     sequence<edge> e_arr = std::move(E.E);
 
-    auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
+    auto perm = parlay::random_permutation<uintT>(e_arr.size());
     auto out = sequence<edge>(e_arr.size());
     parallel_for(0, e_arr.size(), kDefaultGranularity, [&] (size_t i) {
       out[i] = e_arr[perm[i]];  // gather or scatter?
@@ -107,7 +107,7 @@ namespace mm {
 
   template <template <class W> class vertex, class W>
   inline edge_array<W> get_edges(symmetric_graph<vertex, W>& G, size_t k, bool* matched,
-                                 pbbslib::random r) {
+                                 parlay::random r) {
     using edge = std::tuple<uintE, uintE, W>;
     size_t m = G.m / 2;  // assume sym
     bool finish = (m <= k);
@@ -138,7 +138,7 @@ namespace mm {
     auto e_arr = E.to_seq();
     timer perm_t;
     perm_t.start();
-    auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
+    auto perm = parlay::random_permutation<uintT>(e_arr.size());
     auto out = sequence<edge>(e_arr.size());
     parallel_for(0, e_arr.size(), [&] (size_t i) {
       out[i] = e_arr[perm[i]];  // gather or scatter?
@@ -162,7 +162,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   timer mt;
   mt.start();
   size_t n = G.n;
-  auto r = pbbslib::random();
+  auto r = parlay::random();
 
   auto R = sequence<uintE>::from_function(n, [&](size_t i) { return UINT_E_MAX; });
   auto matched = sequence<bool>::from_function(n, [&](size_t i) { return false; });

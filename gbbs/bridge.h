@@ -715,6 +715,8 @@ sequence<char> sequence_to_string(TSeq const& T) {
   return parlay::filter(make_slice(C), [&](char A) { return A > 0; });
 }
 
+using parlay::internal::chars_to_int_t;
+using parlay::internal::get_counts;
 
 }  // namespace parlay
 
@@ -779,12 +781,7 @@ using parlay::internal::pack_serial_at;
 // TODO: filter_index
 
 // TODO all below
-using parlay::tokens;
-using parlay::chars_to_file;
-using parlay::chars_from_file;
-using parlay::internal::chars_to_int_t;
-using parlay::remove_duplicates_ordered;
-using parlay::internal::get_counts;
+
 // using pbbs::map_with_index;
 
 inline size_t granularity(size_t n) {
@@ -797,14 +794,8 @@ inline size_t granularity(size_t n) {
 
 // ====================== integer sort =======================
 
-using parlay::integer_sort_inplace;
-using parlay::integer_sort;
-using parlay::internal::count_sort;
-
 // ====================== random shuffle =======================
 using random = parlay::random;
-using parlay::random_permutation;
-using parlay::random_shuffle;
 }
 
 // Other extensions to pbbs used by the graph benchmarks.

@@ -339,7 +339,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
       return l + r;
     };
     auto id = (fType)0;
-    auto monoid_f = pbbslib::make_monoid(reduce_f, id);
+    auto monoid_f = parlay::make_monoid(reduce_f, id);
 
     auto reduce_incident_edges = [&] (vertexSubset& vs, flags fl) {
       vertexMap(vs, [&] (const uintE& u) {
@@ -402,7 +402,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
       return l + r;
     };
     auto id = (fType)0;
-    auto monoid_f = pbbslib::make_monoid(reduce_f, id);
+    auto monoid_f = parlay::make_monoid(reduce_f, id);
 
     auto reduce_dependencies = [&] (vertexSubset& vs) {
       vertexMap(vs, [&] (const uintE& u) {

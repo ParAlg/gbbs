@@ -119,7 +119,7 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         return (size_t)(mis[v]);
       };
-      auto mon = pbbslib::addm<size_t>();
+      auto mon = parlay::addm<size_t>();
       size_t nghs_ct = G.get_vertex(i).out_neighbors().reduce(map_f, mon);
       if (mis[i]) { // if in, ensure no neighbors are in
         assert(nghs_ct == 0);

@@ -10,10 +10,10 @@ namespace scan {
 namespace internal {
 
 sequence<float>
-RandomNormalNumbers(const size_t num_numbers, const pbbslib::random rng) {
+RandomNormalNumbers(const size_t num_numbers, const parlay::random rng) {
   using RngInt =
     std::result_of<
-      decltype(&pbbslib::random::ith_rand)(pbbslib::random*, uint64_t)>::type;
+      decltype(&parlay::random::ith_rand)(parlay::random*, uint64_t)>::type;
   constexpr float max_rng_val{
     static_cast<float>(std::numeric_limits<RngInt>::max())};
 

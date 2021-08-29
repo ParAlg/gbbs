@@ -41,7 +41,7 @@ void RemoveDuplicates(vertexSubset* vertex_subset) {
       vertex_subset->size(),
       [&](const size_t i) { return vertex_subset->vtx(i); });
   sequence<uintE> deduped_vertices{
-    pbbslib::remove_duplicates_ordered(vertices, std::less<uintE>{})};
+    parlay::remove_duplicates_ordered(vertices, std::less<uintE>{})};
   vertexSubset deduped_vertex_subset{
     vertex_subset->n, std::move(deduped_vertices)};
   *vertex_subset = std::move(deduped_vertex_subset);

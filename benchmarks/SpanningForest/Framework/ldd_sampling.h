@@ -38,7 +38,7 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbslib::random_permutation<uintE>(n);
+    vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto Parents = sequence<uintE>(n);

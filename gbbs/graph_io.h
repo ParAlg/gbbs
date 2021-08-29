@@ -177,7 +177,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   });
 
   auto temp_seq = parlay::make_range(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq,
+  parlay::integer_sort_inplace(temp_seq,
                                 [&](const triple& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
@@ -196,7 +196,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
   auto t_seq = make_slice(tOffsets.rbegin(), tOffsets.rend());
-  auto M = pbbslib::minm<uintT>();
+  auto M = parlay::minm<uintT>();
   M.identity = m;
   parlay::scan_inclusive_inplace(t_seq, M);
 

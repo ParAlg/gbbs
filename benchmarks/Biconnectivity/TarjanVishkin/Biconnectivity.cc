@@ -47,13 +47,13 @@ template <template <typename W> class vertex, class W>
 void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
-  auto S = pbbslib::chars_from_file(s);
+  auto S = parlay::chars_from_file(s);
   sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
         [] (auto x) { return parlay::make_slice(x); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
   parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     labels[i] =
-        std::make_tuple(pbbslib::chars_to_int_t<uintE>(tokens[2 * i]), pbbslib::chars_to_int_t<uintE>(tokens[2 * i + 1]));
+        std::make_tuple(parlay::chars_to_int_t<uintE>(tokens[2 * i]), parlay::chars_to_int_t<uintE>(tokens[2 * i + 1]));
   });
 
   auto bits = sequence<uintE>(n, (uintE)0);

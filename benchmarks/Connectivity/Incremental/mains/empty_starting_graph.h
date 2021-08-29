@@ -19,7 +19,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     abort();
   }
 
-  sequence<char> S = pbbslib::chars_from_file(in_file);
+  sequence<char> S = parlay::chars_from_file(in_file);
   sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
         [] (auto x) { return parlay::make_slice(x); });
   // parseback to ints
@@ -37,8 +37,8 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
 
   uintE n = 0;
   parallel_for(0, m, [&] (size_t i) {
-    uintE l = pbbslib::chars_to_int_t<uintE>(tokens[2*i]);
-    uintE r = pbbslib::chars_to_int_t<uintE>(tokens[2*i + 1]);
+    uintE l = parlay::chars_to_int_t<uintE>(tokens[2*i]);
+    uintE r = parlay::chars_to_int_t<uintE>(tokens[2*i + 1]);
     if (l > n) {
       gbbs::write_min<uintE>(&n, l, std::greater<uintE>());
     }

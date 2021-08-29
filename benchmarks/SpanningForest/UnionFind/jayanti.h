@@ -43,7 +43,7 @@ namespace jayanti_rank {
   };
 
   template <class S>
-  void link(uintE u, uintE v, S& vdatas, pbbslib::random r, sequence<edge>& Edges, edge orig_edge) {
+  void link(uintE u, uintE v, S& vdatas, parlay::random r, sequence<edge>& Edges, edge orig_edge) {
     auto ud = vdatas[u];
     auto vd = vdatas[v];
     // spend two reads to abort early with no CASs if either of the
@@ -133,7 +133,7 @@ namespace jayanti_rank {
   }
 
   template <class S, class Find>
-  void unite(uintE x, uintE y, S& vdatas, pbbslib::random r, Find& find, sequence<edge>& Edges) {
+  void unite(uintE x, uintE y, S& vdatas, parlay::random r, Find& find, sequence<edge>& Edges) {
     uintE u = find(x, vdatas);
     uintE v = find(y, vdatas);
     uintE tries = 1;
@@ -173,7 +173,7 @@ namespace jayanti_rank {
       size_t n = GA.n;
 
       timer ut; ut.start();
-      auto r = pbbslib::random();
+      auto r = parlay::random();
 
       uintE granularity;
       if constexpr (provides_frequent_comp) {

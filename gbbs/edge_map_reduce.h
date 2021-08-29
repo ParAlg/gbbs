@@ -333,7 +333,7 @@ struct EdgeMap {
     }
     using OT = typename vertexSubsetData<O>::D;
 
-    auto red_monoid = pbbslib::make_monoid(reduce_f, id);
+    auto red_monoid = parlay::make_monoid(reduce_f, id);
     if (fl & no_output) {
       parallel_for(0, n,
                    [&](size_t i) {

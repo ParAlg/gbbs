@@ -180,7 +180,7 @@ sequence<edge> tree_and_intercluster_edges(Graph& G,
   auto cluster_size_seq = parlay::delayed_seq<size_t>(n, [&] (size_t i) {
     return static_cast<size_t>(flags[i]);
   });
-  size_t num_clusters = parlay::reduce(cluster_size_seq, pbbslib::addm<size_t>());
+  size_t num_clusters = parlay::reduce(cluster_size_seq, parlay::addm<size_t>());
 
   auto intercluster = fetch_intercluster(G, clusters, num_clusters);
   debug(std::cout << "num_intercluster edges = " << intercluster.size() << std::endl;);
@@ -219,7 +219,7 @@ inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool perm
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbslib::random_permutation<uintE>(n);
+    vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto clusters = sequence<cluster_and_parent>(n, cluster_and_parent(UINT_E_MAX, UINT_E_MAX));

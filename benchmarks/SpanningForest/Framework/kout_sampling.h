@@ -44,7 +44,7 @@ struct KOutSamplingTemplate {
     auto Parents = sequence<parent>(n, [&] (size_t i) { return i; });
     auto Edges = sequence<edge>(n, empty_edge);
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {

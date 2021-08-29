@@ -14,7 +14,7 @@ auto generate_updates(
   for (size_t i=0; i<edges_per_node; i++) {
     edges[i] = std::make_pair(i, i+1);
   }
-  pbbslib::random rnd;
+  parlay::random rnd;
   parallel_for(1, n, [&] (size_t i) {
     auto i_rnd = rnd.fork(i);
     size_t mod_by = 2*i*edges_per_node;

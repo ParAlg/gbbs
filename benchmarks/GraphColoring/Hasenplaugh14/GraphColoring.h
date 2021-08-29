@@ -50,7 +50,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     G.get_vertex(v).out_neighbors().map(map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = parlay::delayed_seq<uintE>(deg, im_f);
-    uintE color = parlay::reduce(im, pbbslib::minm<uintE>());
+    uintE color = parlay::reduce(im, parlay::minm<uintE>());
     if (deg > 1000) {
       gbbs::free_array(bits, deg);
     }
@@ -99,7 +99,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     std::cout << "### Running LF"
               << "\n";
     // LF heuristic
-    auto P = pbbslib::random_permutation<uintE>(n);
+    auto P = parlay::random_permutation<uintE>(n);
     parallel_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = G.get_vertex(i).out_degree();
       uintE i_p = P[i];
@@ -113,7 +113,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     std::cout << "### Running LLF"
               << "\n";
     // LLF heuristic
-    auto P = pbbslib::random_permutation<uintE>(n);
+    auto P = parlay::random_permutation<uintE>(n);
     parallel_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = parlay::log2_up(G.get_vertex(i).out_degree());
       uintE i_p = P[i];

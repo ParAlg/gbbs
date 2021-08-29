@@ -113,7 +113,7 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
   const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
   integer_sort_inplace(make_slice(bucketed_indices), index_to_key);
   sequence<size_t> key_offsets{
-    pbbslib::get_counts(make_slice(bucketed_indices), index_to_key, num_keys)};
+    parlay::get_counts(make_slice(bucketed_indices), index_to_key, num_keys)};
   parlay::scan_inplace(key_offsets);
   sequence<Value> result = sequence<Value>::from_function(
     num_keys,
@@ -218,7 +218,7 @@ double Modularity(
           num_unclustered_vertices, clusters_and_degrees.size()),
         [&](const std::pair<uintE, uintT> p) { return p.first; },
         [&](const std::pair<uintE, uintT> p) { return p.second; },
-        pbbslib::addm<uintT>{},
+        parlay::addm<uintT>{},
         num_clusters)};
     // Approximately the fraction of edges that fall within a cluster for a
     // random graph with the same degree distribution:
@@ -246,7 +246,7 @@ double Modularity(
     constexpr auto get_weight{[](uintE, uintE, const Weight weight) {
       return weight;
     }};
-    const pbbslib::addm<double> add_weights{};
+    const parlay::addm<double> add_weights{};
     // weighted_degrees[i] = sum of weights of incident edges on vertex i
     const sequence<double> weighted_degrees{
       graph->n,

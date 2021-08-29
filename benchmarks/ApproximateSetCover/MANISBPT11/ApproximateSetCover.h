@@ -80,7 +80,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   timer nbt;
   size_t rounds = 0;
   pbbslib::dyn_arr<uintE> cover = pbbslib::dyn_arr<uintE>();
-  auto r = pbbslib::random();
+  auto r = parlay::random();
   it.stop(); it.next("initialization time");
   while (true) {
     nbt.start();
@@ -113,7 +113,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     permt.start();
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
-    auto P = pbbslib::random_permutation<uintE>(still_active.size(), r);
+    auto P = parlay::random_permutation<uintE>(still_active.size(), r);
     parallel_for(0, still_active.size(), kDefaultGranularity, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
                       uintE pv = P[i];

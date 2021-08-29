@@ -67,7 +67,7 @@ namespace workefficient_sf {
 
     sequence<uintE> vertex_perm;
     if (permute) {
-      vertex_perm = pbbslib::random_permutation<uintE>(n);
+      vertex_perm = parlay::random_permutation<uintE>(n);
     }
     auto shifts = ldd_utils::generate_shifts(n, beta);
     auto cluster_ids = sequence<uintE>(n);

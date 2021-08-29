@@ -73,12 +73,12 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     auto differences_v = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr_v[i]-p_next_v[i]);
     });
-    double L1_norm_v = parlay::reduce(differences_v, pbbslib::addm<double>());
+    double L1_norm_v = parlay::reduce(differences_v, parlay::addm<double>());
 
     auto differences_u = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr_u[i]-p_next_u[i]);
     });
-    double L1_norm_u = parlay::reduce(differences_u, pbbslib::addm<double>());
+    double L1_norm_u = parlay::reduce(differences_u, parlay::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
     debug(std::cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u << std::endl;);
@@ -171,14 +171,14 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
       p_curr_v[i] = 0;
       return fabs(x-p_next_v[i]);
     });
-    double L1_norm_v = parlay::reduce(differences_v, pbbslib::addm<double>());
+    double L1_norm_v = parlay::reduce(differences_v, parlay::addm<double>());
 
     auto differences_u = parlay::delayed_seq<double>(n, [&] (size_t i) {
       auto x = p_curr_u[i];
       p_curr_u[i] = 0;
       return fabs(x-p_next_u[i]);
     });
-    double L1_norm_u = parlay::reduce(differences_u, pbbslib::addm<double>());
+    double L1_norm_u = parlay::reduce(differences_u, parlay::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
     // Reset p_curr

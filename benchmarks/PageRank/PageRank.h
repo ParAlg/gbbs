@@ -165,7 +165,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
       p_curr[i] = 0;
       return fabs(d-p_next[i]);
     });
-    double L1_norm = parlay::reduce(differences, pbbslib::addm<double>());
+    double L1_norm = parlay::reduce(differences, parlay::addm<double>());
     if(L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
@@ -347,7 +347,7 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
     auto differences = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(Delta[i].delta);
     });
-    double L1_norm = parlay::reduce(differences, pbbslib::addm<double>());
+    double L1_norm = parlay::reduce(differences, parlay::addm<double>());
     if(L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 

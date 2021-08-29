@@ -445,7 +445,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   }
 
   if (!is_sorted) {
-    pbbslib::integer_sort_inplace(make_slice(A), get_u);
+    parlay::integer_sort_inplace(make_slice(A), get_u);
   }
 
   auto starts = sequence<uintT>(n + 1, (uintT)0);
@@ -577,8 +577,8 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
       });
 
   if (!is_sorted) {
-    pbbslib::integer_sort_inplace(make_slice(A), get_u);
-    pbbslib::integer_sort_inplace(make_slice(I), get_u);
+    parlay::integer_sort_inplace(make_slice(A), get_u);
+    parlay::integer_sort_inplace(make_slice(I), get_u);
   }
 
   auto in_starts = sequence<uintT>(n + 1, (uintT)0);

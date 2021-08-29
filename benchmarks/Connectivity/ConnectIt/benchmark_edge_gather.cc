@@ -35,7 +35,7 @@ double TestEdgeGather(Graph& G, commandLine& P) {
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         return arr[v];
       };
-      auto reduce_m = pbbslib::addm<size_t>();
+      auto reduce_m = parlay::addm<size_t>();
       u_vtx.out_neighbors().reduce(map_f, reduce_m);
     }, 512);
     double edge_gather_time = t.stop();
@@ -63,7 +63,7 @@ double TestEdgeMap(Graph& G, commandLine& P) {
       auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         return static_cast<size_t>(1);
       };
-      auto reduce_m = pbbslib::addm<size_t>();
+      auto reduce_m = parlay::addm<size_t>();
       out[u] = u_vtx.out_neighbors().reduce(map_f, reduce_m);
     }, 512);
     double edge_gather_time = t.stop();

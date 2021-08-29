@@ -29,7 +29,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE>>& updates, double insert_to_q
     abort();
   }
   auto result = sequence<std::tuple<uintE, uintE, UpdateType>>(result_size);
-  auto rnd = pbbslib::random();
+  auto rnd = parlay::random();
   parallel_for(0, updates.size(), [&] (size_t i) {
     uintE u, v;
     std::tie(u,v) = updates[i];
@@ -42,7 +42,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE>>& updates, double insert_to_q
     result[i] = std::make_tuple(u, v, query_type);
   });
   if (permute) {
-    return pbbslib::random_shuffle(result);
+    return parlay::random_shuffle(result);
   }
   return result;
 }

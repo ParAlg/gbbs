@@ -43,7 +43,7 @@ namespace jayanti_rank {
   };
 
   template <class S>
-  void link(uintE u, uintE v, S& vdatas, pbbslib::random r) {
+  void link(uintE u, uintE v, S& vdatas, parlay::random r) {
     auto ud = vdatas[u];
     auto vd = vdatas[v];
     // spend two reads to abort early with no CASs if either of the
@@ -125,7 +125,7 @@ namespace jayanti_rank {
   }
 
   template <class S, class Find>
-  void unite(uintE x, uintE y, S& vdatas, pbbslib::random r, Find& find) {
+  void unite(uintE x, uintE y, S& vdatas, parlay::random r, Find& find) {
     uintE u = find(x, vdatas);
     uintE v = find(y, vdatas);
     while (u != v) {
@@ -163,7 +163,7 @@ namespace jayanti_rank {
       size_t n = GA.n;
 
       timer ut; ut.start();
-      auto r = pbbslib::random();
+      auto r = parlay::random();
 
       uintE granularity;
       constexpr bool provides_frequent_comp = (sampling_option != no_sampling);
@@ -205,7 +205,7 @@ namespace jayanti_rank {
     template <bool reorder_updates, class Seq>
     void process_batch(sequence<parent>& parents, Seq& batch) {
       static_assert(reorder_updates == false);
-      auto r = pbbslib::random();
+      auto r = parlay::random();
 
       parallel_for(0, batch.size(), [&] (size_t i) {
         auto [u,v, utype] = batch[i];

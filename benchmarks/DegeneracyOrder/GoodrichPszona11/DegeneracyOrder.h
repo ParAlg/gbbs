@@ -26,7 +26,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
 
   auto ret = pbbslib::dyn_arr<uintE>(n);
 
-  pbbslib::random r;
+  parlay::random r;
   timer kt, ft;
   while (active.size() > 0) {
     /* compute cutoff using kth-smallest */

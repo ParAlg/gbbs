@@ -236,7 +236,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Vertices in non_zero are the candidate centers that the algorithm will
   // iteratively add, and run searches from. First permute them.
-  auto P = pbbslib::random_shuffle(non_zero);
+  auto P = parlay::random_shuffle(non_zero);
   std::cout << "Filtered: " << zero.size()
             << " vertices. Num remaining = " << P.size() << "\n";
 
@@ -269,7 +269,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //          return (std::get<1>(l) > std::get<1>(r)) ? l : r;
 //    };
 //    auto id = std::make_tuple<uintE, uintE>(0, 0);
-//    auto monoid = pbbslib::make_monoid(red_f, id);
+//    auto monoid = parlay::make_monoid(red_f, id);
 //    std::tuple<uintE, uintE> vertex_and_degree =
 //        parlay::reduce(deg_im, monoid);
 //    uintE start = std::get<0>(vertex_and_degree);
