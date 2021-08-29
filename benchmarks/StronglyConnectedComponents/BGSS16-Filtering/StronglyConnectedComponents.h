@@ -55,7 +55,7 @@ struct First_Search {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {
-    return pbbslib::CAS(&visited[d], false, true);
+    return gbbs::atomic_compare_and_swap(&visited[d], false, true);
   }
   inline bool cond(uintE d) { return !visited[d]; }
 };
@@ -120,7 +120,7 @@ struct Search_F {
     if (labels_changed) {
       // d should be included in next frontier;
       // CAS to make sure only one ngh from this frontier adds it.
-      if (!bits[d]) return pbbslib::CAS(&bits[d], false, true);
+      if (!bits[d]) return gbbs::atomic_compare_and_swap(&bits[d], false, true);
     }
     return false;
   }
@@ -462,7 +462,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       if (larger_t.contains(v, label)) {
         // in 'label' scc
         // Min visitor from this StronglyConnectedComponents acquires it.
-        pbbslib::write_min(&labels[v], label);
+        gbbs::write_min(&labels[v], label);
       }
     };
     smaller_t.map(map_f);
@@ -598,9 +598,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    auto sp_map = [&](const std::tuple<K, V>& kev) {
 //      uintE v = std::get<0>(kev);
 //      size_t label = std::get<1>(kev);
-//      // note that if v is already in an StronglyConnectedComponents (from (1)), the pbbslib::write_max will
+//      // note that if v is already in an StronglyConnectedComponents (from (1)), the gbbs::write_max will
 //      // read, compare and fail, as the top bit is already set.
-//      pbbslib::write_max(&labels[v], label);
+//      gbbs::write_max(&labels[v], label);
 //    };
 //    larger_t.map(sp_map);
 

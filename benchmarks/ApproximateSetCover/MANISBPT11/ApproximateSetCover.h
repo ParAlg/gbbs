@@ -42,7 +42,7 @@ struct Visit_Elms {
   Visit_Elms(uintE* _elms, uintE* _perm) : elms(_elms), perm(_perm) {}
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     uintE p_s = perm[s];
-    pbbslib::write_min(&(elms[d]), p_s);
+    gbbs::write_min(&(elms[d]), p_s);
     return false;
   }
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {

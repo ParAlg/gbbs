@@ -48,7 +48,7 @@ namespace workefficient_sf {
     }
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-      if (pbbslib::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s])) {
+      if (gbbs::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s])) {
         parents[d] = s;
         return true;
       }

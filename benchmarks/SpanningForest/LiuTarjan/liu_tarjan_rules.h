@@ -64,7 +64,7 @@ namespace lt {
       auto min_v = lt_min(p_u, p_v);
       auto max_v = lt_max(p_u, p_v);
       if (min_v != max_v) {
-        return pbbslib::write_min<message>(&messages[max_v], message(min_v, std::make_pair(u,v)), message_less);
+        return gbbs::write_min<message>(&messages[max_v], message(min_v, std::make_pair(u,v)), message_less);
       }
       return false;
     }
@@ -77,11 +77,11 @@ namespace lt {
       uintE y = P[w];
       bool updated = false;
       if (lt_less(y, x)) { /* send y to {v, x}*/
-        updated |= pbbslib::write_min(&messages[v], message(y, std::make_pair(v, w)), message_less);
-        updated |= pbbslib::write_min(&messages[x], message(y, std::make_pair(v, w)), message_less);
+        updated |= gbbs::write_min(&messages[v], message(y, std::make_pair(v, w)), message_less);
+        updated |= gbbs::write_min(&messages[x], message(y, std::make_pair(v, w)), message_less);
       } else if (lt_greater(y, x)) { /* send x to {y, w} */
-        updated |= pbbslib::write_min(&messages[y], message(x, std::make_pair(v, w)), message_less);
-        updated |= pbbslib::write_min(&messages[w], message(x, std::make_pair(v, w)), message_less);
+        updated |= gbbs::write_min(&messages[y], message(x, std::make_pair(v, w)), message_less);
+        updated |= gbbs::write_min(&messages[w], message(x, std::make_pair(v, w)), message_less);
       }
       return updated;
     }

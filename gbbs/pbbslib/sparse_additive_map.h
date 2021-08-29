@@ -92,13 +92,13 @@ class sparse_additive_map {
     size_t h = firstIndex(k);
     while (1) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
-          pbbslib::write_add(&std::get<1>(table[h]), v);
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
+          gbbs::write_add(&std::get<1>(table[h]), v);
           return 1;
         }
       }
       if (std::get<0>(table[h]) == k) {
-        pbbslib::write_add(&std::get<1>(table[h]), v);
+        gbbs::write_add(&std::get<1>(table[h]), v);
         return false;
       }
       h = incrementIndex(h);

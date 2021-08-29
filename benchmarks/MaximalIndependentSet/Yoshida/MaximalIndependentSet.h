@@ -102,7 +102,7 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
     mis[i] = (status == in);
     total_work[i] = work;
     answered[i] = (status != unknown);
-    pbbslib::write_max(&max_query_length, work, std::less<size_t>());
+    gbbs::write_max(&max_query_length, work, std::less<size_t>());
   });
   size_t tot_work = parlay::reduce(make_slice(total_work));
   auto answered_seq = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return static_cast<size_t>(answered[i]); });

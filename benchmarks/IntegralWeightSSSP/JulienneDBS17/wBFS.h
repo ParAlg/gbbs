@@ -57,10 +57,10 @@ struct Visit_F {
     uintE n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
-          pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
         return std::optional<uintE>(oval);
       }
-      pbbslib::write_min(&(dists[d]), n_dist);
+      gbbs::write_min(&(dists[d]), n_dist);
     }
     return std::nullopt;
   }

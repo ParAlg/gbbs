@@ -55,12 +55,12 @@ namespace labelprop_sf {
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
       if (lp_less(PrevParents[s], PrevParents[d])) {
-        pbbslib::write_min<uintE>(&Parents[d], PrevParents[s], lp_less);
-        return pbbslib::write_min(&changed[d], emitted, std::greater<uint8_t>());
+        gbbs::write_min<uintE>(&Parents[d], PrevParents[s], lp_less);
+        return gbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
       } else if (lp_less(PrevParents[d], PrevParents[s])) {
-        if (pbbslib::write_min<uintE>(&Parents[s], PrevParents[d], lp_less)) {
+        if (gbbs::write_min<uintE>(&Parents[s], PrevParents[d], lp_less)) {
           if (changed[s] == unemitted) {
-            pbbslib::write_min(&changed[s], need_emit, std::greater<uint8_t>());
+            gbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
           }
         }
       }
@@ -84,12 +84,12 @@ namespace labelprop_sf {
       if (lp_less(PrevParents[s], PrevParents[d])) { // were not equal before this round
         if (Parents[d] == PrevParents[s]) { // ours was the winner
           auto prev_edge = Edges[d];
-          pbbslib::atomic_compare_and_swap(&Edges[d], prev_edge, std::make_pair(s,d));
+          gbbs::atomic_compare_and_swap(&Edges[d], prev_edge, std::make_pair(s,d));
         }
       } else if (lp_less(PrevParents[d], PrevParents[s])) { // were not equal before this round
         if (Parents[s] == PrevParents[d]) { // ours was the winner
           auto prev_edge = Edges[s];
-          pbbslib::atomic_compare_and_swap(&Edges[s], prev_edge, std::make_pair(s,d));
+          gbbs::atomic_compare_and_swap(&Edges[s], prev_edge, std::make_pair(s,d));
         }
       }
       return 0;

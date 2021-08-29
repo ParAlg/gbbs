@@ -52,10 +52,10 @@ void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
     u = find_compress(u,parents);
     v = find_compress(v,parents);
     if(u == v) break;
-    else if (u > v && parents[u] == u && pbbslib::atomic_compare_and_swap(&parents[u],u,v)) {
+    else if (u > v && parents[u] == u && gbbs::atomic_compare_and_swap(&parents[u],u,v)) {
       break;
     }
-    else if (v > u && parents[v] == v && pbbslib::atomic_compare_and_swap(&parents[v],v,u)) {
+    else if (v > u && parents[v] == v && gbbs::atomic_compare_and_swap(&parents[v],v,u)) {
       break;
     }
   }

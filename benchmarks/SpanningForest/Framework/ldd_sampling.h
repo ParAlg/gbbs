@@ -18,7 +18,7 @@ struct LDD_Edges_Fn {
   }
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (pbbslib::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, Parents[s])) {
+    if (gbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, Parents[s])) {
       Edges[d] = std::make_pair(s,d);
       return true;
     }

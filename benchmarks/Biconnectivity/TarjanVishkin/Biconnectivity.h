@@ -52,8 +52,8 @@ struct AugF {
     return false;
   }
   bool updateAtomic(const uintE& s, const uintE& d) {
-    pbbslib::write_add(&sizes[d], sizes[s]);
-    intE new_value = pbbslib::fetch_and_add(&cts[d], -1) - 1;
+    gbbs::write_add(&sizes[d], sizes[s]);
+    intE new_value = gbbs::fetch_and_add(&cts[d], -1) - 1;
     return (new_value == 0);
   }
   bool cond(const uintE& d) { return true; }
@@ -81,12 +81,12 @@ struct MinMaxF {
     labels lab_s = MM[s];
     uintE low = std::get<0>(lab_s), high = std::get<1>(lab_s);
     if (low < std::get<0>(MM[d])) {
-      pbbslib::write_min(&std::get<0>(MM[d]), low);
+      gbbs::write_min(&std::get<0>(MM[d]), low);
     }
     if (high > std::get<1>(MM[d])) {
-      pbbslib::write_max(&std::get<1>(MM[d]), high);
+      gbbs::write_max(&std::get<1>(MM[d]), high);
     }
-    intE new_value = pbbslib::fetch_and_add(&cts[d], -1) - 1;
+    intE new_value = gbbs::fetch_and_add(&cts[d], -1) - 1;
     return (new_value == 0);
   }
   bool cond(const uintE& d) { return true; }
@@ -267,14 +267,14 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
       uintE p_u = PN[u];
       uintE p_v = PN[v];
       if (p_u < std::get<0>(MM[v])) {
-        pbbslib::write_min(&std::get<0>(MM[v]), p_u);
+        gbbs::write_min(&std::get<0>(MM[v]), p_u);
       } else if (p_u > std::get<1>(MM[v])) {
-        pbbslib::write_max(&std::get<1>(MM[v]), p_u);
+        gbbs::write_max(&std::get<1>(MM[v]), p_u);
       }
       if (p_v < std::get<0>(MM[u])) {
-        pbbslib::write_min(&std::get<0>(MM[u]), p_v);
+        gbbs::write_min(&std::get<0>(MM[u]), p_v);
       } else if (p_v > std::get<1>(MM[u])) {
-        pbbslib::write_max(&std::get<1>(MM[u]), p_v);
+        gbbs::write_max(&std::get<1>(MM[u]), p_v);
       }
     }
   };
@@ -317,7 +317,7 @@ struct BC_BFS_F {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {  // Atomic version of Update
-    return pbbslib::CAS(&Parents[d], UINT_E_MAX, s);
+    return gbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, s);
   }
   // Cond function checks if vertex has been visited yet
   inline bool cond(uintE d) { return (Parents[d] == UINT_E_MAX); }
@@ -351,7 +351,7 @@ struct DET_BFS_F {
     return false;
   }
   inline bool updateAtomic(uintE s, uintE d) {  // Atomic version of Update
-    pbbslib::write_min(&Parents[d], s);
+    gbbs::write_min(&Parents[d], s);
     return false;
   }
   // Cond function checks if vertex has been visited yet
@@ -409,7 +409,7 @@ inline sequence<uintE> cc_sources(Seq& labels) {
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return UINT_E_MAX; });
   parallel_for(0, n, [&] (size_t i) {
     uintE label = labels[i];
-    pbbslib::write_min(&flags[label], (uintE)i);
+    gbbs::write_min(&flags[label], (uintE)i);
   });
   // Get min from each component
   return pbbslib::filter(flags, [](uintE v) { return v != UINT_E_MAX; });

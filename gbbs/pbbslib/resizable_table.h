@@ -233,7 +233,7 @@ class resizable_table {
     size_t h = firstIndex(k);
     while (1) {
       if (std::get<0>(table[h]) == empty_key &&
-          pbbslib::CAS(&table[h], empty, kv)) {
+          gbbs::atomic_compare_and_swap(&table[h], empty, kv)) {
         size_t wn = worker_id();
         cts[wn * kResizableTableCacheLineSz]++;
         return 1;

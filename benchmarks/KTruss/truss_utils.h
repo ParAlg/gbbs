@@ -84,7 +84,7 @@ namespace truss_utils {
       size_t h = firstIndex(v);
       size_t iters = 0;
       while (1) {
-        if(table[h] == empty && pbbslib::CAS(&table[h],empty,v)) {
+        if(table[h] == empty && gbbs::atomic_compare_and_swap(&table[h],empty,v)) {
           return 1;
         }
         h = incrementIndex(h);
@@ -136,7 +136,7 @@ namespace truss_utils {
           size_t h = firstIndex(k);
           while (true) {
             if (std::get<0>(table[h]) == empty_key) {
-              if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
+              if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
                 std::get<1>(table[h]) = std::get<1>(kv); // insert value
                 return;
               }
@@ -150,7 +150,7 @@ namespace truss_utils {
           size_t h = firstIndex(k);
           while (true) {
             if (std::get<0>(table[h]) == k) {
-              pbbslib::write_add(&std::get<1>(table[h]), static_cast<V>(1));
+              gbbs::write_add(&std::get<1>(table[h]), static_cast<V>(1));
               return;
             }
             h = incrementIndex(h);
@@ -313,7 +313,7 @@ namespace truss_utils {
 //  void increment_trussness(TT& ht, const uintE& u, const uintE& v) {
 //    size_t loc_uv = ht.idx(std::make_tuple(std::min(u, v), std::max(u, v)));
 //    auto val_loc = &std::get<1>(ht.table[loc_uv]);
-//    pbbslib::write_add(val_loc, (uintE)1);
+//    gbbs::write_add(val_loc, (uintE)1);
 //  }
 
 
@@ -364,7 +364,7 @@ namespace truss_utils {
     trussness_t trussness_uv = k; edge_t uv_id = id;
 
     auto add_f = [&] (uintE* ct, const std::tuple<uintE, uintE>& tup) {
-      pbbslib::fetch_and_add(ct, (uintE)1);
+      gbbs::fetch_and_add(ct, (uintE)1);
     };
 
     size_t ctr = 0;

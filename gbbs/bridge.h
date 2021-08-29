@@ -162,39 +162,8 @@ struct empty {};  // struct containing no data (used in conjunction with
 // ========================= timer  ==========================
 using parlay::internal::timer;
 
-}  // namespace gbbs
 
-
-namespace parlay {
-
-template <class T>
-inline slice<T*, T*> make_range(T* A, size_t n) {
-  return slice<T*, T*>(A, A + n);
-}
-
-template <class T>
-inline slice<T*, T*> make_range(T* start, T* end) {
-  return slice<T*, T*>(start, end);
-}
-
-template <class Seq>
-inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), maxm<T>());
-}
-
-template <class Seq>
-inline auto reduce_min(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), minm<T>());
-}
-
-template <class Seq>
-inline auto reduce_xor(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), xorm<T>());
-}
-
+// ========================= atomic ops  ==========================
 
 
 // Currently unused, but may be useful in the future; including commented out.
@@ -304,16 +273,6 @@ inline void write_add(std::atomic<E>* a, EV b) {
     oldV = a->load();
     newV = oldV + b;
   } while (!std::atomic_compare_exchange_strong(a, &oldV, newV));
-}
-
-template <typename E, typename EV>
-inline void write_minus(E* a, EV b) {
-  // volatile E newV, oldV;
-  E newV, oldV;
-  do {
-    oldV = *a;
-    newV = oldV - b;
-  } while (!atomic_compare_and_swap(a, oldV, newV));
 }
 
 template <typename ET, typename F>
@@ -431,6 +390,42 @@ inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
                          (hash_value_1 << 6) + (hash_value_1 >> 2));
 }
 
+
+
+
+
+}  // namespace gbbs
+
+
+namespace parlay {
+
+template <class T>
+inline slice<T*, T*> make_range(T* A, size_t n) {
+  return slice<T*, T*>(A, A + n);
+}
+
+template <class T>
+inline slice<T*, T*> make_range(T* start, T* end) {
+  return slice<T*, T*>(start, end);
+}
+
+template <class Seq>
+inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
+  using T = typename Seq::value_type;
+  return reduce(make_slice(I), maxm<T>());
+}
+
+template <class Seq>
+inline auto reduce_min(Seq const& I) -> typename Seq::value_type {
+  using T = typename Seq::value_type;
+  return reduce(make_slice(I), minm<T>());
+}
+
+template <class Seq>
+inline auto reduce_xor(Seq const& I) -> typename Seq::value_type {
+  using T = typename Seq::value_type;
+  return reduce(make_slice(I), xorm<T>());
+}
 
 
 }  // namespace parlay

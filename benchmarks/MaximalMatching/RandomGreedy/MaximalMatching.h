@@ -231,8 +231,8 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   // Check that this is a valid matching
   parallel_for(0, matching.size(), [&] (size_t i) {
                     const auto& edge = matching[i];
-                    pbbslib::write_add(&matched[std::get<0>(edge)], 1);
-                    pbbslib::write_add(&matched[std::get<1>(edge)], 1);
+                    gbbs::write_add(&matched[std::get<0>(edge)], 1);
+                    gbbs::write_add(&matched[std::get<1>(edge)], 1);
                   });
 
   bool valid = true;

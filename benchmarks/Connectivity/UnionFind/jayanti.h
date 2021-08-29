@@ -55,21 +55,21 @@ namespace jayanti_rank {
     if (ud.get_rank() < vd.get_rank()) { // u.r < v.r
       auto expected_u = vdata(ud.get_parent(), ud.get_rank(), /* is_root= */ true);
       auto new_u = vdata(v, ud.get_rank(), /* is_root= */ false);
-      pbbslib::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
+      gbbs::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
     } else if (ud.get_rank() > vd.get_rank()) { // v.r < u.r
       auto expected_v = vdata(vd.get_parent(), vd.get_rank(), /* is_root= */ true);
       auto new_v = vdata(u, vd.get_rank(), /* is_root= */ false);
-      pbbslib::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
+      gbbs::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
     } else { // u.r == v.r
       auto random_bit = r.rand() & 1;
       if (u < v) {
         auto expected_u = vdata(ud.get_parent(), ud.get_rank(), /* is_root= */ true);
         auto new_u = vdata(v, ud.get_rank() + 1, /* is_root= */ random_bit);
-        pbbslib::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
+        gbbs::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
       } else {
         auto expected_v = vdata(vd.get_parent(), vd.get_rank(), /* is_root= */ true);
         auto new_v = vdata(u, vd.get_rank() + 1, /* is_root= */ random_bit);
-        pbbslib::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
+        gbbs::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
       }
     }
   }
@@ -101,7 +101,7 @@ namespace jayanti_rank {
       uintE w = vd.get_parent();
       auto expected_u = vdata(v, ud.get_rank(), false);
       auto new_u = vdata(w, ud.get_rank(), false);
-      pbbslib::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
+      gbbs::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
 
       // read and check
       ud = vdatas[u]; v = ud.get_parent();
@@ -116,7 +116,7 @@ namespace jayanti_rank {
       // CAS 2
       expected_u = vdata(v, ud.get_rank(), false);
       new_u = vdata(w, ud.get_rank(), false);
-      pbbslib::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
+      gbbs::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
 
       u = v;
     }

@@ -674,7 +674,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         const uintE permuted_neighbor{vertex_permutation[neighbor]};
         const uintE bucket_id{permuted_neighbor & bucket_mask};
         const uintE bucket_value{permuted_neighbor >> log_num_samples};
-        pbbslib::write_min(
+        gbbs::write_min(
             &(fingerprints[fingerprint_offset + bucket_id]),
             bucket_value,
             std::less<uintE>{});

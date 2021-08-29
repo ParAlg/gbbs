@@ -110,7 +110,7 @@ void AttachNoncoresToClusters(
       const uintE neighbor{neighbors[j].neighbor};
       auto* neighbor_cluster_address{&(*clustering)[neighbor]};
       if (*neighbor_cluster_address == kUnclustered) {
-        pbbslib::atomic_compare_and_swap(
+        gbbs::atomic_compare_and_swap(
             neighbor_cluster_address, kUnclustered, core_cluster);
       }
     }, kParallelizeInnerLoop);
@@ -152,7 +152,7 @@ void AttachNoncoresToClustersDeterministic(
           if (similarity > current_attachment.first ||
               (similarity == current_attachment.first &&
                core < current_attachment.second)) {
-            if (pbbslib::atomic_compare_and_swap(
+            if (gbbs::atomic_compare_and_swap(
                 &(tentative_attachments[neighbor]),
                 current_attachment,
                 std::make_pair(similarity, core))) {

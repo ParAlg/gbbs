@@ -53,12 +53,12 @@ namespace labelprop_cc {
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
       if (lp_less(Parents[s], Parents[d])) {
-        pbbslib::write_min<uintE>(&Parents[d], Parents[s], lp_less);
-        return pbbslib::write_min(&changed[d], emitted, std::greater<uint8_t>());
+        gbbs::write_min<uintE>(&Parents[d], Parents[s], lp_less);
+        return gbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
       } else if (lp_less(Parents[d], Parents[s])) {
-        if (pbbslib::write_min<uintE>(&Parents[s], Parents[d], lp_less)) {
+        if (gbbs::write_min<uintE>(&Parents[s], Parents[d], lp_less)) {
           if (changed[s] == unemitted) {
-            pbbslib::write_min(&changed[s], need_emit, std::greater<uint8_t>());
+            gbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
           }
         }
       }

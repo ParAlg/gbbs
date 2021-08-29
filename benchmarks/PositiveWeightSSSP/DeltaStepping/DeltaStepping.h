@@ -61,9 +61,9 @@ struct Visit_F {
       n_dist = dists[s].first + w;
     }
     if (n_dist < dist) {
-      pbbslib::write_min(&(dists[d].first), n_dist);
+      gbbs::write_min(&(dists[d].first), n_dist);
       if (!dists[d].second &&
-          pbbslib::atomic_compare_and_swap(&dists[d].second, false, true)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&dists[d].second, false, true)) {  // First visitor
         return std::optional<Distance>(dist);
       }
     }

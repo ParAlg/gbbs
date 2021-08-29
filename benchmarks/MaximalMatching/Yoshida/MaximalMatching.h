@@ -107,14 +107,14 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
   auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
       auto [in_mm, work] = mm_query(u, v, RG, 0, query_cutoff);
-      pbbslib::write_add(&total_work[v], work);
-      pbbslib::write_max(&max_query_length, work, std::less<size_t>());
+      gbbs::write_add(&total_work[v], work);
+      gbbs::write_max(&max_query_length, work, std::less<size_t>());
       if (in_mm == in) {
-        pbbslib::write_add(&matching_cts[u], 1);
-        pbbslib::write_add(&matching_cts[v], 1);
+        gbbs::write_add(&matching_cts[u], 1);
+        gbbs::write_add(&matching_cts[v], 1);
       }
       if (in_mm == in || in_mm == out) {
-        pbbslib::write_add(&got_answer[u], 1);
+        gbbs::write_add(&got_answer[u], 1);
       }
     }
   };

@@ -15,7 +15,7 @@ struct atomic_max_counter {
   T get_value() { return entry; }
 
   void update_value(T new_val) {
-    pbbslib::write_min(&entry, new_val, std::greater<T>());
+    gbbs::write_min(&entry, new_val, std::greater<T>());
   }
 };
 

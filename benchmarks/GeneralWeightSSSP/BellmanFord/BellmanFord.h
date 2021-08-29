@@ -53,7 +53,7 @@ struct BF_F {
       newDist = SP[s] + 1;
     } else {
       newDist = SP[s] + edgeLen; }
-    return (pbbslib::write_min(&SP[d], newDist) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
+    return (gbbs::write_min(&SP[d], newDist) && gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };

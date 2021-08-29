@@ -81,7 +81,7 @@ struct SVAlgorithm {
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
-            pbbslib::write_min<parent>(&parents[h], l, std::less<parent>());
+            gbbs::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         };
@@ -122,7 +122,7 @@ struct SVAlgorithm {
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
-            pbbslib::write_min<parent>(&parents[h], l, std::less<parent>());
+            gbbs::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         } /* ignore queries for now */
@@ -137,7 +137,7 @@ struct SVAlgorithm {
         uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
         (void)utype;
-        if (flags[u] == false && pbbslib::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false && gbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           while (parents[u] != parents[parents[u]]) {
             parents[u] = parents[parents[u]];
             pathlen++;
@@ -146,7 +146,7 @@ struct SVAlgorithm {
           report_pathlen(pathlen);
         }
 
-        if (flags[v] == false && pbbslib::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false && gbbs::atomic_compare_and_swap(&flags[v], false, true)) {
           while (parents[v] != parents[parents[v]]) {
             parents[v] = parents[parents[v]];
             pathlen++;

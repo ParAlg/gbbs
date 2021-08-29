@@ -34,7 +34,7 @@ struct reservation {
   intT r;
   reservation() : r(std::numeric_limits<intT>::max()) {}
   void reserve(intT i) {
-    pbbslib::write_min(&r, i,
+    gbbs::write_min(&r, i,
                        [](intT left, intT right) { return left < right; });
   }
   bool reserved() { return (r < std::numeric_limits<intT>::max()); }
@@ -51,7 +51,7 @@ struct reservation {
 
 template <class intT>
 inline void reserveLoc(intT* x, intT i) {
-  pbbslib::write_min<intT>(x, i);
+  gbbs::write_min<intT>(x, i);
 }
 
 // granularity is some constant.

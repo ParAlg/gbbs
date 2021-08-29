@@ -78,7 +78,7 @@ struct SVAlgorithm {
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == PrevParents[h]) {
-            pbbslib::write_min<parent>(&Parents[h], l, std::less<parent>());
+            gbbs::write_min<parent>(&Parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         };
@@ -95,7 +95,7 @@ struct SVAlgorithm {
           parent h = std::max(p_u, p_v);
           if (l != h && h == PrevParents[h]) {
             if (Parents[h] == l) {
-              pbbslib::atomic_compare_and_swap(&Edges[h], empty_edge, std::make_pair(u, v));
+              gbbs::atomic_compare_and_swap(&Edges[h], empty_edge, std::make_pair(u, v));
             }
           }
         };

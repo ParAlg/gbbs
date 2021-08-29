@@ -91,7 +91,7 @@ struct KOutSamplingTemplate {
 //    parent w = parents[v];
 //    if(v == w) return v;
 //    else {
-//      pbbslib::atomic_compare_and_swap(&parents[i],v,w);
+//      gbbs::atomic_compare_and_swap(&parents[i],v,w);
 //      i = v;
 //      return i;
 //    }
@@ -106,7 +106,7 @@ struct KOutSamplingTemplate {
 //        std::swap(rx, ry);
 //        std::swap(p_rx, p_ry);
 //      }
-//      if (rx == parents[rx] && pbbslib::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
+//      if (rx == parents[rx] && gbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
 //        break;
 //      } else {
 //        rx = my_split_atomic_one(rx, ry, parents);
@@ -120,7 +120,7 @@ struct KOutSamplingTemplate {
     parent p_high = parents[high];
     // Was already 'low' or succeeded in writing 'low'
     if ((p_high == low) ||
-        (p_high == high && pbbslib::atomic_compare_and_swap(&parents[high], high, low)))
+        (p_high == high && gbbs::atomic_compare_and_swap(&parents[high], high, low)))
       break;
     p1 = parents[parents[high]];
     p2 = parents[low];
@@ -312,7 +312,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbslib::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src)));
+    return (gbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == d); }
 };

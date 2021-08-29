@@ -40,14 +40,14 @@ struct countF {
 
   inline bool update(uintE s, uintE d) {
     auto d_neighbors = G.get_vertex(d).out_neighbors();
-    pbbslib::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(
+    gbbs::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(
                                        &d_neighbors, s, d));
     return 1;
   }
 
   inline bool updateAtomic(uintE s, uintE d) {
     auto d_neighbors = G.get_vertex(d).out_neighbors();
-    pbbslib::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(
+    gbbs::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(
                                        &d_neighbors, s, d));
     return 1;
   }

@@ -45,7 +45,7 @@ struct SSBetweennessCentrality_F {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     fType to_add = Scores[s];
-    fType n_val = pbbslib::fetch_and_add(&Scores[d], to_add);
+    fType n_val = gbbs::fetch_and_add(&Scores[d], to_add);
     return n_val == 0;
   }
   inline bool cond(uintE d) { return Visited[d] == 0; }
@@ -303,7 +303,7 @@ struct BFS_F {
     return 1;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbslib::atomic_compare_and_swap(&Visited[d], (uint8_t)0, (uint8_t)1)); /* first visit */
+    return (gbbs::atomic_compare_and_swap(&Visited[d], (uint8_t)0, (uint8_t)1)); /* first visit */
   }
   inline bool cond(const uintE& d) { return (Visited[d] == 0); }
 };

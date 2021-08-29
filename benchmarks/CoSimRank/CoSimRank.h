@@ -18,7 +18,7 @@ struct Co_PR_F {
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbslib::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
+    gbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }

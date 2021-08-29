@@ -57,10 +57,10 @@ struct Visit_F {
     uintE n_width = std::min((width[s] | TOP_BIT), (w | TOP_BIT));
     if (n_width > bottleneck) {
       if (!(oval & TOP_BIT) &&
-          pbbslib::atomic_compare_and_swap(&(width[d]), oval, n_width)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&(width[d]), oval, n_width)) {  // First visitor
         return std::optional<uintE>(oval);
       }
-      pbbslib::write_max(&(width[d]), n_width);
+      gbbs::write_max(&(width[d]), n_width);
     }
     return std::nullopt;
   }
@@ -83,7 +83,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   parallel_for(0, G.n, 1, [&] (size_t i) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (wgh > max_weight) {
-        pbbslib::write_max(&max_weight, wgh);
+        gbbs::write_max(&max_weight, wgh);
       }
     };
     G.get_vertex(i).out_neighbors().map(map_f);
@@ -175,7 +175,7 @@ struct SSWidestPathBF_F {
   inline bool updateAtomic(const uintE& s, const uintE& d,
                            const intE& edgeLen) {
     intE n_width = std::min(width[s], edgeLen);
-    return (pbbslib::write_max(&width[d], n_width) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
+    return (gbbs::write_max(&width[d], n_width) && gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };

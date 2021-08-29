@@ -86,8 +86,8 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
       uintE e_id = edge_ids[i];
       const Edge& e = edges[e_id];
       vtxid_wgh_pair cas_e(e_id, std::get<2>(e));
-      pbbslib::write_min(min_edges + std::get<0>(e), cas_e, less);
-      pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
+      gbbs::write_min(min_edges + std::get<0>(e), cas_e, less);
+      gbbs::write_min(min_edges + std::get<1>(e), cas_e, less);
     });
     min_t.stop();
     debug(min_t.next("write min time"););

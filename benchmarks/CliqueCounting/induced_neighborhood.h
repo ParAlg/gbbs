@@ -12,7 +12,7 @@ namespace induced_neighborhood {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
       size_t deg = DG.get_vertex(i).out_degree();
-      pbbslib::write_min(&max_deg, deg, std::greater<size_t>());
+      gbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
   }

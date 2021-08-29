@@ -149,7 +149,7 @@ UnclusteredType DetermineUnclusteredType(
     // clusters and is a hub.
     if (neighbor_cluster != kUnclustered &&
         !(candidate_cluster == UINT_E_MAX &&
-          pbbslib::atomic_compare_and_swap(
+          gbbs::atomic_compare_and_swap(
                   &candidate_cluster, UINT_E_MAX, neighbor_cluster)) &&
         candidate_cluster != neighbor_cluster && !is_hub) {
       is_hub = true;

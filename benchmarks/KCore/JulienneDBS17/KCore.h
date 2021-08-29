@@ -88,7 +88,7 @@ struct kcore_fetch_add {
   }
   inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& wgh) {
-    if (pbbslib::fetch_and_add(&er[d], (uintE)1) == 1) {
+    if (gbbs::fetch_and_add(&er[d], (uintE)1) == 1) {
       return std::optional<uintE>((uintE)0);
     }
     return std::nullopt;

@@ -63,7 +63,7 @@ inline void cluster_sizes(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
-      pbbslib::write_add(&flags[s[i]], 1);
+      gbbs::write_add(&flags[s[i]], 1);
 //    if (!flags[s[i]]) {
 //      flags[s[i]] = 1;
 //    }
@@ -110,7 +110,7 @@ struct LDD_F {
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (oracle(s, d, wgh)) {
-      return pbbslib::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
+      return gbbs::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
     }
     return false;
   }

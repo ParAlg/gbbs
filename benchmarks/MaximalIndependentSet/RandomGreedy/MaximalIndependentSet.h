@@ -74,7 +74,7 @@ struct GetNghs {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     auto p_d = p[d];
-    if (p_d > 0 && pbbslib::atomic_compare_and_swap(&p[d], p_d, 0)) {
+    if (p_d > 0 && gbbs::atomic_compare_and_swap(&p[d], p_d, 0)) {
       return true;
     }
     return false;
@@ -108,7 +108,7 @@ struct mis_f {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (perm[s] < perm[d]) {
-      return (pbbslib::fetch_and_add(&p[d], -1) == 1);
+      return (gbbs::fetch_and_add(&p[d], -1) == 1);
     }
     return false;
   }

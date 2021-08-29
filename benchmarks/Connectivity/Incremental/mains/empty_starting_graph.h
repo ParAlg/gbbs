@@ -40,10 +40,10 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     uintE l = pbbslib::chars_to_int_t<uintE>(tokens[2*i]);
     uintE r = pbbslib::chars_to_int_t<uintE>(tokens[2*i + 1]);
     if (l > n) {
-      pbbslib::write_min<uintE>(&n, l, std::greater<uintE>());
+      gbbs::write_min<uintE>(&n, l, std::greater<uintE>());
     }
     if (r > n) {
-      pbbslib::write_min<uintE>(&n, r, std::greater<uintE>());
+      gbbs::write_min<uintE>(&n, r, std::greater<uintE>());
     }
     updates[i] = std::make_tuple(l, r, gbbs::empty());
   });

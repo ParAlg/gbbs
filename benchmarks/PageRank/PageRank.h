@@ -41,7 +41,7 @@ struct PR_F {
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbslib::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
+    gbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }};
@@ -202,7 +202,7 @@ struct PR_Delta_F {
     volatile double oldV, newV;
     do { //basically a fetch-and-add
       oldV = nghSum[d]; newV = oldV + Delta[s].delta_over_degree; // Delta[s]/V[s].out_degree();
-    } while(!pbbslib::atomic_compare_and_swap(&nghSum[d],oldV,newV));
+    } while(!gbbs::atomic_compare_and_swap(&nghSum[d],oldV,newV));
     return oldV == 0.0;
   }
   inline bool cond (uintE d) { return cond_true(d); }

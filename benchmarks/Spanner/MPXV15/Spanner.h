@@ -202,7 +202,7 @@ struct LDD_Parents_F {
   }
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (pbbslib::atomic_compare_and_swap(&clusters[d].cluster, UINT_E_MAX, clusters[s].cluster)) {
+    if (gbbs::atomic_compare_and_swap(&clusters[d].cluster, UINT_E_MAX, clusters[s].cluster)) {
       clusters[d].parent = s;
       return true;
     }

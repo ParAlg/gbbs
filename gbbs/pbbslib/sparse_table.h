@@ -153,7 +153,7 @@ class sparse_table {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return true;
         }
@@ -172,7 +172,7 @@ class sparse_table {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
           //          std::get<1>(table[h]) = std::get<1>(kv);
           f(&std::get<1>(table[h]), kv);
           return true;
@@ -212,7 +212,7 @@ class sparse_table {
     size_t n_probes = 0;
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return true;
         }

@@ -40,7 +40,7 @@ struct BFS_F {
     }
   }
   inline bool updateAtomic(uintE s, uintE d, W w) {
-    return (pbbslib::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, s));
+    return (gbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, s));
   }
   inline bool cond(uintE d) { return (Parents[d] == UINT_E_MAX); }
 };
