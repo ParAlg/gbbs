@@ -7,7 +7,7 @@
 #        "//benchmarks/SCAN/IndexBased:similarity_measure",
 #        "//benchmarks/SCAN/IndexBased:utils",
 #        "//gbbs",
-#        "//pbbslib:assert",
+#        "//helpers:assert",
 #    ],
 #)
 

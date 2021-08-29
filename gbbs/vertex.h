@@ -205,7 +205,7 @@ struct uncompressed_neighbors {
         };
         auto in_im = parlay::make_range(neighbors, degree);
         size_t k =
-            pbbslib::filter_out(in_im, parlay::make_range(tmp, degree), pc);
+            parlay::filter_out(in_im, parlay::make_range(tmp, degree), pc);
         parallel_for(0, k, [&](size_t i) { out(i, tmp[i]); });
       }
     }

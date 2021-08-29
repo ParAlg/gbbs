@@ -24,8 +24,8 @@
 
 #include "gbbs/bridge.h"
 #include "gbbs/bucket.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 
@@ -152,9 +152,9 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
   auto hash_edge_id = [&] (const edge_t& e) { return parlay::hash32(e); };
-  auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
+  auto decr_source_table = gbbs::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
-  auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
+  auto del_edges = gbbs::dyn_arr<edge_t>(6*GA.n);
   auto actual_degree = sequence<uintE>::from_function(GA.n, [&] (size_t i) {
     return GA.get_vertex(i).out_degree();
   });
@@ -196,7 +196,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
     // Resize the table that stores edge updates if necessary.
     decr_source_table.resize_no_copy(e_space_required);
-    auto decr_tab = pbbslib::make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
+    auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
 
 //    std::cout << "starting decrements" << std::endl;
     decrement_t.start();
@@ -221,7 +221,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       std::get<1>(decr_edges[i]) = b.get_bucket(current_deg, new_deg);
     });
 
-    auto rebucket_edges = pbbslib::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
+    auto rebucket_edges = parlay::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
       return std::get<1>(eb) != UINT_E_MAX;
     });
     auto edges_moved_f = [&] (size_t i) {
@@ -313,7 +313,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       std::cout << "compacting 4, " << del_edges.size << std::endl;
 
       auto all_vertices = parlay::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
-      auto to_pack_seq = pbbslib::filter(all_vertices, [&] (uintE u) {
+      auto to_pack_seq = parlay::filter(all_vertices, [&] (uintE u) {
         return 4*actual_degree[u] >= GA.get_vertex(u).out_degree();
       });
       auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));

@@ -2,7 +2,7 @@
 
 #include "gbbs/bridge.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 /* atomic max object for numeric type T */
 template <class T>
@@ -19,4 +19,4 @@ struct atomic_max_counter {
   }
 };
 
-}  // namespace pbbslib
+}  // namespace gbbs

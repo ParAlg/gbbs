@@ -198,7 +198,7 @@ double Modularity(
         }))) / num_edges};
 
     const auto degrees_split_result{
-      pbbslib::split_two(
+      parlay::split_two(
         parlay::delayed_seq<std::pair<uintE, uintT>>(
           num_vertices,
           [&](const size_t i) {
@@ -275,7 +275,7 @@ double Modularity(
         })) / total_weight};
 
     const auto degrees_split_result{
-      pbbslib::split_two(
+      parlay::split_two(
         parlay::delayed_seq<std::pair<uintE, double>>(
           num_vertices,
           [&](const size_t i) {

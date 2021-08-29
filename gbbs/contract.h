@@ -2,8 +2,8 @@
 
 #include <tuple>
 
-#include "gbbs/graph.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "graph.h"
+#include "helpers/sparse_table.h"
 
 namespace gbbs {
 namespace contract {
@@ -60,7 +60,7 @@ sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters,
     return parlay::hash64_2(key);
   };
   auto edge_table =
-      pbbslib::make_sparse_table<K, V>(small_cluster_size, empty, hash_pair);
+      gbbs::make_sparse_table<K, V>(small_cluster_size, empty, hash_pair);
 
   timer ins_t;
   ins_t.start();
@@ -122,7 +122,7 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
     return parlay::hash64_2(key);
   };
   auto edge_table =
-      pbbslib::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+      gbbs::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
   debug(std::cout << "# sizeof table = " << edge_table.m << std::endl;);
   deg_map.clear();
 
@@ -167,7 +167,7 @@ sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters,
     return parlay::hash64_2(key);
   };
   auto edge_table =
-      pbbslib::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
+      gbbs::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
   debug(std::cout << "# sizeof table = " << edge_table.m << std::endl;);
 
   bool abort = false;

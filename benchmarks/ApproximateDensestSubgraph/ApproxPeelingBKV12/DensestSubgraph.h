@@ -59,7 +59,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return !(D[i] <= target_density);
     });
 
-    auto splits = pbbslib::split_two(vertices_remaining, keep_seq);
+    auto splits = parlay::split_two(vertices_remaining, keep_seq);
     A = std::move(splits.first);
     size_t num_removed = splits.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
@@ -113,7 +113,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 
-    auto split_vtxs_m = pbbslib::split_two(vtxs_remaining, keep_seq);
+    auto split_vtxs_m = parlay::split_two(vtxs_remaining, keep_seq);
     A = std::move(split_vtxs_m.first);
     size_t num_removed = split_vtxs_m.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);

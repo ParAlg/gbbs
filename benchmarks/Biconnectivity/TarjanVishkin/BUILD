@@ -4,7 +4,7 @@ cc_library(
   deps = [
   "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:dyn_arr",
   ]
 )
 
@@ -13,7 +13,7 @@ cc_binary(
   srcs = ["Biconnectivity.cc"],
   deps = [
   ":Biconnectivity",
-  "//gbbs/pbbslib:sparse_additive_map",
+  "//gbbs/helpers:sparse_additive_map",
   ]
 )
 

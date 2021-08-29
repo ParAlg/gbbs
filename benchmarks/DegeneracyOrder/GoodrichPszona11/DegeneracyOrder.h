@@ -3,7 +3,7 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
 namespace goodrichpszona_degen {
@@ -24,7 +24,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
 
-  auto ret = pbbslib::dyn_arr<uintE>(n);
+  auto ret = gbbs::dyn_arr<uintE>(n);
 
   parlay::random r;
   timer kt, ft;
@@ -52,8 +52,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     };
 
     ft.start();
-    auto this_round = pbbslib::filter(active, lte_threshold);
-    active = pbbslib::filter(active, gt_threshold);
+    auto this_round = parlay::filter(active, lte_threshold);
+    active = parlay::filter(active, gt_threshold);
     ft.stop();
 
     ret.copyInF([&] (size_t i) { return this_round[i]; }, this_round.size());

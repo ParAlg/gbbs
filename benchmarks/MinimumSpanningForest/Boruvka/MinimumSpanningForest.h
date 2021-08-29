@@ -25,7 +25,7 @@
 
 #include <cassert>
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
 
@@ -327,7 +327,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
 
   auto exhausted = sequence<bool>::from_function(n, [](size_t i) { return false; });
   auto parents = sequence<uintE>::from_function(n, [](size_t i) { return i; });
-  auto mst_edges = pbbslib::dyn_arr<edge>(n);
+  auto mst_edges = gbbs::dyn_arr<edge>(n);
 
   auto min_edges = gbbs::new_array_no_init<vtxid_wgh_pair>(n);
 

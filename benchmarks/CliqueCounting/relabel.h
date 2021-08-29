@@ -183,8 +183,8 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
       auto n_im = parlay::delayed_seq<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, parlay::make_range(dir_nghs, d), pred_c,
-                          pbbslib::no_flag);
+      parlay::filter_out(n_im, parlay::make_range(dir_nghs, d), pred_c,
+                         parlay::no_flag);
       parallel_for(0, true_deg, [&](size_t j) {
         dir_nghs[j] = std::make_tuple(rank[std::get<0>(dir_nghs[j])],
                                       std::get<1>(dir_nghs[j]));

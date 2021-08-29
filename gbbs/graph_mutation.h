@@ -59,8 +59,8 @@ filter_graph(Graph& G, P& pred) {
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
       auto n_im = parlay::delayed_seq<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, parlay::make_range(dir_nghs, d), pred_c,
-                          pbbslib::no_flag);
+      parlay::filter_out(n_im, parlay::make_range(dir_nghs, d), pred_c,
+                          parlay::no_flag);
     }
   });
 
@@ -130,7 +130,7 @@ inline auto filter_graph(Graph& G, P& pred) {
 
       auto iter = G.get_vertex(i).out_neighbors().get_iter();
       auto f_it =
-          pbbslib::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
+          gbbs::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(
           edges + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {

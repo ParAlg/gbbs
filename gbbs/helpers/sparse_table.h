@@ -27,7 +27,7 @@
 
 #include "gbbs/bridge.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 template <class K, class V, class KeyHash>
 class sparse_table {
@@ -282,7 +282,7 @@ class sparse_table {
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = parlay::make_range<T>(table, m);
-    return pbbslib::filter(table_seq, pred);
+    return parlay::filter(table_seq, pred);
   }
 
   void clear() {
@@ -307,4 +307,4 @@ inline sparse_table<K, V, KeyHash> make_sparse_table(std::tuple<K, V>* tab,
   return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab, clear);
 }
 
-}  // namespace pbbslib
+}  // namespace gbbs

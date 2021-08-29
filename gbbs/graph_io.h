@@ -383,7 +383,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
   vertex_data* vertex_out_data =
       internal::sorted_edges_to_vertex_data_array(num_vertices, out_edges);
 
-  sequence<Edge<weight_type>> in_edges = pbbslib::map<Edge<weight_type>>(
+  sequence<Edge<weight_type>> in_edges = parlay::map<Edge<weight_type>>(
       out_edges, [&](const Edge<weight_type>& edge) {
         return Edge<weight_type>{edge.to, edge.from, edge.weight};
       });

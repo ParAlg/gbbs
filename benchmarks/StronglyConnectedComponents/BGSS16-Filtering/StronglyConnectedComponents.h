@@ -24,8 +24,8 @@
 #pragma once
 
 #include <limits>
-#include "gbbs/pbbslib/resizable_table.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/resizable_table.h"
+#include "gbbs/helpers/sparse_table.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/semiasym/graph_filter.h"
 
@@ -148,7 +148,7 @@ inline auto multi_search(Graph& GA,
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << parlay::log2_up(frontier.size() * 2);
   auto table_backing = gbbs::new_array_no_init<T>(backing_size);
-  auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
+  auto table = gbbs::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                                        table_backing, true);
   frontier.toSparse();
   parallel_for(0, frontier.size(), [&] (size_t i) {
@@ -158,7 +158,7 @@ inline auto multi_search(Graph& GA,
   });
   table.update_nelms();
 
-  auto elts = pbbslib::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash32(k); });
+  auto elts = gbbs::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash32(k); });
 
   size_t rd = 0;
   size_t sum_frontiers = 0;
@@ -227,10 +227,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   // Split vertices into those with zero in/out degree (zero), and those with non-zero
   // in- and out-degree (non_zero).
   auto v_im = parlay::delayed_seq<uintE>(n, [](size_t i) { return i; });
-  auto zero = pbbslib::filter(v_im, [&](size_t i) {
+  auto zero = parlay::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
-  auto non_zero = pbbslib::filter(v_im, [&](size_t i) {
+  auto non_zero = parlay::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() > 0) && (GA.get_vertex(i).in_degree() > 0);
   });
 
@@ -331,7 +331,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   timer to_process_t;
   timer reset_t;
 
-  auto Q = pbbslib::filter(P, [&](uintE v) { return labels[v] == kUnfinished; });
+  auto Q = parlay::filter(P, [&](uintE v) { return labels[v] == kUnfinished; });
   std::cout << "After first round, Q = " << Q.size()
             << " vertices remain. Total done = " << (n - Q.size()) << "\n";
 
@@ -360,7 +360,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     auto centers_pre_filter = parlay::delayed_seq<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
-    auto centers = pbbslib::filter(
+    auto centers = parlay::filter(
         centers_pre_filter, [&](uintE v) { return labels[v] == kUnfinished; });
 
     std::cout << "round = " << cur_round << " n_centers = " << centers.size()
@@ -483,7 +483,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t remaining = Q.size() - finished + vs_size;
 
     to_process_t.start();
-    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
+    auto to_process = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
     to_process_t.stop();
 
     auto in_insert_t = [&] (const std::tuple<K, gbbs::empty>& kev) {
@@ -514,9 +514,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     to_process_t.stop();
 
 //    size_t remaining = Q.size() - finished + vs_size;
-//    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
-//    auto to_process_out = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
-//    auto to_process_in = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
+//    auto to_process = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
+//    auto to_process_out = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
+//    auto to_process_in = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
 //    auto in_insert_t = [&] (const std::tuple<K, V>& kev) {
 //      auto k = std::get<0>(kev);
 //      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {

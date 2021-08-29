@@ -6,7 +6,7 @@
 
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/sparse_table.h"
 #include "gbbs/undirected_edge.h"
 #include "gbbs/vertex_subset.h"
 
@@ -18,7 +18,7 @@ using Clustering = sequence<sequence<uintE>>;
 namespace internal {  // internal declarations
 
 using StructuralSimilarities =
-  pbbslib::sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
+  gbbs::sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 using NoWeight = gbbs::empty;
 
 class CoreBFSEdgeMapFunctions {
@@ -54,7 +54,7 @@ StructuralSimilarities
 ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
   using Vertex = VertexType<NoWeight>;
   using VertexSet =
-    pbbslib::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
+    gbbs::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
 
   StructuralSimilarities similarities{
     graph->m,

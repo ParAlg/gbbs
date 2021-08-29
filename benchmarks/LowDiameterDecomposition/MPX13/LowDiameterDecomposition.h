@@ -157,7 +157,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
       };
       auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
-      auto new_centers = pbbslib::filter(candidates, pred);
+      auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
       parallel_for(0, new_centers.size(), [&] (size_t i) {
         uintE new_center = new_centers[i];

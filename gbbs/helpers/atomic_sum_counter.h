@@ -2,7 +2,7 @@
 
 #include "gbbs/macros.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 /* atomic max object for numeric type T */
 /* Note the temporary bad hack around usage---see note on reset() */
@@ -49,4 +49,4 @@ struct atomic_sum_counter {
   }
 };
 
-}  // namespace pbbslib
+}  // namespace gbbs

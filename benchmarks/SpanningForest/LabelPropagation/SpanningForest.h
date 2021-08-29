@@ -139,7 +139,7 @@ namespace labelprop_sf {
         auto this_vs = parlay::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
           return vs.vtx(i);
         });
-        auto new_vtxs = pbbslib::filter(this_vs, [&] (uintE v) {
+        auto new_vtxs = parlay::filter(this_vs, [&] (uintE v) {
           return changed[v] == need_emit; /* emit those that need emitting */
         });
         std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;
@@ -170,7 +170,7 @@ namespace labelprop_sf {
     auto alg = LPAlgorithm<Graph>(G);
     alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
 
-    return pbbslib::filter(make_slice(Edges), [&] (const edge& e) {
+    return parlay::filter(make_slice(Edges), [&] (const edge& e) {
       return e != empty_edge;
     });
   }

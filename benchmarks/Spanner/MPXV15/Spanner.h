@@ -25,8 +25,8 @@
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
 
 namespace gbbs {
 namespace spanner {
@@ -76,7 +76,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
     size_t key = (l << 32) + r;
     return parlay::hash64_2(key);
   };
-  auto edge_table = pbbslib::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+  auto edge_table = gbbs::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
   debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
   deg_map.clear();
 
@@ -123,7 +123,7 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
     return parlay::hash64_2(key);
   };
 
-  auto edge_table = pbbslib::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
+  auto edge_table = gbbs::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
   debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
 
   bool abort = false;
@@ -156,12 +156,12 @@ template <class Graph>
 sequence<edge> tree_and_intercluster_edges(Graph& G,
     sequence<cluster_and_parent>& cluster_and_parents) {
   size_t n = G.n;
-  auto edge_list = pbbslib::dyn_arr<edge>(2*n);
+  auto edge_list = gbbs::dyn_arr<edge>(2*n);
 
   // Compute and add in tree edges.
   auto tree_edges_with_loops = parlay::delayed_seq<edge>(n, [&] (size_t i) {
       return std::make_pair(i, cluster_and_parents[i].parent); });
-  auto tree_edges = pbbslib::filter(tree_edges_with_loops, [&] (const edge& e) {
+  auto tree_edges = parlay::filter(tree_edges_with_loops, [&] (const edge& e) {
     return e.first != e.second;
   });
   edge_list.copyIn(tree_edges, tree_edges.size());
@@ -241,7 +241,7 @@ inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool perm
       };
       auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return clusters[v].cluster == UINT_E_MAX; };
-      auto new_centers = pbbslib::filter(candidates, pred);
+      auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
       parallel_for(0, new_centers.size(), kDefaultGranularity,
         [&] (size_t i) {

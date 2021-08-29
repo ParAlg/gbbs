@@ -16,7 +16,7 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
-        "//gbbs/pbbslib:sparse_table",
+        "//gbbs/helpers:sparse_table",
     ],
 )
 
@@ -35,7 +35,7 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph_mutation",
         "//gbbs:vertex",
-        "//gbbs/pbbslib:assert",
+        "//gbbs/helpers:assert",
     ],
 )
 

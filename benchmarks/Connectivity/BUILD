@@ -9,8 +9,8 @@ cc_library(
   "connectit.cc",
   ],
   deps = [
-  "//gbbs/pbbslib:atomic_counter",
-  "//gbbs/pbbslib:assert",
+  "//gbbs/helpers:atomic_counter",
+  "//gbbs/helpers:assert",
   ],
 )
 

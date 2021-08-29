@@ -26,7 +26,7 @@
 
 #include "gbbs/bridge.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 template <class K, class V>
 class sparse_additive_map {
@@ -122,7 +122,7 @@ class sparse_additive_map {
   auto entries() {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = parlay::make_range<T>(table, m);
-    return pbbslib::filter(table_seq, pred);
+    return parlay::filter(table_seq, pred);
   }
 
   void clear() {
@@ -130,4 +130,4 @@ class sparse_additive_map {
   }
 };
 
-}  // namespace pbbslib
+}  // namespace gbbs

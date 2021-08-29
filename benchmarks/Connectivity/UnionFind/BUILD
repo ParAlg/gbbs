@@ -23,7 +23,7 @@ cc_library(
   deps = [
   ":union_find_rules",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table"
+  "//gbbs/helpers:sparse_table"
   ]
 )
 

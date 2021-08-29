@@ -25,7 +25,7 @@
 
 #include <cassert>
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/Connectivity/common.h"
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"

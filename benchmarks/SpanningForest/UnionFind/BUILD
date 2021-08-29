@@ -24,7 +24,7 @@ cc_library(
   ":union_find_rules",
   "//gbbs:bridge",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table"
+  "//gbbs/helpers:sparse_table"
   ]
 )
 

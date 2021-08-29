@@ -32,7 +32,7 @@
 
 #include "bridge.h"
 #include "macros.h"
-#include "pbbslib/counting_sort_no_transpose.h"
+#include "helpers/counting_sort_no_transpose.h"
 #include "sequential_ht.h"
 
 namespace gbbs {
@@ -174,11 +174,11 @@ inline sequence<O> histogram_medium(A& get_key, size_t n, Apply& apply_f,
   size_t m;
   if (num_buckets <= 256) {
     std::tie(elms, counts, num_blocks, m) =
-        pbbslib::_count_sort<uint8_t, size_t, K>(get_key, gb, n,
+        gbbs::_count_sort<uint8_t, size_t, K>(get_key, gb, n,
                                                  (uintE)num_buckets);
   } else {
     std::tie(elms, counts, num_blocks, m) =
-        pbbslib::_count_sort<uint16_t, size_t, K>(get_key, gb, n,
+        gbbs::_count_sort<uint16_t, size_t, K>(get_key, gb, n,
                                                   (uintE)num_buckets);
   }
   size_t block_size = ((n - 1) / num_blocks) + 1;
@@ -355,11 +355,11 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t m;
   if (num_total_buckets <= 256) {
     std::tie(elms, counts, num_blocks, m) =
-        pbbslib::_count_sort<uint8_t, size_t, K>(get_key, gb, n,
+        gbbs::_count_sort<uint8_t, size_t, K>(get_key, gb, n,
                                                  (uintE)num_total_buckets);
   } else {
     std::tie(elms, counts, num_blocks, m) =
-        pbbslib::_count_sort<uint16_t, size_t, K>(get_key, gb, n,
+        gbbs::_count_sort<uint16_t, size_t, K>(get_key, gb, n,
                                                   (uintE)num_total_buckets);
   }
 
@@ -616,7 +616,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
     return parlay::hash32(get_key[i] & low_mask) & bucket_mask;
   };
 
-  auto p = pbbslib::_count_sort<int16_t, size_t, E>(get_elm, gb, n,
+  auto p = gbbs::_count_sort<int16_t, size_t, E>(get_elm, gb, n,
                                                     (uintE)num_buckets);
 
   auto& elms = std::get<0>(p);  // count-sort'd

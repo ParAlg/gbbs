@@ -142,7 +142,7 @@ inline sequence<uintE> KCore_FA(Graph& G,
 }
 
 template <class Graph>
-inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
+inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
   const size_t n = G.n;
   auto D =
       sequence<uintE>::from_function(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
@@ -152,7 +152,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
-  auto degeneracy_order = pbbslib::dyn_arr<uintE>(n);
+  auto degeneracy_order = gbbs::dyn_arr<uintE>(n);
 
   size_t finished = 0, rho = 0, k_max = 0;
   while (finished != n) {

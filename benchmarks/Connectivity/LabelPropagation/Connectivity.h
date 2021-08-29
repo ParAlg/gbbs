@@ -105,7 +105,7 @@ namespace labelprop_cc {
         auto this_vs = parlay::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
           return vs.vtx(i);
         });
-        auto new_vtxs = pbbslib::filter(this_vs, [&] (uintE v) {
+        auto new_vtxs = parlay::filter(this_vs, [&] (uintE v) {
           return changed[v] == need_emit; /* emit those that need emitting */
         });
         std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;

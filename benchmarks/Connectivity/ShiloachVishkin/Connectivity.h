@@ -55,7 +55,7 @@ struct SVAlgorithm {
     sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
       auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
-      unhooked = pbbslib::filter(all_vertices, [&] (uintE v) {
+      unhooked = parlay::filter(all_vertices, [&] (uintE v) {
         return parents[v] != frequent_comp;
       });
       candidates_size = unhooked.size();

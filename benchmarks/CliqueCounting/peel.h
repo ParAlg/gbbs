@@ -3,8 +3,8 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
 
 #include "induced_hybrid.h"
 #include "intersect.h"
@@ -125,7 +125,7 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
 
   // Hash table to contain triangle count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
-  auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+  auto edge_table = gbbs::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -202,7 +202,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Hash table to contain clique count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
-  auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+  auto edge_table = gbbs::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -470,7 +470,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
 
     sequence<uintE> this_arr;
     size_t num_removed;
-    std::tie(this_arr, num_removed) = pbbslib::split_two(vertices_remaining, keep_seq);
+    std::tie(this_arr, num_removed) = parlay::split_two(vertices_remaining, keep_seq);
     size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
@@ -511,7 +511,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
 
     sequence<uintE> this_arr;
     size_t num_removed;
-    std::tie(this_arr, num_removed) = pbbslib::split_two(vtxs_remaining, keep_seq);
+    std::tie(this_arr, num_removed) = parlay::split_two(vtxs_remaining, keep_seq);
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {

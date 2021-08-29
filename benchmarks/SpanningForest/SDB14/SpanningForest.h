@@ -25,8 +25,8 @@
 
 #include "contract_sf.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
@@ -93,7 +93,7 @@ namespace workefficient_sf {
         };
         auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
         auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
-        auto new_centers = pbbslib::filter(candidates, pred);
+        auto new_centers = parlay::filter(candidates, pred);
         add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
         parallel_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
           uintE v = new_centers[i];
@@ -119,7 +119,7 @@ namespace workefficient_sf {
   // edge_mapping: edge -> edge
   using edge = std::pair<uintE, uintE>;
   template <class Graph>
-  inline pbbslib::dyn_arr<edge> SpanningForest_Impl(Graph& G, double beta,
+  inline gbbs::dyn_arr<edge> SpanningForest_Impl(Graph& G, double beta,
                                             size_t level, std::function<edge(edge)>& edge_mapping, bool
                                             pack = false, bool permute = false)
   {
@@ -135,7 +135,7 @@ namespace workefficient_sf {
     // Filter out tree edges added this round (ids are in the current level)
     auto delayed_edges = parlay::delayed_seq<edge>(parents.size(), [&] (size_t i) {
         return std::make_pair(parents[i], i); });
-    auto edges = pbbslib::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
+    auto edges = parlay::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
     // Apply the mapping to map
     parallel_for(0, edges.size(), [&] (size_t i) {
       auto e_i = edges[i];
@@ -161,7 +161,7 @@ namespace workefficient_sf {
     auto& new_mapping = GC_and_new_mapping.second; // sparse_table<edge, edge>
 
     if (GC.m == 0) {
-      auto D = pbbslib::dyn_arr<edge>(edges.size());
+      auto D = gbbs::dyn_arr<edge>(edges.size());
       D.copyIn(edges, edges.size());
       return D;
     }

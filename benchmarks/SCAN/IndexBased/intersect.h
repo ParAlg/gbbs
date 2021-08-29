@@ -10,7 +10,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
-#include "gbbs/pbbslib/assert.h"
+#include "gbbs/helpers/assert.h"
 
 namespace gbbs {
 namespace scan {

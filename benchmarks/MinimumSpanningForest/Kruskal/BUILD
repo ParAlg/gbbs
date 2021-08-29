@@ -4,8 +4,8 @@ cc_library(
   deps = [
   "//benchmarks/Connectivity/UnionFind:union_find_rules",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:sparse_table",
+  "//gbbs/helpers:dyn_arr",
   ]
 )
 

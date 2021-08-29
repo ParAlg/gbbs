@@ -28,7 +28,7 @@
 
 #include "gbbs/bridge.h"
 
-namespace pbbslib {
+namespace gbbs {
 // TODO: see if striding by an entire page improves times further.
 constexpr size_t kResizableTableCacheLineSz = 128;
 
@@ -312,7 +312,7 @@ class resizable_table {
   sequence<T> entries() {
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = parlay::make_range<T>(table, m);
-    return pbbslib::filter(table_seq, pred);
+    return parlay::filter(table_seq, pred);
   }
 
   void clear() {
@@ -326,4 +326,4 @@ inline resizable_table<K, V, KeyHash> make_resizable_table(
   return resizable_table<K, V, KeyHash>(m, empty, key_hash);
 }
 
-}  // namespace pbbslib
+}  // namespace gbbs

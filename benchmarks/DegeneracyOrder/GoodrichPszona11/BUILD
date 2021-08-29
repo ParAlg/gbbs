@@ -4,7 +4,7 @@ cc_library(
   deps = [
   "//gbbs:bucket",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:dyn_arr",
   ]
 )
 

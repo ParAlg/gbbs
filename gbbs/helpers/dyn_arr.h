@@ -29,7 +29,7 @@
 
 #include "gbbs/bridge.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 constexpr size_t kDynArrMinBktSize = 2000;
 
@@ -106,4 +106,4 @@ struct dyn_arr {
     size += n;
   }
 };
-};  // namespace pbbslib
+};  // namespace gbbs

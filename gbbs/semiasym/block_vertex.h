@@ -25,7 +25,6 @@
 
 #include "bitset_managers.h"
 #include "gbbs/macros.h"
-#include "pbbslib/sequence_ops.h"
 
 namespace gbbs {
 

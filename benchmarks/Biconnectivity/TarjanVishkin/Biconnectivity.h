@@ -26,7 +26,7 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
 namespace bc {
@@ -107,7 +107,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
     }
   });
 
-  auto edges = pbbslib::filter(
+  auto edges = parlay::filter(
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
@@ -412,7 +412,7 @@ inline sequence<uintE> cc_sources(Seq& labels) {
     gbbs::write_min(&flags[label], (uintE)i);
   });
   // Get min from each component
-  return pbbslib::filter(flags, [](uintE v) { return v != UINT_E_MAX; });
+  return parlay::filter(flags, [](uintE v) { return v != UINT_E_MAX; });
 }
 
 template <template <class W> class vertex, class W>

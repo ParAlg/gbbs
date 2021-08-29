@@ -45,7 +45,7 @@
 #include "bridge.h"
 #include "vertex_subset.h"
 
-#include "pbbslib/dyn_arr.h"
+#include "helpers/dyn_arr.h"
 
 #define CACHE_LINE_S 64
 
@@ -69,7 +69,7 @@ struct buckets {
         : id(_id), identifiers(std::move(_identifiers)) {}
   };
 
-  using id_dyn_arr = pbbslib::dyn_arr<ident_t>;
+  using id_dyn_arr = gbbs::dyn_arr<ident_t>;
 
   const bucket_id null_bkt = std::numeric_limits<bucket_id>::max();
 
@@ -418,7 +418,7 @@ struct buckets {
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
     auto bkt_seq = parlay::delayed_seq<ident_t>(
         size, [&](size_t i) { return bkt.A[i]; });
-    auto filtered = pbbslib::filter(bkt_seq, p);
+    auto filtered = parlay::filter(bkt_seq, p);
     bkts[cur_bkt].size = 0;
     if (filtered.size() == 0) {
       return next_bucket();

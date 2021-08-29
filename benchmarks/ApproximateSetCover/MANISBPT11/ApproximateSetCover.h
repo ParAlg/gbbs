@@ -64,7 +64,7 @@ struct Visit_Elms {
 // interface.
 
 template <class Graph>
-inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
+inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   using W = typename Graph::weight_type;
   timer it; it.start();
   auto Elms = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
@@ -79,7 +79,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
 
   timer nbt;
   size_t rounds = 0;
-  pbbslib::dyn_arr<uintE> cover = pbbslib::dyn_arr<uintE>();
+  gbbs::dyn_arr<uintE> cover = gbbs::dyn_arr<uintE>();
   auto r = parlay::random();
   it.stop(); it.next("initialization time");
   while (true) {

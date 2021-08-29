@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
   namespace compiled {

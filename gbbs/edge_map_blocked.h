@@ -43,7 +43,7 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G, VS& indices, F& f,
     auto p = [](std::tuple<uintE, data>& v) {
       return std::get<0>(v) != UINT_E_MAX;
     };
-    auto nextIndices = pbbslib::filter(outEdges, p);
+    auto nextIndices = parlay::filter(outEdges, p);
     return vertexSubsetData<data>(n, std::move(nextIndices));
   }
 

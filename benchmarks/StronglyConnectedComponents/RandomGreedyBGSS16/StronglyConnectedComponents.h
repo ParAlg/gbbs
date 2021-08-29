@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "gbbs/pbbslib/resizable_table.h"
+#include "gbbs/helpers/resizable_table.h"
 #include "gbbs/gbbs.h"
 
 // The include below is currently not useful, as the majority of out/in-degree
@@ -96,7 +96,7 @@ inline Search_F<W, Seq, Tab> make_search_f(Tab& tab, Seq& labels, bool* bits) {
 }
 
 template <class Graph, class Seq, class VS>
-inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
+inline gbbs::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
                                                    Seq& labels, bool* bits,
                                                    VS& frontier,
                                                    size_t label_start,
@@ -107,7 +107,7 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << parlay::log2_up(frontier.size() * 2);
   auto table_backing = gbbs::new_array_no_init<T>(backing_size);
-  auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
+  auto table = gbbs::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing, true);
   frontier.toSparse();
   parallel_for(0, frontier.size(), kDefaultGranularity, [&] (size_t i) {
@@ -202,10 +202,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   auto bits = ba.begin();
 
   auto v_im = parlay::delayed_seq<uintE>(n, [](size_t i) { return i; });
-  auto zero = pbbslib::filter(v_im, [&](size_t i) {
+  auto zero = parlay::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
-  auto NZ = pbbslib::filter(v_im, [&](size_t i) {
+  auto NZ = parlay::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() > 0) && (GA.get_vertex(i).in_degree() > 0);
   });
 
@@ -261,7 +261,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     }
   }
 
-  auto Q = pbbslib::filter(P, [&](uintE v) { return !(labels[v] & TOP_BIT); });
+  auto Q = parlay::filter(P, [&](uintE v) { return !(labels[v] & TOP_BIT); });
   std::cout << "After first round, Q = " << Q.size()
             << " vertices remain. Total done = " << (n - Q.size()) << "\n";
 
@@ -279,7 +279,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     auto centers_pre_filter = parlay::delayed_seq<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
-    auto centers = pbbslib::filter(
+    auto centers = parlay::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
 
     std::cout << "round = " << cur_round << " n_centers = " << centers.size()

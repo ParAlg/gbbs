@@ -27,7 +27,7 @@
 
 #include "gbbs/bridge.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 // the following parameters can be tuned
 constexpr const size_t _cs_seq_threshold = 2048;
@@ -106,4 +106,4 @@ _count_sort(I& A, F& get_key, s_size_t n, s_size_t num_buckets) {
   return std::make_tuple(std::move(B), std::move(counts), num_blocks, m);
 }
 
-}  // namespace pbbslib
+}  // namespace gbbs

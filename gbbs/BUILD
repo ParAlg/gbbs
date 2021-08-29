@@ -25,7 +25,7 @@ cc_library(
   deps = [
   ":gbbs",
   ":bucket",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:dyn_arr",
   ]
 )
 
@@ -58,7 +58,7 @@ cc_library(
   deps = [
   ":vertex_subset",
   ":bridge",
-  "//gbbs/pbbslib:dyn_arr"
+  "//gbbs/helpers:dyn_arr"
   ]
 )
 
@@ -185,7 +185,7 @@ cc_library(
   ":bridge",
   ":vertex",
   ":graph",
-  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/helpers:sparse_table",
   ]
 )
 
@@ -209,7 +209,7 @@ cc_library(
   ":bridge",
   ":macros",
   ":sequential_ht",
-  "//gbbs/pbbslib:counting_sort_no_transpose",
+  "//gbbs/helpers:counting_sort_no_transpose",
   ]
 )
 

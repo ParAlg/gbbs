@@ -6,7 +6,7 @@
 
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 #include "gbbs/bridge.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/sparse_table.h"
 
 namespace gbbs {
 namespace indexed_scan {
@@ -15,11 +15,11 @@ namespace {
 
 using DirectedEdge = std::pair<uintE, uintE>;
 using VertexSet =
-  pbbslib::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
+  gbbs::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
-  return pbbslib::make_sparse_table<
+  return gbbs::make_sparse_table<
     uintE, gbbs::empty, decltype(&parlay::hash64_2)>(
       capacity, {UINT_E_MAX, gbbs::empty{}}, parlay::hash64_2);
 }
@@ -193,7 +193,7 @@ Clustering Index::Cluster(
   }
 
   sequence<uintE> core_similar_edge_counts{
-      pbbslib::map<uintE>(
+      parlay::map<uintE>(
           cores,
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
@@ -248,7 +248,7 @@ void Index::Cluster(
 
     sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
     sequence<uintE> core_similar_edge_counts{
-        pbbslib::map<uintE>(
+        parlay::map<uintE>(
             cores,
             [&](const uintE vertex) {
               // Get the number of neighbors of `vertex` that have at least

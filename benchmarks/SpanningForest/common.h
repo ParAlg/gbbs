@@ -15,7 +15,7 @@ namespace spanning_forest {
     auto all_edges = parlay::delayed_seq<edge>(parents.size(), [&] (uintE i) {
       return std::make_pair(i,parents[i]);
     });
-    return pbbslib::filter(all_edges, [&] (const edge& e) {
+    return parlay::filter(all_edges, [&] (const edge& e) {
       return (e.first != e.second) && (e.second != UINT_E_MAX);
     });
   }

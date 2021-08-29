@@ -50,7 +50,7 @@ struct SVAlgorithm {
     sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
       auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
-      unhooked = pbbslib::filter(all_vertices, [&] (uintE v) {
+      unhooked = parlay::filter(all_vertices, [&] (uintE v) {
         return Parents[v] != frequent_comp;
       });
       candidates_size = unhooked.size();
@@ -125,7 +125,7 @@ inline sequence<edge> SpanningForest(Graph& G) {
   auto alg = SVAlgorithm<Graph>(G);
   alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
 
-  return pbbslib::filter(Edges, [&] (const edge& e) {
+  return parlay::filter(Edges, [&] (const edge& e) {
     return e != empty_edge;
   });
 }

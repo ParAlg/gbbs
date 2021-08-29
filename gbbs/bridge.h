@@ -165,7 +165,6 @@ using parlay::internal::timer;
 
 // ========================= atomic ops  ==========================
 
-
 // Currently unused, but may be useful in the future; including commented out.
 // template <class ET>
 // inline bool CAS128(ET* a, ET b, ET c) {
@@ -390,9 +389,37 @@ inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
                          (hash_value_1 << 6) + (hash_value_1 >> 2));
 }
 
+template <class E, class I, class P>
+struct filter_iter {
+  I& iter;
+  P& pred;
+  E cur_val;
 
+  filter_iter(I& _it, P& _pr) : iter(_it), pred(_pr) {
+    cur_val = iter.cur();
+    while (!pred(cur_val) && iter.has_next()) {
+      cur_val = iter.next();
+    }
+  }
 
+  E cur() { return cur_val; }
 
+  E next() {
+    while (iter.has_next()) {
+      cur_val = iter.next();
+      if (pred(cur_val)) {
+        break;
+      }
+    }
+    return cur_val;
+  }
+  // has_next
+};
+
+template <class E, class I, class P>
+inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
+  return filter_iter<E, I, P>(_it, _pr);
+}
 
 }  // namespace gbbs
 
@@ -431,6 +458,8 @@ using parlay::internal::sample_sort;
 using parlay::internal::sample_sort_inplace;
 using parlay::internal::pack_out;
 
+using parlay::internal::filter_out;
+using parlay::internal::split_two;
 
 constexpr const size_t _log_block_size = 10;
 constexpr const size_t _block_size = (1 << _log_block_size);
@@ -719,119 +748,3 @@ using parlay::internal::chars_to_int_t;
 using parlay::internal::get_counts;
 
 }  // namespace parlay
-
-
-// Bridge to pbbslib (c++17)
-namespace pbbslib {
-
-// ====================== utilities =======================
-using empty = gbbs::empty;
-
-using flags = parlay::flags;
-const flags no_flag = parlay::no_flag;
-const flags fl_sequential = parlay::fl_sequential;
-const flags fl_debug = parlay::fl_debug;
-const flags fl_time = parlay::fl_time;
-const flags fl_conservative = parlay::fl_conservative;
-const flags fl_inplace = parlay::fl_inplace;
-
-using parlay::parallel_for;
-using parlay::par_do;
-// using parlay::parallel_for_alloc; // TODO
-using parlay::num_workers;
-using parlay::worker_id;
-
-// Alias template so that sequence is exposed w/o namespacing
-template <typename T>
-using sequence = parlay::sequence<T>;
-
-template <typename T>
-using range = gbbs::range<T>;
-
-template <typename T>
-using slice = gbbs::slice<T>;
-
-// ========================= monoid ==========================
-
-using parlay::make_monoid;
-
-template <class T>
-using minm = parlay::minm<T>;
-
-template <class T>
-using maxm = parlay::maxm<T>;
-
-template <class T>
-using addm = parlay::addm<T>;
-
-template <class T>
-using xorm = parlay::xorm<T>;
-
-// ====================== sequence ops =======================
-
-using parlay::reduce;
-using parlay::pack;
-using parlay::pack_index;
-using parlay::map;
-using parlay::filter;
-using parlay::internal::filter_out;
-using parlay::internal::split_two;
-using parlay::internal::sliced_for;
-using parlay::internal::pack_serial_at;
-// TODO: filter_index
-
-// TODO all below
-
-// using pbbs::map_with_index;
-
-inline size_t granularity(size_t n) {
-  return (n > 100) ? ceil(pow(n, 0.5)) : 100;
-}
-
-// ====================== binary search =======================
-
-// ====================== sample sort =======================
-
-// ====================== integer sort =======================
-
-// ====================== random shuffle =======================
-using random = parlay::random;
-}
-
-// Other extensions to pbbs used by the graph benchmarks.
-namespace pbbslib {
-
-template <class E, class I, class P>
-struct filter_iter {
-  I& iter;
-  P& pred;
-  E cur_val;
-
-  filter_iter(I& _it, P& _pr) : iter(_it), pred(_pr) {
-    cur_val = iter.cur();
-    while (!pred(cur_val) && iter.has_next()) {
-      cur_val = iter.next();
-    }
-  }
-
-  E cur() { return cur_val; }
-
-  E next() {
-    while (iter.has_next()) {
-      cur_val = iter.next();
-      if (pred(cur_val)) {
-        break;
-      }
-    }
-    return cur_val;
-  }
-
-  // has_next
-};
-
-template <class E, class I, class P>
-inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
-  return filter_iter<E, I, P>(_it, _pr);
-}
-
-}
