@@ -17,8 +17,8 @@
 #include "gtest/gtest.h"
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
-#include "gbbs/undirected_edge.h"
 #include "gbbs/vertex.h"
+#include "gbbs/helpers/undirected_edge.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
 
 namespace gbbs {

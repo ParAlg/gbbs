@@ -10,8 +10,8 @@
 #include "gbbs/graph.h"
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
-#include "gbbs/undirected_edge.h"
 #include "gbbs/vertex.h"
+#include "gbbs/helpers/undirected_edge.h"
 
 namespace gbbs {
 namespace graph_test {
@@ -23,6 +23,12 @@ void CheckUnweightedNeighbors(
     size_t actual_degree,
     const std::tuple<uintE, Weight>* actual_neighbors,
     const std::vector<uintE>& expected_neighbors);
+
+template <typename Weight>
+void CheckWeightedNeighbors(
+    size_t actual_degree,
+    const std::tuple<uintE, Weight>* actual_neighbors,
+    const std::vector<std::tuple<uintE, Weight>>& expected_neighbors);
 
 }  // namespace internal
 
@@ -51,6 +57,26 @@ void CheckUnweightedInNeighbors(
       vertex.in_degree(), vertex.in_neighbors().neighbors, expected_neighbors);
 }
 
+// Check that vertex has `expected_neighbors` as its out-neighbors. Does not
+// check edge weights. Ordering matters.
+template <class Vertex>
+void CheckWeightedOutNeighbors(
+    Vertex& vertex,
+    const std::vector<std::tuple<uintE, typename Vertex::weight_type>>& expected_neighbors) {
+  internal::CheckWeightedNeighbors(
+      vertex.out_degree(), vertex.out_neighbors().neighbors, expected_neighbors);
+}
+
+// Check that vertex has `expected_neighbors` as its in-neighbors. Does not
+// check edge weights. Ordering matters.
+template <class Vertex>
+void CheckWeightedInNeighbors(
+    Vertex& vertex,
+    const std::vector<std::tuple<uintE, typename Vertex::weight_type>>& expected_neighbors) {
+  internal::CheckWeightedNeighbors(
+      vertex.in_degree(), vertex.in_neighbors().neighbors, expected_neighbors);
+}
+
 namespace internal {  // Internal definitions
 
 // Check that the first `actual_degree` entries of `actual_neighbors` equal
@@ -66,6 +92,24 @@ void CheckUnweightedNeighbors(
   neighbors_vector.reserve(actual_degree);
   for (size_t i = 0; i < actual_degree; i++) {
     neighbors_vector.emplace_back(std::get<0>(actual_neighbors[i]));
+  }
+
+  EXPECT_EQ(neighbors_vector, expected_neighbors);
+}
+
+// Check that the first `actual_degree` entries of `actual_neighbors` equal
+// the entire vector `expected_neighbors`.
+template <typename Weight>
+void CheckWeightedNeighbors(
+    const size_t actual_degree,
+    const std::tuple<uintE, Weight>* const actual_neighbors,
+    const std::vector<std::tuple<uintE, Weight>>& expected_neighbors) {
+  EXPECT_EQ(actual_degree, expected_neighbors.size());
+
+  std::vector<std::tuple<uintE, Weight>> neighbors_vector;
+  neighbors_vector.reserve(actual_degree);
+  for (size_t i = 0; i < actual_degree; i++) {
+    neighbors_vector.emplace_back(std::get<0>(actual_neighbors[i]), std::get<1>(actual_neighbors[i]));
   }
 
   EXPECT_EQ(neighbors_vector, expected_neighbors);

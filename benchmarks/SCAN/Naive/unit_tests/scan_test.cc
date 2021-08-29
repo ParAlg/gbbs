@@ -7,7 +7,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "gbbs/undirected_edge.h"
+#include "gbbs/helpers/undirected_edge.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
 
 namespace gbbs {

@@ -27,7 +27,7 @@ gbbs_cc_test(
     name = "undirected_edge_test",
     srcs = ["undirected_edge_test.cc"],
     deps = [
-        "//gbbs:undirected_edge",
+        "//gbbs/helpers:undirected_edge",
         "@googletest//:gtest_main",
     ],
 )
@@ -41,8 +41,8 @@ cc_library(
   "//gbbs:graph",
   "//gbbs:bridge",
   "//gbbs:macros",
-  "//gbbs:undirected_edge",
   "//gbbs:vertex",
+  "//gbbs/helpers:undirected_edge",
   "@googletest//:gtest",
   ]
 )

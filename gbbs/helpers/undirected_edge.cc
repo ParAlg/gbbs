@@ -1,4 +1,4 @@
-#include "gbbs/undirected_edge.h"
+#include "gbbs/helpers/undirected_edge.h"
 
 #include <algorithm>
 

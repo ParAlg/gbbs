@@ -5,7 +5,7 @@ gbbs_cc_test(
     srcs = ["scan_test.cc"],
     deps = [
         "//benchmarks/SCAN/Naive:scan",
-        "//gbbs:undirected_edge",
+        "//gbbs/helpers:undirected_edge",
         "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",
     ],

@@ -274,12 +274,3 @@ cc_library(
   ]
 )
 
-cc_library(
-  name = "undirected_edge",
-  hdrs = ["undirected_edge.h"],
-  srcs = ["undirected_edge.cc"],
-  deps = [
-  ":macros",
-  ]
-)
-

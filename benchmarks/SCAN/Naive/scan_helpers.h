@@ -6,9 +6,9 @@
 
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "gbbs/helpers/sparse_table.h"
-#include "gbbs/undirected_edge.h"
 #include "gbbs/vertex_subset.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/undirected_edge.h"
 
 namespace gbbs {
 namespace naive_scan {
