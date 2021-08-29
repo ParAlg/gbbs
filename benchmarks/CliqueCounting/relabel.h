@@ -59,7 +59,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
     GA.get_vertex(i).out_neighbors().map(f, false);
     // need to sort tmp_edges
     tmp_edges.resize(deg);
-    pbbslib::stable_sort_inplace(make_slice(tmp_edges),
+    parlay::stable_sort_inplace(make_slice(tmp_edges),
                                  [&](const edge u, const edge v) {
                                    return std::get<0>(u) < std::get<0>(v);
                                  });
@@ -89,7 +89,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
   size_t last_offset = parlay::scan_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
-  auto edges = pbbslib::new_array_no_init<uchar>(last_offset);
+  auto edges = gbbs::new_array_no_init<uchar>(last_offset);
 
   // redo the sort from above, but now actually store your edges
   parallel_for(0, n, 1, [&](size_t i) {
@@ -108,7 +108,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
       };
       GA.get_vertex(i).out_neighbors().map(f, false);
       // need to sort tmp_edges
-      pbbslib::stable_sort_inplace(make_slice(tmp_edges),
+      parlay::stable_sort_inplace(make_slice(tmp_edges),
                                    [&](const edge u, const edge v) {
                                      return std::get<0>(u) < std::get<0>(v);
                                    });
@@ -119,7 +119,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
     }
   });
 
-  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     out_vdata[i].offset = byte_offsets[i];
     out_vdata[rank[i]].degree = degrees[i];
@@ -132,7 +132,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
                                       [=]() {
-                                        pbbslib::free_array(out_vdata, n);
+                                        gbbs::free_array(out_vdata, n);
                                         free_array(edges, last_offset);
                                       },
                                       edges);
@@ -168,7 +168,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
 
   using edge = std::tuple<uintE, W>;
 
-  auto out_edges = pbbslib::new_array_no_init<edge>(outEdgeCount);
+  auto out_edges = gbbs::new_array_no_init<edge>(outEdgeCount);
 
   parallel_for(0, n, 1, [&](size_t i) {
     w_vertex u = GA.get_vertex(i);
@@ -189,7 +189,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
         dir_nghs[j] = std::make_tuple(rank[std::get<0>(dir_nghs[j])],
                                       std::get<1>(dir_nghs[j]));
       });
-      pbbslib::stable_sort_inplace(parlay::make_range(dir_nghs, true_deg),
+      parlay::stable_sort_inplace(parlay::make_range(dir_nghs, true_deg),
                                    [&](const edge left, const edge right) {
                                      return std::get<0>(left) <
                                             std::get<0>(right);
@@ -197,7 +197,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
     }
   });
 
-  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     out_vdata[i].offset = outOffsets[i];
     out_vdata[i].degree = outOffsets[i + 1] - outOffsets[i];
@@ -207,8 +207,8 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, GA.n, outEdgeCount,
       [=]() {
-        pbbslib::free_array(out_vdata, n);
-        pbbslib::free_array(out_edges, outEdgeCount);
+        gbbs::free_array(out_vdata, n);
+        gbbs::free_array(out_edges, outEdgeCount);
       },
       out_edges);
 }
@@ -220,7 +220,7 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   // Color vertices with denom colors
   uintE numColors = std::max((size_t)1, denom);
   sequence<uintE> colors = sequence<uintE>::from_function(n, [&](size_t i) {
-    return pbbslib::hash64_2((uintE)seed + i) % numColors;
+    return parlay::hash64_2((uintE)seed + i) % numColors;
   });
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (colors[u] == colors[v]) return 0;

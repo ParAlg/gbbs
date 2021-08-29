@@ -13,7 +13,7 @@ namespace gbbs {
 
 // Wrapper for a hash function
 struct hashtup {
-  inline size_t operator () (const uintE & a) const {return pbbslib::hash64_2(a);}
+  inline size_t operator () (const uintE & a) const {return parlay::hash64_2(a);}
 };
 
 // For triangle peeling

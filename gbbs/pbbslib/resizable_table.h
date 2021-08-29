@@ -112,15 +112,15 @@ class resizable_table {
   void del() {
     if (alloc) {
       size_t workers = num_workers();
-      pbbslib::free_array(table, m);
-      pbbslib::free_array(cts, kResizableTableCacheLineSz * workers);
+      gbbs::free_array(table, m);
+      gbbs::free_array(cts, kResizableTableCacheLineSz * workers);
       alloc = false;
     }
   }
 
   void init_counts() {
     size_t workers = num_workers();
-    cts = pbbslib::new_array_no_init<size_t>(kResizableTableCacheLineSz *
+    cts = gbbs::new_array_no_init<size_t>(kResizableTableCacheLineSz *
                                              workers);
     for (size_t i = 0; i < workers; i++) {
       cts[i * kResizableTableCacheLineSz] = 0;
@@ -156,7 +156,7 @@ class resizable_table {
   }
 
   resizable_table(size_t _m, T _empty, KeyHash _key_hash)
-      : m((size_t)1 << pbbslib::log2_up((size_t)(1.1 * _m))),
+      : m((size_t)1 << parlay::log2_up((size_t)(1.1 * _m))),
         mask(m - 1),
         ne(0),
         empty(_empty),
@@ -199,7 +199,7 @@ class resizable_table {
     if (nt > (0.25 * m)) {
       size_t old_m = m;
       auto old_t = table;
-      m = ((size_t)1 << pbbslib::log2_up((size_t)(10 * nt)));
+      m = ((size_t)1 << parlay::log2_up((size_t)(10 * nt)));
       if (m == old_m) {
         return;
       }
@@ -216,7 +216,7 @@ class resizable_table {
       });
       update_nelms();
       if (alloc) {
-        pbbslib::free_array(old_t, old_m);
+        gbbs::free_array(old_t, old_m);
       }
       alloc = true;
     }

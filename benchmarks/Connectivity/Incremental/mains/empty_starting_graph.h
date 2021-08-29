@@ -51,7 +51,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
 //  auto sort_f = [&] (const std::tuple<uintE, uintE>& l, const std::tuple<uintE, uintE>& r) {
 //    return l < r;
 //  };
-//  pbbslib::sample_sort_inplace(updates.slice(), sort_f);
+//  parlay::sample_sort_inplace(updates.slice(), sort_f);
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 

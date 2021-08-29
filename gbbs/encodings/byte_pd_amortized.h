@@ -619,7 +619,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   auto blocks_imap = parlay::delayed_seq<size_t>(num_blocks, blocks_f);
   // This is essentially searching a plus_scan'd, incl arr.
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-  size_t block = pbbslib::binary_search(blocks_imap, i, lte);
+  size_t block = parlay::binary_search(blocks_imap, i, lte);
   assert(block >= 0);
   assert(block < num_blocks);
 
@@ -1088,7 +1088,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
       auto pd = [&](const std::tuple<uintE, W>& nw) {
         return pred(source, std::get<0>(nw), std::get<1>(nw));
       };
-      uintE k = pbbslib::filterf(tmp, last_offset, pd, out, out_off);
+      uintE k = parlay::filterf(tmp, last_offset, pd, out, out_off);
       out_off += k;
 
       blocks_finished += total_blocks;

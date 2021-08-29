@@ -94,7 +94,7 @@ init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred,
   //    uintE degree = (fl & in_edges) ? GA.get_vertex(i).in_degree() :
   //    GA.get_vertex(i).out_degree();
   //    if (degree == 0) { return static_cast<size_t>(0); }
-  //    size_t nb = pbbslib::num_blocks(degree, bs);
+  //    size_t nb = parlay::num_blocks(degree, bs);
   //    return nb;
   //  });
   //  size_t total_blocks = parlay::reduce(blocks_seq);
@@ -121,7 +121,7 @@ init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred,
     size_t block_byte_offset = block_bytes_offs[v];
     size_t vtx_bytes = block_bytes_offs[v + 1] - block_byte_offset;
 
-    size_t num_blocks = pbbslib::num_blocks(degree, bs);
+    size_t num_blocks = parlay::num_blocks(degree, bs);
     // set vertex_info for v
     VI[v] = vtx_info(degree, num_blocks, block_byte_offset);
 

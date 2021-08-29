@@ -90,7 +90,7 @@ struct uncompressed_neighbors {
   uintE get_virtual_degree() { return degree; }
 
   uintE get_num_blocks() {
-    return pbbslib::num_blocks(degree, vertex_ops::kBlockSize);
+    return parlay::num_blocks(degree, vertex_ops::kBlockSize);
   }
 
   uintE block_degree(uintE block_num) {
@@ -233,7 +233,7 @@ struct uncompressed_neighbors {
       auto pc = [&](const std::tuple<uintE, W>& nw) {
         return p(id, std::get<0>(nw), std::get<1>(nw));
       };
-      size_t k = pbbslib::filterf(tmp, neighbors, degree, pc);
+      size_t k = parlay::filterf(tmp, neighbors, degree, pc);
       degree = k;
       return k;
     }
@@ -414,7 +414,7 @@ struct symmetric_vertex {
    * allocated in a shared array */
   void clear() {
     exit(-1);
-    // pbbslib::free_array(neighbors);
+    // gbbs::free_array(neighbors);
   }
 
   uncompressed_neighbors<W> in_neighbors() {

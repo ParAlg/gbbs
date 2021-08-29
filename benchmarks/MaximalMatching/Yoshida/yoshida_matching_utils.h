@@ -5,7 +5,7 @@ size_t get_edge_pri(uintE u, uintE v) {
   uintE min_u = std::min(u, v);
   uintE max_u = std::max(u, v);
   size_t key = (static_cast<size_t>(min_u) << 32UL) | static_cast<size_t>(max_u);
-  return pbbslib::hash64(key);
+  return parlay::hash64(key);
 }
 
 struct sorted_it {

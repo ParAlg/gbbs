@@ -68,8 +68,8 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
                     << " len = " << (tokens.size() - 1) << "\n";
           uint64_t len = tokens.size() - 1; assert(len == n + m + 2););
 
-    offsets = pbbslib::new_array_no_init<uintT>(n + 1);
-    edges = pbbslib::new_array_no_init<uintE>(m);
+    offsets = gbbs::new_array_no_init<uintT>(n + 1);
+    edges = gbbs::new_array_no_init<uintE>(m);
 
     parallel_for(0, n, [&](size_t i) {
       offsets[i] =
@@ -107,7 +107,7 @@ symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
   std::tie(n, m, offsets, edges) =
       parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i + 1] - v_data[i].offset;
@@ -139,19 +139,19 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
   std::tie(n, m, offsets, edges) =
       parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i + 1] - v_data[i].offset;
   });
   if (!binary) {
-    pbbslib::free_array(offsets, n + 1);
+    gbbs::free_array(offsets, n + 1);
   }
 
   /* construct transpose of the graph */
   sequence<uintT> tOffsets = sequence<uintT>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) { tOffsets[i] = INT_T_MAX; });
-  intPair* temp = pbbslib::new_array_no_init<intPair>(m);
+  intPair* temp = gbbs::new_array_no_init<intPair>(m);
   parallel_for(0, n, [&](size_t i) {
     uintT o = v_data[i].offset;
     uintT deg = v_data[i].degree;
@@ -165,7 +165,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
                                 [&](const intPair& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
-  uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
+  uintE* inEdges = gbbs::new_array_no_init<uintE>(m);
   inEdges[0] = temp[0].second;
   parallel_for(1, m, [&](size_t i) {
     inEdges[i] = temp[i].second;
@@ -174,7 +174,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
     }
   });
 
-  pbbslib::free_array(temp, m);
+  gbbs::free_array(temp, m);
 
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
@@ -184,7 +184,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
   M.identity = m;
   parlay::scan_inclusive_inplace(t_seq, M);
 
-  auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_in_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i + 1] - v_in_data[i].offset;
@@ -212,7 +212,7 @@ std::tuple<char*, size_t> parse_compressed_graph(const char* fname, bool mmap,
     if (mmapcopy) {
       debug(std::cout << "# Copying compressed graph due to mmapcopy being set."
                       << "\n";);
-      char* next_bytes = pbbslib::new_array_no_init<char>(bytes_size);
+      char* next_bytes = gbbs::new_array_no_init<char>(bytes_size);
       parallel_for(0, bytes_size, [&](size_t i) { next_bytes[i] = bytes[i]; });
       if (munmap(bytes, bytes_size) == -1) {
         perror("munmap");

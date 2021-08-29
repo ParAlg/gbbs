@@ -15,13 +15,13 @@ namespace {
 
 using DirectedEdge = std::pair<uintE, uintE>;
 using VertexSet =
-  pbbslib::sparse_table<uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>;
+  pbbslib::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
   return pbbslib::make_sparse_table<
-    uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>(
-      capacity, {UINT_E_MAX, gbbs::empty{}}, pbbslib::hash64_2);
+    uintE, gbbs::empty, decltype(&parlay::hash64_2)>(
+      capacity, {UINT_E_MAX, gbbs::empty{}}, parlay::hash64_2);
 }
 
 // Identifies the clusters for the core vertices and populates `clustering`
@@ -198,7 +198,7 @@ Clustering Index::Cluster(
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
             // `epsilon` structural similarity with the vertex.
-            return pbbslib::binary_search(
+            return parlay::binary_search(
                 neighbor_order_[vertex],
                 [epsilon](const internal::EdgeSimilarity& es) {
                   return es.similarity >= epsilon;
@@ -230,7 +230,7 @@ void Index::Cluster(
     epsilons.size(), [](const size_t i) { return i; });
   // Sort epsilons in decreasing order --- as epsilon decreases, more
   // core-to-core edges appear.
-  pbbslib::sample_sort_inplace(
+  parlay::sample_sort_inplace(
       make_slice(sorted_epsilon_indices),
       [&](const size_t i, const size_t j) {
         return epsilons[i] > epsilons[j];
@@ -253,7 +253,7 @@ void Index::Cluster(
             [&](const uintE vertex) {
               // Get the number of neighbors of `vertex` that have at least
               // `epsilon` structural similarity with the vertex.
-              return pbbslib::binary_search(
+              return parlay::binary_search(
                   neighbor_order_[vertex],
                   [epsilon](const internal::EdgeSimilarity& es) {
                     return es.similarity >= epsilon;

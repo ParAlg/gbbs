@@ -98,7 +98,7 @@ size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   size_t ct = 0;
   for (size_t i = 0; i < nA; i++) {
     const T& a = A[i];
-    size_t mB = pbbslib::binary_search(B, a, std::less<T>());
+    size_t mB = parlay::binary_search(B, a, std::less<T>());
     if (mB < B.size() && a == B[mB]) {
       f(a);
       ct++;
@@ -121,7 +121,7 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
     return intersection::seq_merge(A, B, f);
   } else {
     size_t mA = nA / 2;
-    size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
+    size_t mB = parlay::binary_search(B, A[mA], std::less<T>());
     size_t m_left = 0;
     size_t m_right = 0;
     par_do(

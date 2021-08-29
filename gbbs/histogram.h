@@ -55,7 +55,7 @@ struct get_bucket {
   std::tuple<parlay::sequence<E>, int> heavy_hitters(size_t n, size_t count) {
     auto sample = parlay::sequence<E>::uninitialized(count);
     for (size_t i = 0; i < count; i++) {
-      sample[i] = I[pbbslib::hash32(i) % n];
+      sample[i] = I[parlay::hash32(i) % n];
     }
     std::sort(sample.begin(), sample.begin() + count);
 
@@ -83,7 +83,7 @@ struct get_bucket {
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
-      size_t h = pbbslib::hash32(entries[i]) & _table_mask;
+      size_t h = parlay::hash32(entries[i]) & _table_mask;
       while (std::get<1>(table[h]) != -1) {
         h = (h + 1) & _table_mask;
       }
@@ -111,7 +111,7 @@ struct get_bucket {
 
   size_t operator()(size_t i) {
     if (k > 0) {
-      size_t h = pbbslib::hash32(I[i]) & table_mask;
+      size_t h = parlay::hash32(I[i]) & table_mask;
       while (true) {
         E elm;
         int ct;
@@ -125,7 +125,7 @@ struct get_bucket {
         h = (h + 1) & table_mask;
       }
     }
-    return pbbslib::hash32(I[i] & low_mask) & bucket_mask;
+    return parlay::hash32(I[i] & low_mask) & bucket_mask;
   }
 };
 
@@ -142,7 +142,7 @@ struct hist_table {
 
   void resize(size_t req_size) {
     if (req_size > size) {
-      size_t rounded_size = (1L << pbbslib::log2_up<size_t>(req_size));
+      size_t rounded_size = (1L << parlay::log2_up<size_t>(req_size));
       table = parlay::sequence<KV>(rounded_size, empty);
       size = rounded_size;
       debug(std::cout << "resized to: " << size << "\n";);
@@ -158,14 +158,14 @@ inline sequence<O> histogram_medium(A& get_key, size_t n, Apply& apply_f,
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
-  num_buckets = std::max(1 << pbbslib::log2_up(num_buckets), 1);
+  num_buckets = std::max(1 << parlay::log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   // (1) count-sort based on bucket
   size_t low_mask = ~((size_t)15);
   size_t bucket_mask = num_buckets - 1;
   auto gb = [&](uintE i) {
-    return pbbslib::hash32(get_key[i] & low_mask) & bucket_mask;
+    return parlay::hash32(get_key[i] & low_mask) & bucket_mask;
   };
 
   parlay::sequence<K> elms;
@@ -216,7 +216,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n, Apply& apply_f,
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
     if (size > 0) {
-      ht_size = 1 << pbbslib::log2_up((intT)(size + 1));
+      ht_size = 1 << parlay::log2_up((intT)(size + 1));
     }
     ht_offs[i + 1] = ht_offs[i] + ht_size;
     if (size < min_size) {
@@ -309,7 +309,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
 
   // sequential elision
   if (n < _hist_seq_threshold || nworkers == 1) {
-    size_t pn = pbbslib::log2_up((intT)(n + 1));
+    size_t pn = parlay::log2_up((intT)(n + 1));
     size_t rs = 1L << pn;
     ht.resize(rs);
     sequentialHT<K, V> S(ht.table.begin(), n, 1.0f, ht.empty);
@@ -335,9 +335,9 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
-  num_buckets = std::max(1 << pbbslib::log2_up(num_buckets), 1);
+  num_buckets = std::max(1 << parlay::log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
-  size_t bits = pbbslib::log2_up(num_buckets);
+  size_t bits = parlay::log2_up(num_buckets);
 
   auto gb = get_bucket<K, A>(get_key, n, bits);
   size_t num_heavy = gb.k;
@@ -415,7 +415,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
     if (size > 0) {
-      ht_size = 1 << pbbslib::log2_up((intT)(size + 1));
+      ht_size = 1 << parlay::log2_up((intT)(size + 1));
     }
     ht_offs[i + 1] = ht_offs[i] + ht_size;
     if (size < min_size) {
@@ -565,7 +565,7 @@ template <class E, class O, class K, class V, class A, class Reduce,
           class Apply>
 inline sequence<O> seq_histogram_reduce(A& get_elm, size_t n, Reduce& reduce_f,
                                         Apply& apply_f, hist_table<K, V>& ht) {
-  size_t pn = pbbslib::log2_up((intT)(n + 1));
+  size_t pn = parlay::log2_up((intT)(n + 1));
   size_t rs = 1L << pn;
   ht.resize(rs);
   sequentialHT<K, V> S(ht.table.begin(), n, 1.0f, ht.empty);
@@ -606,14 +606,14 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
-  num_buckets = std::max(1 << pbbslib::log2_up(num_buckets), 1);
+  num_buckets = std::max(1 << parlay::log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   // (1) count-sort based on bucket
   size_t low_mask = ~((size_t)15);
   size_t bucket_mask = num_buckets - 1;
   auto gb = [&](uintE i) {
-    return pbbslib::hash32(get_key[i] & low_mask) & bucket_mask;
+    return parlay::hash32(get_key[i] & low_mask) & bucket_mask;
   };
 
   auto p = pbbslib::_count_sort<int16_t, size_t, E>(get_elm, gb, n,
@@ -657,7 +657,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
     if (size > 0) {
-      ht_size = 1 << pbbslib::log2_up((intT)(size + 1));
+      ht_size = 1 << parlay::log2_up((intT)(size + 1));
     }
     ht_offs[i + 1] = ht_offs[i] + ht_size;
   }

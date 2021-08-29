@@ -113,7 +113,7 @@ namespace mm {
     bool finish = (m <= k);
 
     std::cout << "Threshold, using m = " << m << "\n";
-    size_t range = pbbslib::log2_up(G.m);
+    size_t range = parlay::log2_up(G.m);
     range = 1L << range;
     range -= 1;
 

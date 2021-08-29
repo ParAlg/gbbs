@@ -60,7 +60,7 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
     s_size_t k = --offsets[tmp[j]];
     // needed for types with self defined assignment or initialization
     // otherwise equivalent to: Out[k+start] = In[j+start];
-    pbbslib::move_uninitialized(Out[k + start], In[j + start]);
+    parlay::assign_uninitialized(Out[k + start], In[j + start]);
   }
 }
 
@@ -77,7 +77,7 @@ _count_sort(I& A, F& get_key, s_size_t n, s_size_t num_buckets) {
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_blocks = (size_t)(n < 20000000) ? (sqrt / 10) : sqrt;
   num_blocks = std::min(num_blocks, _cs_max_blocks);
-  num_blocks = 1 << log2_up(num_blocks);
+  num_blocks = 1 << parlay::log2_up(num_blocks);
 
   // if insufficient parallelism, sort sequentially
   if (n < _cs_seq_threshold || num_blocks == 1) {

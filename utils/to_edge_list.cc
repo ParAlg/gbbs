@@ -58,7 +58,7 @@ void print_edge_list(Graph& GA, std::string& outfile, bool direct_sym, bool mult
   if (multistep_header) {
     file << n << " " << m_out << std::endl;
   }
-  auto edges_chars = pbbslib::sequence_to_string(edges);
+  auto edges_chars = parlay::sequence_to_string(edges);
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();
@@ -106,7 +106,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
     exit(0);
   }
   file << n << " " << m_out << std::endl;
-  auto edges_chars = pbbslib::sequence_to_string(edges);
+  auto edges_chars = parlay::sequence_to_string(edges);
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();

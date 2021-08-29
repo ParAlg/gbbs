@@ -62,7 +62,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
   timer function_timer{"Compute core order time"};
 
   sequence<VertexDegree> vertex_degrees{
-    pbbslib::map_with_index<VertexDegree>(
+    parlay::map_with_index<VertexDegree>(
         neighbor_order,
         [](const size_t v,
            const pbbslib::range<EdgeSimilarity>& neighbors) {
@@ -117,7 +117,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
       [](const CoreThreshold& a, const CoreThreshold& b) {
         return a.threshold > b.threshold;
       }};
-    pbbslib::sample_sort_inplace(
+    parlay::sample_sort_inplace(
         make_slice(core_thresholds), compare_threshold_descending);
     return core_thresholds;
   }};
@@ -145,7 +145,7 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 
   const sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
-    pbbslib::binary_search(
+    parlay::binary_search(
         possible_cores,
         [epsilon](const internal::CoreThreshold& core_threshold) {
           return core_threshold.threshold >= epsilon;

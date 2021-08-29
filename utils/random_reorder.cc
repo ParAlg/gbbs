@@ -40,8 +40,8 @@ void randomReorder(Graph& GA, std::string& outfile) {
   file << "AdjacencyGraph" << std::endl;
   file << n << std::endl;
   file << m << std::endl;
-  auto off_chars = pbbslib::sequence_to_string(offs);
-  auto edges_chars = pbbslib::sequence_to_string(edges);
+  auto off_chars = parlay::sequence_to_string(offs);
+  auto edges_chars = parlay::sequence_to_string(edges);
   file.write(off_chars.begin(), off_chars.size());
   file.write(edges_chars.begin(), edges_chars.size());
 

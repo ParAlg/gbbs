@@ -703,7 +703,7 @@ struct uncompressed_bitset_neighbors {
         vtx_num_blocks, [&](size_t ind) { return block_metadata[ind].offset; });
 
     auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-    size_t block = pbbslib::binary_search(offsets_imap, i, lte);
+    size_t block = parlay::binary_search(offsets_imap, i, lte);
     assert(block > 0);
     block = block - 1;
 
@@ -1226,7 +1226,7 @@ struct compressed_bitset_neighbors {
         vtx_num_blocks, [&](size_t ind) { return block_metadata[ind].offset; });
 
     auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-    size_t block = pbbslib::binary_search(offsets_imap, i, lte);
+    size_t block = parlay::binary_search(offsets_imap, i, lte);
     assert(block > 0);
     block = block - 1;
 

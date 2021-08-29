@@ -53,7 +53,7 @@ double wBFS_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
+  if (num_buckets != (((uintE)1) << parlay::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"
               << "\n";
     exit(-1);

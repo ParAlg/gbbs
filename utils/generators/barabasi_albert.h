@@ -9,7 +9,7 @@ auto generate_updates(
     size_t n,
     size_t edges_per_node=10) {
   size_t m = n*edges_per_node;
-  auto edges = pbbslib::sequence<std::pair<uintE, uintE>>(m);
+  auto edges = parlay::sequence<std::pair<uintE, uintE>>(m);
   // Each edge picks a random id before it.
   for (size_t i=0; i<edges_per_node; i++) {
     edges[i] = std::make_pair(i, i+1);

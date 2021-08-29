@@ -17,7 +17,7 @@ namespace contract_sf {
       size_t l = std::min(std::get<0>(t), std::get<1>(t));
       size_t r = std::max(std::get<0>(t), std::get<1>(t));
       size_t key = (l << 32) + r;
-      return pbbslib::hash64_2(key);
+      return parlay::hash64_2(key);
     }
   };
 

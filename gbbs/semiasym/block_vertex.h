@@ -121,7 +121,7 @@ size_t seq_merge(SeqA& A, SeqB& B) {
 // size_t intersect_batch_seq(S& a, It& b) {
 //  size_t b_size = 128;
 //  uintE block[b_size];
-//  size_t n_blocks = pbbslib::num_blocks(b.degree(), b_size);
+//  size_t n_blocks = parlay::num_blocks(b.degree(), b_size);
 //  size_t ans = 0;
 //  size_t i=0;
 //  size_t block_id=0;
@@ -196,7 +196,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
     auto im = parlay::make_range(block_outputs, num_blocks);
     T res = parlay::reduce(im, reduce);
     if (num_blocks > 100) {
-      pbbslib::free_array(block_outputs);
+      gbbs::free_array(block_outputs);
     }
     return res;
   } else {

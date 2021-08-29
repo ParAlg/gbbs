@@ -24,7 +24,7 @@
 //
 // Note: Have only tested this for simple datatypes, in particular, it uses newA
 // (i.e. malloc) to resize, which will cause cryptic segfaults if E requires a
-// constructor call to properly initialize memory. see pbbslib::new_array(..)
+// constructor call to properly initialize memory. see gbbs::new_array(..)
 #pragma once
 
 #include "gbbs/bridge.h"
@@ -42,14 +42,14 @@ struct dyn_arr {
 
   dyn_arr() : A(NULL), size(0), capacity(0), alloc(false) {}
   dyn_arr(size_t s) : size(0), capacity(s), alloc(true) {
-    A = pbbslib::new_array_no_init<E>(s);
+    A = gbbs::new_array_no_init<E>(s);
   }
   dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
       : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(A, capacity);
+      gbbs::free_array(A, capacity);
       alloc = false;
     }
   }
@@ -69,10 +69,10 @@ struct dyn_arr {
   inline void resize(size_t n) {
     if (n + size > capacity) {
       size_t new_capacity = std::max(2 * (n + size), (size_t)kDynArrMinBktSize);
-      E* nA = pbbslib::new_array_no_init<E>(new_capacity);
+      E* nA = gbbs::new_array_no_init<E>(new_capacity);
       parallel_for(0, size, [&](size_t i) { nA[i] = A[i]; });
       if (alloc) {
-        pbbslib::free_array(A, capacity);
+        gbbs::free_array(A, capacity);
       }
       A = nA;
       capacity = new_capacity;

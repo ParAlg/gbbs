@@ -6,8 +6,8 @@ namespace std {
 
 size_t hash<gbbs::UndirectedEdge>::operator()(
     const gbbs::UndirectedEdge& edge) const {
-  return gbbs::hash_combine(pbbslib::hash64_2(edge.edge_.first),
-                            pbbslib::hash64_2(edge.edge_.second));
+  return gbbs::hash_combine(parlay::hash64_2(edge.edge_.first),
+                            parlay::hash64_2(edge.edge_.second));
 }
 
 }  // namespace std

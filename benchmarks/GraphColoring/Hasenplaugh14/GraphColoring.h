@@ -35,7 +35,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     bool* bits;
     bool s_bits[1000];
     if (deg > 1000)
-      bits = pbbslib::new_array_no_init<bool>(deg);
+      bits = gbbs::new_array_no_init<bool>(deg);
     else
       bits = (bool*)s_bits;
 
@@ -52,7 +52,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     auto im = parlay::delayed_seq<uintE>(deg, im_f);
     uintE color = parlay::reduce(im, pbbslib::minm<uintE>());
     if (deg > 1000) {
-      pbbslib::free_array(bits, deg);
+      gbbs::free_array(bits, deg);
     }
     return (color == UINT_E_MAX) ? (deg + 1) : color;
   }
@@ -115,11 +115,11 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     // LLF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     parallel_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = pbbslib::log2_up(G.get_vertex(i).out_degree());
+      uintE our_deg = parlay::log2_up(G.get_vertex(i).out_degree());
       uintE i_p = P[i];
       // breaks ties using P
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = pbbslib::log2_up(G.get_vertex(ngh).out_degree());
+        uintE ngh_deg = parlay::log2_up(G.get_vertex(ngh).out_degree());
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
       priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
@@ -128,7 +128,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
 
   auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map = parlay::delayed_seq<bool>(n, zero_map_f);
-  auto roots = vertexSubset(n, pbbslib::pack_index<uintE>(zero_map));
+  auto roots = vertexSubset(n, parlay::pack_index<uintE>(zero_map));
   debug(initt.next("init time"););
 
   size_t finished = 0, rounds = 0;

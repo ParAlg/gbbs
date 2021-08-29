@@ -16,7 +16,7 @@ struct atomic_sum_counter {
 
   void initialize() {
     stride = 128 / sizeof(T);
-    stride = pbbslib::log2_up(stride);
+    stride = parlay::log2_up(stride);
     num_workers_ = num_workers();
     num_elms = num_workers_ << stride;
     entries = parlay::sequence<T>::uninitialized(num_elms);

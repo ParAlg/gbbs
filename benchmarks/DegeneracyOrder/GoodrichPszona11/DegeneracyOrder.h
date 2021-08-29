@@ -39,7 +39,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     std::cout << "Kth smallesting w ns = " << ns << std::endl;
     std::cout << "num remaining = " << active_degs.size() << std::endl;);
     kt.start();
-    uintE threshold = pbbslib::approximate_kth_smallest(active_degs, ns, std::less<uintE>(), r);
+    uintE threshold = parlay::approximate_kth_smallest(active_degs, ns, std::less<uintE>(), r);
     r = r.next();
     kt.stop();
 

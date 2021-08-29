@@ -45,12 +45,12 @@ class sparse_additive_map {
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K& k) { return hashToRange(pbbslib::hash64(k)); }
+  inline size_t firstIndex(K& k) { return hashToRange(parlay::hash64(k)); }
   inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(table);
+      gbbs::free_array(table);
       alloc = false;
     }
   }
@@ -63,7 +63,7 @@ class sparse_additive_map {
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
   sparse_additive_map(size_t _m, T _empty)
-      : m((size_t)1 << pbbslib::log2_up((size_t)(1.1 * _m))),
+      : m((size_t)1 << parlay::log2_up((size_t)(1.1 * _m))),
         mask(m - 1),
         empty(_empty),
         empty_key(std::get<0>(empty)) {

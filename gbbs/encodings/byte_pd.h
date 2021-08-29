@@ -694,7 +694,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     auto pd = [&](const std::tuple<uintE, W>& nw) {
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
-    uintE k = pbbslib::filterf(our_tmp, tmp2, degree, pd);
+    uintE k = parlay::filterf(our_tmp, tmp2, degree, pd);
     if (k == degree || k == 0) {
       return k;
     }
@@ -753,7 +753,7 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
     auto pd = [&](const std::tuple<uintE, W>& nw) {
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
-    uintE k = pbbslib::filterf(tmp, tmp2, degree, pd);
+    uintE k = parlay::filterf(tmp, tmp2, degree, pd);
     parallel_for(0, k, [&](size_t i) { out(i, tmp2[i]); });
     return k;
   }

@@ -139,11 +139,11 @@ namespace unite_variants {
     Compress& compress;
     Splice& splice;
     UniteRemLock(Compress& compress, Splice& splice, uintE n) : n(n), compress(compress), splice(splice) {
-      locks = pbbslib::new_array<std::mutex>(n);
+      locks = gbbs::new_array<std::mutex>(n);
     }
 
     ~UniteRemLock() {
-      pbbslib::free_array(locks);
+      gbbs::free_array(locks);
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {

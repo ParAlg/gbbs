@@ -166,7 +166,7 @@ struct vertexSubsetData {
     if (s.size() == 0 && m > 0) {
       auto f = [&](size_t i) -> std::tuple<bool, data> { return d[i]; };
       auto f_seq = parlay::delayed_seq<D>(n, f);
-      s = pbbslib::pack_index_and_data<uintE, data>(f_seq, n);
+      s = parlay::pack_index_and_data<uintE, data>(f_seq, n);
       if (s.size() != m) {
         std::cout << "# m is " << m << " but out.size says" << s.size()
                   << std::endl;
@@ -339,7 +339,7 @@ struct vertexSubsetData<gbbs::empty> {
     if (s.size() == 0 && m > 0) {
       auto f_in =
           parlay::delayed_seq<bool>(n, [&](size_t i) { return d[i]; });
-      s = pbbslib::pack_index<uintE>(f_in);
+      s = parlay::pack_index<uintE>(f_in);
       if (s.size() != m) {
         std::cout << "# m is " << m << " but out.size says" << s.size()
                   << std::endl;
@@ -456,7 +456,7 @@ inline vertexSubset vertexFilter_sparse(
                granularity);
   auto v_imap =
       parlay::delayed_seq<uintE>(m, [&](size_t i) { return V.vtx(i); });
-  auto out = pbbslib::pack(v_imap, parlay::make_slice(bits));
+  auto out = parlay::pack(v_imap, parlay::make_slice(bits));
   return vertexSubset(n, std::move(out));
 }
 

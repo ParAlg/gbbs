@@ -36,8 +36,8 @@ namespace induced_split {
       size_t start = j * work_per_block;
       size_t end = (j + 1) * work_per_block;
       auto less_fn = std::less<size_t>();
-      size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
-      size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
+      size_t start_ind = parlay::binary_search(parallel_work, start, less_fn);
+      size_t end_ind = parlay::binary_search(parallel_work, end, less_fn);
       tots[j] = 0;
       for (size_t i=start_ind; i < end_ind; i++) {
         if (DG.get_vertex(i).out_degree() != 0) {

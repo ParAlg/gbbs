@@ -89,8 +89,8 @@ inline vertexSubset get_nghs(Graph& G, VS& vs, P& p) {
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
-  uint32_t src_h = pbbslib::hash32(src);
-  uint32_t ngh_h = pbbslib::hash32(ngh);
+  uint32_t src_h = parlay::hash32(src);
+  uint32_t ngh_h = parlay::hash32(ngh);
   return (src_h < ngh_h) || ((src_h == ngh_h) && src < ngh);
 };
 
@@ -139,7 +139,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
       parlay::delayed_seq<bool>(n, zero_f);
-  auto init = pbbslib::pack_index<uintE>(zero_map);
+  auto init = parlay::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, std::move(init));
 
   auto in_mis = sequence<bool>(n, false);

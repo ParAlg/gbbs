@@ -204,7 +204,7 @@ struct buckets {
 
     size_t ne_before = num_elms;
 
-    size_t block_bits = pbbslib::log2_up(num_blocks);
+    size_t block_bits = parlay::log2_up(num_blocks);
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 

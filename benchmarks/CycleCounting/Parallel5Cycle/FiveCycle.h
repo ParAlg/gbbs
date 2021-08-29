@@ -113,7 +113,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       return std::get<0>(e1) > std::get<0>(e2);
   };
 
-  auto out_edges = pbbslib::new_array_no_init<edge>(outEdgeCount);
+  auto out_edges = gbbs::new_array_no_init<edge>(outEdgeCount);
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(order_to_vertex[i]);
     size_t out_offset = outOffsets[i];
@@ -126,11 +126,11 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       }
 
       // neighbor with largest index first.
-      pbbslib::sample_sort_inplace(parlay::make_range(new_nghs, d), cmp_by_dest_order);
+      parlay::sample_sort_inplace(parlay::make_range(new_nghs, d), cmp_by_dest_order);
     }
   }, 1);
 
-  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = outOffsets[i];
     out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];
@@ -139,7 +139,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, G.n, outEdgeCount,
-      [=] { pbbslib::free_array(out_vdata,n); pbbslib::free_array(out_edges,outEdgeCount); },
+      [=] { gbbs::free_array(out_vdata,n); gbbs::free_array(out_edges,outEdgeCount); },
       out_edges);
 }
 
@@ -183,7 +183,7 @@ inline sequence<uintT> orderNodesByDegree(Graph& G, size_t n) {
   t.start();
   parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
 
-  pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
+  parlay::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
     return G.get_vertex(u).out_degree() > G.get_vertex(v).out_degree();
   });
   //parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -377,8 +377,8 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
     auto less_fn = std::less<size_t>();
-    size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
-    size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
+    size_t start_ind = parlay::binary_search(parallel_work, start, less_fn);
+    size_t end_ind = parlay::binary_search(parallel_work, end, less_fn);
     run_intersection(start_ind, end_ind, i, V);
   });
 
@@ -741,10 +741,10 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
           auto custom_less_l = [&](uintE arg) { return vl < arg; };
 
           uintE index_leq_vk, index_leq_vl;
-          if ( ((index_leq_vk = pbbslib::binary_search(nghs_seq, custom_less_k)) < degree )
+          if ( ((index_leq_vk = parlay::binary_search(nghs_seq, custom_less_k)) < degree )
               && (nghs_seq[index_leq_vk] == vk))  tmp--;
 
-          if (((index_leq_vl = pbbslib::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
+          if (((index_leq_vl = parlay::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
             && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
         }
 
@@ -938,10 +938,10 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
             auto custom_less_l = [&](uintE arg) { return vl < arg; };
 
             uintE index_leq_vk, index_leq_vl;
-            if ( ((index_leq_vk = pbbslib::binary_search(nghs_seq, custom_less_k)) < degree )
+            if ( ((index_leq_vk = parlay::binary_search(nghs_seq, custom_less_k)) < degree )
                 && (nghs_seq[index_leq_vk] == vk))  tmp--;
 
-            if (((index_leq_vl = pbbslib::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
+            if (((index_leq_vl = parlay::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
               && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
           }
         }
@@ -980,8 +980,8 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
     auto less_fn = std::less<size_t>();
-    size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
-    size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
+    size_t start_ind = parlay::binary_search(parallel_work, start, less_fn);
+    size_t end_ind = parlay::binary_search(parallel_work, end, less_fn);
     run_intersection(start_ind, end_ind, i);
   });
 

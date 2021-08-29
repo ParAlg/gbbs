@@ -78,7 +78,7 @@ namespace gbbs {
       });
       std::cout << "Compressed" << std::endl;
 
-      long* sizes = pbbslib::new_array_no_init<long>(3);
+      long* sizes = gbbs::new_array_no_init<long>(3);
       sizes[0] = GA.n;
       sizes[1] = GA.m;
       sizes[2] = total_space;
@@ -177,19 +177,19 @@ namespace gbbs {
 //    std::cout << "input graph: output red = " << parlay::reduce_xor(xors) << std::endl;
 //
 //  auto hash_or_lt = [&] (const uintE& src, const uintE& ngh) {
-//    uint32_t src_h = pbbslib::hash32(src);
-//    uint32_t ngh_h = pbbslib::hash32(ngh);
+//    uint32_t src_h = parlay::hash32(src);
+//    uint32_t ngh_h = parlay::hash32(ngh);
 //    return (src_h < ngh_h) || ((src_h == ngh_h) && src < ngh);
 //  };
 
 
 //    auto self_arr = sequence<size_t>(n);
 //    parallel_for(size_t i=0; i<n; i++) {
-//      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
+//      uintE our_deg = parlay::log2_up(GA.V[i].getOutDegree());
 //      bool selfl = false;
 //      size_t pri = 0;
 //      auto map_f = wrap_f<W>([&] (uintE src, uintE ngh) {
-//        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
+//        uintE ngh_deg = parlay::log2_up(GA.V[ngh].getOutDegree());
 //        if (src == ngh) {
 //          selfl = true;
 //        }
@@ -205,7 +205,7 @@ namespace gbbs {
 //    std::cout << "input graph: self-loops = " << parlay::reduce(self_arr) << std::endl;
 
 //    parallel_for(size_t i=0; i<n; i++) {
-//      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
+//      uintE our_deg = parlay::log2_up(GA.V[i].getOutDegree());
 //      bool selfl = false;
 //      size_t pri = 0;
 //      auto it = GA.V[i].getOutIter(i);
@@ -215,13 +215,13 @@ namespace gbbs {
 //      if (degree > 0) {
 //        uintE ngh = get<0>(it.cur());
 //        if (src == ngh) { selfl = true; }
-//        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
+//        uintE ngh_deg = parlay::log2_up(GA.V[ngh].getOutDegree());
 //        if ((ngh_deg > our_deg) || ((ngh_deg == our_deg) && hash_or_lt(src, ngh))) {
 //          pri++;
 //        }
 //        for (size_t i=1; i<degree; i++) {
 //          ngh = get<0>(it.next());
-//          ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
+//          ngh_deg = parlay::log2_up(GA.V[ngh].getOutDegree());
 //          if (src == ngh) { selfl = true; }
 //          if ((ngh_deg > our_deg) || ((ngh_deg == our_deg) && hash_or_lt(src, ngh))) {
 //            pri++;
@@ -360,11 +360,11 @@ namespace gbbs {
 
 //    parallel_for(size_t i=0; i<n; i++) {
 //      assert(degrees[i] == GA.V[i].getOutDegree());
-//      uintE our_deg = pbbslib::log2_up(degrees[i]);
+//      uintE our_deg = parlay::log2_up(degrees[i]);
 //      bool selfl = false;
 //      size_t pri = 0;
 //      auto map_f = [&] (uintE src, uintE ngh, const W& wgh, size_t off) {
-//        uintE ngh_deg = pbbslib::log2_up(degrees[ngh]);
+//        uintE ngh_deg = parlay::log2_up(degrees[ngh]);
 //        if (src == ngh) {
 //          selfl = true;
 //        }
@@ -387,7 +387,7 @@ namespace gbbs {
 
 //    exit(0);
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;

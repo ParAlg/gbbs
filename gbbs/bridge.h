@@ -427,117 +427,13 @@ inline auto reduce_xor(Seq const& I) -> typename Seq::value_type {
   return reduce(make_slice(I), xorm<T>());
 }
 
-
-}  // namespace parlay
-
-
-// Bridge to pbbslib (c++17)
-namespace pbbslib {
-
-// ====================== utilities =======================
-using empty = gbbs::empty;
-
-using flags = parlay::flags;
-const flags no_flag = parlay::no_flag;
-const flags fl_sequential = parlay::fl_sequential;
-const flags fl_debug = parlay::fl_debug;
-const flags fl_time = parlay::fl_time;
-const flags fl_conservative = parlay::fl_conservative;
-const flags fl_inplace = parlay::fl_inplace;
-
-using parlay::parallel_for;
-using parlay::par_do;
-// using parlay::parallel_for_alloc; // TODO
-using parlay::num_workers;
-using parlay::worker_id;
-
-using gbbs::free_array;
-using gbbs::new_array_no_init;
-using gbbs::new_array;
-using parlay::hash32;
-using parlay::hash32_2;
-using parlay::hash32_3;
-using parlay::hash64;
-using parlay::hash64_2;
-
-template <class T>
-size_t log2_up(T i) {
-  size_t a = 0;
-  T b = i - 1;
-  while (b > 0) {
-    b = b >> 1;
-    a++;
-  }
-  return a;
-}
-
-// Alias template so that sequence is exposed w/o namespacing
-template <typename T>
-using sequence = parlay::sequence<T>;
-
-template <typename T>
-using range = gbbs::range<T>;
-
-template <typename T>
-using slice = gbbs::slice<T>;
-
-template <typename T>
-inline void assign_uninitialized(T& a, const T& b) {
-  new (static_cast<void*>(std::addressof(a))) T(b);
-}
-
-template <typename T>
-inline void move_uninitialized(T& a, const T& b) {
-  new (static_cast<void*>(std::addressof(a))) T(std::move(b));
-}
-
-
-
-// ========================= monoid ==========================
-
-using parlay::make_monoid;
-
-template <class T>
-using minm = parlay::minm<T>;
-
-template <class T>
-using maxm = parlay::maxm<T>;
-
-template <class T>
-using addm = parlay::addm<T>;
-
-template <class T>
-using xorm = parlay::xorm<T>;
-
-// ====================== sequence ops =======================
-
-using parlay::reduce;
-using parlay::pack;
-using parlay::pack_index;
+using parlay::internal::sample_sort;
+using parlay::internal::sample_sort_inplace;
 using parlay::internal::pack_out;
-using parlay::map;
-using parlay::filter;
-using parlay::internal::filter_out;
-using parlay::internal::split_two;
-using parlay::internal::sliced_for;
-using parlay::internal::pack_serial_at;
-// TODO: filter_index
 
-// TODO all below
-using parlay::tokens;
-using parlay::chars_to_file;
-using parlay::chars_from_file;
-using parlay::internal::chars_to_int_t;
-using parlay::remove_duplicates_ordered;
-using parlay::internal::get_counts;
-// using pbbs::map_with_index;
 
 constexpr const size_t _log_block_size = 10;
 constexpr const size_t _block_size = (1 << _log_block_size);
-
-inline size_t granularity(size_t n) {
-  return (n > 100) ? ceil(pow(n, 0.5)) : 100;
-}
 
 inline size_t num_blocks(size_t n, size_t block_size) {
   if (n == 0)
@@ -546,59 +442,17 @@ inline size_t num_blocks(size_t n, size_t block_size) {
     return (1 + ((n)-1) / (block_size));
 }
 
-// used so second template argument can be inferred
-template <class T, class F>
-inline parlay::delayed_sequence<T, F> make_delayed(size_t n, F f) {
-  return parlay::delayed_sequence<T, F>(n, f);
-}
-
-template <class T>
-auto make_delayed(T* A, size_t n) {
-  return make_delayed<T>(n, [=](size_t i) { return A[i]; });
-}
-
-template <class Seq>
-inline auto reduce_add(Seq const& I) -> typename Seq::value_type {
-  using T = typename Seq::value_type;
-  return reduce(make_slice(I), addm<T>());
-}
-
-
 // Writes the list of indices `i` where `Fl[i] == true` to range `Out`.
 template <class Bool_Seq, class Out_Seq>
 size_t pack_index_out(Bool_Seq const& Fl, Out_Seq&& Out, flags fl = no_flag) {
   using Idx_Type = typename std::remove_reference<Out_Seq>::type::value_type;
   auto identity = [](size_t i) { return (Idx_Type)i; };
-  return pack_out(make_delayed<Idx_Type>(Fl.size(), identity), Fl,
+  return pack_out(delayed_seq<Idx_Type>(Fl.size(), identity), Fl,
                   std::forward<Out_Seq>(Out), fl);
 }
 
-// ====================== binary search =======================
-
 using parlay::internal::binary_search;
 
-// ====================== sample sort =======================
-
-using parlay::internal::sample_sort;
-using parlay::internal::sample_sort_inplace;
-
-using parlay::stable_sort;
-using parlay::stable_sort_inplace;
-
-// ====================== integer sort =======================
-
-using parlay::integer_sort_inplace;
-using parlay::integer_sort;
-using parlay::internal::count_sort;
-
-// ====================== random shuffle =======================
-using random = parlay::random;
-using parlay::random_permutation;
-using parlay::random_shuffle;
-}
-
-// Other extensions to pbbs used by the graph benchmarks.
-namespace pbbslib {
 
 constexpr size_t _F_BSIZE = 2000;
 
@@ -661,7 +515,7 @@ inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(F& f,
   auto flgs_seq = parlay::delayed_seq<bool>(
       size, [&](size_t i) { return std::get<0>(f[i]); });
 
-  return pbbslib::pack(id_seq, flgs_seq);
+  return parlay::pack(id_seq, flgs_seq);
 }
 
 template <class Seq, class Compare>
@@ -693,7 +547,6 @@ typename Seq::value_type approximate_kth_smallest(Seq const& S, size_t k,
   sequence<T> samples = sequence<T>::from_function(
       num_samples, [&](size_t i) -> T { return S[r[i] % n]; });
   return sample_sort(make_slice(samples), less)[k * num_samples / n];
-  // kth_smallest(samples, k * num_samples / n, less);
 }
 
 template <class T, class Pred>
@@ -778,89 +631,8 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   return m;
 }
 
-template <class T, class PRED>
-inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty) {
-  size_t b = _F_BSIZE;
-  if (n < b) {
-    size_t ret = filter_seq(In, Out, n, p);
-    for (size_t i = 0; i < n; i++) {
-      if (p(In[i])) {
-        In[i] = empty;
-      }
-    }
-    return ret;
-  }
-  size_t l = num_blocks(n, b);
-  b = num_blocks(n, l);
-  auto Sums = sequence<size_t>::uninitialized(l + 1);
 
-  parallel_for(0, l,
-               [&](size_t i) {
-                 size_t s = i * b;
-                 size_t e = std::min(s + b, n);
-                 size_t k = s;
-                 for (size_t j = s; j < e; j++) {
-                   if (p(In[j])) {
-                     In[k] = In[j];
-                     if (k != j) {
-                       In[j] = empty;
-                     }
-                     k++;
-                   }
-                 }
-                 Sums[i] = k - s;
-               },
-               1);
-  Sums[l] = 0;
-  size_t m = parlay::scan_inplace(make_slice(Sums));
-  Sums[l] = m;
-  parallel_for(0, l,
-               [&](size_t i) {
-                 T* I = In + (i * b);
-                 size_t i_off = Sums[i];
-                 size_t num_i = Sums[i + 1] - i_off;
-                 T* O = Out + i_off;
-                 for (size_t j = 0; j < num_i; j++) {
-                   O[j] = I[j];
-                   I[j] = empty;
-                 }
-               },
-               1);
-  return m;
-}
-
-template <class E, class I, class P>
-struct filter_iter {
-  I& iter;
-  P& pred;
-  E cur_val;
-
-  filter_iter(I& _it, P& _pr) : iter(_it), pred(_pr) {
-    cur_val = iter.cur();
-    while (!pred(cur_val) && iter.has_next()) {
-      cur_val = iter.next();
-    }
-  }
-
-  E cur() { return cur_val; }
-
-  E next() {
-    while (iter.has_next()) {
-      cur_val = iter.next();
-      if (pred(cur_val)) {
-        break;
-      }
-    }
-    return cur_val;
-  }
-
-  // has_next
-};
-
-template <class E, class I, class P>
-inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
-  return filter_iter<E, I, P>(_it, _pr);
-}
+// String utilities
 
 int t_to_stringlen(long a);
 void type_to_string(char* s, long a);
@@ -940,6 +712,135 @@ sequence<char> sequence_to_string(TSeq const& T) {
   type_to_string(C.begin() + S[n - 1], T[n - 1]);
   C[m - 1] = '\n';
 
-  return pbbslib::filter(C, [&](char A) { return A > 0; });
+  return parlay::filter(make_slice(C), [&](char A) { return A > 0; });
 }
+
+
+}  // namespace parlay
+
+
+// Bridge to pbbslib (c++17)
+namespace pbbslib {
+
+// ====================== utilities =======================
+using empty = gbbs::empty;
+
+using flags = parlay::flags;
+const flags no_flag = parlay::no_flag;
+const flags fl_sequential = parlay::fl_sequential;
+const flags fl_debug = parlay::fl_debug;
+const flags fl_time = parlay::fl_time;
+const flags fl_conservative = parlay::fl_conservative;
+const flags fl_inplace = parlay::fl_inplace;
+
+using parlay::parallel_for;
+using parlay::par_do;
+// using parlay::parallel_for_alloc; // TODO
+using parlay::num_workers;
+using parlay::worker_id;
+
+// Alias template so that sequence is exposed w/o namespacing
+template <typename T>
+using sequence = parlay::sequence<T>;
+
+template <typename T>
+using range = gbbs::range<T>;
+
+template <typename T>
+using slice = gbbs::slice<T>;
+
+// ========================= monoid ==========================
+
+using parlay::make_monoid;
+
+template <class T>
+using minm = parlay::minm<T>;
+
+template <class T>
+using maxm = parlay::maxm<T>;
+
+template <class T>
+using addm = parlay::addm<T>;
+
+template <class T>
+using xorm = parlay::xorm<T>;
+
+// ====================== sequence ops =======================
+
+using parlay::reduce;
+using parlay::pack;
+using parlay::pack_index;
+using parlay::map;
+using parlay::filter;
+using parlay::internal::filter_out;
+using parlay::internal::split_two;
+using parlay::internal::sliced_for;
+using parlay::internal::pack_serial_at;
+// TODO: filter_index
+
+// TODO all below
+using parlay::tokens;
+using parlay::chars_to_file;
+using parlay::chars_from_file;
+using parlay::internal::chars_to_int_t;
+using parlay::remove_duplicates_ordered;
+using parlay::internal::get_counts;
+// using pbbs::map_with_index;
+
+inline size_t granularity(size_t n) {
+  return (n > 100) ? ceil(pow(n, 0.5)) : 100;
+}
+
+// ====================== binary search =======================
+
+// ====================== sample sort =======================
+
+// ====================== integer sort =======================
+
+using parlay::integer_sort_inplace;
+using parlay::integer_sort;
+using parlay::internal::count_sort;
+
+// ====================== random shuffle =======================
+using random = parlay::random;
+using parlay::random_permutation;
+using parlay::random_shuffle;
+}
+
+// Other extensions to pbbs used by the graph benchmarks.
+namespace pbbslib {
+
+template <class E, class I, class P>
+struct filter_iter {
+  I& iter;
+  P& pred;
+  E cur_val;
+
+  filter_iter(I& _it, P& _pr) : iter(_it), pred(_pr) {
+    cur_val = iter.cur();
+    while (!pred(cur_val) && iter.has_next()) {
+      cur_val = iter.next();
+    }
+  }
+
+  E cur() { return cur_val; }
+
+  E next() {
+    while (iter.has_next()) {
+      cur_val = iter.next();
+      if (pred(cur_val)) {
+        break;
+      }
+    }
+    return cur_val;
+  }
+
+  // has_next
+};
+
+template <class E, class I, class P>
+inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
+  return filter_iter<E, I, P>(_it, _pr);
+}
+
 }

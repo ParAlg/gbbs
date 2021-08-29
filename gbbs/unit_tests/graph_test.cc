@@ -16,7 +16,7 @@ namespace {
     auto get_w = [&](const edge& e) { return std::get<2>(e); };
     auto G = sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
     using vertex = symmetric_vertex<Wgh>;
-    vertex* vertices = pbbslib::new_array_no_init<vertex>(G.n);
+    vertex* vertices = gbbs::new_array_no_init<vertex>(G.n);
     for (size_t i=0; i<G.n; i++) {
       vertices[i] = G.get_vertex(i);
     }

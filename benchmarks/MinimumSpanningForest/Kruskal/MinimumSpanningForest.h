@@ -51,7 +51,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_gra
   auto comp = [&] (const edge& l, const edge& r) {
     return std::get<2>(l) < std::get<2>(r);
   };
-  pbbslib::sample_sort_inplace(make_slice(edges), comp);
+  parlay::sample_sort_inplace(make_slice(edges), comp);
   st.stop(); st.next("sort time");
 
   auto components = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });

@@ -56,11 +56,11 @@ struct countF {
 
 template <class Graph>
 inline uintE* rankNodes(Graph& G, size_t n) {
-  uintE* r = pbbslib::new_array_no_init<uintE>(n);
+  uintE* r = gbbs::new_array_no_init<uintE>(n);
   sequence<uintE> o = sequence<uintE>::uninitialized(n);
 
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) { o[i] = i; });
-  pbbslib::sample_sort_inplace(
+  parlay::sample_sort_inplace(
       make_slice(o), [&](const uintE u, const uintE v) {
         return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
       });
@@ -139,8 +139,8 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts, const F& f) {
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
     auto less_fn = std::less<size_t>();
-    size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
-    size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
+    size_t start_ind = parlay::binary_search(parallel_work, start, less_fn);
+    size_t end_ind = parlay::binary_search(parallel_work, end, less_fn);
     run_intersection(start_ind, end_ind);
   });
 
@@ -201,7 +201,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   DG.del();
   ct.stop();
   ct.next("count time");
-  pbbslib::free_array(rank, G.n);
+  gbbs::free_array(rank, G.n);
   return count;
 }
 

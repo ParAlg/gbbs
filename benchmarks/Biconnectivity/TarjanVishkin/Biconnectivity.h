@@ -111,7 +111,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
-  pbbslib::sample_sort_inplace(make_slice(edges), sort_tup);
+  parlay::sample_sort_inplace(make_slice(edges), sort_tup);
 
   auto starts = sequence<uintE>::from_function(n + 1, [](size_t i) { return UINT_E_MAX; });
   parallel_for(0, edges.size(), [&] (size_t i) {
@@ -170,7 +170,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
     size_t deg = s_n - s_i;
     return (Parents[i] != i) && deg == 0;
   });
-  auto leafs = pbbslib::pack_index<uintE>(leaf_im);
+  auto leafs = parlay::pack_index<uintE>(leaf_im);
 
   auto leafs_copy = leafs;
   auto vs = vertexSubset(n, std::move(leafs_copy));
@@ -492,7 +492,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
     parallel_for(0, n, [&] (size_t i) {
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
-    auto C = pbbslib::sequence_to_string(tups);
+    auto C = parlay::sequence_to_string(tups);
     pbbslib::chars_to_file(C, out_f);
     // benchIO::writeArrayToStream(out, tups.begin(), n);
     // for (size_t i = 0; i < n; i++) {

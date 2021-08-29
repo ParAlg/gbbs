@@ -46,12 +46,12 @@ class sequentialHT {
   T* table;
 
   inline size_t toRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K v) { return toRange(pbbslib::hash64(v)); }
+  inline size_t firstIndex(K v) { return toRange(parlay::hash64(v)); }
   inline size_t incrementIndex(size_t h) { return toRange(h + 1); }
 
   sequentialHT(T* _table, size_t size, float loadFactor,
                std::tuple<K, V> _empty)
-      : m((size_t)1 << pbbslib::log2_up((size_t)(loadFactor * size))),
+      : m((size_t)1 << parlay::log2_up((size_t)(loadFactor * size))),
         mask(m - 1),
         empty(_empty),
         max_key(std::get<0>(_empty)),

@@ -117,21 +117,21 @@ symmetric_graph<symmetric_vertex, weight_type> read_weighted_symmetric_graph(
   std::tie(n, m, offsets, edges) = internal::parse_weighted_graph<weight_type>(
       fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i + 1] - v_data[i].offset;
   });
   if (!binary) {
-    pbbslib::free_array(offsets, n + 1);
+    gbbs::free_array(offsets, n + 1);
   }
 
   return symmetric_graph<symmetric_vertex, weight_type>(
       v_data, n, m,
       [=]() {
-        pbbslib::free_array(v_data, n);
+        gbbs::free_array(v_data, n);
         if (!binary) {
-          pbbslib::free_array(edges, 2 * m);
+          gbbs::free_array(edges, 2 * m);
         }
       },
       edges);
@@ -155,16 +155,16 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   std::tie(n, m, offsets, edges) = internal::parse_weighted_graph<weight_type>(
       fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i + 1] - v_data[i].offset;
   });
-  pbbslib::free_array(offsets, n + 1);
+  gbbs::free_array(offsets, n + 1);
 
   auto tOffsets = sequence<uintT>::uninitialized(n + 1);
   parallel_for(0, n, [&](size_t i) { tOffsets[i] = INT_T_MAX; });
-  triple* temp = pbbslib::new_array_no_init<triple>(m);
+  triple* temp = gbbs::new_array_no_init<triple>(m);
   parallel_for(0, n, [&](size_t i) {
     uintT o = v_data[i].offset;
     uintE deg = v_data[i].degree;
@@ -181,7 +181,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
                                 [&](const triple& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
-  id_and_weight* inEdges = pbbslib::new_array_no_init<id_and_weight>(m);
+  id_and_weight* inEdges = gbbs::new_array_no_init<id_and_weight>(m);
   inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
   parallel_for(1, m, [&](size_t i) {
@@ -191,7 +191,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
     }
   });
 
-  pbbslib::free_array(temp, m);
+  gbbs::free_array(temp, m);
 
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
@@ -200,7 +200,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   M.identity = m;
   parlay::scan_inclusive_inplace(t_seq, M);
 
-  auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_in_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i + 1] - v_in_data[i].offset;
@@ -209,10 +209,10 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   return asymmetric_graph<asymmetric_vertex, weight_type>(
       v_data, v_in_data, n, m,
       [=]() {
-        pbbslib::free_array(v_data, n);
-        pbbslib::free_array(v_in_data, n);
-        pbbslib::free_array(edges, m);
-        pbbslib::free_array(inEdges, m);
+        gbbs::free_array(v_data, n);
+        gbbs::free_array(v_in_data, n);
+        gbbs::free_array(edges, m);
+        gbbs::free_array(inEdges, m);
       },
       edges, inEdges);
 }
@@ -237,20 +237,20 @@ read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   skip += n * sizeof(intE);
   uchar* edges = (uchar*)(bytes + skip);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = Degrees[i];
   });
 
   std::function<void()> deletion_fn = [=]() {
-    pbbslib::free_array(v_data, n);
-    pbbslib::free_array(bytes, bytes_size);
+    gbbs::free_array(v_data, n);
+    gbbs::free_array(bytes, bytes_size);
   };
 
   if (mmap && !mmapcopy) {
     deletion_fn = [=]() {
-      pbbslib::free_array(v_data, n);
+      gbbs::free_array(v_data, n);
       unmmap(bytes, bytes_size);
     };
   }
@@ -294,8 +294,8 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   skip += n * sizeof(uintE);
   inEdges = (uchar*)(bytes + skip);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
-  auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
+  auto v_in_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = Degrees[i];
@@ -305,14 +305,14 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   });
 
   std::function<void()> deletion_fn = [=]() {
-    pbbslib::free_array(v_data, n);
-    pbbslib::free_array(v_in_data, n);
-    pbbslib::free_array(bytes, bytes_size);
+    gbbs::free_array(v_data, n);
+    gbbs::free_array(v_in_data, n);
+    gbbs::free_array(bytes, bytes_size);
   };
   if (mmap && !mmapcopy) {
     deletion_fn = [=]() {
-      pbbslib::free_array(v_data, n);
-      pbbslib::free_array(v_in_data, n);
+      gbbs::free_array(v_data, n);
+      gbbs::free_array(v_in_data, n);
       unmmap(bytes, bytes_size);
     };
   }
@@ -391,12 +391,12 @@ asymmetric_graph<asymmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
                                         const Edge<weight_type>& right) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
-  pbbslib::sample_sort_inplace(make_slice(in_edges), compare_endpoints);
+  parlay::sample_sort_inplace(make_slice(in_edges), compare_endpoints);
   vertex_data* vertex_in_data =
       internal::sorted_edges_to_vertex_data_array(num_vertices, in_edges);
 
-  edge_type* out_edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
-  edge_type* in_edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
+  edge_type* out_edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
+  edge_type* in_edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
   parallel_for(0, num_edges, [&](const size_t i) {
     const Edge<weight_type>& out_edge = out_edges[i];
     out_edges_array[i] = std::make_tuple(out_edge.to, out_edge.weight);
@@ -407,10 +407,10 @@ asymmetric_graph<asymmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
   return asymmetric_graph<asymmetric_vertex, weight_type>{
       vertex_out_data, vertex_in_data, num_vertices, num_edges,
       [=]() {
-        pbbslib::free_array(vertex_out_data, num_vertices);
-        pbbslib::free_array(vertex_in_data, num_vertices);
-        pbbslib::free_array(out_edges_array, num_edges);
-        pbbslib::free_array(in_edges_array, num_edges);
+        gbbs::free_array(vertex_out_data, num_vertices);
+        gbbs::free_array(vertex_in_data, num_vertices);
+        gbbs::free_array(out_edges_array, num_edges);
+        gbbs::free_array(in_edges_array, num_edges);
       },
       out_edges_array, in_edges_array};
 }
@@ -445,7 +445,7 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
   vertex_data* vertex_data =
       internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
-  edge_type* edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
+  edge_type* edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
   parallel_for(0, num_edges, [&](const size_t i) {
     const Edge<weight_type>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
@@ -454,8 +454,8 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
   return symmetric_graph<symmetric_vertex, weight_type>{
       vertex_data, num_vertices, num_edges,
       [=]() {
-        pbbslib::free_array(vertex_data, num_vertices);
-        pbbslib::free_array(edges_array, num_edges);
+        gbbs::free_array(vertex_data, num_vertices);
+        gbbs::free_array(edges_array, num_edges);
       },
       edges_array};
 }
@@ -535,7 +535,7 @@ vertex_data* sorted_edges_to_vertex_data_array(
   }
 
   const size_t num_edges = edges.size();
-  vertex_data* data = pbbslib::new_array_no_init<vertex_data>(num_vertices);
+  vertex_data* data = gbbs::new_array_no_init<vertex_data>(num_vertices);
   parallel_for(0, edges[0].from + 1,
                [&](const size_t j) { data[j].offset = 0; });
   parallel_for(1, num_edges, [&](const size_t i) {
@@ -617,8 +617,8 @@ parse_weighted_graph(const char* fname, bool mmap, bool binary, char* bytes,
       assert(false);  // invalid format
     }
 
-    offsets = pbbslib::new_array_no_init<uintT>(n + 1);
-    edges = pbbslib::new_array_no_init<id_and_weight>(2 * m);
+    offsets = gbbs::new_array_no_init<uintT>(n + 1);
+    edges = gbbs::new_array_no_init<id_and_weight>(2 * m);
 
     parallel_for(0, n, [&](size_t i) {
       offsets[i] =
@@ -658,8 +658,8 @@ sequence<Edge<weight_type>> sort_and_dedupe(sequence<Edge<weight_type>> edges) {
       [](const Edge<weight_type>& left, const Edge<weight_type>& right) {
         return std::tie(left.from, left.to) != std::tie(right.from, right.to);
       }};
-  pbbslib::sample_sort_inplace(make_slice(edges), compare_endpoints);
-  return pbbslib::pack(
+  parlay::sample_sort_inplace(make_slice(edges), compare_endpoints);
+  return parlay::pack(
       edges, parlay::delayed_seq<bool>(edges.size(), [&](const size_t i) {
         const auto edge{edges[i]};
         const bool is_self_loop{edge.from == edge.to};

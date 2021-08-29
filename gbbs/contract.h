@@ -57,7 +57,7 @@ sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters,
     size_t l = std::min(std::get<0>(t), std::get<1>(t));
     size_t r = std::max(std::get<0>(t), std::get<1>(t));
     size_t key = (l << 32) + r;
-    return pbbslib::hash64_2(key);
+    return parlay::hash64_2(key);
   };
   auto edge_table =
       pbbslib::make_sparse_table<K, V>(small_cluster_size, empty, hash_pair);
@@ -119,7 +119,7 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
     size_t l = std::min(std::get<0>(t), std::get<1>(t));
     size_t r = std::max(std::get<0>(t), std::get<1>(t));
     size_t key = (l << 32) + r;
-    return pbbslib::hash64_2(key);
+    return parlay::hash64_2(key);
   };
   auto edge_table =
       pbbslib::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
@@ -164,7 +164,7 @@ sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters,
     size_t l = std::min(std::get<0>(t), std::get<1>(t));
     size_t r = std::max(std::get<0>(t), std::get<1>(t));
     size_t key = (l << 32) + r;
-    return pbbslib::hash64_2(key);
+    return parlay::hash64_2(key);
   };
   auto edge_table =
       pbbslib::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);

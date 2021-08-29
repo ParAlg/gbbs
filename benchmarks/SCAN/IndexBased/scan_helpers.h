@@ -88,7 +88,7 @@ NeighborOrder::NeighborOrder(
     const SimilarityMeasure& similarity_measure) {
   timer function_timer{"Construct neighbor order"};
   similarities_ = similarity_measure.AllEdges(graph);
-  pbbslib::sample_sort_inplace(
+  parlay::sample_sort_inplace(
       make_slice(similarities_),
       [](const EdgeSimilarity& left, const EdgeSimilarity& right) {
         // Sort by ascending source, then descending similarity.

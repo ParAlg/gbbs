@@ -54,9 +54,9 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     return (a.second < b.second) || (a.second == b.second && a.first < b.first);
   };
 
-  uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
+  uintE* edge_ids = gbbs::new_array_no_init<uintE>(m);
   parallel_for(0, m, kDefaultGranularity, [&] (size_t i) { edge_ids[i] = i; });
-  uintE* next_edge_ids = pbbslib::new_array_no_init<uintE>(m);
+  uintE* next_edge_ids = gbbs::new_array_no_init<uintE>(m);
 
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
   auto is_root = sequence<bool>(n);
@@ -128,7 +128,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 3. filter out the new MinimumSpanningForest edges.
     timer filter_t;
     filter_t.start();
-    n_in_mst += pbbslib::filterf(new_mst_edges.begin(), mst + n_in_mst, n,
+    n_in_mst += parlay::filterf(new_mst_edges.begin(), mst + n_in_mst, n,
                               [](uintE v) { return v != UINT_E_MAX; });
     debug(std::cout << "      " << n_in_mst << " edges added to mst."
               << "\n";);
@@ -154,7 +154,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     compact_t.start();
     auto vtxs_im = parlay::make_range<uintE>(vtxs, n);
 
-    n = pbbslib::pack_out(vtxs_im, is_root, parlay::make_range(next_vtxs, m));
+    n = parlay::pack_out(vtxs_im, is_root, parlay::make_range(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();
     debug(compact_t.next("compact time"););
@@ -186,7 +186,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
     auto self_loop_im = parlay::delayed_seq<bool>(n, self_loop_f);
     auto edge_ids_im = parlay::make_range(edge_ids, m);
-    m = pbbslib::pack_out(edge_ids_im, self_loop_im, parlay::make_range(next_edge_ids, m));
+    m = parlay::pack_out(edge_ids_im, self_loop_im, parlay::make_range(next_edge_ids, m));
 
     debug(std::cout << "filter, m is now " << m << " n is now " << n << "\n";);
     std::swap(edge_ids, next_edge_ids);
@@ -195,8 +195,8 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
 
   std::cout << "Boruvka finished: total edges added to MinimumSpanningForest = " << n_in_mst
             << "\n";
-  pbbslib::free_array(edge_ids, m);
-  pbbslib::free_array(next_edge_ids, m);
+  gbbs::free_array(edge_ids, m);
+  gbbs::free_array(next_edge_ids, m);
   return n_in_mst;
 //  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
 //  return mst_im;
@@ -240,7 +240,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
 
   parallel_for(0, sample_size, kDefaultGranularity, [&] (size_t i) {
         size_t sample_edge = r.ith_rand(i) % m;
-        uintE vtx = pbbslib::binary_search(vertex_offs, sample_edge, lte);
+        uintE vtx = parlay::binary_search(vertex_offs, sample_edge, lte);
         size_t ith = vertex_offs[vtx] - sample_edge - 1;
         uintE ngh;
         W wgh;
@@ -251,7 +251,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   auto cmp_by_wgh = [](const edge& left, const edge& right) {
     return std::get<2>(left) < std::get<2>(right);
   };
-  pbbslib::sample_sort_inplace(make_slice(sample_edges), cmp_by_wgh);
+  parlay::sample_sort_inplace(make_slice(sample_edges), cmp_by_wgh);
 
   // 2. find approximate splitter.
   size_t ind = ((double)(k * sample_edges.size())) / G.m;
@@ -295,7 +295,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
     // split_wgh.
     double frac_to_take = (1.0 * (ind - first_ind)) / weight_size;
     std::cout << "frac of split_weight to take: " << frac_to_take << "\n";
-    size_t range = (1L << pbbslib::log2_up(G.m)) - 1;
+    size_t range = (1L << parlay::log2_up(G.m)) - 1;
     size_t threshold = frac_to_take * range;
     // account for filtering directed edges
     threshold *= (first_round ? 2.0 : 1.0);
@@ -329,13 +329,13 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
   auto parents = sequence<uintE>::from_function(n, [](size_t i) { return i; });
   auto mst_edges = pbbslib::dyn_arr<edge>(n);
 
-  auto min_edges = pbbslib::new_array_no_init<vtxid_wgh_pair>(n);
+  auto min_edges = gbbs::new_array_no_init<vtxid_wgh_pair>(n);
 
   size_t n_active = n;
-  uintE* vtxs = pbbslib::new_array_no_init<uintE>(n_active);
+  uintE* vtxs = gbbs::new_array_no_init<uintE>(n_active);
   parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vtxs[i] = i; });
-  uintE* next_vtxs = pbbslib::new_array_no_init<uintE>(n_active);
+  uintE* next_vtxs = gbbs::new_array_no_init<uintE>(n_active);
 
 //  for (size_t i=0; i<n; i++) {
 //    auto v = GA.get_vertex(i);
@@ -386,7 +386,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     // run Boruvka on the prefix and add new edges to mst_edges
     timer bt;
     bt.start();
-    uintE* mst = pbbslib::new_array_no_init<uintE>(n);
+    uintE* mst = gbbs::new_array_no_init<uintE>(n);
     size_t n_in_mst =
         Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
     auto edge_ids = parlay::make_range(mst, n_in_mst);
@@ -396,14 +396,14 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     mst_edges.copyInF([&](size_t i) { return edges_save[edge_ids[i]]; },
                       edge_ids.size());
     edges_save.clear();
-    pbbslib::free_array(mst, n);
+    gbbs::free_array(mst, n);
 
     // reactivate vertices and reset exhausted
     timer pack_t;
     pack_t.start();
 
     auto vtx_range = parlay::make_range(vtxs+n_active, vtxs+n);
-    n_active += pbbslib::pack_index_out(make_slice(exhausted), vtx_range);
+    n_active += parlay::pack_index_out(make_slice(exhausted), vtx_range);
     pack_t.stop();
     debug(pack_t.next("reactivation pack"););
 
@@ -452,7 +452,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
   });
 
   mst_edges.clear();
-  pbbslib::free_array(min_edges, n);
+  gbbs::free_array(min_edges, n);
   return ret;
 }
 

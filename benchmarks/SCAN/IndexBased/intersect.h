@@ -116,7 +116,7 @@ typename IntersectReturn<Weight>::type seq_merge(
     if constexpr (std::is_same<Weight, gbbs::empty>::value) {
       // unweighted case
       const uintE a_id = std::get<0>(A[i]);
-      size_t mB = pbbslib::binary_search(B_ids, a_id, std::less<uintE>());
+      size_t mB = parlay::binary_search(B_ids, a_id, std::less<uintE>());
       if (mB < B.size() && a_id == std::get<0>(B[mB])) {
         if (are_sequences_swapped) {
           f(a_id, offset_B + mB, offset_A + i);
@@ -127,7 +127,7 @@ typename IntersectReturn<Weight>::type seq_merge(
       }
     } else {  // weighted case
       const auto [a_id, a_weight] = A[i];
-      size_t mB = pbbslib::binary_search(B_ids, a_id, std::less<uintE>());
+      size_t mB = parlay::binary_search(B_ids, a_id, std::less<uintE>());
       if (mB < B.size()) {
         const auto [b_id, b_weight] = B[mB];
         if (a_id == b_id) {
@@ -175,7 +175,7 @@ typename IntersectReturn<Weight>::type merge(
     const auto B_ids = ProjectSequenceZero(B);
     size_t mA = nA/2;
     size_t mB =
-      pbbslib::binary_search(B_ids, std::get<0>(A[mA]), std::less<uintE>());
+      parlay::binary_search(B_ids, std::get<0>(A[mA]), std::less<uintE>());
     ReturnType m_left = 0;
     ReturnType m_right = 0;
     par_do(

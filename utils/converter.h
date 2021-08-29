@@ -22,8 +22,8 @@ namespace byte {
     size_t n = GA.n;
 
     // 1. Calculate total size
-    auto degrees = pbbslib::sequence<uintE>(n);
-    auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+    auto degrees = parlay::sequence<uintE>(n);
+    auto byte_offsets = parlay::sequence<uintT>(n+1);
     std::cout << "# calculating size" << std::endl;
     parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
@@ -54,7 +54,7 @@ namespace byte {
     std::cout << "# total_space = " << total_space << std::endl;
 
     // 2. Create compressed format in-memory
-    auto edges = pbbslib::sequence<uchar>(total_space);
+    auto edges = parlay::sequence<uchar>(total_space);
     parallel_for(0, n, [&] (size_t i) {
       uintE deg = degrees[i];
       assert(deg == GA.get_vertex(i).out_degree());
@@ -69,7 +69,7 @@ namespace byte {
       }
     }, 1);
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;
@@ -97,8 +97,8 @@ namespace bytepd {
     // out-edges
     // 1. Calculate total size
     {
-      auto degrees = pbbslib::sequence<uintE>(n);
-      auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+      auto degrees = parlay::sequence<uintE>(n);
+      auto byte_offsets = parlay::sequence<uintT>(n+1);
       parallel_for(0, n, [&] (size_t i) {
         size_t total_bytes = 0;
         uintE last_ngh = 0;
@@ -134,7 +134,7 @@ namespace bytepd {
       std::cout << "# total out-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
-      auto edges = pbbslib::sequence<uchar>(total_space);
+      auto edges = parlay::sequence<uchar>(total_space);
       parallel_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
@@ -149,7 +149,7 @@ namespace bytepd {
       }, 1);
       std::cout << "# Compressed" << std::endl;
 
-      long* sizes = pbbslib::new_array_no_init<long>(3);
+      long* sizes = gbbs::new_array_no_init<long>(3);
       sizes[0] = GA.n;
       sizes[1] = GA.m;
       sizes[2] = total_space;
@@ -162,8 +162,8 @@ namespace bytepd {
     {
       // in-edges
       // 1. Calculate total size
-      auto degrees = pbbslib::sequence<uintE>(n);
-      auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+      auto degrees = parlay::sequence<uintE>(n);
+      auto byte_offsets = parlay::sequence<uintT>(n+1);
       parallel_for(0, n, [&] (size_t i) {
         size_t total_bytes = 0;
         uintE last_ngh = 0;
@@ -199,7 +199,7 @@ namespace bytepd {
       std::cout << "# total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
-      auto edges = pbbslib::sequence<uchar>(total_space);
+      auto edges = parlay::sequence<uchar>(total_space);
       parallel_for (0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
@@ -232,8 +232,8 @@ namespace bytepd {
     using W = typename Graph::weight_type;
 
     // 1. Calculate total size
-    auto degrees = pbbslib::sequence<uintE>(n);
-    auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+    auto degrees = parlay::sequence<uintE>(n);
+    auto byte_offsets = parlay::sequence<uintT>(n+1);
     parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
       uintE last_ngh = 0;
@@ -269,7 +269,7 @@ namespace bytepd {
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;
@@ -280,7 +280,7 @@ namespace bytepd {
 
 
     // 2. Create compressed format in-memory
-    size_t bs = pbbslib::num_blocks(n, n_batches);
+    size_t bs = parlay::num_blocks(n, n_batches);
 
     for (size_t i=0; i<bs; i++) {
       size_t start = i*bs;
@@ -292,7 +292,7 @@ namespace bytepd {
       size_t start_offset = byte_offsets[start];
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
-      uchar* edges = pbbslib::new_array_no_init<uchar>(n_bytes);
+      uchar* edges = gbbs::new_array_no_init<uchar>(n_bytes);
       parallel_for(start, end, [&] (size_t j) {
         size_t our_offset = byte_offsets[j] - start_offset;
         uintE deg = degrees[j];
@@ -309,7 +309,7 @@ namespace bytepd {
       });
       out.write((char*)edges,n_bytes);  // write edges
       std::cout << "# finished writing vertices " << start << " to " << end << std::endl;
-      pbbslib::free_array(edges, n_bytes);
+      gbbs::free_array(edges, n_bytes);
     }
 
     out.close();
@@ -317,13 +317,13 @@ namespace bytepd {
 
   template <class Graph>
   inline uintE* rankNodes(Graph& GA, size_t n) {
-    uintE* r = pbbslib::new_array_no_init<uintE>(n);
+    uintE* r = gbbs::new_array_no_init<uintE>(n);
     sequence<uintE> o(n);
 
     timer t;
     t.start();
     parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
-    pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
+    parlay::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
       return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
     parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -345,15 +345,15 @@ namespace bytepd {
     // mapping from v -> new id
     uintE* rank = rankNodes(GA, GA.n);
 
-    auto inverse_rank = pbbslib::sequence<uintE>(n);
+    auto inverse_rank = parlay::sequence<uintE>(n);
     parallel_for(0, n, [&] (size_t i) {
       uintE rank_i = rank[i];
       inverse_rank[rank_i] = i;
     });
 
     // 1. Calculate total size
-    auto degrees = pbbslib::sequence<uintE>(n);
-    auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+    auto degrees = parlay::sequence<uintE>(n);
+    auto byte_offsets = parlay::sequence<uintT>(n+1);
     parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
       uintE last_ngh = 0;
@@ -365,7 +365,7 @@ namespace bytepd {
       auto vtx = GA.get_vertex(i);
       if (vtx.out_degree() > 0) {
         if (vtx.out_degree() > 8192) {
-          nghs = pbbslib::new_array_no_init<uintE>(deg);
+          nghs = gbbs::new_array_no_init<uintE>(deg);
         }
 
         size_t k = 0;
@@ -375,7 +375,7 @@ namespace bytepd {
         vtx.out_neighbors().map(map_ngh_f, false);
 
         auto new_ngh_seq = parlay::make_range(nghs, deg);
-        pbbslib::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
+        parlay::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
 
         uintE our_new_id = rank[i];
 
@@ -398,7 +398,7 @@ namespace bytepd {
           total_bytes += (n_chunks-1)*sizeof(uintE);
         }
         if (vtx.out_degree() > 8192) {
-          pbbslib::free_array(nghs, deg);
+          gbbs::free_array(nghs, deg);
         }
       }
       degrees[i] = deg;
@@ -410,7 +410,7 @@ namespace bytepd {
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;
@@ -420,7 +420,7 @@ namespace bytepd {
 
     // 2. Create compressed format in-memory
 
-    size_t bs = pbbslib::num_blocks(n, n_batches);
+    size_t bs = parlay::num_blocks(n, n_batches);
 
     for (size_t i=0; i<bs; i++) {
       size_t start = i*bs;
@@ -432,7 +432,7 @@ namespace bytepd {
       size_t start_offset = byte_offsets[start];
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
-      uchar* edges = pbbslib::new_array_no_init<uchar>(n_bytes);
+      uchar* edges = gbbs::new_array_no_init<uchar>(n_bytes);
       parallel_for(start, end, [&] (size_t j) {
         size_t our_offset = byte_offsets[j] - start_offset;
         uintE deg = degrees[j];
@@ -449,7 +449,7 @@ namespace bytepd {
       });
       out.write((char*)edges,n_bytes);  // write edges
       std::cout << "# finished writing vertices " << start << " to " << end << std::endl;
-      pbbslib::free_array(edges, n_bytes);
+      gbbs::free_array(edges, n_bytes);
     }
 
     out.close();
@@ -475,8 +475,8 @@ namespace bytepd_amortized {
     // out-edges
     // 1. Calculate total size
     {
-      auto degrees = pbbslib::sequence<uintE>(n);
-      auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+      auto degrees = parlay::sequence<uintE>(n);
+      auto byte_offsets = parlay::sequence<uintT>(n+1);
       parallel_for(0, n, [&] (size_t i) {
         size_t total_bytes = 0;
         uintE last_ngh = 0;
@@ -516,7 +516,7 @@ namespace bytepd_amortized {
       std::cout << "# total out-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
-      auto edges = pbbslib::sequence<uchar>(total_space);
+      auto edges = parlay::sequence<uchar>(total_space);
       parallel_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
@@ -531,7 +531,7 @@ namespace bytepd_amortized {
       }, 1);
       std::cout << "# Compressed" << std::endl;
 
-      long* sizes = pbbslib::new_array_no_init<long>(3);
+      long* sizes = gbbs::new_array_no_init<long>(3);
       sizes[0] = GA.n;
       sizes[1] = GA.m;
       sizes[2] = total_space;
@@ -544,8 +544,8 @@ namespace bytepd_amortized {
     {
       // in-edges
       // 1. Calculate total size
-      auto degrees = pbbslib::sequence<uintE>(n);
-      auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+      auto degrees = parlay::sequence<uintE>(n);
+      auto byte_offsets = parlay::sequence<uintT>(n+1);
       parallel_for(0, n, [&] (size_t i) {
         size_t total_bytes = 0;
         uintE last_ngh = 0;
@@ -585,7 +585,7 @@ namespace bytepd_amortized {
       std::cout << "# total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
-      auto edges = pbbslib::sequence<uchar>(total_space);
+      auto edges = parlay::sequence<uchar>(total_space);
       parallel_for (0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
@@ -618,8 +618,8 @@ namespace bytepd_amortized {
     using W = typename Graph::weight_type;
 
     // 1. Calculate total size
-    auto degrees = pbbslib::sequence<uintE>(n);
-    auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+    auto degrees = parlay::sequence<uintE>(n);
+    auto byte_offsets = parlay::sequence<uintT>(n+1);
     parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
       uintE last_ngh = 0;
@@ -659,7 +659,7 @@ namespace bytepd_amortized {
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;
@@ -670,7 +670,7 @@ namespace bytepd_amortized {
 
 
     // 2. Create compressed format in-memory
-    size_t bs = pbbslib::num_blocks(n, n_batches);
+    size_t bs = parlay::num_blocks(n, n_batches);
 
     for (size_t i=0; i<bs; i++) {
       size_t start = i*bs;
@@ -682,7 +682,7 @@ namespace bytepd_amortized {
       size_t start_offset = byte_offsets[start];
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
-      uchar* edges = pbbslib::new_array_no_init<uchar>(n_bytes);
+      uchar* edges = gbbs::new_array_no_init<uchar>(n_bytes);
       parallel_for(start, end, [&] (size_t j) {
         size_t our_offset = byte_offsets[j] - start_offset;
         uintE deg = degrees[j];
@@ -699,7 +699,7 @@ namespace bytepd_amortized {
       });
       out.write((char*)edges,n_bytes);  // write edges
       std::cout << "# finished writing vertices " << start << " to " << end << std::endl;
-      pbbslib::free_array(edges, n_bytes);
+      gbbs::free_array(edges, n_bytes);
     }
 
     out.close();
@@ -707,13 +707,13 @@ namespace bytepd_amortized {
 
   template <class Graph>
   inline uintE* rankNodes(Graph& GA, size_t n) {
-    uintE* r = pbbslib::new_array_no_init<uintE>(n);
+    uintE* r = gbbs::new_array_no_init<uintE>(n);
     sequence<uintE> o(n);
 
     timer t;
     t.start();
     parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
-    pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
+    parlay::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
       return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
     parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -735,15 +735,15 @@ namespace bytepd_amortized {
     // mapping from v -> new id
     uintE* rank = rankNodes(GA, GA.n);
 
-    auto inverse_rank = pbbslib::sequence<uintE>(n);
+    auto inverse_rank = parlay::sequence<uintE>(n);
     parallel_for(0, n, [&] (size_t i) {
       uintE rank_i = rank[i];
       inverse_rank[rank_i] = i;
     });
 
     // 1. Calculate total size
-    auto degrees = pbbslib::sequence<uintE>(n);
-    auto byte_offsets = pbbslib::sequence<uintT>(n+1);
+    auto degrees = parlay::sequence<uintE>(n);
+    auto byte_offsets = parlay::sequence<uintT>(n+1);
     parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
       uintE last_ngh = 0;
@@ -755,7 +755,7 @@ namespace bytepd_amortized {
       auto vtx = GA.get_vertex(i);
       if (vtx.out_degree() > 0) {
         if (vtx.out_degree() > 8192) {
-          nghs = pbbslib::new_array_no_init<uintE>(deg);
+          nghs = gbbs::new_array_no_init<uintE>(deg);
         }
 
         size_t k = 0;
@@ -765,7 +765,7 @@ namespace bytepd_amortized {
         vtx.out_neighbors().map(map_ngh_f, false);
 
         auto new_ngh_seq = parlay::make_range(nghs, deg);
-        pbbslib::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
+        parlay::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
 
         uintE our_new_id = rank[i];
 
@@ -792,7 +792,7 @@ namespace bytepd_amortized {
           total_bytes += sizeof(uintE);
         }
         if (vtx.out_degree() > 8192) {
-          pbbslib::free_array(nghs, deg);
+          gbbs::free_array(nghs, deg);
         }
       }
       degrees[i] = deg;
@@ -804,7 +804,7 @@ namespace bytepd_amortized {
     auto deg_im = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     std::cout << "# sum degs = " << parlay::reduce(deg_im) << std::endl;
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;
@@ -814,7 +814,7 @@ namespace bytepd_amortized {
 
     // 2. Create compressed format in-memory
 
-    size_t bs = pbbslib::num_blocks(n, n_batches);
+    size_t bs = parlay::num_blocks(n, n_batches);
 
     for (size_t i=0; i<bs; i++) {
       size_t start = i*bs;
@@ -826,7 +826,7 @@ namespace bytepd_amortized {
       size_t start_offset = byte_offsets[start];
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
-      uchar* edges = pbbslib::new_array_no_init<uchar>(n_bytes);
+      uchar* edges = gbbs::new_array_no_init<uchar>(n_bytes);
       parallel_for(start, end, [&] (size_t j) {
         size_t our_offset = byte_offsets[j] - start_offset;
         uintE deg = degrees[j];
@@ -843,7 +843,7 @@ namespace bytepd_amortized {
       });
       out.write((char*)edges,n_bytes);  // write edges
       std::cout << "# finished writing vertices " << start << " to " << end << std::endl;
-      pbbslib::free_array(edges, n_bytes);
+      gbbs::free_array(edges, n_bytes);
     }
 
     out.close();
@@ -861,7 +861,7 @@ namespace binary_format {
     using edge_type = std::tuple<uintE, W>;
 
     // 1. Calculate total size
-    auto offsets = pbbslib::sequence<uintT>(n+1);
+    auto offsets = parlay::sequence<uintT>(n+1);
     std::cout << "# calculating size" << std::endl;
     parallel_for(0, n, [&] (size_t i) {
       offsets[i] = GA.get_vertex(i).out_degree();
@@ -871,7 +871,7 @@ namespace binary_format {
     std::cout << "# offset_scan = " << offset_scan << " m = " << m << std::endl;
     assert(offset_scan == m);
 
-    long* sizes = pbbslib::new_array_no_init<long>(3);
+    long* sizes = gbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = sizeof(long) * 3 + sizeof(uintT)*(n+1) + sizeof(edge_type)*m;
@@ -879,7 +879,7 @@ namespace binary_format {
     out.write((char*)offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
 
     // 2. Create compressed format in-memory (batched)
-    size_t block_size = pbbslib::num_blocks(n, n_batches);
+    size_t block_size = parlay::num_blocks(n, n_batches);
     size_t edges_written = 0;
     for (size_t b=0; b<n_batches; b++) {
       size_t start = b*block_size;
@@ -891,7 +891,7 @@ namespace binary_format {
       size_t start_offset = offsets[start];
       size_t end_offset = offsets[end];
       size_t n_edges = end_offset - start_offset;
-      edge_type* edges = pbbslib::new_array_no_init<edge_type>(n_edges);
+      edge_type* edges = gbbs::new_array_no_init<edge_type>(n_edges);
 
       parallel_for(start, end, [&] (size_t i) {
         size_t our_offset = offsets[i] - start_offset;
@@ -910,7 +910,7 @@ namespace binary_format {
       std::cout << "# finished writing vertices " << start << " to " << end << std::endl;
       edges_written += n_edges;
 
-      pbbslib::free_array(edges, n_edges);
+      gbbs::free_array(edges, n_edges);
     }
     std::cout << "# Wrote " << edges_written << " edges in total, m = " << m << std::endl;
     assert(edges_written == m);
@@ -926,11 +926,11 @@ void edgearray(Graph& GA, std::ofstream& out) {
   size_t n = GA.n;
   size_t m = GA.m;
 
-  auto degs = pbbslib::sequence<uintT>(n);
+  auto degs = parlay::sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).out_degree(); });
   parlay::scan_inplace(make_slice(degs));
 
-  auto edges = pbbslib::sequence<std::tuple<uintE, uintE, W>>(m);
+  auto edges = parlay::sequence<std::tuple<uintE, uintE, W>>(m);
 
   parallel_for(0, n, [&] (size_t i) {
     size_t off = degs[i];

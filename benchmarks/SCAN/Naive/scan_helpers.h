@@ -54,7 +54,7 @@ StructuralSimilarities
 ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
   using Vertex = VertexType<NoWeight>;
   using VertexSet =
-    pbbslib::sparse_table<uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>;
+    pbbslib::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
 
   StructuralSimilarities similarities{
     graph->m,
@@ -69,7 +69,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     *neighbors = VertexSet{
       vertex.out_degree(),
       {UINT_E_MAX, internal::NoWeight{}},
-      pbbslib::hash64_2};
+      parlay::hash64_2};
     const auto update_adjacency_list{[&neighbors](
         uintE, const uintE neighbor, NoWeight) {
       neighbors->insert({neighbor, gbbs::empty{}});

@@ -86,7 +86,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
       bits[label] = 1;
     }
     size_t key = (static_cast<size_t>(src) << 32) + static_cast<size_t>(ngh);
-    if ((pbbslib::hash64(key) & mask) == 0) {
+    if ((parlay::hash64(key) & mask) == 0) {
       ST.insert(std::make_tuple(label, 1));
     }
     if (component_id != UINT_E_MAX) {
@@ -104,7 +104,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                        const std::tuple<uintE, uintE>& r) {
       return std::get<1>(l) > std::get<1>(r);
     };
-    pbbslib::sample_sort_inplace(make_slice(ET), cmp_snd);
+    parlay::sample_sort_inplace(make_slice(ET), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }

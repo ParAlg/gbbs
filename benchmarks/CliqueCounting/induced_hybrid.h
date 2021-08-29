@@ -186,7 +186,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     // to find i and ngh, binary search for j in degs; the index - 1 is i
     // then, DG.get_vertex(i).getOutNeighbor(j - degs[index-1]) is ngh
     auto less_fn = [&](size_t a, size_t b){ return a <= b; };
-    size_t idx = pbbslib::binary_search(degs, j, less_fn);
+    size_t idx = parlay::binary_search(degs, j, less_fn);
     auto i = idx - 1;
     auto ngh = DG.get_vertex(i).out_neighbors().get_neighbor(j - degs[idx - 1]);
     induced->setup_edge(DG,k,i,ngh);

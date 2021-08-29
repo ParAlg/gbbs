@@ -145,14 +145,14 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  size_t n_threads = pbbslib::num_blocks(outEdgeCount, kEMBlockSize);
+  size_t n_threads = parlay::num_blocks(outEdgeCount, kEMBlockSize);
   auto thread_offs = parlay::sequence<size_t>::uninitialized(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   parallel_for(0, n_threads,
                [&](size_t i) {
                  size_t start_off = i * kEMBlockSize;
                  thread_offs[i] =
-                     pbbslib::binary_search(degrees, start_off, lt);
+                     parlay::binary_search(degrees, start_off, lt);
                },
                1);
   thread_offs[n_threads] = num_blocks;
@@ -383,9 +383,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   // try to use 8*p threads, fewer only if the blocksize guess is smaller than
   // kEMBlockSize
   size_t edge_block_size_guess =
-      pbbslib::num_blocks(outEdgeCount, num_workers() << 3);
+      parlay::num_blocks(outEdgeCount, num_workers() << 3);
   size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
-  size_t n_groups = pbbslib::num_blocks(outEdgeCount, edge_block_size);
+  size_t n_groups = parlay::num_blocks(outEdgeCount, edge_block_size);
 
   //  std::cout << "outEdgeCount = " << outEdgeCount << std::endl;
   //  std::cout << "n_blocks = " << num_blocks << std::endl;
@@ -399,11 +399,11 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
       0, n_groups,
       [&](size_t group_id) {
         size_t start_off = group_id * edge_block_size;
-        size_t our_start = pbbslib::binary_search(degrees, start_off, lt);
+        size_t our_start = parlay::binary_search(degrees, start_off, lt);
         size_t our_end;
         if (group_id < (n_groups - 1)) {
           size_t next_start_off = (group_id + 1) * edge_block_size;
-          our_end = pbbslib::binary_search(degrees, next_start_off, lt);
+          our_end = parlay::binary_search(degrees, next_start_off, lt);
         } else {
           our_end = num_blocks;
         }

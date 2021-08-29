@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-namespace pbbslib {
+namespace parlay {
 
 int t_to_stringlen(long a) { return 21; }
 void type_to_string(char* s, long a) { sprintf(s, "%ld", a); }
@@ -23,4 +23,4 @@ void type_to_string(char* s, char* a) { sprintf(s, "%s", a); }
 
 void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
 
-}  // namespace pbbslib
+}  // namespace parlay

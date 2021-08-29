@@ -45,7 +45,7 @@ filter_graph(Graph& G, P& pred) {
 
   using edge = std::tuple<uintE, W>;
 
-  auto out_edges = pbbslib::new_array_no_init<edge>(outEdgeCount);
+  auto out_edges = gbbs::new_array_no_init<edge>(outEdgeCount);
 
   parallel_for(0, n, 1, [&](size_t i) {
     w_vertex u = G.get_vertex(i);
@@ -64,7 +64,7 @@ filter_graph(Graph& G, P& pred) {
     }
   });
 
-  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     out_vdata[i].offset = outOffsets[i];
     out_vdata[i].degree = outOffsets[i + 1] - outOffsets[i];
@@ -119,7 +119,7 @@ inline auto filter_graph(Graph& G, P& pred) {
   std::cout << "# size is: " << last_offset << "\n";
 
   size_t edges_size = last_offset;
-  auto edges = pbbslib::new_array_no_init<uchar>(edges_size);
+  auto edges = gbbs::new_array_no_init<uchar>(edges_size);
 
   parallel_for(0, n, 1, [&](size_t i) {
     uintE new_deg = degrees[i];
@@ -142,7 +142,7 @@ inline auto filter_graph(Graph& G, P& pred) {
     }
   });
 
-  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     out_vdata[i].offset = byte_offsets[i];
     out_vdata[i].degree = degrees[i];
@@ -425,7 +425,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
   size_t total_space = parlay::scan_inplace(space);
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
-    tmp = pbbslib::new_array_no_init<uint8_t>(total_space);
+    tmp = gbbs::new_array_no_init<uint8_t>(total_space);
     debug(std::cout << "Allocated " << total_space << " temporary space."
                     << std::endl;);
   }
@@ -441,7 +441,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
       outV[i] = std::make_tuple(v, new_degree);
     });
     if (tmp) {
-      pbbslib::free_array(tmp, total_space);
+      gbbs::free_array(tmp, total_space);
     }
     return vertexSubsetData<uintE>(n, std::move(outV));
   } else {
@@ -454,7 +454,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
       G.packNeighbors(v, p, tmp_v);
     });
     if (tmp) {
-      pbbslib::free_array(tmp, total_space);
+      gbbs::free_array(tmp, total_space);
     }
     return vertexSubsetData<uintE>(n);
   }

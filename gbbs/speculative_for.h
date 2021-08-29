@@ -90,7 +90,7 @@ inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
     });
 
     // keep iterations that failed for next round. Written into Inext
-    numberKeep = pbbslib::pack_out(I.cut(0, size), keep, make_slice(Inext));
+    numberKeep = parlay::pack_out(I.cut(0, size), keep, make_slice(Inext));
     //      seq.set_allocated(false);
     //      numberKeep = seq.size();
     numberDone += size - numberKeep;
@@ -143,8 +143,8 @@ inline intT speculative_for(S step, intT s, intT e, intT granularity,
     });
 
     // keep iterations that failed for next round. Written into Inext
-    numberKeep = pbbslib::pack_out(I.cut(0, size), keep, make_slice(Inext));
-    //      numberKeep = pbbslib::pack_out(I.cut(0, size), keep,
+    numberKeep = parlay::pack_out(I.cut(0, size), keep, make_slice(Inext));
+    //      numberKeep = parlay::pack_out(I.cut(0, size), keep,
     //      pbbslib::no_flag, make_slice(Inext));
     //      seq.set_allocated(false);
     //      numberKeep = seq.size();
