@@ -1,7 +1,7 @@
 #include "gbbs/encodings/byte_pd_amortized.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/io.h"
-#include "gbbs/parse_command_line.h"
+#include "gbbs/helpers/parse_command_line.h"
 
 #include <iostream>
 #include <fstream>

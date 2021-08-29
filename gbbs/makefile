@@ -4,7 +4,7 @@ INCLUDE_DIRS = -I../ -I../external/parlaylib/include/
 
 OBJDIR = ../bin/gbbs/
 
-ALL_PRE = benchmark bridge edge_map_blocked graph_io get_time io parse_command_line undirected_edge union_find vertex_subset
+ALL_PRE = benchmark bridge edge_map_blocked graph_io get_time io undirected_edge union_find vertex_subset
 ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))
 
 all: $(ALL)

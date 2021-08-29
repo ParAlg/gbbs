@@ -3,6 +3,7 @@ cc_library(
   hdrs = ["MaximalIndependentSet.h"],
   deps = [
   "//gbbs:gbbs",
+  "//gbbs/helpers:speculative_for",
   ]
 )
 

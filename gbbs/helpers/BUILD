@@ -29,6 +29,11 @@ cc_library(
 )
 
 cc_library(
+  name = "parse_command_line",
+  hdrs = ["parse_command_line.h"],
+)
+
+cc_library(
   name = "resizable_table",
   hdrs = ["resizable_table.h"],
   deps = ["//gbbs:bridge"]
@@ -44,6 +49,14 @@ cc_library(
   name = "sparse_table",
   hdrs = ["sparse_table.h"],
   deps = ["//gbbs:bridge"]
+)
+
+cc_library(
+  name = "speculative_for",
+  hdrs = ["speculative_for.h"],
+  deps = [
+  "//gbbs:bridge"
+  ]
 )
 
 package(

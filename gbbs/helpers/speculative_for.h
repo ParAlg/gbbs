@@ -25,7 +25,7 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "bridge.h"
+#include "gbbs/bridge.h"
 
 namespace gbbs {
 

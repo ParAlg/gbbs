@@ -15,6 +15,6 @@ cc_binary(
     name = "remove_singleton_vertices",
     srcs = ["remove_singleton_vertices.cc"],
     deps = [
-        "//gbbs:parse_command_line",
+        "//gbbs/helpers:parse_command_line",
     ],
 )

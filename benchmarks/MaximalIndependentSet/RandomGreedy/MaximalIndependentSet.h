@@ -24,7 +24,7 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/speculative_for.h"
+#include "gbbs/helpers/speculative_for.h"
 
 namespace gbbs {
 namespace MaximalIndependentSet_rootset {

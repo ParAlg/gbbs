@@ -13,8 +13,8 @@ cc_library(
   ":graph",
   ":interface",
   ":macros",
-  ":parse_command_line",
   ":vertex_subset",
+  "//gbbs/helpers:parse_command_line",
   ]
 )
 
@@ -239,25 +239,11 @@ cc_library(
 )
 
 cc_library(
-  name = "parse_command_line",
-  hdrs = ["parse_command_line.h"],
-  srcs = ["parse_command_line.cc"],
-)
-
-cc_library(
   name = "sequential_ht",
   hdrs = ["sequential_ht.h"],
   deps = [
   ":macros",
   ":bridge",
-  ]
-)
-
-cc_library(
-  name = "speculative_for",
-  hdrs = ["speculative_for.h"],
-  deps = [
-  ":bridge"
   ]
 )
 
@@ -275,7 +261,6 @@ cc_library(
   deps = [
   ":bridge",
   ":macros",
-  ":speculative_for",
   ":intersect"
   ]
 )

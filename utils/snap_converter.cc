@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "gbbs/graph_io.h"
-#include "gbbs/parse_command_line.h"
+#include "gbbs/helpers/parse_command_line.h"
 
 namespace gbbs {
 namespace {
