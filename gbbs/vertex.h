@@ -203,9 +203,9 @@ struct uncompressed_neighbors {
         auto pc = [&](const std::tuple<uintE, W>& nw) {
           return p(id, std::get<0>(nw), std::get<1>(nw));
         };
-        auto in_im = parlay::make_range(neighbors, degree);
+        auto in_im = gbbs::make_slice(neighbors, degree);
         size_t k =
-            parlay::filter_out(in_im, parlay::make_range(tmp, degree), pc);
+            parlay::filter_out(in_im, gbbs::make_slice(tmp, degree), pc);
         parallel_for(0, k, [&](size_t i) { out(i, tmp[i]); });
       }
     }

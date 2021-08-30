@@ -44,13 +44,6 @@ static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity = 0,
                                bool conservative = false);
 
-template <class T>
-using slice = parlay::slice<T*, T*>;
-
-// TODO: check
-template <typename T>
-using range = slice<T>;
-
 #ifdef CILK
 // TODO try parallel_for_1
 template <typename A, typename Af, typename Df, typename F>
@@ -136,9 +129,13 @@ void free_array(E* e, size_t n) {
   allocator.deallocate(e, n);
 }
 
-// Alias template so that sequence is exposed w/o namespacing
+// Alias template for parlay::sequence
 template <typename T>
 using sequence = parlay::sequence<T>;
+
+// Bit shorter than writing slice<T*, T*> everywhere.
+template <class T>
+using slice = parlay::slice<T*, T*>;
 
 template <typename Seq>
 auto make_slice(const Seq& S) {
@@ -150,14 +147,12 @@ slice<E> make_slice(E* start, E* end) {
   return parlay::make_slice((E*)start, (E*)end);
 }
 
-// Create a slice from an explicit iterator range
-template <typename It, typename S>
-parlay::slice<It, S> make_slice(It it, S s) {
-  return parlay::make_slice<It, S>(it, s);
+template <class T>
+inline slice<T> make_slice(T* A, size_t n) {
+  return parlay::make_slice((T*)A, (T*)(A + n));
 }
 
-struct empty {};  // struct containing no data (used in conjunction with
-                  // empty-base optimization)
+struct empty {};  // struct containing no data (used for empty base optimization)
 
 // ========================= timer  ==========================
 using parlay::internal::timer;
@@ -425,16 +420,6 @@ inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
 
 
 namespace parlay {
-
-template <class T>
-inline slice<T*, T*> make_range(T* A, size_t n) {
-  return slice<T*, T*>(A, A + n);
-}
-
-template <class T>
-inline slice<T*, T*> make_range(T* start, T* end) {
-  return slice<T*, T*>(start, end);
-}
 
 template <class Seq>
 inline auto reduce_max(Seq const& I) -> typename Seq::value_type {

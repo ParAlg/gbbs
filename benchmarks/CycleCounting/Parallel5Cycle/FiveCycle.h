@@ -126,7 +126,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       }
 
       // neighbor with largest index first.
-      parlay::sample_sort_inplace(parlay::make_range(new_nghs, d), cmp_by_dest_order);
+      parlay::sample_sort_inplace(gbbs::make_slice(new_nghs, d), cmp_by_dest_order);
     }
   }, 1);
 

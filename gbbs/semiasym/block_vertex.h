@@ -192,7 +192,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
       block_outputs[block_num] = cur;
     });
 
-    auto im = parlay::make_range(block_outputs, num_blocks);
+    auto im = gbbs::make_slice(block_outputs, num_blocks);
     T res = parlay::reduce(im, reduce);
     if (num_blocks > 100) {
       gbbs::free_array(block_outputs);

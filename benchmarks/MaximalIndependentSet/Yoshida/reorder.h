@@ -39,7 +39,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
         return std::get<0>(l) < std::get<0>(r);
       }
     };
-    auto ngh_seq = parlay::make_range(edges + off, ctr);
+    auto ngh_seq = gbbs::make_slice(edges + off, ctr);
     parlay::sample_sort_inplace(ngh_seq, comp_f);
   }, 1);
 

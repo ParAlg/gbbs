@@ -38,20 +38,20 @@ class NeighborOrder {
 
   // Get all similarity scores from vertex `source` to its neighbors (not
   // including `source` itself), sorted by descending similarity.
-  const gbbs::range<EdgeSimilarity>& operator[](size_t source) const;
+  const gbbs::slice<EdgeSimilarity>& operator[](size_t source) const;
 
   bool empty() const;
   // Returns the number of vertices.
   size_t size() const;
 
-  const gbbs::range<EdgeSimilarity>* begin() const;
-  const gbbs::range<EdgeSimilarity>* end() const;
+  const gbbs::slice<EdgeSimilarity>* begin() const;
+  const gbbs::slice<EdgeSimilarity>* end() const;
 
  private:
   // Holds similarity scores for all edges, sorted by source and then by
   // similarity.
   sequence<EdgeSimilarity> similarities_;
-  sequence<gbbs::range<EdgeSimilarity>> similarities_by_source_;
+  sequence<gbbs::slice<EdgeSimilarity>> similarities_by_source_;
 };
 
 struct CoreThreshold {
@@ -99,7 +99,7 @@ NeighborOrder::NeighborOrder(
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
   parlay::scan_inplace(vertex_offsets);
-  similarities_by_source_ = sequence<gbbs::range<EdgeSimilarity>>::from_function(
+  similarities_by_source_ = sequence<gbbs::slice<EdgeSimilarity>>::from_function(
       graph->n,
       [&](const size_t i) {
         return similarities_.cut(

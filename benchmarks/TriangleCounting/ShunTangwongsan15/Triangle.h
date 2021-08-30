@@ -144,7 +144,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts, const F& f) {
     run_intersection(start_ind, end_ind);
   });
 
-  auto count_seq = parlay::make_range<size_t>(counts, DG.n);
+  auto count_seq = gbbs::make_slice<size_t>(counts, DG.n);
   size_t count = parlay::reduce(count_seq);
 
   return count;

@@ -59,7 +59,7 @@ filter_graph(Graph& G, P& pred) {
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
       auto n_im = parlay::delayed_seq<edge>(d, n_im_f);
-      parlay::filter_out(n_im, parlay::make_range(dir_nghs, d), pred_c,
+      parlay::filter_out(n_im, gbbs::make_slice(dir_nghs, d), pred_c,
                           parlay::no_flag);
     }
   });

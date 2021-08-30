@@ -32,7 +32,7 @@ void ReportTime([[maybe_unused]] const timer& t) {
 
 NeighborOrder::NeighborOrder() : similarities_{}, similarities_by_source_{} {}
 
-const gbbs::range<EdgeSimilarity>&
+const gbbs::slice<EdgeSimilarity>&
 NeighborOrder::operator[](size_t source) const {
   return similarities_by_source_[source];
 }
@@ -45,11 +45,11 @@ size_t NeighborOrder::size() const {
   return similarities_by_source_.size();
 }
 
-const gbbs::range<EdgeSimilarity>* NeighborOrder::begin() const {
+const gbbs::slice<EdgeSimilarity>* NeighborOrder::begin() const {
   return similarities_by_source_.begin();
 }
 
-const gbbs::range<EdgeSimilarity>* NeighborOrder::end() const {
+const gbbs::slice<EdgeSimilarity>* NeighborOrder::end() const {
   return similarities_by_source_.end();
 }
 
@@ -65,7 +65,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
     parlay::map_with_index<VertexDegree>(
         neighbor_order,
         [](const size_t v,
-           const gbbs::range<EdgeSimilarity>& neighbors) {
+           const gbbs::slice<EdgeSimilarity>& neighbors) {
           return VertexDegree{
             .vertex_id = static_cast<uintE>(v),
             .degree = static_cast<uintE>(neighbors.size())};

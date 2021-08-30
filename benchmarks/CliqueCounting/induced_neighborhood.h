@@ -70,7 +70,7 @@ namespace induced_neighborhood {
         }
       });*/
 
-      auto deg_seq = parlay::make_range(new_induced_degs, induced->nn);
+      auto deg_seq = gbbs::make_slice(new_induced_degs, induced->nn);
       induced->num_edges[k_idx] = parlay::reduce(deg_seq);
 
       //uintE vtx = prev_induced[i];

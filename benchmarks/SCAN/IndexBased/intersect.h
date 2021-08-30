@@ -239,9 +239,9 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
   if constexpr (
       std::is_same<VertexTemplate<Weight>, symmetric_vertex<Weight>>::value) {
     using Neighbor = typename VertexTemplate<Weight>::edge_type;
-    const auto seqA{parlay::make_range<Neighbor>(
+    const auto seqA{gbbs::make_slice<Neighbor>(
         A->neighbors, A->out_degree())};
-    const auto seqB{parlay::make_range<Neighbor>(
+    const auto seqB{gbbs::make_slice<Neighbor>(
         B->neighbors, B->out_degree())};
     constexpr size_t kOffset{0};
     constexpr bool kAreSeqsSwapped{false};

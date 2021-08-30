@@ -421,7 +421,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
       block_outputs[i] = cur;
     });
 
-    auto im = parlay::make_range(block_outputs, num_blocks);
+    auto im = gbbs::make_slice(block_outputs, num_blocks);
     E res = parlay::reduce(im, reduce);
     return res;
   } else {
@@ -468,7 +468,7 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges,
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
-    auto bytes_imap = parlay::make_range(block_bytes, num_blocks);
+    auto bytes_imap = gbbs::make_slice(block_bytes, num_blocks);
     size_t total_space = parlay::scan_inplace(bytes_imap);
 
     // add in space for storing offsets to the start of each block
@@ -614,7 +614,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source,
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
   uintE* block_offsets = (uintE*)edgeArray;
 
-  auto bytes_imap = parlay::make_range(block_bytes, num_blocks + 1);
+  auto bytes_imap = gbbs::make_slice(block_bytes, num_blocks + 1);
   uintE total_space = parlay::scan_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {

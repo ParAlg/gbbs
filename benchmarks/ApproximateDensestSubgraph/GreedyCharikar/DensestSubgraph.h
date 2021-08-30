@@ -62,7 +62,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     density_above[pos_u] = 2*GA.get_vertex(i).out_neighbors().count(vtx_f);
   });
 
-  auto density_rev = make_slice(density_above.rbegin(), density_above.rend());
+  auto density_rev = parlay::make_slice(density_above.rbegin(), density_above.rend());
   size_t total_edges = parlay::scan_inplace(density_rev);
   if (total_edges != GA.m) {
     std::cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<

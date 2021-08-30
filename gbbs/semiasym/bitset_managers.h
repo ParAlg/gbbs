@@ -167,7 +167,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
                  },
                  1);
 
-    auto im = parlay::make_range(block_outputs, num_blocks);
+    auto im = gbbs::make_slice(block_outputs, num_blocks);
     T res = parlay::reduce(im, reduce);
     return res;
   } else {
@@ -569,7 +569,7 @@ struct uncompressed_bitset_neighbors {
     }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
-    auto new_locs = parlay::make_range(tmp_ints, vtx_num_blocks);
+    auto new_locs = gbbs::make_slice(tmp_ints, vtx_num_blocks);
     auto tmp_metadata = (metadata*)tmp_space;
     parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
       new_locs[block_id] =
@@ -1085,7 +1085,7 @@ struct compressed_bitset_neighbors {
     }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
-    auto new_locs = parlay::make_range(tmp_ints, vtx_num_blocks);
+    auto new_locs = gbbs::make_slice(tmp_ints, vtx_num_blocks);
     auto tmp_metadata = (metadata*)tmp_space;
     parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
       new_locs[block_id] =

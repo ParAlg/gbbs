@@ -490,7 +490,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   while (num_vertices_remaining > 0) {
     uintE* start = last_arr.begin() + remaining_offset;
     uintE* end = start + num_vertices_remaining;
-    auto vtxs_remaining = parlay::make_range(start, end);
+    auto vtxs_remaining = gbbs::make_slice(start, end);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];

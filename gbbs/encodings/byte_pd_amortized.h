@@ -537,7 +537,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
       block_outputs[i] = cur;
     });
 
-    auto im = parlay::make_range(block_outputs, num_blocks);
+    auto im = gbbs::make_slice(block_outputs, num_blocks);
     E res = parlay::reduce(im, reduce);
     return res;
   } else {
@@ -707,7 +707,7 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
   }
 
   // 2. Scan to compute block offsets
-  auto bytes_imap = parlay::make_range(offs, new_blocks + 1);
+  auto bytes_imap = gbbs::make_slice(offs, new_blocks + 1);
   parlay::scan_inplace(bytes_imap);
 
   // 3. Compress each block
@@ -971,7 +971,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   // 2. Scan block_cts to get offsets within blocks
   block_cts[num_blocks] = 0;
-  auto scan_cts = parlay::make_range(block_cts, num_blocks + 1);
+  auto scan_cts = gbbs::make_slice(block_cts, num_blocks + 1);
   size_t deg_remaining = parlay::scan_inplace(scan_cts);
 
   parallel_for(0, num_blocks, 1000, [&](size_t i) {
