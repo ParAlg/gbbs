@@ -25,8 +25,8 @@
 
 #include <optional>
 
-#include "bridge.h"
-#include "macros.h"
+#include "gbbs/bridge.h"
+#include "gbbs/macros.h"
 
 namespace gbbs {
 

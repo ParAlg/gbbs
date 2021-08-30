@@ -30,10 +30,10 @@
 #include <cstdint>
 #include <tuple>
 
-#include "bridge.h"
-#include "macros.h"
-#include "helpers/counting_sort_no_transpose.h"
-#include "sequential_ht.h"
+#include "gbbs/bridge.h"
+#include "gbbs/macros.h"
+#include "gbbs/helpers/counting_sort_no_transpose.h"
+#include "gbbs/helpers/sequential_ht.h"
 
 namespace gbbs {
 

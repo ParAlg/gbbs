@@ -29,6 +29,17 @@ cc_library(
 )
 
 cc_library(
+  name = "histogram",
+  hdrs = ["histogram.h"],
+  deps = [
+  ":sequential_ht",
+  "//gbbs:bridge",
+  "//gbbs:macros",
+  "//gbbs/helpers:counting_sort_no_transpose",
+  ]
+)
+
+cc_library(
   name = "parse_command_line",
   hdrs = ["parse_command_line.h"],
 )
@@ -37,6 +48,16 @@ cc_library(
   name = "resizable_table",
   hdrs = ["resizable_table.h"],
   deps = ["//gbbs:bridge"]
+)
+
+
+cc_library(
+  name = "sequential_ht",
+  hdrs = ["sequential_ht.h"],
+  deps = [
+  "//gbbs:macros",
+  "//gbbs:bridge",
+  ]
 )
 
 cc_library(

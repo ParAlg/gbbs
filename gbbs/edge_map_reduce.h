@@ -25,8 +25,8 @@
 
 #include "bridge.h"
 #include "flags.h"
-#include "histogram.h"
 #include "vertex_subset.h"
+#include "helpers/histogram.h"
 
 #include <type_traits>
 

@@ -87,9 +87,9 @@ cc_library(
   hdrs = ["edge_map_reduce.h"],
   deps = [
   ":bridge",
-  ":histogram",
   ":flags",
   ":vertex_subset",
+  "//gbbs/helpers:histogram",
   ]
 )
 
@@ -202,17 +202,6 @@ cc_library(
 
 
 cc_library(
-  name = "histogram",
-  hdrs = ["histogram.h"],
-  deps = [
-  ":bridge",
-  ":macros",
-  ":sequential_ht",
-  "//gbbs/helpers:counting_sort_no_transpose",
-  ]
-)
-
-cc_library(
   name = "io",
   hdrs = ["io.h"],
   srcs = ["io.cc"],
@@ -233,15 +222,6 @@ cc_library(
   name = "macros",
   hdrs = ["macros.h"],
   deps = [
-  ":bridge",
-  ]
-)
-
-cc_library(
-  name = "sequential_ht",
-  hdrs = ["sequential_ht.h"],
-  deps = [
-  ":macros",
   ":bridge",
   ]
 )
