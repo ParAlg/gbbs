@@ -252,9 +252,6 @@ struct symmetric_packed_graph {
                  },
                  1);
   }
-
-  // TODO: remove!
-  void del() {}
 };
 
 // Used to infer template arguments
@@ -563,9 +560,6 @@ struct asymmetric_packed_graph {
     m -= delta;
     std::cout << "# Filtered graph, new m = " << m << std::endl;
   }
-
-  // TODO: remove
-  void del() { std::cout << "# deleting packed_graph" << std::endl; }
 
  private:
   inline void clear_vertex(uintE v) {
