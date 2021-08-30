@@ -196,7 +196,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
     // Resize the table that stores edge updates if necessary.
     decr_source_table.resize_no_copy(e_space_required);
-    auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
+    auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(decr_source_table.backing.begin(), e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
 
 //    std::cout << "starting decrements" << std::endl;
     decrement_t.start();
@@ -269,7 +269,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     });
 
     // Clear the table storing the edge decrements.
-    decr_tab.clear();
+    decr_tab.clear_table();
     iter++;
 
     del_edges.copyIn(rem_edges, rem_edges.size());

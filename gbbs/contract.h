@@ -75,7 +75,6 @@ sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters,
   parallel_for(0, n, 1,
                [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   auto edges = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
   debug(ins_t.next("insertion time"););
   debug(std::cout << "# edges.size = " << edges.size() << std::endl);
@@ -137,7 +136,6 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
   parallel_for(0, n, 1,
                [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   auto edges = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "# edges.size = " << edges.size() << std::endl);
@@ -187,7 +185,6 @@ sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters,
     return fetch_intercluster_te(GA, clusters, num_clusters);
   }
   auto edges = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "# edges.size = " << edges.size() << std::endl);

@@ -220,9 +220,9 @@ namespace contract_sf {
       }
     });
 
-    table.clear();
+    table.clear_table();
 
-    return std::make_pair(GC, ret_table);
+    return std::make_pair(GC, std::move(ret_table));
   }
 
 }  // namespace contract

@@ -155,7 +155,6 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
 
   // Extract all vertices with changed triangle counts
   auto changed_vtxs = edge_table.entries();
-  edge_table.del();
 
   // Aggregate the updated counts across all worker's local arrays, as specified by update
   parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
@@ -232,7 +231,6 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Extract all vertices with changed clique counts
   auto changed_vtxs = edge_table.entries();
-  edge_table.del();
 
   // Aggregate the updated counts across all worker's local arrays, as specified by update
   parallel_for(0, changed_vtxs.size(), [&] (size_t i) {

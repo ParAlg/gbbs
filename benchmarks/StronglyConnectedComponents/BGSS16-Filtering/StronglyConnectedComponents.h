@@ -192,7 +192,7 @@ inline auto multi_search(Graph& GA,
     table.update_nelms();
     rd++;
   }
-  return std::make_pair(table, elts);
+  return std::make_pair(std::move(table), std::move(elts));
 }
 
 }  // namespace
@@ -510,7 +510,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     to_process_t.start();
     auto elts = to_process.entries();
-    to_process.del();
     to_process_t.stop();
 
 //    size_t remaining = Q.size() - finished + vs_size;
@@ -551,11 +550,8 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    to_process_in.map([&] (const std::tuple<K, gbbs::empty>& kv) {
 //      to_process.insert(kv);
 //    });
-//    to_process_in.del();
-//    to_process_out.del();
 //
 //    auto elts = to_process.entries();
-//    to_process.del();
 
 
     std::cout << "Num elements to process is: " << elts.size() << std::endl;
@@ -583,7 +579,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     clear_vertices_t.stop();
 
     PG.filter_graph(pred_f, elts_seq);
-    // gbbs::sage::filter_graph(PG, pred_f);
     CT.stop();
 
     reset_t.start();
@@ -603,9 +598,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      gbbs::write_max(&labels[v], label);
 //    };
 //    larger_t.map(sp_map);
-
-    in_table.del();
-    out_table.del();
 
     rt.stop();
     rt.next("Round time");

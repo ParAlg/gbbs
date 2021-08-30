@@ -90,7 +90,6 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
   };
   parallel_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
   auto edge_pairs = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
@@ -141,7 +140,6 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
     return fetch_intercluster_te(G, clusters, num_clusters);
   }
   auto edge_pairs = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);

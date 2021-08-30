@@ -73,7 +73,6 @@ void ClusterCores(
       (*clustering)[core] = find(core, *clustering);
   });
 
-  cores_set.del();
   internal::ReportTime(function_timer);
 }
 
@@ -312,8 +311,6 @@ void Index::Cluster(
     previous_cores = std::move(cores);
     previous_core_similar_edge_counts = std::move(core_similar_edge_counts);
   }
-
-  cores_set.del();
 }
 
 }  // namespace indexed_scan
