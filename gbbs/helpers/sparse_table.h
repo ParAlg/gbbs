@@ -50,7 +50,7 @@ class sparse_table {
   inline size_t firstIndex(K& k) const { return hashToRange(key_hash(k)); }
   inline size_t incrementIndex(size_t h) const { return hashToRange(h + 1); }
 
-  sparse_table() : m(0), mask(0) {}
+  sparse_table() : m(0), mask(0), table(make_slice((T*)nullptr, (T*)nullptr)) {}
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.

@@ -60,8 +60,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     graph->m,
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
     std::hash<UndirectedEdge>{}};
-  sequence<VertexSet> adjacency_list{
-    sequence<VertexSet>::uninitialized(graph->n)};
+  sequence<VertexSet> adjacency_list{sequence<VertexSet>(graph->n)};
 
   parallel_for(0, graph->n, [&graph, &adjacency_list](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
