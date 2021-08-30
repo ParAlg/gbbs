@@ -86,7 +86,7 @@ std::pair<mis_status, size_t> mis_query(uintE u, Graph& G, size_t work_so_far, s
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <class Graph>
-auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
+auto MaximalIndependentSet(Graph& G, size_t query_cutoff=std::numeric_limits<size_t>::max()) {
   using W = typename Graph::weight_type;
 
   size_t n = G.n;

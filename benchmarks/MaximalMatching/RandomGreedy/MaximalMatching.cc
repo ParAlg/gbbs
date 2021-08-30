@@ -69,6 +69,9 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   timer t; t.start();
   auto matching = MaximalMatching(G);
   double tt = t.stop();
+  //for (size_t i=0; i<std::min((size_t)100, matching.size()); i++) {
+  //  std::cout << std::get<0>(matching[i]) << " " << std::get<1>(matching[i]) << std::endl;
+  //}
 
   std::cout << "### Running Time: " << tt << std::endl;
 

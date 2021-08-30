@@ -214,7 +214,11 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     r = r.next();
   }
   std::cout << "matching size = " << matching.size << "\n";
-  auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
+  auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) {
+    uintE u, v; W wgh;
+    std::tie(u, v, wgh) = matching.A[i];
+    return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
+  }); // allocated
   mt.stop();
   eff.next("eff for time");
   gete.next("get edges time");
