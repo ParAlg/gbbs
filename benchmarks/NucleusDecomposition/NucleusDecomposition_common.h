@@ -45,9 +45,9 @@ namespace gbbs {
       pbbs::sequence<Obj*> table_obj;
       int nw;
       ThreadLocalObj(){
-        nw = num_workers();
-        table_mark = pbbs::sequence<unsigned int>(nw * 1.5, [](std::size_t i) {return 0;});
-        table_obj = pbbs::sequence<Obj*>(nw * 1.5, [](std::size_t i){return nullptr;});
+        nw = num_workers() * 1.5;
+        table_mark = pbbs::sequence<unsigned int>(nw, [](std::size_t i) {return 0;});
+        table_obj = pbbs::sequence<Obj*>(nw, [](std::size_t i){return nullptr;});
       }
 
       Obj* init_idx(unsigned int idx) {
