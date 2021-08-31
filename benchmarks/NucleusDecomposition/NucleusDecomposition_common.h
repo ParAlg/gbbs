@@ -37,6 +37,46 @@
 #include "multitable_nosearch.h"
 
 namespace gbbs {
+
+  template<class Obj>
+  class ThreadLocalObj {
+    public:
+      pbbs::sequence<uinsigned int> table_mark;
+      pbbs::sequence<Obj*> table_obj;
+      int num_workers;
+      ThreadLocalObj(){
+        num_workers = num_workers();
+        table_mark = pbbs::sequence<unsigned int>(num_workers * 1.5, [](std::size_t i) {return 0;});
+        table_obj = pbbs::sequence<Obj*>(num_workers * 1.5, [](std::size_t i){return nullptr;});
+      }
+
+      Obj* init_idx(unsigned int idx) {
+        auto obj = table_obj[idx];
+        if (obj != nullptr) return obj;
+        obj = new Obj();
+        return obj;
+      }
+
+      void unreserve(unsigned int idx) {
+        while(true) {
+         if (pbbslib::CAS(&table_mark[idx], 1, 0)) { return; }
+        }
+      }
+
+      std::pair<unsigned int, Obj*> reserve(){
+        auto worker_id = worker_id();
+        auto idx = nhash32(worker_id) % num_workers;
+        while(true) {
+          if (table_mark[idx] == 0) {
+            if (pbbslib::CAS(&table_mark[idx], 0, 1)) {
+              return std::make_pair(idx, init_idx(idx));
+            }
+          }
+          idx++;
+          idx = idx % num_workers;
+        }
+      }
+  };
 /*
   template <class CU, class Graph, class F, class FF, class Table>
   void CompressOut(CU& compress_utils, Graph& GA, F& g_to_dg, FF& dg_to_g,
@@ -201,6 +241,8 @@ class list_buffer {
     size_t use_size;
     STable use_table;
 
+// option to have a thread local vector that's resizable per thread to hold
+// the new r cliques; you need to get your thread id
     list_buffer(size_t s, size_t _efficient = 1){
       efficient = _efficient;
       if (efficient == 1) {
@@ -218,7 +260,8 @@ class list_buffer {
         std::cout << "list size: " << sizeof(uintE) * list.size() << std::endl;
         next = 0;
       } else {
-        source_table = pbbslib::make_sparse_table<uintE, uintE>(1 << 20, std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
+        // fix for hash table version -- efficient = 2
+        source_table = pbbslib::make_sparse_table<uintE, uintE>(std::min(size_t{1 << 20}, s), std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
         std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
         use_size = s;
       }
@@ -226,9 +269,9 @@ class list_buffer {
 
     void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
       if (efficient == 2) {
-        use_size = num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt;
+        use_size_ = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
         //if (use_size > ss) use_size = ss;
-        size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
+        size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size_*1.1));
         source_table.resize_no_copy(space_required);
         use_table = pbbslib::make_sparse_table<uintE, uintE>(
           source_table.table, space_required,
@@ -410,9 +453,12 @@ t1.start();
       };
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
+      ThreadLocalObj<IntersectSpace> thread_local_is();
       parallel_for(0, active_size, [&](size_t i) {
-        static thread_local IntersectSpace* is = nullptr;
-        if (is == nullptr) is = new IntersectSpace();
+        auto is_pair = thread_local_is.reserve();
+        IntersectSpace* is = is_pair.second;
+        //static thread_local IntersectSpace* is = nullptr;
+        //if (is == nullptr) is = new IntersectSpace();
         is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
@@ -448,6 +494,7 @@ t1.start();
           labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
+        thread_local_is.unreserve(is_pair.first);
       },1, true);
     } else { // This is not (2, 3)
       /*auto init_intersect = [&](IntersectSpace* arr){
@@ -464,9 +511,12 @@ t1.start();
       };*/
       /*parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
+      ThreadLocalObj<IntersectSpace> thread_local_is();
       parallel_for(0, active_size, [&](size_t i) {
-        static thread_local IntersectSpace* is = nullptr;
-        if (is == nullptr) is = new IntersectSpace();
+        auto is_pair = thread_local_is.reserve();
+        IntersectSpace* is = is_pair.second;
+        //static thread_local IntersectSpace* is = nullptr;
+        //if (is == nullptr) is = new IntersectSpace();
         is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
@@ -514,6 +564,7 @@ t1.start();
           labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
+        thread_local_is.unreserve(is_pair.first);
       },1, true);
     }
 
@@ -521,8 +572,11 @@ t1.start();
 
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
+  ThreadLocalObj<HybridSpace_lw> thread_local_is();
   parallel_for(0, active_size, [&](size_t i) {
-    static thread_local HybridSpace_lw* induced = nullptr;
+    auto is_pair = thread_local_is.reserve();
+    HybridSpace_lw* induced = is_pair.second;
+    //static thread_local HybridSpace_lw* induced = nullptr;
     if (induced == nullptr) induced = new HybridSpace_lw();
     induced->alloc(max_deg, k-r, G.n, true, true, true);
   //for(size_t i =0; i < active_size; i++) {
@@ -543,6 +597,7 @@ t1.start();
       induced->setup_nucleus(G, DG, k, base, r, g_vert_map, g_vert_map);
     }
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
+    thread_local_is.unreserve(is_pair.first);
   //  finish_induced(induced);
   }, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
