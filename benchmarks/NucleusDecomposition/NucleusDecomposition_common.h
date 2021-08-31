@@ -453,7 +453,7 @@ t1.start();
       };
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
-      ThreadLocalObj<IntersectSpace> thread_local_is();
+      ThreadLocalObj<IntersectSpace> thread_local_is = ThreadLocalObj<IntersectSpace>();
       parallel_for(0, active_size, [&](size_t i) {
         auto is_pair = thread_local_is.reserve();
         IntersectSpace* is = is_pair.second;
@@ -511,7 +511,7 @@ t1.start();
       };*/
       /*parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
-      ThreadLocalObj<IntersectSpace> thread_local_is();
+      ThreadLocalObj<IntersectSpace> thread_local_is = ThreadLocalObj<IntersectSpace>();
       parallel_for(0, active_size, [&](size_t i) {
         auto is_pair = thread_local_is.reserve();
         IntersectSpace* is = is_pair.second;
@@ -572,7 +572,7 @@ t1.start();
 
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
-  ThreadLocalObj<HybridSpace_lw> thread_local_is();
+  ThreadLocalObj<HybridSpace_lw> thread_local_is = ThreadLocalObj<HybridSpace_lw>();
   parallel_for(0, active_size, [&](size_t i) {
     auto is_pair = thread_local_is.reserve();
     HybridSpace_lw* induced = is_pair.second;
