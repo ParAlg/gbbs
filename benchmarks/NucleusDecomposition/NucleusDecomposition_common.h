@@ -41,7 +41,7 @@ namespace gbbs {
   template<class Obj>
   class ThreadLocalObj {
     public:
-      pbbs::sequence<uinsigned int> table_mark;
+      pbbs::sequence<unsigned int> table_mark;
       pbbs::sequence<Obj*> table_obj;
       int num_workers;
       ThreadLocalObj(){
