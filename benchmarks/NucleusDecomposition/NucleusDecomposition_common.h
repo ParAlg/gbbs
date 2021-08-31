@@ -453,12 +453,12 @@ t1.start();
       };
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
-      ThreadLocalObj<IntersectSpace> thread_local_is = ThreadLocalObj<IntersectSpace>();
+      //ThreadLocalObj<IntersectSpace> thread_local_is = ThreadLocalObj<IntersectSpace>();
       parallel_for(0, active_size, [&](size_t i) {
-        auto is_pair = thread_local_is.reserve();
-        IntersectSpace* is = is_pair.second;
-        //static thread_local IntersectSpace* is = nullptr;
-        //if (is == nullptr) is = new IntersectSpace();
+      //  auto is_pair = thread_local_is.reserve();
+      //  IntersectSpace* is = is_pair.second;
+        static thread_local IntersectSpace* is = nullptr;
+        if (is == nullptr) is = new IntersectSpace();
         is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
@@ -494,7 +494,7 @@ t1.start();
           labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
-        thread_local_is.unreserve(is_pair.first);
+        //thread_local_is.unreserve(is_pair.first);
       },1, true);
     } else { // This is not (2, 3)
       /*auto init_intersect = [&](IntersectSpace* arr){
@@ -511,12 +511,12 @@ t1.start();
       };*/
       /*parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {*/
-      ThreadLocalObj<IntersectSpace> thread_local_is = ThreadLocalObj<IntersectSpace>();
+      //ThreadLocalObj<IntersectSpace> thread_local_is = ThreadLocalObj<IntersectSpace>();
       parallel_for(0, active_size, [&](size_t i) {
-        auto is_pair = thread_local_is.reserve();
-        IntersectSpace* is = is_pair.second;
-        //static thread_local IntersectSpace* is = nullptr;
-        //if (is == nullptr) is = new IntersectSpace();
+        //auto is_pair = thread_local_is.reserve();
+        //IntersectSpace* is = is_pair.second;
+        static thread_local IntersectSpace* is = nullptr;
+        if (is == nullptr) is = new IntersectSpace();
         is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
@@ -564,7 +564,7 @@ t1.start();
           labels[actual_ngh] = 0;
         };
         G.get_vertex(u).mapOutNgh(u, map_update_f, false);
-        thread_local_is.unreserve(is_pair.first);
+        //thread_local_is.unreserve(is_pair.first);
       },1, true);
     }
 
@@ -572,12 +572,12 @@ t1.start();
 
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
-  ThreadLocalObj<HybridSpace_lw> thread_local_is = ThreadLocalObj<HybridSpace_lw>();
+  //ThreadLocalObj<HybridSpace_lw> thread_local_is = ThreadLocalObj<HybridSpace_lw>();
   parallel_for(0, active_size, [&](size_t i) {
-    auto is_pair = thread_local_is.reserve();
-    HybridSpace_lw* induced = is_pair.second;
-    //static thread_local HybridSpace_lw* induced = nullptr;
-    //if (induced == nullptr) induced = new HybridSpace_lw();
+    //auto is_pair = thread_local_is.reserve();
+    //HybridSpace_lw* induced = is_pair.second;
+    static thread_local HybridSpace_lw* induced = nullptr;
+    if (induced == nullptr) induced = new HybridSpace_lw();
     induced->alloc(max_deg, k-r, G.n, true, true, true);
   //for(size_t i =0; i < active_size; i++) {
   //  HybridSpace_lw* induced = new HybridSpace_lw();
@@ -597,7 +597,7 @@ t1.start();
       induced->setup_nucleus(G, DG, k, base, r, g_vert_map, g_vert_map);
     }
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
-    thread_local_is.unreserve(is_pair.first);
+    //thread_local_is.unreserve(is_pair.first);
   //  finish_induced(induced);
   }, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
@@ -641,7 +641,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     return cliques->get_count(i);
   });
 
-  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(num_entries);
+  auto num_entries_filter = num_entries;
+  if (is_efficient == 1) num_entries_filter += 1024;
+  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(num_entries_filter);
 
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
 
