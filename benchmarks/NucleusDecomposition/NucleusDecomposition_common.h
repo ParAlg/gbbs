@@ -59,7 +59,7 @@ namespace gbbs {
 
       void unreserve(unsigned int idx) {
         while(true) {
-         if (pbbslib::CAS(&table_mark[idx], (unsigned int) 1, (unsigned int) 0)) { return; }
+         if (pbbslib::CAS(&(table_mark[idx]), (unsigned int) 1, (unsigned int) 0)) { return; }
         }
       }
 
@@ -68,7 +68,7 @@ namespace gbbs {
         auto idx = pbbs::hash32(wid) % nw;
         while(true) {
           if (table_mark[idx] == 0) {
-            if (pbbslib::CAS(&table_mark[idx], (unsigned int) 0, (unsigned int) 1)) {
+            if (pbbslib::CAS(&(table_mark[idx]), (unsigned int) 0, (unsigned int) 1)) {
               return std::make_pair(idx, init_idx(idx));
             }
           }
@@ -488,7 +488,7 @@ t1.start();
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           if (labels[actual_ngh] == k) {
-            assert(is_edge(G, ngh, std::get<1>(v1v2v3)));
+            assert(is_edge(G, ngh, relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3)));
             update_d_threefour(std::get<0>(v1v2v3), std::get<1>(v1v2v3), std::get<2>(v1v2v3), actual_ngh);
           }
           labels[actual_ngh] = 0;
@@ -577,7 +577,7 @@ t1.start();
     auto is_pair = thread_local_is.reserve();
     HybridSpace_lw* induced = is_pair.second;
     //static thread_local HybridSpace_lw* induced = nullptr;
-    if (induced == nullptr) induced = new HybridSpace_lw();
+    //if (induced == nullptr) induced = new HybridSpace_lw();
     induced->alloc(max_deg, k-r, G.n, true, true, true);
   //for(size_t i =0; i < active_size; i++) {
   //  HybridSpace_lw* induced = new HybridSpace_lw();
