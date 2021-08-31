@@ -164,7 +164,7 @@ DivideRoundingUp(const size_t numerator, const size_t denominator) {
 
 // Pseudorandomly generate `num_numbers` random normal numbers, each with zero
 // mean and unit variance.
-sequence<float> RandomNormalNumbers(size_t num_numbers, pbbslib::random rng);
+sequence<float> RandomNormalNumbers(size_t num_numbers, parlay::random rng);
 
 // Create a directed version of `graph`, pointing edges from lower degree
 // vertices to higher degree vertices. This upper bounds the out-degree of each
@@ -176,7 +176,7 @@ auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
   auto directed_graph{filterGraph(*graph, filter_predicate)};
-  pbbslib::free_array(vertex_degree_ranking, graph->n);
+  gbbs::free_array(vertex_degree_ranking, graph->n);
   return directed_graph;
 }
 
@@ -189,7 +189,7 @@ VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
   auto vertex_offsets = sequence<uintT>::from_function(
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(vertex_offsets);
+  parlay::scan_inplace(vertex_offsets);
   return vertex_offsets;
 }
 
@@ -234,7 +234,7 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   //     u --> v
   // There's a bijection between triangles of this form in `directed_graph` and
   // undirected triangles in `graph`.
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     auto vertex{directed_graph.get_vertex(vertex_id)};
     const uintT vertex_counter_offset{counter_offsets[vertex_id]};
     const auto intersect{[&](
@@ -261,7 +261,7 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
 
   sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+  parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const auto compute_similarity{[&](
@@ -283,7 +283,6 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
         compute_similarity);
   });
 
-  directed_graph.del();
   return similarities;
 }
 
@@ -327,7 +326,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // vertices need assignments of normal numbers for Minhash fingerprinting.
   sequence<uintE> needs_fingerprint_seq(graph->n, 0U);
   sequence<uintE> needs_normals_seq(graph->n, 0U);
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     if (vertex.out_degree() >= degree_threshold) {
       // Vertex should be fingerprinted if both it and one of its neighbors
@@ -355,12 +354,12 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   });
   // repurpose `needs_normals_seq` to serve as the index of a vertex into
   // `normals`, and same with `needs_fingerprint_seq`
-  const uintE num_needs_normals{pbbslib::scan_inplace(needs_normals_seq)};
+  const uintE num_needs_normals{parlay::scan_inplace(needs_normals_seq)};
   const sequence<uintE>& normals_indices{needs_normals_seq};
   const sequence<float> normals{RandomNormalNumbers(
-      num_needs_normals * num_samples, pbbslib::random{random_seed})};
+      num_needs_normals * num_samples, parlay::random{random_seed})};
   const uintE num_needs_fingerprint{
-    pbbslib::scan_inplace(needs_fingerprint_seq)};
+    parlay::scan_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
 
   const size_t num_vertices{graph->n};
@@ -369,7 +368,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Simhash fingerprints.
   sequence<BitArray> fingerprints{
     sequence<BitArray>::uninitialized(num_needs_fingerprint * num_bit_arrays)};
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  parallel_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
     const bool needs_fingerprint{
       vertex_id + 1 == num_vertices
@@ -382,7 +381,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     const uintE vertex_normal_offset{
       num_samples * normals_indices[vertex_id]};
     const size_t fingerprint_offset{fingerprint_index * num_bit_arrays};
-    par_for(0, num_bit_arrays, [&](const size_t bit_array_id) {
+    parallel_for(0, num_bit_arrays, [&](const size_t bit_array_id) {
       BitArray bits{0};
       const size_t max_bit_id{
         bit_array_id + 1 == num_bit_arrays
@@ -452,7 +451,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Count each of these triangles to get the number of shared neighbors between
   // vertices. However, we skip pairs of vertices that have high degree in the
   // original, undirected graph.
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     auto vertex{directed_graph.get_vertex(vertex_id)};
     const bool vertex_is_high_degree{
       graph->v_data[vertex_id].degree >= degree_threshold};
@@ -538,7 +537,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 
   sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+  parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
@@ -555,7 +554,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         const size_t neighbor_fingerprint_offset{
           fingerprint_indices[u_id] * num_bit_arrays};
         const auto fingerprint_xor{
-          pbbslib::make_delayed<std::remove_const<decltype(num_samples)>::type>(
+          parlay::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
             num_bit_arrays,
             [&](const size_t i) {
               return __builtin_popcountll(
@@ -563,7 +562,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
                   fingerprints[neighbor_fingerprint_offset + i]);
             })};
         const float angle_estimate{static_cast<float>(
-            pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
+            parlay::reduce(fingerprint_xor) * M_PI / num_samples)};
         similarity = std::max(std::cos(angle_estimate), 0.0f);
       } else {  // exact similarity
         if constexpr (std::is_same<Weight, gbbs::empty>::value) {
@@ -591,7 +590,6 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         compute_similarity);
   });
 
-  directed_graph.del();
   return similarities;
 }
 
@@ -625,13 +623,13 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // For edges with a low degree vertex, compute the Jaccard similarity exactly
   // with triangle counting like in `AllEdgeNeighborhoodSimilarities()`.
   const uint32_t log_num_samples{
-    std::max<uint32_t>(pbbslib::log2_up(original_num_samples), 1)};
+    std::max<uint32_t>(parlay::log2_up(original_num_samples), 1)};
   const uintE num_samples{static_cast<uintE>(1ULL << log_num_samples)};
   const uintE bucket_mask{num_samples - 1};
   constexpr uintE kEmptyBucket{UINT_E_MAX};
   const size_t num_vertices{graph->n};
   const sequence<uintE> vertex_permutation{
-    pbbslib::random_permutation<uintE>(num_vertices, pbbslib::random{random_seed})};
+    parlay::random_permutation<uintE>(num_vertices, parlay::random{random_seed})};
 
   auto needs_fingerprint_seq = sequence<uintE>::from_function(
       graph->n,
@@ -652,12 +650,12 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         return needs_fingerprint;
       });
   const uintE num_needs_fingerprint{
-    pbbslib::scan_inplace(needs_fingerprint_seq)};
+    parlay::scan_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
   // Compute MinHash fingerprints for high degree vertices.
   sequence<uintE> fingerprints(
     num_needs_fingerprint * num_samples, kEmptyBucket);
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  parallel_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
     const bool needs_fingerprint{
       vertex_id + 1 == num_vertices
@@ -674,7 +672,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         const uintE permuted_neighbor{vertex_permutation[neighbor]};
         const uintE bucket_id{permuted_neighbor & bucket_mask};
         const uintE bucket_value{permuted_neighbor >> log_num_samples};
-        pbbslib::write_min(
+        gbbs::write_min(
             &(fingerprints[fingerprint_offset + bucket_id]),
             bucket_value,
             std::less<uintE>{});
@@ -699,7 +697,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // Count each of these triangles to get the number of shared neighbors between
   // vertices. However, we skip pairs of vertices that have high degree in the
   // original, undirected graph.
-  par_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&](const size_t vertex_id) {
     auto vertex{directed_graph.get_vertex(vertex_id)};
     const bool vertex_is_high_degree{
       graph->v_data[vertex_id].degree >= degree_threshold};
@@ -741,7 +739,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
 
   sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+  parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
@@ -758,8 +756,8 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         const size_t neighbor_fingerprint_offset{
           fingerprint_indices[u_id] * num_samples};
         const uintE fingerprint_matches{
-          pbbslib::reduce_add(
-            pbbslib::make_delayed<uintE>(
+          parlay::reduce(
+            parlay::delayed_seq<uintE>(
               num_samples,
               [&](const size_t i) {
                 return
@@ -768,8 +766,8 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
                   fingerprints[neighbor_fingerprint_offset + i];
               }))};
         const uintE fingerprint_empty_count{
-          pbbslib::reduce_add(
-            pbbslib::make_delayed<uintE>(
+          parlay::reduce(
+            parlay::delayed_seq<uintE>(
               num_samples,
               [&](const size_t i) {
                 return
@@ -795,7 +793,6 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         compute_similarity);
   });
 
-  directed_graph.del();
   return similarities;
 }
 
@@ -839,7 +836,7 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     //     u --> v
     // There's a bijection between triangles of this form in `directed_graph`
     // and undirected triangles in `graph`.
-    par_for(0, graph->n, [&](const size_t vertex_id) {
+    parallel_for(0, graph->n, [&](const size_t vertex_id) {
       auto vertex{directed_graph.get_vertex(vertex_id)};
       const uintT vertex_counter_offset{counter_offsets[vertex_id]};
       const auto intersect{[&](
@@ -885,7 +882,7 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
 
     sequence<EdgeSimilarity> similarities(graph->m);
     // Convert shared neighbor counts into similarities for each edge.
-    par_for(0, directed_graph.n, [&](const size_t vertex_id) {
+    parallel_for(0, directed_graph.n, [&](const size_t vertex_id) {
       const uintT v_counter_offset{counter_offsets[vertex_id]};
       const auto compute_similarity{[&](
           const uintE v_id,
@@ -909,7 +906,6 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
            compute_similarity);
     });
 
-    directed_graph.del();
     return similarities;
   }
 }

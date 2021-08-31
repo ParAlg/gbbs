@@ -25,8 +25,8 @@
 
 #include "bridge.h"
 #include "flags.h"
-#include "histogram.h"
 #include "vertex_subset.h"
+#include "helpers/histogram.h"
 
 #include <type_traits>
 
@@ -47,7 +47,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
     uintE degree = (fl & in_edges) ? v.in_degree() : v.out_degree();
     degrees[i] = degree;
   });
-  long edgeCount = pbbslib::scan_inplace(make_slice(degrees));
+  long edgeCount = parlay::scan_inplace(make_slice(degrees));
   if (edgeCount == 0) {
     return vertexSubsetData<E>(G.n);
   }
@@ -116,11 +116,11 @@ inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA, VS& vs,
   }
   uintE empty_key = std::get<0>(ht.empty);
   auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(GA, vs, map_f, cond_f,
-                                                          empty_key, fl);
+                                                       empty_key, fl);
   oneHop.toSparse();
 
   auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-  auto get_key = pbbslib::make_delayed<uintE>(oneHop.size(), key_f);
+  auto get_key = parlay::delayed_seq<uintE>(oneHop.size(), key_f);
   auto res =
       histogram<std::tuple<uintE, O> >(get_key, oneHop.size(), apply_f, ht);
   return vertexSubsetData<O>(vs.n, std::move(res));
@@ -167,7 +167,6 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
     return vertexSubsetData<O>(n);
   } else {
     auto out = sequence<OT>::uninitialized(n);
-    std::cout << "Starting loop!" << std::endl;
     parallel_for(0, n,
                  [&](size_t i) {
                    if (cond_f(i)) {
@@ -186,7 +185,6 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
                    }
                  },
                  1);
-    std::cout << "Finished loop!" << std::endl;
     return vertexSubsetData<O>(n, std::move(out));
   }
 }
@@ -208,8 +206,8 @@ inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Cond& cond_f,
                                      : GA.get_vertex(i).out_neighbors();
     return neighbors.get_virtual_degree();
   };
-  auto degree_imap = pbbslib::make_delayed<size_t>(vs.size(), degree_f);
-  auto out_degrees = pbbslib::reduce_add(degree_imap);
+  auto degree_imap = parlay::delayed_seq<size_t>(vs.size(), degree_f);
+  auto out_degrees = parlay::reduce(degree_imap);
   size_t degree_threshold = threshold;
   if (threshold == -1) degree_threshold = GA.m / 20;
   if (vs.size() + out_degrees > degree_threshold) {
@@ -259,33 +257,6 @@ inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
   }
 }
 
-// TODO
-// template <class O,
-//          class Apply,
-//          class VS,
-//          class Graph>
-// inline vertexSubsetData<O> srcReduce(Graph& GA, VS& vs, Apply& apply_f,
-//                                     const flags fl = 0) {
-//  size_t n = GA.n;
-//  if (vs.dense()) {
-//    using OT = std::tuple<bool, O>;
-//    auto out = pbbslib::new_array_no_init<OT>(n);
-//    parallel_for(0, n, [&] (size_t i) {
-//      if (vs.isIn(i)) {
-//        out[i] = {true, G.get_vertex(i).out_degree()};
-//      } else {
-//        std::get<0>(out[i]) = false;
-//      }
-//    });
-//  } else {
-//    auto out = pbbslib::new_array_no_init<OT>(vs.size());
-//    parallel_for(0, vs.size(), [&] (size_t i) {
-//      uintE v = vs.vtx(i);
-//      out[i] = {v, G.get_vertex(v).out_degree()};
-//    });
-//  }
-//}
-
 template <class V, class Graph>
 struct EdgeMap {
   using K = uintE;  // keys are always uintE's (vertex-identifiers)
@@ -328,9 +299,9 @@ struct EdgeMap {
 
     auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
     auto get_elm =
-        pbbslib::make_delayed<std::tuple<K, M> >(oneHop.size(), elm_f);
+        parlay::delayed_seq<std::tuple<K, M> >(oneHop.size(), elm_f);
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-    auto get_key = pbbslib::make_delayed<uintE>(oneHop.size(), key_f);
+    auto get_key = parlay::delayed_seq<uintE>(oneHop.size(), key_f);
 
     auto q = [&](sequentialHT<K, V>& S, std::tuple<K, M> v) -> void {
       S.template insertF<M>(v, reduce_f);
@@ -362,7 +333,7 @@ struct EdgeMap {
     }
     using OT = typename vertexSubsetData<O>::D;
 
-    auto red_monoid = pbbslib::make_monoid(reduce_f, id);
+    auto red_monoid = parlay::make_monoid(reduce_f, id);
     if (fl & no_output) {
       parallel_for(0, n,
                    [&](size_t i) {
@@ -381,9 +352,11 @@ struct EdgeMap {
       auto out = sequence<OT>(n);
       parallel_for(0, n,
                    [&](size_t i) {
-                     if constexpr (!std::is_same<O, gbbs::empty>()) {
+                     if
+                       constexpr(!std::is_same<O, gbbs::empty>()) {
                          std::get<0>(out[i]) = false;
-                       } else {
+                       }
+                     else {
                        out[i] = false;
                      }
                      if (cond_f(i)) {
@@ -394,10 +367,12 @@ struct EdgeMap {
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);
                        if (applied_val.has_value()) {
-                         if constexpr (!std::is_same<O, gbbs::empty>()) {
-                           std::get<0>(out[i]) = true;
-                           std::get<1>(out[i]) = std::get<1>(*applied_val);
-                         } else {
+                         if
+                           constexpr(!std::is_same<O, gbbs::empty>()) {
+                             std::get<0>(out[i]) = true;
+                             std::get<1>(out[i]) = std::get<1>(*applied_val);
+                           }
+                         else {
                            out[i] = true;
                          }
                        }
@@ -430,8 +405,8 @@ struct EdgeMap {
                            : G.get_vertex(vs.vtx(i)).out_neighbors();
       return neighbors.get_virtual_degree();
     };
-    auto degree_imap = pbbslib::make_delayed<uintE>(vs.size(), degree_f);
-    auto out_degrees = pbbslib::reduce_add(degree_imap);
+    auto degree_imap = parlay::delayed_seq<uintE>(vs.size(), degree_f);
+    auto out_degrees = parlay::reduce(degree_imap);
     if (threshold == -1) threshold = G.m / 20;
     if (vs.size() + out_degrees > threshold) {
       // dense
@@ -462,12 +437,12 @@ struct EdgeMap {
     }
     auto cond_f = [&](const uintE& u) { return true; };
     uintE empty_key = std::get<0>(ht.empty);
-    auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(
-        G, vs, map_f, cond_f, empty_key, fl);
+    auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(G, vs, map_f, cond_f,
+                                                         empty_key, fl);
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-    auto get_key = pbbslib::make_delayed<uintE>(oneHop.size(), key_f);
+    auto get_key = parlay::delayed_seq<uintE>(oneHop.size(), key_f);
     auto res =
         histogram<std::tuple<uintE, O> >(get_key, oneHop.size(), apply_f, ht);
     return vertexSubsetData<O>(vs.n, std::move(res));
@@ -542,8 +517,8 @@ struct EdgeMap {
                            : G.get_vertex(vs.vtx(i)).out_neighbors();
       return neighbors.get_virtual_degree();
     };
-    auto degree_imap = pbbslib::make_delayed<size_t>(vs.size(), degree_f);
-    auto out_degrees = pbbslib::reduce_add(degree_imap);
+    auto degree_imap = parlay::delayed_seq<size_t>(vs.size(), degree_f);
+    auto out_degrees = parlay::reduce(degree_imap);
     size_t degree_threshold = threshold;
     if (threshold == -1) degree_threshold = G.m / 20;
     if (vs.size() + out_degrees > degree_threshold) {
@@ -554,8 +529,6 @@ struct EdgeMap {
       return edgeMapCount_sparse<O>(vs, apply_f, fl);
     }
   }
-
-  ~EdgeMap() { ht.del(); }
 };
 
 }  // namespace gbbs

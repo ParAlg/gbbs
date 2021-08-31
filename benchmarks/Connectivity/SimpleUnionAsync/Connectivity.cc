@@ -54,7 +54,7 @@ double CC_runner(Graph& G, commandLine P) {
   if (P.getOption("-stats")) {
     auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
-        pbbslib::make_delayed<uintE>(G.n, cc_f);
+        parlay::delayed_seq<uintE>(G.n, cc_f);
     gbbs::simple_union_find::num_cc(cc_im);
     gbbs::simple_union_find::largest_cc(cc_im);
   }

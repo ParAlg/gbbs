@@ -12,7 +12,7 @@ namespace induced_hybrid {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
       size_t deg = DG.get_vertex(i).out_degree();
-      pbbslib::write_min(&max_deg, deg, std::greater<size_t>());
+      gbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
   }
@@ -87,7 +87,7 @@ if (recursive_level < k_idx || num_induced < 2) {
         if (induced->use_base && tots[i] > 0) base_f(induced->relabel[vtx], tots[i]);
       } else tots[i] = 0;
     });
-    total_ct += pbbslib::reduce_add(tots);
+    total_ct += parlay::reduce(tots);
 }
     //for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
@@ -159,7 +159,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
       size_t max_deg = get_max_deg(DG);
       auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
-      auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+      auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
         if (DG.get_vertex(i).out_degree() != 0) {
           induced->setup(DG, k, i);
@@ -169,14 +169,14 @@ if (recursive_level < k_idx || num_induced < 2) {
       }, 1, false);
       double tt2 = t2.stop();
       std::cout << "##### Actual counting: " << tt2 << std::endl;
-      return pbbslib::reduce_add(tots);
+      return parlay::reduce(tots);
     }
 
    size_t max_deg = get_max_deg(DG);
    sequence<size_t> degs = sequence<size_t>::uninitialized(DG.n+1);
     parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).out_degree();});
     degs[DG.n] = 0;
-    size_t num_edges = pbbslib::scan_inplace(make_slice(degs));
+    size_t num_edges = parlay::scan_inplace(make_slice(degs));
     num_edges = degs[DG.n];
     sequence<size_t> tots = sequence<size_t>::uninitialized(num_edges);
 
@@ -186,7 +186,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     // to find i and ngh, binary search for j in degs; the index - 1 is i
     // then, DG.get_vertex(i).getOutNeighbor(j - degs[index-1]) is ngh
     auto less_fn = [&](size_t a, size_t b){ return a <= b; };
-    size_t idx = pbbslib::binary_search(degs, j, less_fn);
+    size_t idx = parlay::binary_search(degs, j, less_fn);
     auto i = idx - 1;
     auto ngh = DG.get_vertex(i).out_neighbors().get_neighbor(j - degs[idx - 1]);
     induced->setup_edge(DG,k,i,ngh);
@@ -196,7 +196,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 
@@ -218,7 +218,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     }, 1, false);
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 }  // namespace induced_neighborhood

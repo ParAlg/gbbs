@@ -11,10 +11,10 @@ cc_library(
   ":bridge",
   ":flags",
   ":graph",
-  ":get_time",
   ":interface",
   ":macros",
   ":vertex_subset",
+  "//gbbs/helpers:parse_command_line",
   ]
 )
 
@@ -25,18 +25,17 @@ cc_library(
   deps = [
   ":gbbs",
   ":bucket",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:dyn_arr",
   ]
 )
 
 cc_library(
   name = "bridge",
   hdrs = ["bridge.h"],
-  srcs = ["bridge.cc"],
   deps = [
-  ":get_time",
   "@parlaylib//parlay/internal:binary_search",
   "@parlaylib//parlay/internal:file_map",
+  "@parlaylib//parlay/internal:get_time",
   "@parlaylib//parlay/internal/posix:file_map_impl_posix",
   "@parlaylib//parlay:primitives",
   "@parlaylib//parlay:monoid",
@@ -58,7 +57,7 @@ cc_library(
   deps = [
   ":vertex_subset",
   ":bridge",
-  "//gbbs/pbbslib:dyn_arr"
+  "//gbbs/helpers:dyn_arr"
   ]
 )
 
@@ -75,7 +74,6 @@ cc_library(
 cc_library(
   name = "edge_map_blocked",
   hdrs = ["edge_map_blocked.h"],
-  srcs = ["edge_map_blocked.cc"],
   deps = [
   ":bridge",
   ":edge_map_utils",
@@ -89,9 +87,9 @@ cc_library(
   hdrs = ["edge_map_reduce.h"],
   deps = [
   ":bridge",
-  ":histogram",
   ":flags",
   ":vertex_subset",
+  "//gbbs/helpers:histogram",
   ]
 )
 
@@ -121,19 +119,12 @@ cc_library(
 )
 
 cc_library(
-  name = "get_time",
-  hdrs = ["get_time.h"],
-  srcs = ["get_time.cc"],
-)
-
-cc_library(
   name = "graph_mutation",
   hdrs = ["graph_mutation.h"],
   deps = [
   ":bridge",
   ":compressed_vertex",
   ":edge_array",
-  ":get_time",
   ":vertex",
   ":vertex_subset",
   ]
@@ -193,7 +184,7 @@ cc_library(
   ":bridge",
   ":vertex",
   ":graph",
-  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/helpers:sparse_table",
   ]
 )
 
@@ -209,30 +200,6 @@ cc_library(
   ]
 )
 
-cc_library(
-  name = "graph_test_utils",
-  hdrs = ["graph_test_utils.h"],
-  srcs = ["graph_test_utils.cc"],
-  deps = [
-  ":graph",
-  ":bridge",
-  ":macros",
-  ":undirected_edge",
-  ":vertex",
-  "@googletest//:gtest",
-  ]
-)
-
-cc_library(
-  name = "histogram",
-  hdrs = ["histogram.h"],
-  deps = [
-  ":bridge",
-  ":macros",
-  ":sequential_ht",
-  "//gbbs/pbbslib:counting_sort_no_transpose",
-  ]
-)
 
 cc_library(
   name = "io",
@@ -246,10 +213,8 @@ cc_library(
 cc_library(
   name = "benchmark",
   hdrs = ["benchmark.h"],
-  srcs = ["benchmark.cc"],
   deps = [
   ":graph_io",
-  ":parse_command_line",
   ]
 )
 
@@ -262,41 +227,8 @@ cc_library(
 )
 
 cc_library(
-  name = "parse_command_line",
-  hdrs = ["parse_command_line.h"],
-  srcs = ["parse_command_line.cc"],
-)
-
-cc_library(
-  name = "sequential_ht",
-  hdrs = ["sequential_ht.h"],
-  deps = [
-  ":macros",
-  ":bridge",
-  ]
-)
-
-cc_library(
-  name = "speculative_for",
-  hdrs = ["speculative_for.h"],
-  deps = [
-  ":bridge"
-  ]
-)
-
-cc_library(
-  name = "union_find",
-  hdrs = ["union_find.h"],
-  srcs = ["union_find.cc"],
-  deps = [
-  ":macros",
-  ":speculative_for"
-  ]
-)
-
-cc_library(
-  name = "uncompressed_intersection",
-  hdrs = ["uncompressed_intersection.h"],
+  name = "intersect",
+  hdrs = ["intersect.h"],
   deps = [
     ":macros",
   ]
@@ -308,27 +240,16 @@ cc_library(
   deps = [
   ":bridge",
   ":macros",
-  ":speculative_for",
-  ":uncompressed_intersection"
+  ":intersect"
   ]
 )
 
 cc_library(
   name = "vertex_subset",
   hdrs = ["vertex_subset.h"],
-  srcs = ["vertex_subset.cc"],
   deps = [
   ":bridge",
   ":flags",
-  ":macros",
-  ]
-)
-
-cc_library(
-  name = "undirected_edge",
-  hdrs = ["undirected_edge.h"],
-  srcs = ["undirected_edge.cc"],
-  deps = [
   ":macros",
   ]
 )

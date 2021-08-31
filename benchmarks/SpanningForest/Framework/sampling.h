@@ -30,7 +30,7 @@ template <
 
       auto [Parents, Edges] = sampler.initial_spanning_forest();
       sample_t.stop();
-      sample_t.reportTotal("sample time");
+      sample_t.next("sample time");
 
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = connectit::sample_frequent_element(Parents);
@@ -41,7 +41,7 @@ template <
 
       return Edges;
       /* filter empty_edge pairs from Edge */
-      return pbbslib::filter(Edges, [&] (const edge& e) {
+      return parlay::filter(Edges, [&] (const edge& e) {
         return e != empty_edge;
       });
     }
@@ -63,7 +63,7 @@ template <
       algorithm.initialize(Parents, Edges);
       algorithm.template compute_spanning_forest<no_sampling>(Parents, Edges);
       return Edges;
-      return pbbslib::filter(Edges, [&] (const edge& e) {
+      return parlay::filter(Edges, [&] (const edge& e) {
         return e != empty_edge;
       });
     }

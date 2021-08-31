@@ -42,22 +42,22 @@ inline size_t num_done(Seq& labels) {
   auto im_f = [&](size_t i) {
     return (size_t)(labels[i] != kUnfinished);
   };
-  auto im = pbbslib::make_delayed<size_t>(labels.size(), im_f);
+  auto im = parlay::delayed_seq<size_t>(labels.size(), im_f);
 
-  return pbbslib::reduce_add(im);
+  return parlay::reduce(im);
 }
 
 template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     size_t label = labels[i];
     if ((label != kUnfinished) && !flags[label]) {
       flags[label] = 1;
     }
   });
-  pbbslib::scan_inplace(flags);
+  parlay::scan_inplace(flags);
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;
@@ -72,7 +72,7 @@ inline void scc_stats(Seq& labels) {
     if (label != kUnfinished)
       flags[label]++;
   }
-  size_t maxv = pbbslib::reduce_max(flags);
+  size_t maxv = parlay::reduce_max(flags);
   std::cout << "Largest StronglyConnectedComponents has " << maxv << " vertices"
             << "\n";
   for (size_t i = 0; i < n; i++) {

@@ -87,13 +87,13 @@ struct UFAlgorithm {
         GA.get_vertex(i).out_neighbors().map(map_f);
       }
     }, granularity);
-    ut.stop(); ut.reportTotal("union time");
+    ut.stop(); ut.next("union time");
 
     timer ft; ft.start();
     parallel_for(0, n, [&] (size_t i) {
       Parents[i] = find(i,Parents);
     });
-    ft.stop(); debug(ft.reportTotal("find time"););
+    ft.stop(); debug(ft.next("find time"););
   }
 
 };

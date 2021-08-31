@@ -73,7 +73,7 @@ sequence<char> readStringFromFile(const char* fileName) {
   uint64_t end = file.tellg();
   file.seekg(0, std::ios::beg);
   uint64_t n = end - file.tellg();
-  auto bytes = sequence<char>(n); // n+1?
+  auto bytes = sequence<char>(n);  // n+1?
   file.read(bytes.begin(), n);
   file.close();
   return bytes;
@@ -88,7 +88,7 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
   if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
 #endif
     debug(std::cout << "# input opened!"
-              << "\n";);
+                    << "\n";);
   } else {
     std::cout << "# can't open input file!";
   }
@@ -97,7 +97,7 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
   size_t fsize = lseek(fd, 0, SEEK_END);
   lseek(fd, 0, 0);
 
-  /* allocate properly memaligned buffer for bytes */
+/* allocate properly memaligned buffer for bytes */
 #if defined(__APPLE__)
   char* bytes = NULL;
   posix_memalign((void**)&bytes, 4096 * 2, fsize + 4096);
@@ -115,9 +115,9 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
   if (sz + read_size > fsize) {
     size_t k = std::ceil((fsize - sz) / pgsize);
     read_size = std::max(k * pgsize, pgsize);
-    debug(std::cout << "# set read size to: " << read_size << " " << (fsize - sz)
-              << " bytes left"
-              << "\n";);
+    debug(std::cout << "# set read size to: " << read_size << " "
+                    << (fsize - sz) << " bytes left"
+                    << "\n";);
   }
 
   while (sz + read_size < fsize) {
@@ -125,13 +125,13 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
     debug(std::cout << "# reading: " << read_size << "\n";);
     sz += read(fd, buf, read_size);
     debug(std::cout << "# read: " << sz << " bytes"
-              << "\n";);
+                    << "\n";);
     if (sz + read_size > fsize) {
       size_t k = std::ceil((fsize - sz) / pgsize);
       read_size = std::max(k * pgsize, pgsize);
-      debug(std::cout << "# set read size to: " << read_size << " " << (fsize - sz)
-                << " bytes left"
-                << "\n";);
+      debug(std::cout << "# set read size to: " << read_size << " "
+                      << (fsize - sz) << " bytes left"
+                      << "\n";);
     }
   }
   if (sz < fsize) {
@@ -139,7 +139,7 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
     void* buf = bytes + sz;
     sz += read(fd, buf, pgsize);
     debug(std::cout << "# read " << sz << " bytes "
-              << "\n";);
+                    << "\n";);
   }
   close(fd);
   return std::make_tuple(bytes, fsize);

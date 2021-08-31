@@ -3,7 +3,7 @@ cc_library(
   hdrs = ["StronglyConnectedComponents.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:resizable_table",
+  "//gbbs/helpers:resizable_table",
   ]
 )
 

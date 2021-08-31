@@ -45,7 +45,7 @@ struct SSBetweennessCentrality_F {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     fType to_add = Scores[s];
-    fType n_val = pbbslib::fetch_and_add(&Scores[d], to_add);
+    fType n_val = gbbs::fetch_and_add(&Scores[d], to_add);
     return n_val == 0;
   }
   inline bool cond(uintE d) { return Visited[d] == 0; }
@@ -124,10 +124,10 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
   auto Dependencies = sequence<fType>::from_function(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -143,10 +143,10 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
      vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  debug(bt.reportTotal("back total time"););
+  debug(bt.next("back total time"););
 
   // Update dependencies scores
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
@@ -163,14 +163,14 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, sequenc
       }
       return static_cast<size_t>(0);
     };
-    auto degree_imap = pbbslib::make_delayed<size_t>(Frontier.size(), degree_f);
-    out_degrees = pbbslib::reduce_add(degree_imap);
+    auto degree_imap = parlay::delayed_seq<size_t>(Frontier.size(), degree_f);
+    out_degrees = parlay::reduce(degree_imap);
   } else {
     auto degree_f = [&](size_t i) -> size_t {
       return (fl & in_edges) ? G.get_vertex(i).in_neighbors().get_virtual_degree() : G.get_vertex(i).out_neighbors().get_virtual_degree();
     };
-    auto degree_imap = pbbslib::make_delayed<size_t>(Frontier.size(), degree_f);
-    out_degrees = pbbslib::reduce_add(degree_imap);
+    auto degree_imap = parlay::delayed_seq<size_t>(Frontier.size(), degree_f);
+    out_degrees = parlay::reduce(degree_imap);
   }
 
   if (out_degrees > G.m/20) {
@@ -206,7 +206,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, sequenc
       }
     });
 
-    dt.stop(); dt.reportTotal("dense time");
+    dt.stop(); dt.next("dense time");
     return output;
   } else {
     vertexSubset output = edgeMap(G, Frontier, make_bc_f<W>(NumPaths, Visited),
@@ -244,7 +244,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
     Frontier = std::move(output);
   }
   Levels.push_back(std::move(Frontier));
-  fwd.stop(); debug(fwd.reportTotal("forward time"));
+  fwd.stop(); debug(fwd.next("forward time"));
 
   for (size_t i=0; i<100; i++) {
     std::cout << NumPaths[i] << std::endl;
@@ -254,10 +254,10 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
   auto Dependencies = sequence<fType>::from_function(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -276,11 +276,11 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  debug(bt.reportTotal("back total time"););
+  debug(bt.next("back total time"););
 
 
   // Update dependencies scores
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
@@ -303,7 +303,7 @@ struct BFS_F {
     return 1;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbslib::atomic_compare_and_swap(&Visited[d], (uint8_t)0, (uint8_t)1)); /* first visit */
+    return (gbbs::atomic_compare_and_swap(&Visited[d], (uint8_t)0, (uint8_t)1)); /* first visit */
   }
   inline bool cond(const uintE& d) { return (Visited[d] == 0); }
 };
@@ -339,7 +339,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
       return l + r;
     };
     auto id = (fType)0;
-    auto monoid_f = pbbslib::make_monoid(reduce_f, id);
+    auto monoid_f = parlay::make_monoid(reduce_f, id);
 
     auto reduce_incident_edges = [&] (vertexSubset& vs, flags fl) {
       vertexMap(vs, [&] (const uintE& u) {
@@ -365,7 +365,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
     }
   }
   Levels.push_back(std::move(Frontier));
-  fwd.stop(); fwd.reportTotal("forward time");
+  fwd.stop(); fwd.next("forward time");
 
 
 
@@ -373,10 +373,10 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   /* Backwards pass */
   auto Dependencies = sequence<fType>::from_function(n, [](size_t i) { return 0.0; });
   // Invert numpaths
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   std::cout << "r-1 frontier, m = " << Frontier.m << std::endl;
@@ -402,7 +402,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
       return l + r;
     };
     auto id = (fType)0;
-    auto monoid_f = pbbslib::make_monoid(reduce_f, id);
+    auto monoid_f = parlay::make_monoid(reduce_f, id);
 
     auto reduce_dependencies = [&] (vertexSubset& vs) {
       vertexMap(vs, [&] (const uintE& u) {
@@ -418,11 +418,11 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
     }
   }
   bt.stop();
-  debug(bt.reportTotal("back total time"););
+  debug(bt.next("back total time"););
 
 
   // Update dependencies scores
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;

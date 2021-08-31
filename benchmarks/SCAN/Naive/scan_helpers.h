@@ -6,9 +6,9 @@
 
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/undirected_edge.h"
 #include "gbbs/vertex_subset.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/undirected_edge.h"
 
 namespace gbbs {
 namespace naive_scan {
@@ -18,7 +18,7 @@ using Clustering = sequence<sequence<uintE>>;
 namespace internal {  // internal declarations
 
 using StructuralSimilarities =
-  pbbslib::sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
+  gbbs::sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 using NoWeight = gbbs::empty;
 
 class CoreBFSEdgeMapFunctions {
@@ -54,14 +54,13 @@ StructuralSimilarities
 ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
   using Vertex = VertexType<NoWeight>;
   using VertexSet =
-    pbbslib::sparse_table<uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>;
+    gbbs::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
 
   StructuralSimilarities similarities{
     graph->m,
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
     std::hash<UndirectedEdge>{}};
-  sequence<VertexSet> adjacency_list{
-    sequence<VertexSet>::uninitialized(graph->n)};
+  sequence<VertexSet> adjacency_list{sequence<VertexSet>(graph->n)};
 
   parallel_for(0, graph->n, [&graph, &adjacency_list](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
@@ -69,7 +68,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     *neighbors = VertexSet{
       vertex.out_degree(),
       {UINT_E_MAX, internal::NoWeight{}},
-      pbbslib::hash64_2};
+      parlay::hash64_2};
     const auto update_adjacency_list{[&neighbors](
         uintE, const uintE neighbor, NoWeight) {
       neighbors->insert({neighbor, gbbs::empty{}});
@@ -95,7 +94,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
           [&](uintE, const uintE neighbor, NoWeight) {
             return larger_degree_vertex_neighbors.contains(neighbor);
           }};
-        const auto addition_monoid{pbbslib::addm<size_t>()};
+        const auto addition_monoid{parlay::addm<size_t>()};
         const size_t num_shared_neighbors{
           smaller_degree_vertex->out_neighbors().reduce(
               is_shared_neighbor,

@@ -37,21 +37,20 @@
 #include <tuple>
 #include <utility>
 
+#include "bridge.h"
 #include "encodings/decoders.h"
 #include "macros.h"
-#include "bridge.h"
 
 namespace gbbs {
 
 template <class W, class C>
 struct compressed_neighbors {
-
   uintE id;
   uintE degree;
   uchar* neighbors;
 
-  compressed_neighbors(uintE id, uintE degree, uchar* neighbors) :
-    id(id), degree(degree), neighbors(neighbors) {}
+  compressed_neighbors(uintE id, uintE degree, uchar* neighbors)
+      : id(id), degree(degree), neighbors(neighbors) {}
 
   template <class F>
   inline void map(F& f, bool parallel = true) {
@@ -74,7 +73,7 @@ struct compressed_neighbors {
   }
 
   template <class F, class G>
-  inline void copy(uintT offset, F& f, G& g, bool parallel=true) {
+  inline void copy(uintT offset, F& f, G& g, bool parallel = true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       auto val = f(src, target, weight);
@@ -86,8 +85,9 @@ struct compressed_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto monoid = pbbslib::addm<size_t>();
-    return C::template map_reduce<W>(neighbors, id, degree, f, monoid, parallel);
+    auto monoid = parlay::addm<size_t>();
+    return C::template map_reduce<W>(neighbors, id, degree, f, monoid,
+                                     parallel);
   }
 
   template <class M, class Monoid>
@@ -106,14 +106,14 @@ struct compressed_neighbors {
   }
 
   inline size_t intersect(compressed_neighbors<W, C>* other) {
-    return C::template intersect<W>(neighbors, other->neighbors,
-        degree, other->degree, id, other->id);
+    return C::template intersect<W>(neighbors, other->neighbors, degree,
+                                    other->degree, id, other->id);
   }
 
   template <class F>
   inline size_t intersect_f(compressed_neighbors<W, C>* other, const F& f) {
-    return C::template intersect_f<W>(neighbors, other->neighbors,
-        degree, other->degree, id, other->id, f);
+    return C::template intersect_f<W>(neighbors, other->neighbors, degree,
+                                      other->degree, id, other->id, f);
   }
 
   template <class F>
@@ -122,11 +122,12 @@ struct compressed_neighbors {
   }
 
   inline size_t calculateTemporarySpace() {
-  #if defined(PD) || defined(AMORTIZEDPD)
-    return (degree <= PD_PACK_THRESHOLD) ? 0 : (degree / kTemporarySpaceConstant);
-  #else
+#if defined(PD) || defined(AMORTIZEDPD)
+    return (degree <= PD_PACK_THRESHOLD) ? 0
+                                         : (degree / kTemporarySpaceConstant);
+#else
     return 0;
-  #endif
+#endif
   }
 
   inline size_t calculateTemporarySpaceBytes() {
@@ -153,15 +154,13 @@ struct compressed_neighbors {
     return C::get_virtual_degree(degree, neighbors);
   }
 
-   auto get_iter() {
-    return C::template iter<W>(neighbors, degree, id);
-  }
+  auto get_iter() { return C::template iter<W>(neighbors, degree, id); }
 
   // ======== Internal primitives used by EdgeMap implementations =======
 
   template <class F, class G, class VS>
-  __attribute__((always_inline)) inline void decodeBreakEarly(const VS& vs,
-                                   F& f, const G& g, bool parallel=false) {
+  __attribute__((always_inline)) inline void decodeBreakEarly(
+      const VS& vs, F& f, const G& g, bool parallel = false) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) __attribute__((always_inline)) {
       if (vs.isIn(target)) {
@@ -172,7 +171,6 @@ struct compressed_neighbors {
     };
     C::template decode<W>(T, neighbors, id, degree, parallel);
   }
-
 
   template <class F, class G>
   inline void decode(F& f, G& g, bool parallel = true) {
@@ -187,9 +185,9 @@ struct compressed_neighbors {
     C::template decode<W>(T, neighbors, id, degree, parallel);
   }
 
-
   template <class F, class G, class H>
-  inline void decodeSparse(uintT offset, F& f, G& g, H& h, bool parallel = true) {
+  inline void decodeSparse(uintT offset, F& f, G& g, H& h,
+                           bool parallel = true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       if (f.cond(target)) {
@@ -202,7 +200,6 @@ struct compressed_neighbors {
     };
     C::template decode<W>(T, neighbors, id, degree, parallel);
   }
-
 
   template <class F, class G>
   inline size_t decodeSparseSeq(uintT offset, F& f, G& g) {
@@ -222,8 +219,8 @@ struct compressed_neighbors {
   }
 
   template <class F, class G>
-  inline size_t decodeSparseBlock(uintT offset, uintE block_size, uintE block_num,
-                                      F& f, G& g) {
+  inline size_t decodeSparseBlock(uintT offset, uintE block_size,
+                                  uintE block_num, F& f, G& g) {
     size_t k = 0;
     auto T = [&](const uintE& src, const uintE& target, const W& weight) {
       if (f.cond(target)) {
@@ -233,7 +230,8 @@ struct compressed_neighbors {
         }
       }
     };
-    C::template decode_block_seq<W>(T, neighbors, id, degree, block_size, block_num);
+    C::template decode_block_seq<W>(T, neighbors, id, degree, block_size,
+                                    block_num);
     return k;
   }
 
@@ -252,16 +250,13 @@ struct compressed_neighbors {
     return k;
   }
 
-  uintE get_num_blocks() {
-    return C::get_num_blocks(neighbors, degree);
-  }
+  uintE get_num_blocks() { return C::get_num_blocks(neighbors, degree); }
 
   uintE block_degree(uintE block_num) {
     return C::get_block_degree(neighbors, degree, block_num);
   }
 
 };  // struct compressed_neighbors
-
 
 template <class W, class C>
 struct compressed_symmetric_vertex {
@@ -279,16 +274,14 @@ struct compressed_symmetric_vertex {
   }
 
   compressed_neighbors<W, C> in_neighbors() {
-    return compressed_neighbors<W, C>(id, degree, neighbors); }
-  compressed_neighbors<W, C> out_neighbors() {
-    return in_neighbors(); }
+    return compressed_neighbors<W, C>(id, degree, neighbors);
+  }
+  compressed_neighbors<W, C> out_neighbors() { return in_neighbors(); }
 
   uintE in_degree() { return degree; }
   uintE out_degree() { return degree; }
 
-  constexpr static uintE getInternalBlockSize() {
-    return PARALLEL_DEGREE;
-  }
+  constexpr static uintE getInternalBlockSize() { return PARALLEL_DEGREE; }
 
   // TODO: used?
   void clear() {}
@@ -305,7 +298,9 @@ struct compressed_asymmetric_vertex {
   uintE inDegree;
   uintE id;
 
-  compressed_asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data, edge_type* in_neighbors, vertex_data& in_data, uintE _id) {
+  compressed_asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data,
+                               edge_type* in_neighbors, vertex_data& in_data,
+                               uintE _id) {
     inNeighbors = in_neighbors + in_data.offset;
     outNeighbors = out_neighbors + out_data.offset;
 
@@ -315,21 +310,20 @@ struct compressed_asymmetric_vertex {
   }
 
   compressed_neighbors<W, C> in_neighbors() {
-    return compressed_neighbors<W, C>(id, inDegree, inNeighbors); }
+    return compressed_neighbors<W, C>(id, inDegree, inNeighbors);
+  }
   compressed_neighbors<W, C> out_neighbors() {
-    return compressed_neighbors<W, C>(id, outDegree, outNeighbors); }
+    return compressed_neighbors<W, C>(id, outDegree, outNeighbors);
+  }
 
   uintE in_degree() { return inDegree; }
   uintE out_degree() { return outDegree; }
 
-  constexpr static uintE getInternalBlockSize() {
-    return PARALLEL_DEGREE;
-  }
+  constexpr static uintE getInternalBlockSize() { return PARALLEL_DEGREE; }
 
   // TODO: used?
   void clear() {}
 };
-
 
 // This is us manually partially applying the functors. Generates two compressed
 // vertex classes per encoding. Classes are prefixed with:
@@ -350,29 +344,25 @@ struct cav_bytepd_amortized
 };
 
 template <class W>
-struct csv_bytepd
-    : compressed_symmetric_vertex<W, bytepd_decode> {
+struct csv_bytepd : compressed_symmetric_vertex<W, bytepd_decode> {
   using inner = compressed_symmetric_vertex<W, bytepd_decode>;
   using inner::inner;
 };
 
 template <class W>
-struct cav_bytepd
-    : compressed_asymmetric_vertex<W, bytepd_decode> {
+struct cav_bytepd : compressed_asymmetric_vertex<W, bytepd_decode> {
   using inner = compressed_asymmetric_vertex<W, bytepd_decode>;
   using inner::inner;
 };
 
 template <class W>
-struct cav_byte
-    : compressed_asymmetric_vertex<W, byte_decode> {
+struct cav_byte : compressed_asymmetric_vertex<W, byte_decode> {
   using inner = compressed_asymmetric_vertex<W, byte_decode>;
   using inner::inner;
 };
 
 template <class W>
-struct csv_byte
-    : compressed_symmetric_vertex<W, byte_decode> {
+struct csv_byte : compressed_symmetric_vertex<W, byte_decode> {
   using inner = compressed_symmetric_vertex<W, byte_decode>;
   using inner::inner;
 };

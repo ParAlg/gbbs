@@ -30,11 +30,6 @@
 //   optional:
 //     -c : indicate that the graph is compressed
 //     -m : indicate that the graph should be mmap'd
-//     -specfor : run the speculative_for (union-find) based algorithm from pbbs
-//     -largemem : set the sampling thresholds to utilize less memory
-//
-// Note: in our experiments we set -largemem when running MinimumSpanningForest on the weighted
-// hyperlink2012 graph.
 
 #include "MinimumSpanningForest.h"
 

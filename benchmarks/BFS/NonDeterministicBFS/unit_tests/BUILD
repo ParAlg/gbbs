@@ -6,7 +6,7 @@ gbbs_cc_test(
     deps = [
         "//benchmarks/BFS/NonDeterministicBFS:BFS",
         "//gbbs:graph",
-        "//gbbs:graph_test_utils",
+        "//gbbs/unit_tests:graph_test_utils",
         "//gbbs:macros",
         "@googletest//:gtest_main",
     ],

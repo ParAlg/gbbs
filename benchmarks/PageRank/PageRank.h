@@ -41,7 +41,7 @@ struct PR_F {
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbslib::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
+    gbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }};
@@ -97,10 +97,10 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
     vertexMap(Frontier,PR_Vertex_F(p_curr.begin(),p_next.begin(),damping,n));
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr[i]-p_next[i]);
     });
-    double L1_norm = pbbslib::reduce(differences);
+    double L1_norm = parlay::reduce(differences);
     if(L1_norm < eps) break;
 
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
@@ -108,9 +108,9 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
     parallel_for(0, n, [&] (size_t i) { p_curr[i] = static_cast<double>(0); });
     std::swap(p_curr,p_next);
 
-    debug(t.stop(); t.reportTotal("iteration time"););
+    debug(t.stop(); t.next("iteration time"););
   }
-  auto max_pr = pbbslib::reduce_max(p_next);
+  auto max_pr = parlay::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
   return p_next;
 }
@@ -157,23 +157,23 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
     // SpMV
     timer tt; tt.start();
     EM.template edgeMapReduce_dense<double, double>(Frontier, cond_f, map_f, reduce_f, apply_f, 0.0, no_output);
-    tt.stop(); tt.reportTotal("em time");
+    tt.stop(); tt.next("em time");
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences = parlay::delayed_seq<double>(n, [&] (size_t i) {
       auto d = p_curr[i];
       p_curr[i] = 0;
       return fabs(d-p_next[i]);
     });
-    double L1_norm = pbbslib::reduce(differences, pbbslib::addm<double>());
+    double L1_norm = parlay::reduce(differences, parlay::addm<double>());
     if(L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset p_curr
     std::swap(p_curr,p_next);
-    t.stop(); t.reportTotal("iteration time");
+    t.stop(); t.next("iteration time");
   }
-  auto max_pr = pbbslib::reduce_max(p_next);
+  auto max_pr = parlay::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
   return p_next;
 }
@@ -202,7 +202,7 @@ struct PR_Delta_F {
     volatile double oldV, newV;
     do { //basically a fetch-and-add
       oldV = nghSum[d]; newV = oldV + Delta[s].delta_over_degree; // Delta[s]/V[s].out_degree();
-    } while(!pbbslib::atomic_compare_and_swap(&nghSum[d],oldV,newV));
+    } while(!gbbs::atomic_compare_and_swap(&nghSum[d],oldV,newV));
     return oldV == 0.0;
   }
   inline bool cond (uintE d) { return cond_true(d); }
@@ -239,7 +239,7 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* 
     timer dt; dt.start();
     EM.template edgeMapReduce_dense<gbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl | no_output);
 
-    dt.stop(); dt.reportTotal("dense time");
+    dt.stop(); dt.next("dense time");
   } else {
     edgeMap(G,Frontier,PR_Delta_F<Graph>(G,Delta,nghSum),G.m/2, no_output);
   }
@@ -344,10 +344,10 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
       vertexFilter(All,delta::make_PR_Vertex_F(p.begin(),Delta.begin(),nghSum.begin(),damping,local_eps,get_degree));
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(Delta[i].delta);
     });
-    double L1_norm = pbbslib::reduce(differences, pbbslib::addm<double>());
+    double L1_norm = parlay::reduce(differences, parlay::addm<double>());
     if(L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
@@ -355,9 +355,9 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
     parallel_for(0, n, [&] (size_t i) { nghSum[i] = static_cast<double>(0); });
 
     Frontier = std::move(active);
-    debug(t.stop(); t.reportTotal("iteration time"););
+    debug(t.stop(); t.next("iteration time"););
   }
-  auto max_pr = pbbslib::reduce_max(p);
+  auto max_pr = parlay::reduce_max(p);
   std::cout << "max_pr = " << max_pr << std::endl;
 
   std::cout << "Num rounds = " << round << std::endl;

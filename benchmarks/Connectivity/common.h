@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gbbs/pbbslib/atomic_max_counter.h"
-#include "gbbs/pbbslib/atomic_sum_counter.h"
+#include "gbbs/helpers/atomic_max_counter.h"
+#include "gbbs/helpers/atomic_sum_counter.h"
 
 #include "connectit.h"
 
@@ -12,23 +12,23 @@ using incremental_update = std::tuple<uintE, uintE, UpdateType> ;
 
 constexpr uintE largest_comp = UINT_E_MAX;
 
-extern pbbslib::atomic_max_counter<uintE> max_pathlen;
-extern pbbslib::atomic_sum_counter<size_t> total_pathlen;
+extern gbbs::atomic_max_counter<uintE> max_pathlen;
+extern gbbs::atomic_sum_counter<size_t> total_pathlen;
 
 void report_pathlen(uintE pathlen);
 
 template <class Seq>
 std::pair<sequence<incremental_update>, size_t> reorder_updates(Seq& updates) {
-  auto bool_seq = pbbslib::make_delayed<bool>(updates.size(), [&] (size_t i) {
+  auto bool_seq = parlay::delayed_seq<bool>(updates.size(), [&] (size_t i) {
     return std::get<2>(updates[i]) == query_type;
   });
-  return pbbslib::split_two(updates, bool_seq);
+  return parlay::split_two(updates, bool_seq);
 }
 
 template <class W>
 sequence<std::tuple<uintE, uintE, UpdateType>>
 annotate_updates_insert(sequence<std::tuple<uintE, uintE, W>>& updates, size_t n) {
-  auto seq = pbbslib::make_delayed<std::tuple<uintE, uintE, UpdateType>>(n, [&] (size_t i) {
+  auto seq = parlay::delayed_seq<std::tuple<uintE, uintE, UpdateType>>(n, [&] (size_t i) {
       auto& ith = updates[i];
       return std::make_tuple(std::get<0>(ith), std::get<1>(ith), insertion_type);
   });
@@ -44,7 +44,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE, W>>& updates, double insert_t
     abort();
   }
   auto result = sequence<std::tuple<uintE, uintE, UpdateType>>(result_size);
-  auto rnd = pbbslib::random();
+  auto rnd = parlay::random();
   parallel_for(0, updates.size(), [&] (size_t i) {
     uintE u, v;
     W w;
@@ -58,7 +58,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE, W>>& updates, double insert_t
     result[i] = std::make_tuple(u, v, query_type);
   });
   if (permute) {
-    return pbbslib::random_shuffle(result);
+    return parlay::random_shuffle(result);
   }
   return result;
 }

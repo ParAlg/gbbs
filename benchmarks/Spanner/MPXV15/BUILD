@@ -3,8 +3,8 @@ cc_library(
   hdrs = ["Spanner.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:sparse_table",
+  "//gbbs/helpers:dyn_arr",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
   ]
 )

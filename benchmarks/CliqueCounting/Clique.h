@@ -29,8 +29,8 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/assert.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/assert.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -56,13 +56,13 @@ inline sequence<uintE> degreeOrderNodes(Graph& G, size_t n) {
   sequence<uintE> r = sequence<uintE>::uninitialized(n); // to hold degree rank per vertex id
 
   sequence<uintE> o = sequence<uintE>::uninitialized(n); // to hold vertex ids in degree order
-  par_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
 
-  pbbslib::integer_sort_inplace(make_slice(o), [&] (size_t p) {
+  parlay::integer_sort_inplace(make_slice(o), [&] (size_t p) {
     return G.get_vertex(p).out_degree();
   });
 
-  par_for(0, n, kDefaultGranularity,
+  parallel_for(0, n, kDefaultGranularity,
           [&](size_t i){ r[o[i]] = i; });
   return r;
 }
@@ -76,7 +76,7 @@ sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
     auto rank = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
     auto kcore = KCore(GA);
     auto get_core = [&](uintE p) -> uintE { return kcore[p]; };
-    pbbslib::integer_sort_inplace(make_slice(rank), get_core);
+    parlay::integer_sort_inplace(make_slice(rank), get_core);
     return rank;
   }
   else if (order_type == 3) {
@@ -93,7 +93,7 @@ inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
   const size_t n = DG.n;
   size_t count = 0;
   auto counts = sequence<size_t>::uninitialized(n);
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) { counts[i] = 0; });
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) { // if counting in total
     auto base_f = [&](uintE a, uintE b, uintE ngh) {};
@@ -176,7 +176,6 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   // Return if only counting in total
   if (!use_base) {
-    DG.del();
     return count;
   }
 
@@ -200,8 +199,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     per_vert = inverse_per_vert;
   }
 
-  auto per_vert_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return per_vert[i]; });
-  auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
+  auto per_vert_seq = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return per_vert[i]; });
+  auto max_per_vert = parlay::reduce_max(per_vert_seq);
   if (!approx_peel) {
   // Exact vertex peeling
     if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank);
@@ -215,7 +214,6 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   // Cleanup
   free(per_vert);
-  DG.del();
 
   return count;
 }
@@ -255,7 +253,6 @@ inline size_t Clique_enum(Graph& GA, size_t k, long order_type, double epsilon,
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << k << " cliques = " << count << "\n";
 
-  DG.del();
   return count;
 }
 

@@ -22,7 +22,7 @@ template <
       timer sample_t; sample_t.start();
       auto parents = sampler.initial_components();
       sample_t.stop();
-      sample_t.reportTotal("sample time");
+      sample_t.next("sample time");
 
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = connectit::sample_frequent_element(parents);
@@ -91,7 +91,7 @@ struct KOutSamplingTemplate {
 //    parent w = parents[v];
 //    if(v == w) return v;
 //    else {
-//      pbbslib::atomic_compare_and_swap(&parents[i],v,w);
+//      gbbs::atomic_compare_and_swap(&parents[i],v,w);
 //      i = v;
 //      return i;
 //    }
@@ -106,7 +106,7 @@ struct KOutSamplingTemplate {
 //        std::swap(rx, ry);
 //        std::swap(p_rx, p_ry);
 //      }
-//      if (rx == parents[rx] && pbbslib::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
+//      if (rx == parents[rx] && gbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
 //        break;
 //      } else {
 //        rx = my_split_atomic_one(rx, ry, parents);
@@ -120,7 +120,7 @@ struct KOutSamplingTemplate {
     parent p_high = parents[high];
     // Was already 'low' or succeeded in writing 'low'
     if ((p_high == low) ||
-        (p_high == high && pbbslib::atomic_compare_and_swap(&parents[high], high, low)))
+        (p_high == high && gbbs::atomic_compare_and_swap(&parents[high], high, low)))
       break;
     p1 = parents[parents[high]];
     p2 = parents[low];
@@ -136,7 +136,7 @@ struct KOutSamplingTemplate {
     auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {
@@ -183,7 +183,7 @@ struct KOutSamplingTemplate {
     auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {
@@ -202,7 +202,7 @@ struct KOutSamplingTemplate {
                 return left;
               }
             };
-            auto reduce_m = pbbslib::make_monoid(reduce_f, std::make_pair(0, 0));
+            auto reduce_m = parlay::make_monoid(reduce_f, std::make_pair(0, 0));
             auto [ngh, degree] = u_vtx.reduceOutNgh(u, map_f, reduce_m);
             (void)degree;
             link(u, ngh, parents);
@@ -239,7 +239,7 @@ struct KOutSamplingTemplate {
     auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     uintE granularity = 1024;
     // Using random neighbor---some overhead (and faster for some graphs), also
     // theoretically defensible
@@ -312,7 +312,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbslib::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src)));
+    return (gbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == d); }
 };
@@ -350,7 +350,7 @@ struct BFSSamplingTemplate {
 
     sequence<parent> parents;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     timer st; st.start();
 
     /* Assume that G has a massive component with size at least 10% of the
@@ -388,7 +388,7 @@ struct LDDSamplingTemplate {
   sequence<parent> initial_components() {
     timer lddt; lddt.start();
     auto clusters = LDD(GA, beta, permute);
-    lddt.stop(); lddt.reportTotal("## ldd time");
+    lddt.stop(); lddt.next("## ldd time");
     return clusters;
   }
 };

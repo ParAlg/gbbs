@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gbbs/pbbslib/atomic_max_counter.h"
-#include "gbbs/pbbslib/atomic_sum_counter.h"
+#include "gbbs/helpers/atomic_max_counter.h"
+#include "gbbs/helpers/atomic_sum_counter.h"
 
 #include <iostream>
 #include <limits.h>

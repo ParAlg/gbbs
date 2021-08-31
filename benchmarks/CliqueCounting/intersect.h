@@ -7,7 +7,7 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #define INDUCED_STACK_THR 5000
 
@@ -137,8 +137,8 @@ struct HybridSpace_lw {
     DG.get_vertex(i).out_neighbors().map(map_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    num_edges = parlay::reduce(deg_seq);
   }
 
   // Perform first level recursion, using linear space to intersect
@@ -195,8 +195,8 @@ struct HybridSpace_lw {
     DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    num_edges = parlay::reduce(deg_seq);
   }
 
 
@@ -281,8 +281,8 @@ struct HybridSpace_lw {
     DG.get_vertex(l).out_neighbors().map(lremap_label_f, true);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    num_edges = parlay::reduce(deg_seq);
   }
 
   // Perform first and second level recursion, using space-efficient intersection
@@ -355,14 +355,14 @@ struct HybridSpace_lw {
     for (size_t p=0; p < nn; j++) { induced[p] = p; }
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_range(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
+    auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    num_edges = parlay::reduce(deg_seq);
   }
 
   static void init(){}
   static void finish(){}
 
-  void del() {
+  ~HybridSpace_lw() {
     if (labels) {
       free(labels);
       labels=nullptr;
@@ -398,8 +398,6 @@ struct HybridSpace_lw {
     }
   }
 
-  ~HybridSpace_lw() { del(); }
-
 };
 
 
@@ -429,13 +427,12 @@ struct InducedSpace_lw {
       }
     }
   }
-  void del() {
+
+  ~InducedSpace_lw() {
     if (induced) { free(induced); induced = nullptr; }
     if (num_induced) { free(num_induced); num_induced = nullptr; }
     if (intersect) { free(intersect); intersect = nullptr; }
   }
-
-  ~InducedSpace_lw() { del(); }
 };
 
 struct FullSpace_orig_lw {
@@ -498,14 +495,14 @@ struct FullSpace_orig_lw {
     };
     DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
-    auto deg_seq = pbbslib::make_range(induced_degs, nn);
-    num_edges[0] = pbbslib::reduce_add(deg_seq);
+    auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    num_edges[0] = parlay::reduce(deg_seq);
   }
 
   static void init(){}
   static void finish(){}
 
-  void del() {
+  ~FullSpace_orig_lw() {
     if (labels) { free(labels); labels = nullptr; }
     if (induced) { free(induced); induced = nullptr; }
     if (induced_edges) { free(induced_edges); induced_edges = nullptr; }
@@ -514,8 +511,6 @@ struct FullSpace_orig_lw {
     if (num_induced) { free(num_induced); num_induced = nullptr; }
     if (old_labels) { free(old_labels); old_labels=nullptr; }
   }
-
-  ~FullSpace_orig_lw() { del(); }
 
 };
 

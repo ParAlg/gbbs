@@ -25,8 +25,7 @@
 
 #include <cassert>
 #include "gbbs/gbbs.h"
-#include "gbbs/union_find.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/Connectivity/common.h"
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
@@ -44,16 +43,16 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_gra
   sequence<edge> edges = GA.edges();
 
   timer kt; kt.start();
-  auto weight_seq = pbbslib::make_delayed<W>(edges.size(), [&] (size_t i) { return std::get<2>(edges[i]); });
+  auto weight_seq = parlay::delayed_seq<W>(edges.size(), [&] (size_t i) { return std::get<2>(edges[i]); });
   std::cout << weight_seq[0] << std::endl;
-  auto max_weight = pbbslib::reduce_max(weight_seq);
+  auto max_weight = parlay::reduce_max(weight_seq);
   std::cout << "max_weight = " << max_weight << std::endl;
   timer st; st.start();
   auto comp = [&] (const edge& l, const edge& r) {
     return std::get<2>(l) < std::get<2>(r);
   };
-  pbbslib::sample_sort_inplace(make_slice(edges), comp);
-  st.stop(); st.reportTotal("sort time");
+  parlay::sample_sort_inplace(make_slice(edges), comp);
+  st.stop(); st.next("sort time");
 
   auto components = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });
   constexpr auto find{find_variants::find_compress};
@@ -70,7 +69,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_gra
       MST[k++] = {u,v,w};
     }
   }
-  kt.stop(); kt.reportTotal("kruskal time (excluding G.get_edges() to convert graph to edge-list format)");
+  kt.stop(); kt.next("kruskal time (excluding G.get_edges() to convert graph to edge-list format)");
   std::cout << "MST weight = " << weight << std::endl;
   MST.resize(k);
   return MST;

@@ -53,7 +53,7 @@ struct BF_F {
       newDist = SP[s] + 1;
     } else {
       newDist = SP[s] + edgeLen; }
-    return (pbbslib::write_min(&SP[d], newDist) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
+    return (gbbs::write_min(&SP[d], newDist) && gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
@@ -95,8 +95,8 @@ auto BellmanFord(Graph& G, uintE start) {
     round++;
   }
   auto dist_im_f = [&](size_t i) { return (SP[i] == (std::numeric_limits<Distance>::max())) ? 0 : SP[i]; };
-  auto dist_im = pbbslib::make_delayed<Distance>(n, dist_im_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
+  auto dist_im = parlay::delayed_seq<Distance>(n, dist_im_f);
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;
 }

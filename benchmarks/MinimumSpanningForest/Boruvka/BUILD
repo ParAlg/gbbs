@@ -3,9 +3,8 @@ cc_library(
   hdrs = ["MinimumSpanningForest.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs:union_find",
-  "//gbbs/pbbslib:sparse_table",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:sparse_table",
+  "//gbbs/helpers:dyn_arr",
   "//benchmarks/SpanningForest/SDB14:SpanningForest",
   ]
 )

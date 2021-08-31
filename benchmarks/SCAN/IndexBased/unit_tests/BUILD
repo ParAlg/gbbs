@@ -9,9 +9,9 @@ gbbs_cc_test(
         "//benchmarks/SCAN/IndexBased:similarity_measure",
         "//gbbs:bridge",
         "//gbbs:graph",
-        "//gbbs:graph_test_utils",
-        "//gbbs:undirected_edge",
         "//gbbs:vertex",
+        "//gbbs/helpers:undirected_edge",
+        "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",
     ],
 )

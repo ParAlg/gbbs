@@ -49,14 +49,14 @@ struct SVAlgorithm {
     size_t candidates_size = n;
     sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
-      auto all_vertices = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
-      unhooked = pbbslib::filter(all_vertices, [&] (uintE v) {
+      auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
+      unhooked = parlay::filter(all_vertices, [&] (uintE v) {
         return Parents[v] != frequent_comp;
       });
       candidates_size = unhooked.size();
     }
 
-    auto candidates = pbbslib::make_delayed<uintE>(candidates_size, [&] (size_t i) {
+    auto candidates = parlay::delayed_seq<uintE>(candidates_size, [&] (size_t i) {
       if constexpr (sampling_option == no_sampling) {
         return i;
       } else {
@@ -70,7 +70,7 @@ struct SVAlgorithm {
     while (changed) {
       changed = false;
       rounds++;
-      parallel_for(0, candidates.size(), [&] (uintE i) {
+      parallel_for(0, candidates.size(), 1, [&] (uintE i) {
         uintE u = candidates[i];
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = PrevParents[u];
@@ -78,15 +78,15 @@ struct SVAlgorithm {
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == PrevParents[h]) {
-            pbbslib::write_min<parent>(&Parents[h], l, std::less<parent>());
+            gbbs::write_min<parent>(&Parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         };
         GA.get_vertex(u).out_neighbors().map(map_f);
 
-      }, 1);
+      });
 
-      parallel_for(0, candidates.size(), [&] (uintE i) {
+      parallel_for(0, candidates.size(), 1, [&] (uintE i) {
         uintE u = candidates[i];
         auto map_f_2 = [&] (const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = PrevParents[u];
@@ -95,12 +95,12 @@ struct SVAlgorithm {
           parent h = std::max(p_u, p_v);
           if (l != h && h == PrevParents[h]) {
             if (Parents[h] == l) {
-              pbbslib::atomic_compare_and_swap(&Edges[h], empty_edge, std::make_pair(u, v));
+              gbbs::atomic_compare_and_swap(&Edges[h], empty_edge, std::make_pair(u, v));
             }
           }
         };
         GA.get_vertex(u).out_neighbors().map(map_f_2);
-      }, 1);
+      });
 
       // compress
       parallel_for(0, n, [&] (uintE u) {
@@ -125,7 +125,7 @@ inline sequence<edge> SpanningForest(Graph& G) {
   auto alg = SVAlgorithm<Graph>(G);
   alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
 
-  return pbbslib::filter(Edges, [&] (const edge& e) {
+  return parlay::filter(Edges, [&] (const edge& e) {
     return e != empty_edge;
   });
 }

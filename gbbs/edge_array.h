@@ -39,15 +39,14 @@ struct edge_array {
 
   size_t n;  // num vertices.
 
-  edge_array(sequence<edge>&& _E, size_t _n)
-      : E(_E), n(_n) { }
+  edge_array(sequence<edge>&& _E, size_t _n) : E(_E), n(_n) {}
 
-  edge_array() { }
+  edge_array() {}
 
   size_t size() { return E.size(); }
 
   // Clears the edge array.
-  sequence<edge> to_seq() {
+  sequence<edge>&& to_seq() {
     n = 0;
     return std::move(E);
   }
@@ -64,7 +63,6 @@ struct edge_array {
   }
 };
 
-
 template <class W, class Graph>
 inline edge_array<W> to_edge_array(Graph& G) {
   using edge = std::tuple<uintE, uintE, W>;
@@ -73,7 +71,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
   auto sizes = sequence<uintT>::uninitialized(n);
   parallel_for(0, n,
                [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
-  size_t m = pbbslib::scan_inplace(make_slice(sizes));
+  size_t m = parlay::scan_inplace(make_slice(sizes));
   assert(m == G.m);
 
   auto arr = sequence<edge>::uninitialized(m);

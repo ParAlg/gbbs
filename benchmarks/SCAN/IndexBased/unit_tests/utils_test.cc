@@ -1,7 +1,7 @@
 #include "benchmarks/SCAN/IndexBased/utils.h"
 
 #include "gtest/gtest.h"
-#include "gbbs/graph_test_utils.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 
 namespace gbbs {
 namespace gt = graph_test;

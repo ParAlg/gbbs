@@ -12,7 +12,7 @@ namespace induced_neighborhood {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
       size_t deg = DG.get_vertex(i).out_degree();
-      pbbslib::write_min(&max_deg, deg, std::greater<size_t>());
+      gbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
   }
@@ -70,8 +70,8 @@ namespace induced_neighborhood {
         }
       });*/
 
-      auto deg_seq = pbbslib::make_range(new_induced_degs, induced->nn);
-      induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
+      auto deg_seq = gbbs::make_slice(new_induced_degs, induced->nn);
+      induced->num_edges[k_idx] = parlay::reduce(deg_seq);
 
       //uintE vtx = prev_induced[i];
       //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).out_degree(), true, induced->induced + induced->num_induced[0] * k_idx);
@@ -96,7 +96,7 @@ namespace induced_neighborhood {
       } else tots[i] = 0;
     } );
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 }  // namespace induced_neighborhood

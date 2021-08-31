@@ -3,7 +3,7 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
 namespace goodrichpszona_degen {
@@ -24,14 +24,14 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
 
-  auto ret = pbbslib::dyn_arr<uintE>(n);
+  auto ret = gbbs::dyn_arr<uintE>(n);
 
-  pbbslib::random r;
+  parlay::random r;
   timer kt, ft;
   while (active.size() > 0) {
     /* compute cutoff using kth-smallest */
 
-    auto active_degs = pbbslib::make_delayed<uintE>(active.size(), [&] (size_t i) {
+    auto active_degs = parlay::delayed_seq<uintE>(active.size(), [&] (size_t i) {
       uintE v = active[i];
       return D[v];
     });
@@ -39,7 +39,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     std::cout << "Kth smallesting w ns = " << ns << std::endl;
     std::cout << "num remaining = " << active_degs.size() << std::endl;);
     kt.start();
-    uintE threshold = pbbslib::approximate_kth_smallest(active_degs, ns, std::less<uintE>(), r);
+    uintE threshold = parlay::approximate_kth_smallest(active_degs, ns, std::less<uintE>(), r);
     r = r.next();
     kt.stop();
 
@@ -52,8 +52,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     };
 
     ft.start();
-    auto this_round = pbbslib::filter(active, lte_threshold);
-    active = pbbslib::filter(active, gt_threshold);
+    auto this_round = parlay::filter(active, lte_threshold);
+    active = parlay::filter(active, gt_threshold);
     ft.stop();
 
     ret.copyInF([&] (size_t i) { return this_round[i]; }, this_round.size());
@@ -70,10 +70,9 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
   auto output = sequence<uintE>::from_function(n, [&] (size_t i) { return ret.A[i]; });
-  ret.del();
   debug(
-  kt.reportTotal("kth time");
-  ft.reportTotal("filter time"););
+  kt.next("kth time");
+  ft.next("filter time"););
   return output;
 }
 

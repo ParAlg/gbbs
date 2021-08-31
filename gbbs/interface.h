@@ -19,7 +19,8 @@ namespace gbbs {
 //   updateAtomic : (uintE * uintE * W) -> bool
 //   cond : uintE -> bool
 template <class Graph, class VS, class F>
-inline vertexSubsetData<gbbs::empty> neighbor_map(Graph& G, VS& vs, F f, intT threshold = -1,
+inline vertexSubsetData<gbbs::empty> neighbor_map(Graph& G, VS& vs, F f,
+                                                  intT threshold = -1,
                                                   flags fl = 0) {
   return edgeMapData<gbbs::empty>(G, vs, f, threshold, fl);
 }
@@ -27,25 +28,25 @@ inline vertexSubsetData<gbbs::empty> neighbor_map(Graph& G, VS& vs, F f, intT th
 // Generalized version of edgeMap. Takes an input vertex_subset and
 // aggregates results at the neighbors of the vset. See above for the
 // requirements on F.
-template <class Graph, // underlying graph class
-          class Data,  // data associated with vertices in the output
-          class VS,    // input vertex_subset type
-          class F>     // map function type
+template <class Graph,  // underlying graph class
+          class Data,   // data associated with vertices in the output
+          class VS,     // input vertex_subset type
+          class F>      // map function type
 inline vertexSubsetData<Data>
 nghMapData(Graph& G, VS& vs, F f, intT threshold = -1, flags fl = 0) {
   return edgeMapData<Data>(G, vs, f, threshold, fl);
 }
 
 // =================== VertexSubset Operators: Counting =====================
-template <
-    class Graph,
-    class Cond,   // function from uintE -> bool
-    class Apply,  // function from std::tuple<uintE, uintE> ->
-                  // std::optional<std::tuple<uintE, Data>>
-    class VS>
-inline vertexSubsetData<uintE> nghCount(Graph& G, VS& vs, Cond cond_f, Apply apply_f,
-                                       hist_table<uintE, uintE>& ht,
-                                       flags fl = 0) {
+template <class Graph,
+          class Cond,   // function from uintE -> bool
+          class Apply,  // function from std::tuple<uintE, uintE> ->
+                        // std::optional<std::tuple<uintE, Data>>
+          class VS>
+inline vertexSubsetData<uintE> nghCount(Graph& G, VS& vs, Cond cond_f,
+                                        Apply apply_f,
+                                        hist_table<uintE, uintE>& ht,
+                                        flags fl = 0) {
   return edgeMapCount<uintE, Cond, Apply, VS>(G, vs, cond_f, apply_f, ht, fl);
 }
 
@@ -65,7 +66,6 @@ inline vertexSubsetData<uintE> srcCount(Graph& G, VS& vs, P p, flags fl = 0) {
   return edgeMapFilter(G, vs, p, fl);
 }
 
-
 // =================== VertexSubset Operators: Packing =====================
 template <class Graph, class P>
 vertexSubsetData<uintE> srcPack(Graph& G, vertexSubset& vs, P p, flags fl = 0) {
@@ -78,11 +78,11 @@ vertexSubsetData<uintE> srcPack(Graph& G, vertexSubset& vs, P p, flags fl = 0) {
 // not necesssarily equal to f(v,u), but we only represent the out-edges of
 // this (possibly) directed graph. For convenience in cases where the graph
 // needed is symmetric, we coerce this to a symmetric_graph.
-template <template <class inner_wgh> class vtx_type, class wgh_type,
-          typename P,
-          typename std::enable_if<
-              std::is_same<vtx_type<wgh_type>, symmetric_vertex<wgh_type>>::value,
-              int>::type = 0>
+template <
+    template <class inner_wgh> class vtx_type, class wgh_type, typename P,
+    typename std::enable_if<
+        std::is_same<vtx_type<wgh_type>, symmetric_vertex<wgh_type>>::value,
+        int>::type = 0>
 static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
     symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
   auto ret = filter_graph<vtx_type, wgh_type>(G, pred);
@@ -97,7 +97,8 @@ static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
       [=]() {
         gbbs::free_array(newVData, newN);
         gbbs::free_array(newEdges, newM);
-      }, newEdges);
+      },
+      newEdges);
 }
 
 template <
@@ -114,12 +115,12 @@ static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
   auto newEdges = std::get<3>(ret);
 
   assert(newN == G.num_vertices());
-  return symmetric_graph<csv_byte, wgh_type>(
-      newVData, newN, newM,
-      [=]() {
-        gbbs::free_array(newVData, newN);
-        gbbs::free_array(newEdges, newM);
-      }, newEdges);
+  return symmetric_graph<csv_byte, wgh_type>(newVData, newN, newM,
+                                             [=]() {
+                                               gbbs::free_array(newVData, newN);
+                                               gbbs::free_array(newEdges, newM);
+                                             },
+                                             newEdges);
 }
 
 // Used by MST and MaximalMatching
@@ -129,12 +130,14 @@ static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
 template <class Graph, class P>
-edge_array<typename Graph::weight_type> filterEdges(Graph& G, P& pred, flags fl = 0) {
+edge_array<typename Graph::weight_type> filterEdges(Graph& G, P& pred,
+                                                    flags fl = 0) {
   return filter_edges(G, pred, fl);
 }
 
 template <class Graph, class P>
-edge_array<typename Graph::weight_type> filterAllEdges(Graph& G, P& pred, flags fl = 0) {
+edge_array<typename Graph::weight_type> filterAllEdges(Graph& G, P& pred,
+                                                       flags fl = 0) {
   return filter_all_edges(G, pred, fl);
 }
 

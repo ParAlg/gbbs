@@ -190,7 +190,7 @@ auto wrap_array(const Seq& S) {
   // memory when destroyed:
   size_t n = S.size();
   auto arr = (E*)(malloc(n*sizeof(E)));
-  parallel_for(0, n, [&] (size_t i) { pbbslib::assign_uninitialized(arr[i], S[i]); });
+  parallel_for(0, n, [&] (size_t i) { parlay::assign_uninitialized(arr[i], S[i]); });
 
   py::capsule free_when_done(arr, [](void *f) {
     free(f);
@@ -244,7 +244,6 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("MinimumSpanningForest", [&] (graph& G) {
       auto G_copy = G.copy();
       auto edges = compiled::MinimumSpanningForest(G_copy);
-      G_copy.del();
       return build_edgelist<W>(edges);
     })
     .def("BellmanFord", [&] (graph& G, uintE source) {

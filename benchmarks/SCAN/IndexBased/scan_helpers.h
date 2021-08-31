@@ -38,20 +38,20 @@ class NeighborOrder {
 
   // Get all similarity scores from vertex `source` to its neighbors (not
   // including `source` itself), sorted by descending similarity.
-  const pbbslib::range<EdgeSimilarity>& operator[](size_t source) const;
+  const gbbs::slice<EdgeSimilarity>& operator[](size_t source) const;
 
   bool empty() const;
   // Returns the number of vertices.
   size_t size() const;
 
-  const pbbslib::range<EdgeSimilarity>* begin() const;
-  const pbbslib::range<EdgeSimilarity>* end() const;
+  const gbbs::slice<EdgeSimilarity>* begin() const;
+  const gbbs::slice<EdgeSimilarity>* end() const;
 
  private:
   // Holds similarity scores for all edges, sorted by source and then by
   // similarity.
   sequence<EdgeSimilarity> similarities_;
-  sequence<pbbslib::range<EdgeSimilarity>> similarities_by_source_;
+  sequence<gbbs::slice<EdgeSimilarity>> similarities_by_source_;
 };
 
 struct CoreThreshold {
@@ -88,7 +88,7 @@ NeighborOrder::NeighborOrder(
     const SimilarityMeasure& similarity_measure) {
   timer function_timer{"Construct neighbor order"};
   similarities_ = similarity_measure.AllEdges(graph);
-  pbbslib::sample_sort_inplace(
+  parlay::sample_sort_inplace(
       make_slice(similarities_),
       [](const EdgeSimilarity& left, const EdgeSimilarity& right) {
         // Sort by ascending source, then descending similarity.
@@ -98,8 +98,8 @@ NeighborOrder::NeighborOrder(
   sequence<uintT> vertex_offsets = sequence<uintT>::from_function(
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(vertex_offsets);
-  similarities_by_source_ = sequence<pbbslib::range<EdgeSimilarity>>::from_function(
+  parlay::scan_inplace(vertex_offsets);
+  similarities_by_source_ = sequence<gbbs::slice<EdgeSimilarity>>::from_function(
       graph->n,
       [&](const size_t i) {
         return similarities_.cut(

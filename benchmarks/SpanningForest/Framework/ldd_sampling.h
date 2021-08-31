@@ -18,7 +18,7 @@ struct LDD_Edges_Fn {
   }
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (pbbslib::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, Parents[s])) {
+    if (gbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, Parents[s])) {
       Edges[d] = std::make_pair(s,d);
       return true;
     }
@@ -38,11 +38,11 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbslib::random_permutation<uintE>(n);
+    vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto Parents = sequence<uintE>(n);
-  par_for(0, n, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Parents[i] = UINT_E_MAX; });
 
   auto Edges = sequence<edge>(n, empty_edge);
@@ -62,11 +62,11 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
+      auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return Parents[v] == UINT_E_MAX; };
-      auto new_centers = pbbslib::filter(candidates, pred);
+      auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
+      parallel_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
         uintE v = new_centers[i];
         Parents[v] = v;
       });
@@ -97,7 +97,7 @@ struct LDDSamplingTemplate {
 
     timer lddt; lddt.start();
     auto [Parents, Edges] = LDD_sample_edges(GA, 0.2, /* permute = */false);
-    lddt.stop(); lddt.reportTotal("## ldd time");
+    lddt.stop(); lddt.next("## ldd time");
 
     return std::make_pair(Parents, Edges);
   }

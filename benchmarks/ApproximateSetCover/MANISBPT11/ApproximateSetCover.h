@@ -42,7 +42,7 @@ struct Visit_Elms {
   Visit_Elms(uintE* _elms, uintE* _perm) : elms(_elms), perm(_perm) {}
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     uintE p_s = perm[s];
-    pbbslib::write_min(&(elms[d]), p_s);
+    gbbs::write_min(&(elms[d]), p_s);
     return false;
   }
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
@@ -64,7 +64,7 @@ struct Visit_Elms {
 // interface.
 
 template <class Graph>
-inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
+inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   using W = typename Graph::weight_type;
   timer it; it.start();
   auto Elms = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
@@ -79,9 +79,9 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
 
   timer nbt;
   size_t rounds = 0;
-  pbbslib::dyn_arr<uintE> cover = pbbslib::dyn_arr<uintE>();
-  auto r = pbbslib::random();
-  it.stop(); it.reportTotal("initialization time");
+  gbbs::dyn_arr<uintE> cover = gbbs::dyn_arr<uintE>();
+  auto r = parlay::random();
+  it.stop(); it.next("initialization time");
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
@@ -113,8 +113,8 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     permt.start();
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
-    auto P = pbbslib::random_permutation<uintE>(still_active.size(), r);
-    par_for(0, still_active.size(), kDefaultGranularity, [&] (size_t i) {
+    auto P = parlay::random_permutation<uintE>(still_active.size(), r);
+    parallel_for(0, still_active.size(), kDefaultGranularity, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
                       uintE pv = P[i];
                       perm[v] = pv;
@@ -182,16 +182,15 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     bktt.stop();
     r = r.next();
   }
-  b.del();
 
-  bktt.reportTotal("bucket");
-  nbt.reportTotal("next bucket time");
-  packt.reportTotal("pack");
-  permt.reportTotal("perm");
-  emt.reportTotal("emap");
+  bktt.next("bucket");
+  nbt.next("next bucket time");
+  packt.next("pack");
+  permt.next("perm");
+  emt.next("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
-  auto elm_cov = pbbslib::make_delayed<uintE>(G.n, elm_cov_f);
-  size_t elms_cov = pbbslib::reduce_add(elm_cov);
+  auto elm_cov = parlay::delayed_seq<uintE>(G.n, elm_cov_f);
+  size_t elms_cov = parlay::reduce(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";
   std::cout << "Rounds: " << rounds << "\n";

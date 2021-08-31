@@ -24,8 +24,8 @@
 
 #include "gbbs/bridge.h"
 #include "gbbs/bucket.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 
@@ -43,7 +43,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
       multi_table.insert(u, std::make_tuple(v,0));
     }
   });
-  it.stop(); it.reportTotal("insertion time");
+  it.stop(); it.next("insertion time");
 
   // 2. Triangle count, update trussness scores for each edge
   // 2.(a) Rank vertices based on degree
@@ -63,9 +63,8 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   };
   timer tct; tct.start();
   truss_utils::TCDirected(DG, inc_truss_f);
-  tct.stop(); tct.reportTotal("TC time");
+  tct.stop(); tct.next("TC time");
 
-  DG.del();
 }
 
 // High-level desc:
@@ -95,12 +94,12 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   using bucket_t = uintE;
   using trussness_t = uintE;
 
-  auto deg_lt = pbbslib::make_delayed<uintE>(GA.n, [&] (size_t i) {
+  auto deg_lt = parlay::delayed_seq<uintE>(GA.n, [&] (size_t i) {
       return GA.get_vertex(i).out_degree() < (1 << 15); 
   });
-  std::cout << "count = " << pbbslib::reduce_add(deg_lt) << std::endl;
-  auto deg_lt_ct = pbbslib::make_delayed<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
-  std::cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << std::endl;
+  std::cout << "count = " << parlay::reduce(deg_lt) << std::endl;
+  auto deg_lt_ct = parlay::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
+  std::cout << "total degree = " << parlay::reduce(deg_lt_ct) << std::endl;
 
   auto counts = sequence<size_t>(GA.n, (size_t)0);
   parallel_for(0, GA.n, [&] (size_t i) {
@@ -111,7 +110,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     };
     counts[i] = GA.get_vertex(i).out_neighbors().count(count_f);
   });
-  std::cout << "total lt ct = " << pbbslib::reduce_add(counts) << std::endl;
+  std::cout << "total lt ct = " << parlay::reduce(counts) << std::endl;
 
 
 
@@ -144,17 +143,17 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   // Initialize the bucket structure. #ids = trussness table size
   std::cout << "multi_size = " << trussness_multi.size() << std::endl;
   auto multi_size = trussness_multi.size();
-  auto get_bkt = pbbslib::make_delayed<uintE>(multi_size, [&] (size_t i) {
+  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&] (size_t i) {
     auto table_value = std::get<1>(trussness_multi.big_table[i]); // the trussness.
     return (uintE)table_value;
   });
   auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt, increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
-  auto hash_edge_id = [&] (const edge_t& e) { return pbbslib::hash32(e); };
-  auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
+  auto hash_edge_id = [&] (const edge_t& e) { return parlay::hash32(e); };
+  auto decr_source_table = gbbs::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
-  auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
+  auto del_edges = gbbs::dyn_arr<edge_t>(6*GA.n);
   auto actual_degree = sequence<uintE>::from_function(GA.n, [&] (size_t i) {
     return GA.get_vertex(i).out_degree();
   });
@@ -184,7 +183,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     if (k == 0 || finished == n_edges) {
       // No triangles incident to these edges. We set their trussness to MAX,
       // which is safe since there are no readers until we output.
-      par_for(0, rem_edges.size(), [&] (size_t i) {
+      parallel_for(0, rem_edges.size(), [&] (size_t i) {
         edge_t id = rem_edges[i];
         std::get<1>(trussness_multi.big_table[id]) = std::numeric_limits<int>::max(); // UINT_E_MAX is reserved
       });
@@ -192,15 +191,15 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     }
 
     size_t e_size = 2*k*rem_edges.size();
-    size_t e_space_required  = (size_t)1 << pbbslib::log2_up((size_t)(e_size*1.2));
+    size_t e_space_required  = (size_t)1 << parlay::log2_up((size_t)(e_size*1.2));
 
     // Resize the table that stores edge updates if necessary.
     decr_source_table.resize_no_copy(e_space_required);
-    auto decr_tab = pbbslib::make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
+    auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(decr_source_table.backing.begin(), e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
 
 //    std::cout << "starting decrements" << std::endl;
     decrement_t.start();
-    par_for(0, rem_edges.size(), 1, [&] (size_t i) {
+    parallel_for(0, rem_edges.size(), 1, [&] (size_t i) {
       edge_t id = rem_edges[i];
       uintE u = trussness_multi.u_for_id(id);
       uintE v = std::get<0>(trussness_multi.big_table[id]);
@@ -221,7 +220,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       std::get<1>(decr_edges[i]) = b.get_bucket(current_deg, new_deg);
     });
 
-    auto rebucket_edges = pbbslib::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
+    auto rebucket_edges = parlay::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
       return std::get<1>(eb) != UINT_E_MAX;
     });
     auto edges_moved_f = [&] (size_t i) {
@@ -256,20 +255,20 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 //      ret.exists = true;
 //      return ret;
 //    };
-//    auto edges_moved_map = pbbslib::make_delayed<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
+//    auto edges_moved_map = parlay::delayed_seq<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
 //    auto edges_moved_f = [&] (size_t i) { return edges_moved_map[i]; };
 //    bt.start();
 //    b.update_buckets(edges_moved_f, edges_moved_map.size());
 //    bt.stop();
 
     // Unmark edges removed in this round, and decrement their trussness.
-    par_for(0, rem_edges.size(), [&] (size_t i) {
+    parallel_for(0, rem_edges.size(), [&] (size_t i) {
       edge_t id = rem_edges[i];
       std::get<1>(trussness_multi.big_table[id]) -= 1;
     });
 
     // Clear the table storing the edge decrements.
-    decr_tab.clear();
+    decr_tab.clear_table();
     iter++;
 
     del_edges.copyIn(rem_edges, rem_edges.size());
@@ -312,8 +311,8 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       em_t.stop();
       std::cout << "compacting 4, " << del_edges.size << std::endl;
 
-      auto all_vertices = pbbslib::make_delayed<uintE>(GA.n, [&] (size_t i) { return i; });
-      auto to_pack_seq = pbbslib::filter(all_vertices, [&] (uintE u) {
+      auto all_vertices = parlay::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
+      auto to_pack_seq = parlay::filter(all_vertices, [&] (uintE u) {
         return 4*actual_degree[u] >= GA.get_vertex(u).out_degree();
       });
       auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
@@ -334,11 +333,11 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     }
   }
 
-  peeling_t.stop(); peeling_t.reportTotal("peeling time");
-  ct.reportTotal("Compaction time");
-  bt.reportTotal("Bucketing time");
-  em_t.reportTotal("EdgeMap time");
-  decrement_t.reportTotal("Decrement trussness time");
+  peeling_t.stop(); peeling_t.next("peeling time");
+  ct.next("Compaction time");
+  bt.next("Bucketing time");
+  em_t.next("EdgeMap time");
+  decrement_t.next("Decrement trussness time");
 
   // == Important: The actual trussness is the stored trussness value + 1.
   // Edges with trussness 0 had their values stored as std::numeric_limits<int>::max()

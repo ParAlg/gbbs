@@ -2,11 +2,10 @@ cc_library(
   name = "MinimumSpanningForest",
   hdrs = ["MinimumSpanningForest.h"],
   deps = [
-        "//benchmarks/Connectivity/UnionFind:union_find_rules",
+  "//benchmarks/Connectivity/UnionFind:union_find_rules",
   "//gbbs:gbbs",
-  "//gbbs:union_find",
-  "//gbbs/pbbslib:sparse_table",
-  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/helpers:sparse_table",
+  "//gbbs/helpers:dyn_arr",
   ]
 )
 

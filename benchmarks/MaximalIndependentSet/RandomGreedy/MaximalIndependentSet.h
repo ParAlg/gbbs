@@ -24,7 +24,7 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/speculative_for.h"
+#include "gbbs/helpers/speculative_for.h"
 
 namespace gbbs {
 namespace MaximalIndependentSet_rootset {
@@ -38,21 +38,21 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
       d[ngh] = 1;
     }
   };
-  par_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
       G.get_vertex(i).out_neighbors().map(map_f);
     }
   });
-  par_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
       assert(!d[i]);
     }
   });
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
-      pbbslib::make_delayed<size_t>(G.n, mis_f);
-  size_t mis_size = pbbslib::reduce_add(mis_int);
-  if (pbbslib::reduce_add(d) != (G.n - mis_size)) {
+      parlay::delayed_seq<size_t>(G.n, mis_f);
+  size_t mis_size = parlay::reduce(mis_int);
+  if (parlay::reduce(d) != (G.n - mis_size)) {
     std::cout << "MaximalIndependentSet incorrect"
               << "\n";
     assert(false);
@@ -74,7 +74,7 @@ struct GetNghs {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     auto p_d = p[d];
-    if (p_d > 0 && pbbslib::atomic_compare_and_swap(&p[d], p_d, 0)) {
+    if (p_d > 0 && gbbs::atomic_compare_and_swap(&p[d], p_d, 0)) {
       return true;
     }
     return false;
@@ -89,8 +89,8 @@ inline vertexSubset get_nghs(Graph& G, VS& vs, P& p) {
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
-  uint32_t src_h = pbbslib::hash32(src);
-  uint32_t ngh_h = pbbslib::hash32(ngh);
+  uint32_t src_h = parlay::hash32(src);
+  uint32_t ngh_h = parlay::hash32(ngh);
   return (src_h < ngh_h) || ((src_h == ngh_h) && src < ngh);
 };
 
@@ -108,7 +108,7 @@ struct mis_f {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (perm[s] < perm[d]) {
-      return (pbbslib::fetch_and_add(&p[d], -1) == 1);
+      return (gbbs::fetch_and_add(&p[d], -1) == 1);
     }
     return false;
   }
@@ -123,8 +123,8 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
 
   // compute the priority DAG
   auto priorities = sequence<intE>(n);  // why intE?
-  auto perm = pbbslib::random_permutation<uintE>(n);
-  par_for(0, n, 1, [&] (size_t i) {
+  auto perm = parlay::random_permutation<uintE>(n);
+  parallel_for(0, n, 1, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -133,13 +133,13 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
   });
   init_t.stop();
-  debug(init_t.reportTotal("init"););
+  debug(init_t.next("init"););
 
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
-      pbbslib::make_delayed<bool>(n, zero_f);
-  auto init = pbbslib::pack_index<uintE>(zero_map);
+      parlay::delayed_seq<bool>(n, zero_f);
+  auto init = parlay::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, std::move(init));
 
   auto in_mis = sequence<bool>(n, false);
@@ -166,7 +166,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     auto new_roots =
         edgeMap(G, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
     nr.stop();
-    nr.reportTotal("## new roots time");
+    nr.next("## new roots time");
 
     // update finished with roots and removed. update roots.
     finished += roots.size();
@@ -212,7 +212,7 @@ struct MaximalIndependentSetstep {
                              std::get<1>(l) + std::get<1>(r));
     };
     auto id = std::make_tuple(0, 0);
-    auto monoid = pbbslib::make_monoid(red_f, id);
+    auto monoid = parlay::make_monoid(red_f, id);
     auto res = G.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
@@ -241,7 +241,7 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>::from_function(n, [&](size_t i) { return 1; });
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
@@ -249,8 +249,8 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_imap = pbbslib::make_delayed<size_t>(n, ok_f);
-  size_t n_ok = pbbslib::reduce_add(ok_imap);
+  auto ok_imap = parlay::delayed_seq<size_t>(n, ok_f);
+  size_t n_ok = parlay::reduce(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MaximalIndependentSet"
               << "\n";

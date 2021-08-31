@@ -69,7 +69,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.reportTotal("bucket time"););
+  debug(bt.next("bucket time"););
   return D;
 }
 
@@ -88,7 +88,7 @@ struct kcore_fetch_add {
   }
   inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& wgh) {
-    if (pbbslib::fetch_and_add(&er[d], (uintE)1) == 1) {
+    if (gbbs::fetch_and_add(&er[d], (uintE)1) == 1) {
       return std::optional<uintE>((uintE)0);
     }
     return std::nullopt;
@@ -142,7 +142,7 @@ inline sequence<uintE> KCore_FA(Graph& G,
 }
 
 template <class Graph>
-inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
+inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
   const size_t n = G.n;
   auto D =
       sequence<uintE>::from_function(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
@@ -152,7 +152,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
-  auto degeneracy_order = pbbslib::dyn_arr<uintE>(n);
+  auto degeneracy_order = gbbs::dyn_arr<uintE>(n);
 
   size_t finished = 0, rho = 0, k_max = 0;
   while (finished != n) {
@@ -164,7 +164,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
 
-    auto active_seq = pbbslib::make_delayed<uintE>(active.size(), [&] (size_t i) { return active.s[i]; });
+    auto active_seq = parlay::delayed_seq<uintE>(active.size(), [&] (size_t i) { return active.s[i]; });
     degeneracy_order.copyIn(active_seq, active.size());
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -192,7 +192,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.reportTotal("bucket time"););
+  debug(bt.next("bucket time"););
   return degeneracy_order;
 }
 

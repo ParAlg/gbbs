@@ -3,8 +3,8 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
 
 #include "induced_hybrid.h"
 #include "intersect.h"
@@ -13,7 +13,7 @@ namespace gbbs {
 
 // Wrapper for a hash function
 struct hashtup {
-  inline size_t operator () (const uintE & a) const {return pbbslib::hash64_2(a);}
+  inline size_t operator () (const uintE & a) const {return parlay::hash64_2(a);}
 };
 
 // For triangle peeling
@@ -118,14 +118,14 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
 
   // Sum of all out-degrees in active set
   size_t active_deg = 0;
-  auto degree_map = pbbslib::make_delayed<size_t>(active_size, [&] (size_t i) {
+  auto degree_map = parlay::delayed_seq<size_t>(active_size, [&] (size_t i) {
     return G.get_vertex(get_active(i)).out_degree();
   });
-  active_deg += pbbslib::reduce_add(degree_map);
+  active_deg += parlay::reduce(degree_map);
 
   // Hash table to contain triangle count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
-  auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+  auto edge_table = gbbs::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -155,7 +155,6 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
 
   // Extract all vertices with changed triangle counts
   auto changed_vtxs = edge_table.entries();
-  edge_table.del();
 
   // Aggregate the updated counts across all worker's local arrays, as specified by update
   parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
@@ -192,17 +191,17 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Sum of all out-degrees in active set
   size_t active_deg = 0;
-  auto degree_map = pbbslib::make_delayed<size_t>(active_size, [&] (size_t i) {
+  auto degree_map = parlay::delayed_seq<size_t>(active_size, [&] (size_t i) {
     return G.get_vertex(get_active(i)).out_degree();
   });
-  active_deg += pbbslib::reduce_add(degree_map);
+  active_deg += parlay::reduce(degree_map);
 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
 
   // Hash table to contain clique count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
-  auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+  auto edge_table = gbbs::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -232,7 +231,6 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Extract all vertices with changed clique counts
   auto changed_vtxs = edge_table.entries();
-  edge_table.del();
 
   // Aggregate the updated counts across all worker's local arrays, as specified by update
   parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
@@ -346,8 +344,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     // for max_density
     if (use_max_density) {
       auto degree_f = [&] (size_t i) { return cliques[i]; };
-      auto degree_seq = pbbslib::make_delayed<size_t>(n, degree_f);
-      auto edges_remaining = pbbslib::reduce_add(degree_seq);
+      auto degree_seq = parlay::delayed_seq<size_t>(n, degree_f);
+      auto edges_remaining = parlay::reduce(degree_seq);
       auto vtxs_remaining = n - finished;
       double current_density = ((double)edges_remaining) / ((double)vtxs_remaining);
       if (current_density > max_density) max_density = current_density;
@@ -424,7 +422,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   std::cout << "clique core: " << max_bkt << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
-  b.del();
   free(still_active);
 
   return D;
@@ -437,7 +434,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     timer t2; t2.start();
   const size_t n = G.n;
   auto D = sequence<size_t>::from_function(n, [&](size_t i) { return cliques[i]; });
-  auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
+  auto vertices_remaining = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
   size_t round = 1;
   sequence<uintE> last_arr;
@@ -465,13 +462,13 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
-    auto keep_seq = pbbslib::make_delayed<bool>(n, [&] (size_t i) {
+    auto keep_seq = parlay::delayed_seq<bool>(n, [&] (size_t i) {
       return !(D[i] <= target_density);
     });
 
     sequence<uintE> this_arr;
     size_t num_removed;
-    std::tie(this_arr, num_removed) = pbbslib::split_two(vertices_remaining, keep_seq);
+    std::tie(this_arr, num_removed) = parlay::split_two(vertices_remaining, keep_seq);
     size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
@@ -491,14 +488,14 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   while (num_vertices_remaining > 0) {
     uintE* start = last_arr.begin() + remaining_offset;
     uintE* end = start + num_vertices_remaining;
-    auto vtxs_remaining = pbbslib::make_range(start, end);
+    auto vtxs_remaining = gbbs::make_slice(start, end);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];
       return static_cast<size_t>(D[v]);
     };
-    auto degree_seq = pbbslib::make_delayed<size_t>(vtxs_remaining.size(), degree_f);
-    long edges_remaining = pbbslib::reduce_add(degree_seq);
+    auto degree_seq = parlay::delayed_seq<size_t>(vtxs_remaining.size(), degree_f);
+    long edges_remaining = parlay::reduce(degree_seq);
 
     // Update density
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());
@@ -506,13 +503,13 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
-    auto keep_seq = pbbslib::make_delayed<bool>(vtxs_remaining.size(), [&] (size_t i) {
+    auto keep_seq = parlay::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 
     sequence<uintE> this_arr;
     size_t num_removed;
-    std::tie(this_arr, num_removed) = pbbslib::split_two(vtxs_remaining, keep_seq);
+    std::tie(this_arr, num_removed) = parlay::split_two(vtxs_remaining, keep_seq);
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {

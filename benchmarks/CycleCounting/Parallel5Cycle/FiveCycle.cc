@@ -30,7 +30,7 @@ double Count5Cycle_runner(Graph& G, commandLine P) {
   timer t; t.start();
   if (experiment) {
     std::cout << "### Experiment (parallel)" << std::endl;
-    numCycles = Count5Cycle_experiment(G, order_type);
+//    numCycles = Count5Cycle_experiment(G, order_type);
   } else if (escape) {    
     if (serial){
       std::cout << "### ESCAPE (Pure Serial)" << std::endl;

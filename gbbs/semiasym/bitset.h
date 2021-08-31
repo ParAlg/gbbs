@@ -3,27 +3,23 @@
 #include <x86intrin.h>
 #include "gbbs/macros.h"
 
-
 namespace gbbs {
 
 // see bitmagic
 // precondition: rank > 0
-unsigned select64_tz(uint64_t w, unsigned rank)
-{
-//    BM_ASSERT(w);
-//    BM_ASSERT(rank);
-//    BM_ASSERT(rank <= _mm_popcnt_u64(w));
+unsigned select64_tz(uint64_t w, unsigned rank) {
+  //    BM_ASSERT(w);
+  //    BM_ASSERT(rank);
+  //    BM_ASSERT(rank <= _mm_popcnt_u64(w));
 
-    do {
-        if ((--rank) == 0)
-            break;
-        w = _blsr_u64(w); // w &= w - 1;
-    } while (1);
-    auto t = _blsi_u64(w); //w & -w;
-    unsigned count = unsigned(_tzcnt_u64(t));
-    return count;
+  do {
+    if ((--rank) == 0) break;
+    w = _blsr_u64(w);  // w &= w - 1;
+  } while (1);
+  auto t = _blsi_u64(w);  // w & -w;
+  unsigned count = unsigned(_tzcnt_u64(t));
+  return count;
 }
-
 
 namespace bitsets {
 // block layout:
@@ -56,8 +52,8 @@ static uintE bitset_bs_bytes(uintE block_size) {
 // #bitset bytes for a given block size. rounds up to the nearest multiple of 8
 // bytes.
 static inline size_t get_bitset_block_size_in_bytes(size_t block_size) {
-  size_t block_bytes = (block_size+8-1)/8; // ceil(_/8)
-  return ((block_bytes + 8 - 1) & -8); // round up to mult 8
+  size_t block_bytes = (block_size + 8 - 1) / 8;  // ceil(_/8)
+  return ((block_bytes + 8 - 1) & -8);            // round up to mult 8
 }
 
 // Returns the number of bytes needed for the bitset structure for a given
@@ -67,7 +63,7 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
   if (degree == 0) {
     return 0;
   }
-  uintE num_blocks = pbbslib::num_blocks(degree, bs);
+  uintE num_blocks = parlay::num_blocks(degree, bs);
   uintE full_blocks = num_blocks - 1;
   uintE rem = degree % bs;
   if (rem == 0) {
@@ -78,8 +74,9 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
   // uintE rem_bytes = (rem + 8 - 1)/8; // ceil(rem/8)
 
   // rounds rem to nearest multiple of 8 bytes
-  uintE last_block_bytes = sizeof(metadata) + get_bitset_block_size_in_bytes(rem);
-//    ((rem_bytes + 8 - 1) & -8);
+  uintE last_block_bytes =
+      sizeof(metadata) + get_bitset_block_size_in_bytes(rem);
+  //    ((rem_bytes + 8 - 1) & -8);
 
   uintE full_block_bytes = full_blocks * bs_in_bytes;
 
@@ -110,11 +107,13 @@ __attribute__((always_inline)) static inline void flip_bit(uint8_t* finger,
   uint8_t offset_within_byte = k & byte_mask;
 
   uint8_t byte_to_test = finger[byte_id];
-  finger[byte_id] = byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
+  finger[byte_id] =
+      byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
 }
 
 static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
-                               size_t bs, size_t bs_in_bytes, size_t vtx_bytes) {
+                               size_t bs, size_t bs_in_bytes,
+                               size_t vtx_bytes) {
   if (degree != 0) {
     metadata* block_metadata = (metadata*)finger;
     parallel_for(0, num_blocks,
@@ -138,18 +137,18 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
     uintE rem = degree % bs;
     if (rem > 0) {
       // fix bits for last block
-      size_t last_block_num = num_blocks-1;
+      size_t last_block_num = num_blocks - 1;
       size_t last_block_start = last_block_num * bs;
-      size_t last_block_size = degree - last_block_start; // #set bits
+      size_t last_block_size = degree - last_block_start;  // #set bits
 
       size_t last_block_bytes = get_bitset_block_size_in_bytes(last_block_size);
 
-
       size_t bs_data_bytes = bs_in_bytes - sizeof(metadata);
-    //  size_t last_block_bytes = data_bytes - (num_blocks-1)*bs_data_bytes;
-      size_t last_block_physical_size = last_block_bytes*8;
-      uint8_t* last_block_bits = bitset_data_start + bs_data_bytes*last_block_num;
-      for (uintE k=last_block_size; k<last_block_physical_size; k++) {
+      //  size_t last_block_bytes = data_bytes - (num_blocks-1)*bs_data_bytes;
+      size_t last_block_physical_size = last_block_bytes * 8;
+      uint8_t* last_block_bits =
+          bitset_data_start + bs_data_bytes * last_block_num;
+      for (uintE k = last_block_size; k < last_block_physical_size; k++) {
         assert(is_bit_set(last_block_bits, k));
         flip_bit(last_block_bits, k);
       }
@@ -157,8 +156,8 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
   }
 }
 
-static inline uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,
-                          uintE degree) {
+static inline uintE block_degree(uint8_t* finger, uintE block_num,
+                                 uintE num_blocks, uintE degree) {
   metadata* block_metadata = (metadata*)finger;
   uintE offset = block_metadata[block_num].offset;
   uintE next_offset = (block_num == num_blocks - 1)

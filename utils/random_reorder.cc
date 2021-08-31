@@ -11,14 +11,14 @@ void randomReorder(Graph& GA, std::string& outfile) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
   size_t m = GA.m;
-  auto perm = pbbslib::random_permutation<uintE>(n);
+  auto perm = parlay::random_permutation<uintE>(n);
 
   auto edges = sequence<uintE>(m);
   auto offs = sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) {
     offs[perm[i]] = GA.get_vertex(i).out_degree();
   });
-  size_t tot = pbbslib::scan_inplace(make_slice(offs));
+  size_t tot = parlay::scan_inplace(make_slice(offs));
   std::cout << "m = " << m << " tot = " << tot << std::endl;
 
   parallel_for(0, n, [&] (size_t i) {
@@ -40,8 +40,8 @@ void randomReorder(Graph& GA, std::string& outfile) {
   file << "AdjacencyGraph" << std::endl;
   file << n << std::endl;
   file << m << std::endl;
-  auto off_chars = pbbslib::sequence_to_string(offs);
-  auto edges_chars = pbbslib::sequence_to_string(edges);
+  auto off_chars = parlay::sequence_to_string(offs);
+  auto edges_chars = parlay::sequence_to_string(edges);
   file.write(off_chars.begin(), off_chars.size());
   file.write(edges_chars.begin(), edges_chars.size());
 

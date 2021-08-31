@@ -11,7 +11,7 @@ namespace induced_intersection {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
       size_t deg = DG.get_vertex(i).out_degree();
-      pbbslib::write_min(&max_deg, deg, std::greater<size_t>());
+      gbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
   }
@@ -105,7 +105,7 @@ namespace induced_intersection {
       } else tots[i] = 0;
     } );
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 }  // induced_intersection
 }  // namespace gbbs

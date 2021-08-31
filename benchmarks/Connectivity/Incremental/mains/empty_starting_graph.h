@@ -19,7 +19,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     abort();
   }
 
-  sequence<char> S = pbbslib::chars_from_file(in_file);
+  sequence<char> S = parlay::chars_from_file(in_file);
   sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
         [] (auto x) { return parlay::make_slice(x); });
   // parseback to ints
@@ -37,13 +37,13 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
 
   uintE n = 0;
   parallel_for(0, m, [&] (size_t i) {
-    uintE l = pbbslib::chars_to_int_t<uintE>(tokens[2*i]);
-    uintE r = pbbslib::chars_to_int_t<uintE>(tokens[2*i + 1]);
+    uintE l = parlay::chars_to_int_t<uintE>(tokens[2*i]);
+    uintE r = parlay::chars_to_int_t<uintE>(tokens[2*i + 1]);
     if (l > n) {
-      pbbslib::write_min<uintE>(&n, l, std::greater<uintE>());
+      gbbs::write_min<uintE>(&n, l, std::greater<uintE>());
     }
     if (r > n) {
-      pbbslib::write_min<uintE>(&n, r, std::greater<uintE>());
+      gbbs::write_min<uintE>(&n, r, std::greater<uintE>());
     }
     updates[i] = std::make_tuple(l, r, gbbs::empty());
   });
@@ -51,7 +51,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
 //  auto sort_f = [&] (const std::tuple<uintE, uintE>& l, const std::tuple<uintE, uintE>& r) {
 //    return l < r;
 //  };
-//  pbbslib::sample_sort_inplace(updates.slice(), sort_f);
+//  parlay::sample_sort_inplace(updates.slice(), sort_f);
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 

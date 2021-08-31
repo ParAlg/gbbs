@@ -4,7 +4,7 @@ cc_library(
   deps = [
   "//gbbs:gbbs",
   "//gbbs:edge_map_reduce",
-  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/helpers:sparse_table",
   ]
 )
 

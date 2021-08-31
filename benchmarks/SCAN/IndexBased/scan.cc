@@ -6,7 +6,7 @@
 
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 #include "gbbs/bridge.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/sparse_table.h"
 
 namespace gbbs {
 namespace indexed_scan {
@@ -15,13 +15,13 @@ namespace {
 
 using DirectedEdge = std::pair<uintE, uintE>;
 using VertexSet =
-  pbbslib::sparse_table<uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>;
+  gbbs::sparse_table<uintE, gbbs::empty, decltype(&parlay::hash64_2)>;
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
-  return pbbslib::make_sparse_table<
-    uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>(
-      capacity, {UINT_E_MAX, gbbs::empty{}}, pbbslib::hash64_2);
+  return gbbs::make_sparse_table<
+    uintE, gbbs::empty, decltype(&parlay::hash64_2)>(
+      capacity, {UINT_E_MAX, gbbs::empty{}}, parlay::hash64_2);
 }
 
 // Identifies the clusters for the core vertices and populates `clustering`
@@ -45,35 +45,34 @@ void ClusterCores(
   timer function_timer{"Cluster cores time"};
 
   VertexSet cores_set{MakeVertexSet(cores.size())};
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
     cores_set.insert(std::make_pair(cores[i], gbbs::empty{}));
   });
 
   // Get connected components induced by sufficiently similar core-to-core
   // edges.
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
       const uintE core{cores[i]};
       (*clustering)[core] = core;
   });
   constexpr auto find{find_variants::find_compress};
   auto unite{unite_variants::Unite<decltype(find)>{find}};
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
     const uintE core{cores[i]};
     const auto& neighbors{neighbor_order[core]};
     constexpr bool kParallelizeInnerLoop{false};
-    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+    parallel_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       if (core > neighbor && cores_set.contains(neighbor)) {
         unite(core, neighbor, *clustering);
       }
     }, kParallelizeInnerLoop);
   });
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
       const uintE core{cores[i]};
       (*clustering)[core] = find(core, *clustering);
   });
 
-  cores_set.del();
   internal::ReportTime(function_timer);
 }
 
@@ -101,16 +100,16 @@ void AttachNoncoresToClusters(
   //
   // We could do something smarter like attach each non-core to its most
   // structurally similar adjacent core, but let's keep things simple for now.
-  par_for(0, cores.size(), [&](const size_t i) {
+  parallel_for(0, cores.size(), [&](const size_t i) {
     const uintE core{cores[i]};
     const uintE core_cluster{(*clustering)[core]};
     const auto& neighbors{neighbor_order[core]};
     constexpr bool kParallelizeInnerLoop{false};
-    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+    parallel_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       auto* neighbor_cluster_address{&(*clustering)[neighbor]};
       if (*neighbor_cluster_address == kUnclustered) {
-        pbbslib::atomic_compare_and_swap(
+        gbbs::atomic_compare_and_swap(
             neighbor_cluster_address, kUnclustered, core_cluster);
       }
     }, kParallelizeInnerLoop);
@@ -138,11 +137,11 @@ void AttachNoncoresToClustersDeterministic(
     num_vertices,
     [](const size_t i) { return std::make_pair(-1, UINT_E_MAX); });
 
-  par_for(0, cores.size(), [&](const uintE i) {
+  parallel_for(0, cores.size(), [&](const uintE i) {
     const uintE core{cores[i]};
     const auto& neighbors{neighbor_order[core]};
     constexpr bool kParallelizeInnerLoop{false};
-    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+    parallel_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       if ((*clustering)[neighbor] == kUnclustered) {
         const float similarity{neighbors[j].similarity};
@@ -152,7 +151,7 @@ void AttachNoncoresToClustersDeterministic(
           if (similarity > current_attachment.first ||
               (similarity == current_attachment.first &&
                core < current_attachment.second)) {
-            if (pbbslib::atomic_compare_and_swap(
+            if (gbbs::atomic_compare_and_swap(
                 &(tentative_attachments[neighbor]),
                 current_attachment,
                 std::make_pair(similarity, core))) {
@@ -165,7 +164,7 @@ void AttachNoncoresToClustersDeterministic(
       }
     }, kParallelizeInnerLoop);
   });
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  parallel_for(0, num_vertices, [&](const size_t vertex_id) {
     if (tentative_attachments[vertex_id].first > 0.0) {
       (*clustering)[vertex_id] =
         (*clustering)[tentative_attachments[vertex_id].second];
@@ -193,12 +192,12 @@ Clustering Index::Cluster(
   }
 
   sequence<uintE> core_similar_edge_counts{
-      pbbslib::map<uintE>(
+      parlay::map<uintE>(
           cores,
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
             // `epsilon` structural similarity with the vertex.
-            return pbbslib::binary_search(
+            return parlay::binary_search(
                 neighbor_order_[vertex],
                 [epsilon](const internal::EdgeSimilarity& es) {
                   return es.similarity >= epsilon;
@@ -230,7 +229,7 @@ void Index::Cluster(
     epsilons.size(), [](const size_t i) { return i; });
   // Sort epsilons in decreasing order --- as epsilon decreases, more
   // core-to-core edges appear.
-  pbbslib::sample_sort_inplace(
+  parlay::sample_sort_inplace(
       make_slice(sorted_epsilon_indices),
       [&](const size_t i, const size_t j) {
         return epsilons[i] > epsilons[j];
@@ -248,12 +247,12 @@ void Index::Cluster(
 
     sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
     sequence<uintE> core_similar_edge_counts{
-        pbbslib::map<uintE>(
+        parlay::map<uintE>(
             cores,
             [&](const uintE vertex) {
               // Get the number of neighbors of `vertex` that have at least
               // `epsilon` structural similarity with the vertex.
-              return pbbslib::binary_search(
+              return parlay::binary_search(
                   neighbor_order_[vertex],
                   [epsilon](const internal::EdgeSimilarity& es) {
                     return es.similarity >= epsilon;
@@ -262,20 +261,20 @@ void Index::Cluster(
 
     // ClusterCores() logic -- get connected components induced by sufficiently
     // similar core-to-core edges
-    par_for(previous_cores.size(), cores.size(), [&](const size_t j) {
+    parallel_for(previous_cores.size(), cores.size(), [&](const size_t j) {
       const uintE core{cores[j]};
       cores_set.insert(std::make_pair(core, gbbs::empty{}));
       clustering[core] = core;
     });
     constexpr auto find{find_variants::find_compress};
     auto unite{unite_variants::Unite<decltype(find)>{find}};
-    par_for(0, cores.size(), [&](const size_t j) {
+    parallel_for(0, cores.size(), [&](const size_t j) {
       const uintE core{cores[j]};
       const auto& neighbors{neighbor_order_[core]};
       constexpr bool kParallelizeInnerLoop{false};
       // only operate on new edges for this iteration, hence the ternary
       // statement
-      par_for(
+      parallel_for(
           j < previous_cores.size()
             ? previous_core_similar_edge_counts[j]
             : 0,
@@ -292,7 +291,7 @@ void Index::Cluster(
         }
       }, kParallelizeInnerLoop);
     });
-    par_for(0, cores.size(), [&](const size_t j) {
+    parallel_for(0, cores.size(), [&](const size_t j) {
         const uintE core{cores[j]};
         clustering[core] = find(core, clustering);
     });
@@ -312,8 +311,6 @@ void Index::Cluster(
     previous_cores = std::move(cores);
     previous_core_similar_edge_counts = std::move(core_similar_edge_counts);
   }
-
-  cores_set.del();
 }
 
 }  // namespace indexed_scan

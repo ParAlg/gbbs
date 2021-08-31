@@ -15,7 +15,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    if (Parents[d] != src && pbbslib::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src))) {
+    if (Parents[d] != src && gbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src))) {
       return true;
     }
     return false;
@@ -65,7 +65,7 @@ struct BFSSamplingTemplate {
     sequence<parent> Parents;
     sequence<edge> Edges;
 
-    pbbslib::random rnd;
+    parlay::random rnd;
     timer st; st.start();
 
     uint32_t max_trials = 3;

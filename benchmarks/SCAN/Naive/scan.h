@@ -85,7 +85,7 @@ Clustering Cluster(
 
   // Cluster all the non-cores by attaching them to the clusters of
   // epsilon-similar neighboring cores.
-  par_for(0, num_vertices, [&](const uintE vertex_id) {
+  parallel_for(0, num_vertices, [&](const uintE vertex_id) {
     if (clustering[vertex_id].empty()) {
       auto vertex{graph->get_vertex(vertex_id)};
       const uintE degree{vertex.out_degree()};
@@ -104,7 +104,7 @@ Clustering Cluster(
         }};
       constexpr bool kParallel{false};
       vertex.out_neighbors().map(get_neighboring_clusters, kParallel);
-      clustering[vertex_id] = pbbslib::remove_duplicates_ordered(
+      clustering[vertex_id] = parlay::remove_duplicates_ordered(
           neighboring_clusters.cut(0, index), std::less<uintE>{});
     }
   });

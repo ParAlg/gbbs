@@ -29,12 +29,12 @@ int BuildRMAT(int argc, char* argv[]) {
   auto updates = rmat::generate_updates(n, m, seed, a, b, c);
   std::cout << "Generated updates" << std::endl;
 
-  if (n != (1UL << (pbbslib::log2_up(n)))) {
+  if (n != (1UL << (parlay::log2_up(n)))) {
     std::cout << "n must be a power of two" << std::endl;
     abort();
   }
 
-  auto C = pbbslib::sequence_to_string(updates);
+  auto C = parlay::sequence_to_string(updates);
   for (size_t i=0; i<100; i++) {
     std::cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i]) << std::endl;
   }

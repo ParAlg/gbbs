@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <cassert>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -114,9 +114,6 @@ inline uintE eatEdge(uchar*& start) {
   return edgeRead;
 }
 
-
-
-
 template <class W, class T>
 inline void decode(T t, uchar* edgeStart, const uintE& source,
                    const uintT& degree) {
@@ -159,8 +156,9 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class M, class Monoid>
-inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    M& m, Monoid& reduce, const bool par = true) {
+inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
+                                     const uintT& degree, M& m, Monoid& reduce,
+                                     const bool par = true) {
   using E = typename Monoid::T;
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
@@ -179,8 +177,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 /*
   Compresses the first edge, writing target-source and a sign bit.
 */
-long compressFirstEdge(uchar* start, long offset, long source,
-                              long target);
+long compressFirstEdge(uchar* start, long offset, long source, long target);
 
 template <class W, typename std::enable_if<std::is_same<W, gbbs::empty>::value,
                                            int>::type = 0>
@@ -219,7 +216,6 @@ inline long compressEdge(uchar* start, long curOffset, uintE diff) {
   }
   return curOffset;
 }
-
 
 template <class W, class P>
 inline size_t pack(P& pred, uchar* edge_start, const uintE& source,

@@ -3,8 +3,8 @@ cc_library(
   hdrs = ["StronglyConnectedComponents.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:resizable_table",
-  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/helpers:resizable_table",
+  "//gbbs/helpers:sparse_table",
   "//gbbs/semiasym:graph_filter",
   ]
 )

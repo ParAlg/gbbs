@@ -198,7 +198,7 @@ struct LiuTarjanAlgorithm {
           parents_changed = true;
         }
       });
-      pc.stop(); pc.reportTotal("# pc time");
+      pc.stop(); pc.next("# pc time");
 
       // Update local neighborhoods
       timer ut; ut.start();
@@ -206,16 +206,16 @@ struct LiuTarjanAlgorithm {
         auto [u,v] = inserts[i];
         auto p_u = P[u];
         auto p_v = P[v];
-        if (flags[u] == false && pbbslib::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false && gbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           update(u, P, messages);
         }
-        if (flags[v] == false && pbbslib::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false && gbbs::atomic_compare_and_swap(&flags[v], false, true)) {
           update(v, P, messages);
         }
-        if (flags[p_u] == false && pbbslib::atomic_compare_and_swap(&flags[p_u], false, true)) {
+        if (flags[p_u] == false && gbbs::atomic_compare_and_swap(&flags[p_u], false, true)) {
           update(p_u, P, messages);
         }
-        if (flags[p_v] == false && pbbslib::atomic_compare_and_swap(&flags[p_v], false, true)) {
+        if (flags[p_v] == false && gbbs::atomic_compare_and_swap(&flags[p_v], false, true)) {
           update(p_v, P, messages);
         }
       });
@@ -234,22 +234,22 @@ struct LiuTarjanAlgorithm {
           flags[P[v]] = false;
         }
       });
-      ut.stop(); ut.reportTotal("# update time");
+      ut.stop(); ut.next("# update time");
 
       // Shortcut
       timer sc; sc.start();
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
-        if (flags[u] == false && pbbslib::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false && gbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           shortcut(u, P);
           messages[u] = P[u];
         }
-        if (flags[v] == false && pbbslib::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false && gbbs::atomic_compare_and_swap(&flags[v], false, true)) {
           shortcut(v, P);
           messages[v] = P[v];
         }
       });
-      sc.stop(); sc.reportTotal("# shortcut time");
+      sc.stop(); sc.next("# shortcut time");
 
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
@@ -277,12 +277,12 @@ struct LiuTarjanAlgorithm {
           }
         });
 
-        auto new_inserts = pbbslib::filter(inserts, [&] (const edge& e) {
+        auto new_inserts = parlay::filter(inserts, [&] (const edge& e) {
           return e != nullary_edge;
         });
         inserts = new_inserts;
       }
-      at.stop(); at.reportTotal("# alter time");
+      at.stop(); at.next("# alter time");
     }
 
     // Process queries
@@ -415,10 +415,10 @@ struct StergiouAlgorithm {
           parent parent_v = previous_parents[v];
           bool updated = false;
           if (parents[v] > parent_u) {
-            updated |= pbbslib::write_min(&parents[v], parent_u, std::less<parent>());
+            updated |= gbbs::write_min(&parents[v], parent_u, std::less<parent>());
           }
           if (parents[u] > parent_v) {
-            updated |= pbbslib::write_min(&parents[u], parent_v, std::less<parent>());
+            updated |= gbbs::write_min(&parents[u], parent_v, std::less<parent>());
           }
           if (updated && !parents_changed) {
             parents_changed = true;

@@ -45,10 +45,10 @@ double RunScan(Graph& graph, commandLine parameters) {
     std::cout << "Modularity: " << scan::Modularity(&graph, clustering) << '\n';
   }
 
-  index_construction_timer.reportTotal("");
-  cluster_timer.reportTotal("");
+  index_construction_timer.next("");
+  cluster_timer.next("");
   const double running_time{
-    index_construction_timer.get_total() + cluster_timer.get_total()};
+    index_construction_timer.total_time() + cluster_timer.total_time()};
   std::cout << "Total SCAN running time: " << running_time << '\n';
   return running_time;
 }

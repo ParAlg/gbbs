@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "gbbs/parse_command_line.h"
+#include "gbbs/helpers/parse_command_line.h"
 
 int main(int argc, char *argv[]) {
   const std::string kCommandLineHelpString{

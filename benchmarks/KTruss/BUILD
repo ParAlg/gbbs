@@ -10,8 +10,8 @@ cc_library(
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
         "//gbbs:gbbs",
-        "//gbbs/pbbslib:dyn_arr",
-        "//gbbs/pbbslib:sparse_table",
+        "//gbbs/helpers:dyn_arr",
+        "//gbbs/helpers:sparse_table",
     ],
 )
 

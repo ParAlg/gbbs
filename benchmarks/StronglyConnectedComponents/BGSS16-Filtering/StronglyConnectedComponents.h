@@ -24,8 +24,8 @@
 #pragma once
 
 #include <limits>
-#include "gbbs/pbbslib/resizable_table.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/resizable_table.h"
+#include "gbbs/helpers/sparse_table.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/semiasym/graph_filter.h"
 
@@ -43,7 +43,7 @@ namespace {
 
 // hash32 is sufficient?
 struct hash_kv {
-  uint64_t operator()(const K& k) { return pbbslib::hash64(k); }
+  uint64_t operator()(const K& k) { return parlay::hash64(k); }
 };
 
 template <class V>
@@ -55,7 +55,7 @@ struct First_Search {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {
-    return pbbslib::CAS(&visited[d], false, true);
+    return gbbs::atomic_compare_and_swap(&visited[d], false, true);
   }
   inline bool cond(uintE d) { return !visited[d]; }
 };
@@ -81,9 +81,8 @@ inline sequence<bool> first_search(Graph& GA, Seq& zero, uintE start, const flag
   auto frontier = vertexSubset(n, start);
   size_t rd = 0;
   while (!frontier.isEmpty()) {
-    vertexSubset output = edgeMap(
+    frontier = edgeMap(
         GA, frontier, wrap_em_f<W>(make_first_search(Flags)), -1, fl);
-    frontier = std::move(output);
     rd++;
   }
   return Flags;
@@ -121,7 +120,7 @@ struct Search_F {
     if (labels_changed) {
       // d should be included in next frontier;
       // CAS to make sure only one ngh from this frontier adds it.
-      if (!bits[d]) return pbbslib::CAS(&bits[d], false, true);
+      if (!bits[d]) return gbbs::atomic_compare_and_swap(&bits[d], false, true);
     }
     return false;
   }
@@ -147,10 +146,8 @@ inline auto multi_search(Graph& GA,
 
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
-  size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
-  auto table_backing = pbbslib::new_array_no_init<T>(backing_size);
-  auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
-                                                       table_backing, true);
+  size_t backing_size = 1 << parlay::log2_up(frontier.size() * 2);
+  auto table = gbbs::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv());
   frontier.toSparse();
   parallel_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
@@ -159,7 +156,7 @@ inline auto multi_search(Graph& GA,
   });
   table.update_nelms();
 
-  auto elts = pbbslib::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash32(k); });
+  auto elts = gbbs::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash32(k); });
 
   size_t rd = 0;
   size_t sum_frontiers = 0;
@@ -172,7 +169,7 @@ inline auto multi_search(Graph& GA,
       elts.insert({frontier.s[i], gbbs::empty()});
     });
 
-    auto work_upperbound_seq = pbbslib::make_delayed<size_t>(frontier.size(), [&](size_t i) {
+    auto work_upperbound_seq = parlay::delayed_seq<size_t>(frontier.size(), [&](size_t i) {
       uintE v = frontier.s[i];
       size_t n_labels = table.num_appearances(v);
       size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).in_degree()
@@ -180,7 +177,7 @@ inline auto multi_search(Graph& GA,
       return effective_degree * n_labels;
     });
 
-    size_t work_upperbound = pbbslib::reduce_add(work_upperbound_seq);
+    size_t work_upperbound = parlay::reduce(work_upperbound_seq);
     table.maybe_resize(work_upperbound);
 
     parallel_for(0, frontier.size(), [&] (size_t i) {
@@ -188,13 +185,12 @@ inline auto multi_search(Graph& GA,
       bits[v] = 0;  // reset visted flag
     });
 
-    vertexSubset output = edgeMap(
+    frontier = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
     table.update_nelms();
-    frontier = std::move(output);
     rd++;
   }
-  return std::make_pair(table, elts);
+  return std::make_pair(std::move(table), std::move(elts));
 }
 
 }  // namespace
@@ -228,17 +224,17 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Split vertices into those with zero in/out degree (zero), and those with non-zero
   // in- and out-degree (non_zero).
-  auto v_im = pbbslib::make_delayed<uintE>(n, [](size_t i) { return i; });
-  auto zero = pbbslib::filter(v_im, [&](size_t i) {
+  auto v_im = parlay::delayed_seq<uintE>(n, [](size_t i) { return i; });
+  auto zero = parlay::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
-  auto non_zero = pbbslib::filter(v_im, [&](size_t i) {
+  auto non_zero = parlay::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() > 0) && (GA.get_vertex(i).in_degree() > 0);
   });
 
   // Vertices in non_zero are the candidate centers that the algorithm will
   // iteratively add, and run searches from. First permute them.
-  auto P = pbbslib::random_shuffle(non_zero);
+  auto P = parlay::random_shuffle(non_zero);
   std::cout << "Filtered: " << zero.size()
             << " vertices. Num remaining = " << P.size() << "\n";
 
@@ -255,7 +251,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   auto PG = get_empty_packed_graph(GA);
 
   initt.stop();
-  initt.reportTotal("init");
+  initt.next("init");
 
 //  // Run the first search (using two BFSs)
 //  {
@@ -265,15 +261,15 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    auto deg_im_f = [&](size_t i) {
 //      return std::make_tuple(i, GA.get_vertex(i).out_degree() + GA.get_vertex(i).in_degree());
 //    };
-//    auto deg_im = pbbslib::make_delayed<std::tuple<uintE, uintE>>(n, deg_im_f);
+//    auto deg_im = parlay::delayed_seq<std::tuple<uintE, uintE>>(n, deg_im_f);
 //    auto red_f = [](const std::tuple<uintE, uintE>& l,
 //                    const std::tuple<uintE, uintE>& r) {
 //          return (std::get<1>(l) > std::get<1>(r)) ? l : r;
 //    };
 //    auto id = std::make_tuple<uintE, uintE>(0, 0);
-//    auto monoid = pbbslib::make_monoid(red_f, id);
+//    auto monoid = parlay::make_monoid(red_f, id);
 //    std::tuple<uintE, uintE> vertex_and_degree =
-//        pbbslib::reduce(deg_im, monoid);
+//        parlay::reduce(deg_im, monoid);
 //    uintE start = std::get<0>(vertex_and_degree);
 //
 //    std::cout << "start = " << start << " degree = " << std::get<1>(vertex_and_degree) << std::endl;
@@ -284,7 +280,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      auto visited_out = first_search(GA, zero, start);
 //
 //      size_t start_label = label_offset;  // The label of the SCC containing start.
-//      par_for(0, n, [&] (size_t i) {
+//      parallel_for(0, n, [&] (size_t i) {
 //        bool inv = visited_in[i];
 //        bool outv = visited_out[i];
 //        // Do not overwrite labels of isolated-SCC vertices (in zero). These are
@@ -295,9 +291,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      });
 //
 //
-//      auto imap = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
+//      auto imap = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
 //
-//      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
+//      std::cout << "num in start = " << parlay::reduce(imap) << std::endl;
 //      exit(0);
 //
 //      // Prune remaining edges based on intersection with start (O(m) work).
@@ -317,14 +313,14 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      std::cout << "PG.m is initially: " << PG.m << std::endl;
 //
 //      gbbs::sage::filter_graph(PG, pred_f);
-//      fg.stop(); fg.reportTotal("Filter Graph (first) time");
+//      fg.stop(); fg.next("Filter Graph (first) time");
 //      std::cout << "PG.m is now: " << PG.m << std::endl;
 //
-//      pbbslib::free_array(visited_in);
-//      pbbslib::free_array(visited_out);
+//      gbbs::free_array(visited_in);
+//      gbbs::free_array(visited_out);
 //      label_offset += 1;
 //      hd.stop();
-//      hd.reportTotal("big scc time");
+//      hd.next("big scc time");
 //    }
 //  }
 
@@ -333,7 +329,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   timer to_process_t;
   timer reset_t;
 
-  auto Q = pbbslib::filter(P, [&](uintE v) { return labels[v] == kUnfinished; });
+  auto Q = parlay::filter(P, [&](uintE v) { return labels[v] == kUnfinished; });
   std::cout << "After first round, Q = " << Q.size()
             << " vertices remain. Total done = " << (n - Q.size()) << "\n";
 
@@ -360,9 +356,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = pbbslib::make_delayed<uintE>(
+    auto centers_pre_filter = parlay::delayed_seq<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
-    auto centers = pbbslib::filter(
+    auto centers = parlay::filter(
         centers_pre_filter, [&](uintE v) { return labels[v] == kUnfinished; });
 
     std::cout << "round = " << cur_round << " n_centers = " << centers.size()
@@ -384,7 +380,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       auto visited_out = first_search(GA, zero, start);
 
       size_t start_label = cur_label_offset;  // The label of the SCC containing start.
-      par_for(0, n, [&] (size_t i) {
+      parallel_for(0, n, [&] (size_t i) {
         bool inv = visited_in[i];
         bool outv = visited_out[i];
         // Do not overwrite labels of isolated-SCC vertices (in zero). These are
@@ -394,8 +390,8 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
         }
       });
 
-//      auto imap = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
-//      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
+//      auto imap = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
+//      std::cout << "num in start = " << parlay::reduce(imap) << std::endl;
 //      exit(0);
 
       // Prune remaining edges based on intersection with start (O(m) work).
@@ -415,13 +411,13 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      PG.clear_vertices(labeled);
 //      clear_vertices_t.stop();
 
-      PG = std::move(gbbs::sage::build_asymmetric_packed_graph(GA, [&] (uintE v) { return labels[v] == kUnfinished; }));
-       gbbs::sage::filter_graph(PG, pred_f);
+      PG = gbbs::sage::build_asymmetric_packed_graph(GA, [&] (uintE v) { return labels[v] == kUnfinished; });
+      gbbs::sage::filter_graph(PG, pred_f);
       CT.stop();
       std::cout << "PG.m is now: " << PG.m << std::endl;
 
       ft.stop();
-      ft.reportTotal("first scc time");
+      ft.next("first scc time");
       continue;
     }
 
@@ -437,7 +433,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     std::cout << "Finished in search"
               << "\n";
 //    in_table.analyze();
-    ins.stop(); ins.reportTotal("insearch time");
+    ins.stop(); ins.next("insearch time");
 
     timer outs; outs.start();
     auto out_f = vertexSubset(n, std::move(centers_copy));
@@ -449,7 +445,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
               << "\n";
 //    out_table.analyze();
-    outs.stop(); outs.reportTotal("outsearch time");
+    outs.stop(); outs.next("outsearch time");
     multi_search_t.stop();
 
     auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
@@ -464,7 +460,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       if (larger_t.contains(v, label)) {
         // in 'label' scc
         // Min visitor from this StronglyConnectedComponents acquires it.
-        pbbslib::write_min(&labels[v], label);
+        gbbs::write_min(&labels[v], label);
       }
     };
     smaller_t.map(map_f);
@@ -485,7 +481,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t remaining = Q.size() - finished + vs_size;
 
     to_process_t.start();
-    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
+    auto to_process = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
     to_process_t.stop();
 
     auto in_insert_t = [&] (const std::tuple<K, gbbs::empty>& kev) {
@@ -512,13 +508,12 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     to_process_t.start();
     auto elts = to_process.entries();
-    to_process.del();
     to_process_t.stop();
 
 //    size_t remaining = Q.size() - finished + vs_size;
-//    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
-//    auto to_process_out = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
-//    auto to_process_in = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
+//    auto to_process = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
+//    auto to_process_out = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
+//    auto to_process_in = gbbs::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return parlay::hash64(k); });
 //    auto in_insert_t = [&] (const std::tuple<K, V>& kev) {
 //      auto k = std::get<0>(kev);
 //      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -553,11 +548,8 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    to_process_in.map([&] (const std::tuple<K, gbbs::empty>& kv) {
 //      to_process.insert(kv);
 //    });
-//    to_process_in.del();
-//    to_process_out.del();
 //
 //    auto elts = to_process.entries();
-//    to_process.del();
 
 
     std::cout << "Num elements to process is: " << elts.size() << std::endl;
@@ -575,7 +567,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     // Prune the graph.
     CT.start();
-    auto elts_seq = pbbslib::make_delayed<uintE>(elts.size(), [&] (size_t i) {
+    auto elts_seq = parlay::delayed_seq<uintE>(elts.size(), [&] (size_t i) {
       return std::get<0>(elts[i]);
     });
 
@@ -585,7 +577,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     clear_vertices_t.stop();
 
     PG.filter_graph(pred_f, elts_seq);
-    // gbbs::sage::filter_graph(PG, pred_f);
     CT.stop();
 
     reset_t.start();
@@ -600,27 +591,24 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    auto sp_map = [&](const std::tuple<K, V>& kev) {
 //      uintE v = std::get<0>(kev);
 //      size_t label = std::get<1>(kev);
-//      // note that if v is already in an StronglyConnectedComponents (from (1)), the pbbslib::write_max will
+//      // note that if v is already in an StronglyConnectedComponents (from (1)), the gbbs::write_max will
 //      // read, compare and fail, as the top bit is already set.
-//      pbbslib::write_max(&labels[v], label);
+//      gbbs::write_max(&labels[v], label);
 //    };
 //    larger_t.map(sp_map);
 
-    in_table.del();
-    out_table.del();
-
     rt.stop();
-    rt.reportTotal("Round time");
+    rt.next("Round time");
   }
 
   MS.stop();
-  MS.reportTotal("MultiSearch Time");
-  clear_vertices_t.reportTotal("Clear Vertices time");
-  CT.reportTotal("Compression time");
-  int_t.reportTotal("Intersection time");
-  multi_search_t.reportTotal("MultiSearch time");
-  to_process_t.reportTotal("To Process time");
-  reset_t.reportTotal("Reset Time");
+  MS.next("MultiSearch Time");
+  clear_vertices_t.next("Clear Vertices time");
+  CT.next("Compression time");
+  int_t.next("Intersection time");
+  multi_search_t.next("MultiSearch time");
+  to_process_t.next("To Process time");
+  reset_t.next("Reset Time");
 
   return labels;
 }

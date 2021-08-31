@@ -61,9 +61,9 @@ struct Visit_F {
       n_dist = dists[s].first + w;
     }
     if (n_dist < dist) {
-      pbbslib::write_min(&(dists[d].first), n_dist);
+      gbbs::write_min(&(dists[d].first), n_dist);
       if (!dists[d].second &&
-          pbbslib::atomic_compare_and_swap(&dists[d].second, false, true)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&dists[d].second, false, true)) {  // First visitor
         return std::optional<Distance>(dist);
       }
     }
@@ -87,7 +87,7 @@ auto DeltaStepping(Graph& G, uintE src, double delta, size_t num_buckets=128) {
 
   auto get_bkt = [&] (const Distance& dist) -> uintE {
     return (dist == kMaxWeight) ? UINT_E_MAX : (uintE)(dist / delta); };
-  auto get_ring = pbbslib::make_delayed<uintE>(n, [&] (const size_t& v) -> uintE {
+  auto get_ring = parlay::delayed_seq<uintE>(n, [&] (const size_t& v) -> uintE {
     auto d = dists[v].first;
     return (d == kMaxWeight) ? UINT_E_MAX : (uintE)(d / delta); });
   auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);
@@ -132,9 +132,9 @@ auto DeltaStepping(Graph& G, uintE src, double delta, size_t num_buckets=128) {
     bktt.stop();
   }
   auto get_dist = [&] (size_t i) { return (dists[i].first == kMaxWeight) ? 0 : dists[i].first; };
-  auto dist_im = pbbslib::make_delayed<Distance>(n, get_dist);
-  std::cout << "max_dist = " << pbbslib::reduce_max(dist_im) << std::endl;
-  bktt.reportTotal("bucket time");
+  auto dist_im = parlay::delayed_seq<Distance>(n, get_dist);
+  std::cout << "max_dist = " << parlay::reduce_max(dist_im) << std::endl;
+  bktt.next("bucket time");
   auto ret = sequence<Distance>::from_function(n, [&] (size_t i) { return dists[i].first; });
   return ret;
 }

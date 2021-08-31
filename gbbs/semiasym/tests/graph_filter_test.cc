@@ -2,8 +2,8 @@
 
 #include "gbbs/graph.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/graph_test_utils.h"
 #include "gbbs/semiasym/graph_filter.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 
 namespace gbbs {
 

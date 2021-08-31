@@ -25,8 +25,8 @@
 
 #include "contract_sf.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
@@ -48,7 +48,7 @@ namespace workefficient_sf {
     }
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-      if (pbbslib::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s])) {
+      if (gbbs::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s])) {
         parents[d] = s;
         return true;
       }
@@ -67,11 +67,11 @@ namespace workefficient_sf {
 
     sequence<uintE> vertex_perm;
     if (permute) {
-      vertex_perm = pbbslib::random_permutation<uintE>(n);
+      vertex_perm = parlay::random_permutation<uintE>(n);
     }
     auto shifts = ldd_utils::generate_shifts(n, beta);
     auto cluster_ids = sequence<uintE>(n);
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { cluster_ids[i] = UINT_E_MAX; });
 
     auto parents = sequence<uintE>(n, UINT_E_MAX);
@@ -91,11 +91,11 @@ namespace workefficient_sf {
           else
             return static_cast<uintE>(num_added + i);
         };
-        auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
+        auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
         auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
-        auto new_centers = pbbslib::filter(candidates, pred);
+        auto new_centers = parlay::filter(candidates, pred);
         add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-        par_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
+        parallel_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
           uintE v = new_centers[i];
           cluster_ids[v] = v;
           parents[v] = v;
@@ -119,7 +119,7 @@ namespace workefficient_sf {
   // edge_mapping: edge -> edge
   using edge = std::pair<uintE, uintE>;
   template <class Graph>
-  inline pbbslib::dyn_arr<edge> SpanningForest_Impl(Graph& G, double beta,
+  inline gbbs::dyn_arr<edge> SpanningForest_Impl(Graph& G, double beta,
                                             size_t level, std::function<edge(edge)>& edge_mapping, bool
                                             pack = false, bool permute = false)
   {
@@ -130,14 +130,14 @@ namespace workefficient_sf {
     auto clusters = std::move(clusters_and_parents.first);
     auto parents = std::move(clusters_and_parents.second);
     ldd_t.stop();
-    debug(ldd_t.reportTotal("ldd time"););
+    debug(ldd_t.next("ldd time"););
 
     // Filter out tree edges added this round (ids are in the current level)
-    auto delayed_edges = pbbslib::make_delayed<edge>(parents.size(), [&] (size_t i) {
+    auto delayed_edges = parlay::delayed_seq<edge>(parents.size(), [&] (size_t i) {
         return std::make_pair(parents[i], i); });
-    auto edges = pbbslib::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
+    auto edges = parlay::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
     // Apply the mapping to map
-    par_for(0, edges.size(), [&] (size_t i) {
+    parallel_for(0, edges.size(), [&] (size_t i) {
       auto e_i = edges[i];
       edges[i] = edge_mapping(e_i);
     });
@@ -146,7 +146,7 @@ namespace workefficient_sf {
     relabel_t.start();
     size_t num_clusters = contract_sf::RelabelIds(clusters);
     relabel_t.stop();
-    debug(relabel_t.reportTotal("relabel time"););
+    debug(relabel_t.next("relabel time"););
 
     timer contract_t;
     contract_t.start();
@@ -156,12 +156,12 @@ namespace workefficient_sf {
     // multiple original vertices.
     auto GC_and_new_mapping = contract_sf::contract(G, clusters, num_clusters, edge_mapping);
     contract_t.stop();
-    debug(contract_t.reportTotal("contract time"););
-    auto GC = GC_and_new_mapping.first;
-    auto& new_mapping = GC_and_new_mapping.second; // sparse_table<edge, edge>
+    debug(contract_t.next("contract time"););
+    auto GC = std::move(GC_and_new_mapping.first);
+    auto new_mapping = std::move(GC_and_new_mapping.second); // sparse_table<edge, edge>
 
     if (GC.m == 0) {
-      auto D = pbbslib::dyn_arr<edge>(edges.size());
+      auto D = gbbs::dyn_arr<edge>(edges.size());
       D.copyIn(edges, edges.size());
       return D;
     }
@@ -177,7 +177,6 @@ namespace workefficient_sf {
 
     auto rec_edge_arr = SpanningForest_Impl(GC, beta, level + 1, new_edge_mapping);
     rec_edge_arr.copyIn(edges, edges.size());
-    GC.del();
     return rec_edge_arr;
   }
 

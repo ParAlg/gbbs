@@ -13,12 +13,12 @@ auto reorder_graph(Graph& G, F& edge_pri) {
     offs[i] = G.get_vertex(i).out_degree();
   });
   offs[n] = 0;
-  size_t m = pbbslib::scan_inplace(make_slice(offs));
+  size_t m = parlay::scan_inplace(make_slice(offs));
   assert(G.m == m);
 
 
   using edge_w = std::tuple<uintE, W>;
-  auto edges = pbbslib::new_array_no_init<edge_w>(m);
+  auto edges = gbbs::new_array_no_init<edge_w>(m);
   parallel_for(0, n, [&] (size_t i) {
     size_t ctr = 0;
     size_t off = offs[i];
@@ -39,18 +39,18 @@ auto reorder_graph(Graph& G, F& edge_pri) {
         return std::get<0>(l) < std::get<0>(r);
       }
     };
-    auto ngh_seq = pbbslib::make_range(edges + off, ctr);
-    pbbslib::sample_sort_inplace(ngh_seq, comp_f);
+    auto ngh_seq = gbbs::make_slice(edges + off, ctr);
+    parlay::sample_sort_inplace(ngh_seq, comp_f);
   }, 1);
 
-  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     size_t o = offs[i];
     v_data[i].offset = o;
     v_data[i].degree = offs[i+1] - o;
   });
 
-  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {pbbslib::free_array(v_data,n); pbbslib::free_array(edges, m);}, edges);
+  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {gbbs::free_array(v_data,n); gbbs::free_array(edges, m);}, edges);
 }
 
 }  // namespace gbbs

@@ -37,7 +37,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
   // Let S = stores 2*#edges to vertices > in degeneracy order. Note that 2* is
   //         needed since higher-ordered vertices don't have the edge to us.
   //
-  // S = scan_add(S, fl_inplace | fl_reverse) ## reverse scan
+  // S = scan(S, fl_inplace | fl_reverse) ## reverse scan
   // density w/o vertex_i = S[i] / (n - i)
   // Compute the max over all v.
 
@@ -53,7 +53,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
 
   auto density_above = sequence<size_t>(n);
 
-  par_for(0, n, 1, [&] (size_t i) {
+  parallel_for(0, n, 1, [&] (size_t i) {
     uintE pos_u = vtx_to_position[i];
     auto vtx_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       uintE pos_v = vtx_to_position[v];
@@ -62,20 +62,20 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     density_above[pos_u] = 2*GA.get_vertex(i).out_neighbors().count(vtx_f);
   });
 
-  auto density_rev = make_slice(density_above.rbegin(), density_above.rend());
-  size_t total_edges = pbbslib::scan_inplace(density_rev);
+  auto density_rev = parlay::make_slice(density_above.rbegin(), density_above.rend());
+  size_t total_edges = parlay::scan_inplace(density_rev);
   if (total_edges != GA.m) {
     std::cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
       total_edges << std::endl;
     exit(0);
   }
 
-  auto density_seq = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+  auto density_seq = parlay::delayed_seq<double>(n, [&] (size_t i) {
     size_t dens = density_above[i];
     size_t rem = n - i;
     return static_cast<double>(dens) / static_cast<double>(rem);
   });
-  double max_density = pbbslib::reduce_max(density_seq);
+  double max_density = parlay::reduce_max(density_seq);
   std::cout << "### Density of 2-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }

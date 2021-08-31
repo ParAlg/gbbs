@@ -3,7 +3,7 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
 #include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
@@ -28,11 +28,11 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
   size_t start = 0;
   while (start < n) {
     // move all vert with deg < deg_cutoff in the front
-    pbbslib::integer_sort_inplace(sortD.cut(start, n), get_deg);
+    parlay::integer_sort_inplace(sortD.cut(start, n), get_deg);
     //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
-    auto BS = pbbslib::make_delayed<size_t>(n - start, [&] (size_t i) -> size_t {
+    auto BS = parlay::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
       return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
-    size_t end = pbbslib::reduce(BS, pbbslib::maxm<size_t>());
+    size_t end = parlay::reduce(BS, parlay::maxm<size_t>());
     if (end == start) end++; //TODO step?
 
     auto num_removed = end-start;

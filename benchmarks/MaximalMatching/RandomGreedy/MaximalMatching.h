@@ -24,8 +24,8 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/speculative_for.h"
-#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/speculative_for.h"
 
 namespace gbbs {
 namespace mm {
@@ -72,7 +72,7 @@ namespace mm {
 
   inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
 
-  inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
+  inline size_t key_for_pair(uintE k1, uintE k2, parlay::random rnd) {
     size_t l = std::min(k1, k2);
     size_t r = std::max(k1, k2);
     size_t key = (l << 32) + r;
@@ -81,7 +81,7 @@ namespace mm {
 
   template <template <class W> class vertex, class W>
   inline edge_array<W> get_all_edges(symmetric_graph<vertex, W>& G, bool* matched,
-                                     pbbslib::random rnd) {
+                                     parlay::random rnd) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
@@ -93,27 +93,27 @@ namespace mm {
     using edge = std::tuple<uintE, uintE, W>;
     sequence<edge> e_arr = std::move(E.E);
 
-    auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
+    auto perm = parlay::random_permutation<uintT>(e_arr.size());
     auto out = sequence<edge>(e_arr.size());
-    par_for(0, e_arr.size(), kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, e_arr.size(), kDefaultGranularity, [&] (size_t i) {
       out[i] = e_arr[perm[i]];  // gather or scatter?
     });
     E.E = std::move(out);
     E.n = G.n;
     perm_t.stop();
-    perm_t.reportTotal("permutation time");
+    perm_t.next("permutation time");
     return E;
   }
 
   template <template <class W> class vertex, class W>
   inline edge_array<W> get_edges(symmetric_graph<vertex, W>& G, size_t k, bool* matched,
-                                 pbbslib::random r) {
+                                 parlay::random r) {
     using edge = std::tuple<uintE, uintE, W>;
     size_t m = G.m / 2;  // assume sym
     bool finish = (m <= k);
 
     std::cout << "Threshold, using m = " << m << "\n";
-    size_t range = pbbslib::log2_up(G.m);
+    size_t range = parlay::log2_up(G.m);
     range = 1L << range;
     range -= 1;
 
@@ -131,22 +131,22 @@ namespace mm {
     fet.start();
     edge_array<W> E = filterEdges(G, pred);
     fet.stop();
-    fet.reportTotal("Filter edges time");
+    fet.next("Filter edges time");
 
     // permute the retrieved edges
 
     auto e_arr = E.to_seq();
     timer perm_t;
     perm_t.start();
-    auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
+    auto perm = parlay::random_permutation<uintT>(e_arr.size());
     auto out = sequence<edge>(e_arr.size());
-    par_for(0, e_arr.size(), [&] (size_t i) {
+    parallel_for(0, e_arr.size(), [&] (size_t i) {
       out[i] = e_arr[perm[i]];  // gather or scatter?
     });
     E.E = std::move(out);
     E.n = G.n;
     perm_t.stop();
-    perm_t.reportTotal("permutation time");
+    perm_t.next("permutation time");
     return E;
   }
 
@@ -162,13 +162,13 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   timer mt;
   mt.start();
   size_t n = G.n;
-  auto r = pbbslib::random();
+  auto r = parlay::random();
 
   auto R = sequence<uintE>::from_function(n, [&](size_t i) { return UINT_E_MAX; });
   auto matched = sequence<bool>::from_function(n, [&](size_t i) { return false; });
 
   size_t k = ((3 * G.n) / 2);
-  auto matching = pbbslib::dyn_arr<edge>(n);
+  auto matching = gbbs::dyn_arr<edge>(n);
 
   size_t round = 0;
   timer gete;
@@ -180,7 +180,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                      : mm::get_all_edges(G, matched.begin(), r);
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
-    auto eim = pbbslib::make_delayed<edge>(e_arr.size(), eim_f);
+    auto eim = parlay::delayed_seq<edge>(e_arr.size(), eim_f);
     gete.stop();
 
     std::cout << "Got: " << e_arr.size() << " edges "
@@ -191,9 +191,9 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     eff.stop();
 
     auto e_added =
-        pbbslib::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
+        parlay::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
     auto sizes = sequence<size_t>(e_added.size());
-    par_for(0, e_added.size(), [&] (size_t i) {
+    parallel_for(0, e_added.size(), [&] (size_t i) {
                       const auto& e = e_added[i];
                       uintE u = std::get<0>(e) & mm::VAL_MASK;
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
@@ -203,7 +203,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                       G.zeroVertexDegree(v);
                       sizes[i] = deg_u + deg_v;
                     });
-    size_t total_size = pbbslib::reduce_add(sizes);
+    size_t total_size = parlay::reduce(sizes);
     G.m -= total_size;
     std::cout << "removed: " << total_size << " many edges"
               << "\n";
@@ -214,12 +214,15 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     r = r.next();
   }
   std::cout << "matching size = " << matching.size << "\n";
-  auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
+  auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) {
+    uintE u, v; W wgh;
+    std::tie(u, v, wgh) = matching.A[i];
+    return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
+  }); // allocated
   mt.stop();
-  matching.del();
-  eff.reportTotal("eff for time");
-  gete.reportTotal("get edges time");
-  mt.reportTotal("Matching time");
+  eff.next("eff for time");
+  gete.next("get edges time");
+  mt.next("Matching time");
   return output;
 }
 
@@ -230,14 +233,14 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   auto matched = sequence<uintE>::from_function(n, [](size_t i) { return 0; });
 
   // Check that this is a valid matching
-  par_for(0, matching.size(), [&] (size_t i) {
+  parallel_for(0, matching.size(), [&] (size_t i) {
                     const auto& edge = matching[i];
-                    pbbslib::write_add(&matched[std::get<0>(edge)], 1);
-                    pbbslib::write_add(&matched[std::get<1>(edge)], 1);
+                    gbbs::write_add(&matched[std::get<0>(edge)], 1);
+                    gbbs::write_add(&matched[std::get<1>(edge)], 1);
                   });
 
   bool valid = true;
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     if (matched[i] > 1) valid = false;
   });
   assert(valid == true);
@@ -250,11 +253,11 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
+  parallel_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_im = pbbslib::make_delayed<size_t>(n, ok_f);
-  size_t n_ok = pbbslib::reduce_add(ok_im);
+  auto ok_im = parlay::delayed_seq<size_t>(n, ok_f);
+  size_t n_ok = parlay::reduce(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
   } else {

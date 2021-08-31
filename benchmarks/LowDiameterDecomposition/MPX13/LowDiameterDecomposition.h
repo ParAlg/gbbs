@@ -39,10 +39,10 @@ inline sequence<size_t> generate_shifts(size_t n, double beta) {
   // Create (ln n)/beta levels
   uintE last_round = total_rounds(n, beta);
   auto shifts = sequence<size_t>(last_round + 1);
-  par_for(0, last_round, kDefaultGranularity, [&] (size_t i)
+  parallel_for(0, last_round, kDefaultGranularity, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbslib::scan_inplace(shifts);
+  parlay::scan_inplace(shifts);
   return shifts;
 }
 
@@ -50,20 +50,20 @@ template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
     }
   });
-  std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
+  std::cout << "num. clusters = " << parlay::reduce(flags) << "\n";
 }
 
 template <class Seq>
 inline void cluster_sizes(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
-      pbbslib::write_add(&flags[s[i]], 1);
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
+      gbbs::write_add(&flags[s[i]], 1);
 //    if (!flags[s[i]]) {
 //      flags[s[i]] = 1;
 //    }
@@ -80,14 +80,14 @@ inline void num_intercluster_edges(Graph& G, Seq& s) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ic_edges = sequence<size_t>::from_function(n, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };
     size_t ct = G.get_vertex(i).out_neighbors().count(pred);
     ic_edges[i] = ct;
   });
-  std::cout << "num. intercluster edges = " << pbbslib::reduce_add(ic_edges)
+  std::cout << "num. intercluster edges = " << parlay::reduce(ic_edges)
             << "\n";
 }
 }  // namespace ldd_utils
@@ -110,7 +110,7 @@ struct LDD_F {
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (oracle(s, d, wgh)) {
-      return pbbslib::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
+      return gbbs::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
     }
     return false;
   }
@@ -131,10 +131,10 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbslib::random_permutation<uintE>(n);
+    vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
-  gs.stop(); debug(gs.reportTotal("generate shifts time"););
+  gs.stop(); debug(gs.next("generate shifts time"););
   auto cluster_ids = sequence<uintE>(n, UINT_E_MAX);
 
   timer add_t; timer vt;
@@ -155,11 +155,11 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
+      auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
-      auto new_centers = pbbslib::filter(candidates, pred);
+      auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), [&] (size_t i) {
+      parallel_for(0, new_centers.size(), [&] (size_t i) {
         uintE new_center = new_centers[i];
         cluster_ids[new_center] = new_center;
       });
@@ -178,8 +178,8 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
     round++;
   }
   debug(
-  add_t.reportTotal("add vertices time");
-  vt.reportTotal("edge map time"););
+  add_t.next("add vertices time");
+  vt.next("edge map time"););
   return cluster_ids;
 }
 

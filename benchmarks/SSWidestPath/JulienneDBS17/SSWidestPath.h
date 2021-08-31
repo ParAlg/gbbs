@@ -57,10 +57,10 @@ struct Visit_F {
     uintE n_width = std::min((width[s] | TOP_BIT), (w | TOP_BIT));
     if (n_width > bottleneck) {
       if (!(oval & TOP_BIT) &&
-          pbbslib::atomic_compare_and_swap(&(width[d]), oval, n_width)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&(width[d]), oval, n_width)) {  // First visitor
         return std::optional<uintE>(oval);
       }
-      pbbslib::write_max(&(width[d]), n_width);
+      gbbs::write_max(&(width[d]), n_width);
     }
     return std::nullopt;
   }
@@ -80,15 +80,15 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
 
   timer mw; mw.start();
   W max_weight = (W)0;
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, 1, [&] (size_t i) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (wgh > max_weight) {
-        pbbslib::write_max(&max_weight, wgh);
+        gbbs::write_max(&max_weight, wgh);
       }
     };
     G.get_vertex(i).out_neighbors().map(map_f);
-  }, 1);
-  mw.stop(); mw.reportTotal("max weight time");
+  });
+  mw.stop(); mw.next("max weight time");
   std::cout << "max_weight = " << max_weight << std::endl;
 
   timer init;
@@ -101,7 +101,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   auto get_bkt = [&](const W& _width) -> uintE {
     return max_weight - _width + 1;
   };
-  auto get_ring = pbbslib::make_delayed<uintE>(n, [&](const size_t& v) -> uintE {
+  auto get_ring = parlay::delayed_seq<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = width[v];
     if (d == 0) { return UINT_E_MAX; }
     if (d == INT_E_MAX) { return 0; }
@@ -122,7 +122,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   };
 
   init.stop();
-  init.reportTotal("init time");
+  init.next("init time");
   timer bt, emt;
   auto bkt = b.next_bucket();
   size_t rd = 0;
@@ -147,13 +147,13 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     bt.stop();
     rd++;
   }
-  bt.reportTotal("bucket time");
-  emt.reportTotal("edge map time");
+  bt.next("bucket time");
+  emt.next("edge map time");
   std::cout << "n rounds = " << rd << "\n";
 
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == (uintE)(-1))) ? 0 : width[i]; }; // noop?
-  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
+  auto dist_im = parlay::delayed_seq<size_t>(n, dist_im_f);
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << " xor = " << parlay::reduce_xor(dist_im) << "\n";
   return width;
 }
 
@@ -175,7 +175,7 @@ struct SSWidestPathBF_F {
   inline bool updateAtomic(const uintE& s, const uintE& d,
                            const intE& edgeLen) {
     intE n_width = std::min(width[s], edgeLen);
-    return (pbbslib::write_max(&width[d], n_width) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
+    return (gbbs::write_max(&width[d], n_width) && gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
@@ -203,7 +203,7 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, kDefaultGranularity, [&] (size_t i)
+      parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                       { width[i] = -(INT_E_MAX / 2); });
       break;
     }
@@ -217,8 +217,8 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
     round++;
   }
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?
-  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
+  auto dist_im = parlay::delayed_seq<size_t>(n, dist_im_f);
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << " xor = " << parlay::reduce_xor(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return width;
 }

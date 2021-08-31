@@ -46,10 +46,10 @@ size_t intercomponent_edges(Graph& G, sequence<parent>& parents) {
       }
       return static_cast<size_t>(0);
     };
-    auto red_m = pbbslib::addm<size_t>();
+    auto red_m = parlay::addm<size_t>();
     ic_edges[u] = G.get_vertex(u).out_neighbors().reduce(map_f, red_m);
   });
-  return pbbslib::reduce_add(make_slice(ic_edges));
+  return parlay::reduce(make_slice(ic_edges));
 }
 
 template <class Graph>

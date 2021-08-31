@@ -113,20 +113,20 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
   const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
   integer_sort_inplace(make_slice(bucketed_indices), index_to_key);
   sequence<size_t> key_offsets{
-    pbbslib::get_counts(make_slice(bucketed_indices), index_to_key, num_keys)};
-  pbbslib::scan_inplace(key_offsets);
+    parlay::get_counts(make_slice(bucketed_indices), index_to_key, num_keys)};
+  parlay::scan_inplace(key_offsets);
   sequence<Value> result = sequence<Value>::from_function(
     num_keys,
     [&](const size_t i) {
       const size_t values_start{key_offsets[i]};
       const size_t values_end{
         i + 1 == key_offsets.size() ? seq.size() : key_offsets[i + 1]};
-      const auto values{pbbslib::make_delayed<Value>(
+      const auto values{parlay::delayed_seq<Value>(
           values_end - values_start,
           [&](const size_t j) {
             return get_value(seq[bucketed_indices[values_start + j]]);
           })};
-      return pbbslib::reduce(values, std::forward<Monoid>(reduce_fn));
+      return parlay::reduce(values, std::forward<Monoid>(reduce_fn));
     });
   return result;
 }
@@ -149,7 +149,7 @@ UnclusteredType DetermineUnclusteredType(
     // clusters and is a hub.
     if (neighbor_cluster != kUnclustered &&
         !(candidate_cluster == UINT_E_MAX &&
-          pbbslib::atomic_compare_and_swap(
+          gbbs::atomic_compare_and_swap(
                   &candidate_cluster, UINT_E_MAX, neighbor_cluster)) &&
         candidate_cluster != neighbor_cluster && !is_hub) {
       is_hub = true;
@@ -170,7 +170,7 @@ double Modularity(
   const size_t num_vertices{graph->n};
   const size_t num_clusters{
     1 +
-    pbbslib::reduce_max(pbbslib::make_delayed<uintE>(
+    parlay::reduce_max(parlay::delayed_seq<uintE>(
       num_vertices,
       [&](const size_t vertex_id) {
         const uintE cluster_id{clustering[vertex_id]};
@@ -182,7 +182,7 @@ double Modularity(
 
     // Fraction of edges that fall within a cluster.
     const double intracluster_edge_proportion{
-      static_cast<double>(pbbslib::reduce_add(pbbslib::make_delayed<uintT>(
+      static_cast<double>(parlay::reduce(parlay::delayed_seq<uintT>(
         num_vertices,
         [&](const size_t vertex_id) -> uintT {
           const uintE cluster_id{clustering[vertex_id]};
@@ -198,13 +198,13 @@ double Modularity(
         }))) / num_edges};
 
     const auto degrees_split_result{
-      pbbslib::split_two(
-        pbbslib::make_delayed<std::pair<uintE, uintT>>(
+      parlay::split_two(
+        parlay::delayed_seq<std::pair<uintE, uintT>>(
           num_vertices,
           [&](const size_t i) {
             return std::make_pair(clustering[i], graph->get_vertex(i).degree);
           }),
-        pbbslib::make_delayed<bool>(
+        parlay::delayed_seq<bool>(
           num_vertices,
           [&](const size_t i) { return clustering[i] != kUnclustered; }))};
     // <cluster id, degree> of each vertex, with unclustered vertices at the
@@ -218,14 +218,14 @@ double Modularity(
           num_unclustered_vertices, clusters_and_degrees.size()),
         [&](const std::pair<uintE, uintT> p) { return p.first; },
         [&](const std::pair<uintE, uintT> p) { return p.second; },
-        pbbslib::addm<uintT>{},
+        parlay::addm<uintT>{},
         num_clusters)};
     // Approximately the fraction of edges that fall within a cluster for a
     // random graph with the same degree distribution:
     //   sum((sum(degree) for each vertex in cluster) / (2 * <number of edges>)
     //       for each cluster in graph)
     const double null_intracluster_proportion{
-       pbbslib::reduce_add(pbbslib::make_delayed<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_clusters,
          [&](const size_t cluster_id) {
            return std::pow(
@@ -233,7 +233,7 @@ double Modularity(
                2.0);
          })) +
        // special case for unclustered vertices
-       pbbslib::reduce_add(pbbslib::make_delayed<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_unclustered_vertices,
          [&](const size_t i) {
            return std::pow(
@@ -246,7 +246,7 @@ double Modularity(
     constexpr auto get_weight{[](uintE, uintE, const Weight weight) {
       return weight;
     }};
-    const pbbslib::addm<double> add_weights{};
+    const parlay::addm<double> add_weights{};
     // weighted_degrees[i] = sum of weights of incident edges on vertex i
     const sequence<double> weighted_degrees{
       graph->n,
@@ -255,11 +255,11 @@ double Modularity(
           .out_neighbors().reduce(get_weight, add_weights);
       }};
     // 2 * sum of all edge weights
-    const double total_weight{pbbslib::reduce_add(weighted_degrees)};
+    const double total_weight{parlay::reduce(weighted_degrees)};
 
     // Fraction of edge weight that falls within a cluster.
     const double intracluster_edge_proportion{
-      pbbslib::reduce_add(pbbslib::make_delayed<double>(
+      parlay::reduce(parlay::delayed_seq<double>(
         num_vertices,
         [&](const size_t vertex_id) {
           const uintE cluster_id{clustering[vertex_id]};
@@ -275,13 +275,13 @@ double Modularity(
         })) / total_weight};
 
     const auto degrees_split_result{
-      pbbslib::split_two(
-        pbbslib::make_delayed<std::pair<uintE, double>>(
+      parlay::split_two(
+        parlay::delayed_seq<std::pair<uintE, double>>(
           num_vertices,
           [&](const size_t i) {
             return std::make_pair(clustering[i], weighted_degrees[i]);
           }),
-        pbbslib::make_delayed<bool>(
+        parlay::delayed_seq<bool>(
           num_vertices,
           [&](const size_t i) { return clustering[i] != kUnclustered; }))};
     // <cluster id, degree> of each vertex, with unclustered vertices at the
@@ -301,13 +301,13 @@ double Modularity(
     // Approximately the fraction edge weight that falls within a cluster for a
     // random graph with the same degree distribution.
     const double null_intracluster_proportion{
-       pbbslib::reduce_add(pbbslib::make_delayed<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_clusters,
          [&](const size_t cluster_id) {
            return std::pow(degrees_by_cluster[cluster_id] / total_weight, 2.0);
          })) +
        // special case for unclustered vertices
-       pbbslib::reduce_add(pbbslib::make_delayed<double>(
+       parlay::reduce(parlay::delayed_seq<double>(
          num_unclustered_vertices,
          [&](const size_t i) {
            return std::pow(

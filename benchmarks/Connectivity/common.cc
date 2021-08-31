@@ -2,8 +2,8 @@
 
 namespace gbbs {
 
-pbbslib::atomic_max_counter<uintE> max_pathlen;
-pbbslib::atomic_sum_counter<size_t> total_pathlen;
+gbbs::atomic_max_counter<uintE> max_pathlen;
+gbbs::atomic_sum_counter<size_t> total_pathlen;
 
 void report_pathlen(uintE pathlen) {
 #ifdef REPORT_PATH_LENGTHS
@@ -14,7 +14,7 @@ void report_pathlen(uintE pathlen) {
 
 sequence<std::tuple<uintE, uintE, UpdateType>>
 annotate_updates_insert(sequence<std::tuple<uintE, uintE>>& updates, size_t n) {
-  auto seq = pbbslib::sequence<std::tuple<uintE, uintE, UpdateType>>::from_function(n, [&] (size_t i) {
+  auto seq = parlay::sequence<std::tuple<uintE, uintE, UpdateType>>::from_function(n, [&] (size_t i) {
       auto& ith = updates[i];
       return std::make_tuple(std::get<0>(ith), std::get<1>(ith), insertion_type);
   });
@@ -29,7 +29,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE>>& updates, double insert_to_q
     abort();
   }
   auto result = sequence<std::tuple<uintE, uintE, UpdateType>>(result_size);
-  auto rnd = pbbslib::random();
+  auto rnd = parlay::random();
   parallel_for(0, updates.size(), [&] (size_t i) {
     uintE u, v;
     std::tie(u,v) = updates[i];
@@ -42,7 +42,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE>>& updates, double insert_to_q
     result[i] = std::make_tuple(u, v, query_type);
   });
   if (permute) {
-    return pbbslib::random_shuffle(result);
+    return parlay::random_shuffle(result);
   }
   return result;
 }

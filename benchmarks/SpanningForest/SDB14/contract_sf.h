@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/sparse_table.h"
 #include "gbbs/graph.h"
 #include <tuple>
 
@@ -17,7 +17,7 @@ namespace contract_sf {
       size_t l = std::min(std::get<0>(t), std::get<1>(t));
       size_t r = std::max(std::get<0>(t), std::get<1>(t));
       size_t key = (l << 32) + r;
-      return pbbslib::hash64_2(key);
+      return parlay::hash64_2(key);
     }
   };
 
@@ -29,15 +29,15 @@ namespace contract_sf {
     using T = typename Seq::value_type;
     size_t n = ids.size();
     auto inverse_map = sequence<T>(n + 1);
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { inverse_map[i] = 0; });
-    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
-    pbbslib::scan_inplace(inverse_map);
+    parlay::scan_inplace(inverse_map);
 
     size_t new_n = inverse_map[n];
-    par_for(0, n, kDefaultGranularity, [&] (size_t i)
+    parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { ids[i] = inverse_map[ids[i]]; });
     return new_n;
   }
@@ -57,7 +57,7 @@ namespace contract_sf {
     KV empty =
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
-    auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(small_cluster_size, empty, hash_pair());
+    auto edge_table = gbbs::sparse_table<K, V, hash_pair>(small_cluster_size, empty, hash_pair());
 
     timer ins_t; ins_t.start();
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -69,7 +69,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
+    parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
 
     return edge_table;
   }
@@ -93,12 +93,12 @@ namespace contract_sf {
       uintE c_ngh = clusters[ngh];
       return c_src < c_ngh;
     };
-    par_for(0, n, 1, [&] (size_t i)
+    parallel_for(0, n, 1, [&] (size_t i)
                     { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); });
     deg_map[n] = 0;
-    pbbslib::scan_inplace(deg_map);
+    parlay::scan_inplace(deg_map);
     count_t.stop();
-    debug(count_t.reportTotal("count time"););
+    debug(count_t.next("count time"););
 
     timer ins_t;
     ins_t.start();
@@ -106,7 +106,7 @@ namespace contract_sf {
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
 
-    auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(deg_map[n], empty, hash_pair());
+    auto edge_table = gbbs::sparse_table<K, V, hash_pair>(deg_map[n], empty, hash_pair());
     debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
     deg_map.clear();
 
@@ -119,7 +119,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
+    parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
     return edge_table;
   }
 
@@ -138,7 +138,7 @@ namespace contract_sf {
     KV empty =
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
-    auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(estimated_edges, empty, hash_pair());
+    auto edge_table = gbbs::sparse_table<K, V, hash_pair>(estimated_edges, empty, hash_pair());
     debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
 
     bool abort = false;
@@ -151,7 +151,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge), &abort);
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
+    parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
     if (abort) {
       debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
       return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);
@@ -175,18 +175,18 @@ namespace contract_sf {
     // Pack out singleton clusters
     auto flags = sequence<uintE>(num_clusters + 1, static_cast<uintE>(0));
 
-    par_for(0, edges_size, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, edges_size, kDefaultGranularity, [&] (size_t i) {
                       auto e = std::get<0>(edges[i]);
                       uintE u = e.first;
                       uintE v = e.second;
                       if (!flags[u]) flags[u] = 1;
                       if (!flags[v]) flags[v] = 1;
                     });
-    pbbslib::scan_inplace(make_slice(flags));
+    parlay::scan_inplace(make_slice(flags));
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     auto mapping = sequence<uintE>(num_ns_clusters);
-    par_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
                       if (flags[i] != flags[i + 1]) {
                         mapping[flags[i]] = i;
                       }
@@ -205,7 +205,7 @@ namespace contract_sf {
     auto GC = sym_graph_from_edges<gbbs::empty>(sym_edges, num_ns_clusters);
 
     debug(std::cout << "table.size = " << table.m << std::endl;);
-    auto ret_table = pbbslib::sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
+    auto ret_table = gbbs::sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
     // Go through the edge table and map edges to their new ids
     parallel_for(0, table.m, [&] (size_t i) {
       auto& e = table.table[i];
@@ -220,9 +220,9 @@ namespace contract_sf {
       }
     });
 
-    table.clear();
+    table.clear_table();
 
-    return std::make_pair(GC, ret_table);
+    return std::make_pair(std::move(GC), std::move(ret_table));
   }
 
 }  // namespace contract

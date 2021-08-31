@@ -52,10 +52,10 @@ void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
     u = find_compress(u,parents);
     v = find_compress(v,parents);
     if(u == v) break;
-    else if (u > v && parents[u] == u && pbbslib::atomic_compare_and_swap(&parents[u],u,v)) {
+    else if (u > v && parents[u] == u && gbbs::atomic_compare_and_swap(&parents[u],u,v)) {
       break;
     }
-    else if (v > u && parents[v] == v && pbbslib::atomic_compare_and_swap(&parents[v],v,u)) {
+    else if (v > u && parents[v] == v && gbbs::atomic_compare_and_swap(&parents[v],v,u)) {
       break;
     }
   }
@@ -102,12 +102,12 @@ template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }
   });
-  pbbslib::scan_inplace(flags);
+  parlay::scan_inplace(flags);
   std::cout << "# n_cc = " << flags[n] << "\n";
   return flags[n];
 }
@@ -120,7 +120,7 @@ inline size_t largest_cc(Seq& labels) {
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
-  size_t sz = pbbslib::reduce_max(flags);
+  size_t sz = parlay::reduce_max(flags);
   std::cout << "# largest_cc has size: " << sz << "\n";
   return sz;
 }

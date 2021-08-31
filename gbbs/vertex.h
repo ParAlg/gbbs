@@ -24,8 +24,8 @@
 #pragma once
 
 #include "bridge.h"
+#include "intersect.h"
 #include "macros.h"
-#include "uncompressed_intersection.h"
 
 namespace gbbs {
 namespace vertex_ops {
@@ -69,19 +69,18 @@ inline iter<W> get_iter(std::tuple<uintE, W>* edges, uintE degree) {
 
 template <class W>
 struct uncompressed_neighbors {
-
   using edge_type = std::tuple<uintE, W>;
 
-  uintE id;  // this vertex's id
-  uintE degree;  // this vertex's (in/out) degree
+  uintE id;              // this vertex's id
+  uintE degree;          // this vertex's (in/out) degree
   edge_type* neighbors;  // the (in/out) neighbors
 
-  uncompressed_neighbors(uintE id, uintE degree, edge_type* neighbors) :
-    id(id), degree(degree), neighbors(neighbors) {}
+  uncompressed_neighbors(uintE id, uintE degree, edge_type* neighbors)
+      : id(id), degree(degree), neighbors(neighbors) {}
 
   // move constructor
-  uncompressed_neighbors(uncompressed_neighbors&& a) :
-    id(a.id), degree(a.degree), neighbors(a.neighbors) {}
+  uncompressed_neighbors(uncompressed_neighbors&& a)
+      : id(a.id), degree(a.degree), neighbors(a.neighbors) {}
 
   uintE get_neighbor(uintE i) { return std::get<0>(neighbors[i]); }
   W get_weight(uintE i) { return std::get<1>(neighbors[i]); }
@@ -91,7 +90,7 @@ struct uncompressed_neighbors {
   uintE get_virtual_degree() { return degree; }
 
   uintE get_num_blocks() {
-    return pbbslib::num_blocks(degree, vertex_ops::kBlockSize);
+    return parlay::num_blocks(degree, vertex_ops::kBlockSize);
   }
 
   uintE block_degree(uintE block_num) {
@@ -129,8 +128,8 @@ struct uncompressed_neighbors {
       auto nw = neighbors[i];
       return f(id, std::get<0>(nw), std::get<1>(nw));
     };
-    auto im = pbbslib::make_delayed<size_t>(degree, im_f);
-    return pbbslib::reduce_add(im);
+    auto im = parlay::delayed_seq<size_t>(degree, im_f);
+    return parlay::reduce(im);
   }
 
   template <class M, class Monoid>
@@ -141,18 +140,20 @@ struct uncompressed_neighbors {
       auto nw = neighbors[i];
       return m(id, std::get<0>(nw), std::get<1>(nw));
     };
-    auto im = pbbslib::make_delayed<T>(degree, im_f);
-    return pbbslib::reduce(im, reduce);
+    auto im = parlay::delayed_seq<T>(degree, im_f);
+    return parlay::reduce(im, reduce);
   }
-
 
   template <class F>
   inline void map(F f, bool parallel = true) {
-    size_t granularity = parallel ? kDefaultGranularity : std::numeric_limits<size_t>::max();
-    parallel_for(0, degree, [&] (size_t j) {
-      const std::tuple<uintE, W>& neighbor = neighbors[j];
-      f(id, std::get<0>(neighbor), std::get<1>(neighbor));
-    }, granularity);
+    size_t granularity =
+        parallel ? kDefaultGranularity : std::numeric_limits<size_t>::max();
+    parallel_for(0, degree,
+                 [&](size_t j) {
+                   const std::tuple<uintE, W>& neighbor = neighbors[j];
+                   f(id, std::get<0>(neighbor), std::get<1>(neighbor));
+                 },
+                 granularity);
   }
 
   // Applies `f` to neighbors of vertex `v`. The difference between this and
@@ -175,12 +176,15 @@ struct uncompressed_neighbors {
   //   parallel
   //     Whether to run this function with parallelism.
   template <class F>
-  inline void map_with_index(F f, bool parallel=true) {
-    size_t granularity = parallel ? kDefaultGranularity : std::numeric_limits<size_t>::max();
-    parallel_for(0, degree, [&] (size_t j) {
-      const std::tuple<uintE, W>& neighbor = neighbors[j];
-      f(id, std::get<0>(neighbor), std::get<1>(neighbor), j);
-    }, granularity);
+  inline void map_with_index(F f, bool parallel = true) {
+    size_t granularity =
+        parallel ? kDefaultGranularity : std::numeric_limits<size_t>::max();
+    parallel_for(0, degree,
+                 [&](size_t j) {
+                   const std::tuple<uintE, W>& neighbor = neighbors[j];
+                   f(id, std::get<0>(neighbor), std::get<1>(neighbor), j);
+                 },
+                 granularity);
   }
 
   // Expects that out has enough space to hold the output of the filter
@@ -199,9 +203,10 @@ struct uncompressed_neighbors {
         auto pc = [&](const std::tuple<uintE, W>& nw) {
           return p(id, std::get<0>(nw), std::get<1>(nw));
         };
-        auto in_im = pbbslib::make_range(neighbors, degree);
-        size_t k = pbbslib::filter_out(in_im, pbbslib::make_range(tmp, degree), pc);
-        parallel_for(0, k, [&] (size_t i) { out(i, tmp[i]); });
+        auto in_im = gbbs::make_slice(neighbors, degree);
+        size_t k =
+            parlay::filter_out(in_im, gbbs::make_slice(tmp, degree), pc);
+        parallel_for(0, k, [&](size_t i) { out(i, tmp[i]); });
       }
     }
   }
@@ -224,11 +229,11 @@ struct uncompressed_neighbors {
       return k;
     } else {
       // copy to tmp
-      parallel_for(0, degree, [&] (size_t i) { tmp[i] = neighbors[i]; });
+      parallel_for(0, degree, [&](size_t i) { tmp[i] = neighbors[i]; });
       auto pc = [&](const std::tuple<uintE, W>& nw) {
         return p(id, std::get<0>(nw), std::get<1>(nw));
       };
-      size_t k = pbbslib::filterf(tmp, neighbors, degree, pc);
+      size_t k = parlay::filterf(tmp, neighbors, degree, pc);
       degree = k;
       return k;
     }
@@ -236,7 +241,7 @@ struct uncompressed_neighbors {
 
   template <class F, class G>
   inline void copy(uintT offset, F f, G g) {
-    parallel_for(0, degree, [&] (size_t j) {
+    parallel_for(0, degree, [&](size_t j) {
       auto nw = neighbors[j];
       uintE ngh = std::get<0>(nw);
       auto val = f(id, ngh, std::get<1>(nw));
@@ -268,22 +273,25 @@ struct uncompressed_neighbors {
       }
     } else {
       size_t b_size = 2048;
-      size_t n_blocks = degree/b_size + 1;
-      parallel_for(0, n_blocks, [&] (size_t b) {
-        if (f.cond(id)) {
-         size_t start = b*b_size;
-         size_t end = std::min((b+1)*b_size, static_cast<size_t>(degree));
-         for (size_t j = start; j < end; j++) {
-           if (!f.cond(id)) break;
-           auto nw = neighbors[j];
-           uintE ngh = std::get<0>(nw);
-           if (vs.isIn(ngh)) {
-             auto m = f.updateAtomic(ngh, id, std::get<1>(nw));
-             g(id, m);
-           }
-         }
-        }
-      }, 1);
+      size_t n_blocks = degree / b_size + 1;
+      parallel_for(0, n_blocks,
+                   [&](size_t b) {
+                     if (f.cond(id)) {
+                       size_t start = b * b_size;
+                       size_t end = std::min((b + 1) * b_size,
+                                             static_cast<size_t>(degree));
+                       for (size_t j = start; j < end; j++) {
+                         if (!f.cond(id)) break;
+                         auto nw = neighbors[j];
+                         uintE ngh = std::get<0>(nw);
+                         if (vs.isIn(ngh)) {
+                           auto m = f.updateAtomic(ngh, id, std::get<1>(nw));
+                           g(id, m);
+                         }
+                       }
+                     }
+                   },
+                   1);
     }
   }
 
@@ -291,7 +299,7 @@ struct uncompressed_neighbors {
   // updateAtomic.
   template <class F, class G>
   void decode(F& f, G& g) {
-    parallel_for(0, degree, [&] (size_t j) {
+    parallel_for(0, degree, [&](size_t j) {
       auto nw = neighbors[j];
       uintE ngh = std::get<0>(nw);
       if (f.cond(ngh)) {
@@ -304,18 +312,22 @@ struct uncompressed_neighbors {
   // Used by edgeMapSparse. For each out-neighbor satisfying cond, call
   // updateAtomic.
   template <class F, class G, class H>
-  void decodeSparse(uintT offset, F& f, const G& g, const H& h, bool parallel=true) {
-    size_t granularity = parallel ? kDefaultGranularity : std::numeric_limits<size_t>::max();
-    parallel_for(0, degree, [&] (size_t j) {
-      auto nw = neighbors[j];
-      uintE ngh = std::get<0>(nw);
-      if (f.cond(ngh)) {
-        auto m = f.updateAtomic(id, ngh, std::get<1>(nw));
-        g(ngh, offset + j, m);
-      } else {
-        h(ngh, offset + j);
-      }
-    }, granularity);
+  void decodeSparse(uintT offset, F& f, const G& g, const H& h,
+                    bool parallel = true) {
+    size_t granularity =
+        parallel ? kDefaultGranularity : std::numeric_limits<size_t>::max();
+    parallel_for(0, degree,
+                 [&](size_t j) {
+                   auto nw = neighbors[j];
+                   uintE ngh = std::get<0>(nw);
+                   if (f.cond(ngh)) {
+                     auto m = f.updateAtomic(id, ngh, std::get<1>(nw));
+                     g(ngh, offset + j, m);
+                   } else {
+                     h(ngh, offset + j);
+                   }
+                 },
+                 granularity);
   }
 
   // Used by edgeMapSparse_no_filter. Sequentially decode the out-neighbors,
@@ -328,7 +340,7 @@ struct uncompressed_neighbors {
       uintE ngh = std::get<0>(nw);
       if (f.cond(ngh)) {
         auto m = f.updateAtomic(id, ngh, std::get<1>(nw));
-        if (g(ngh, offset + k, m)) { // performed a write
+        if (g(ngh, offset + k, m)) {  // performed a write
           k++;
         }
       }
@@ -341,7 +353,8 @@ struct uncompressed_neighbors {
   // [block_num*KBlockSize, block_num*kBlockSize + block_size)
   // and compactly write all neighbors satisfying g().
   template <class F, class G>
-  size_t decodeSparseBlock(uintT offset, uintE block_size, uintE block_num, F& f, const G& g) {
+  size_t decodeSparseBlock(uintT offset, uintE block_size, uintE block_num,
+                           F& f, const G& g) {
     size_t k = 0;
     size_t start = kEMBlockSize * block_num;
     size_t end = start + block_size;
@@ -380,7 +393,6 @@ struct uncompressed_neighbors {
 
 };  // struct uncompressed_neighbors
 
-
 template <class W>
 struct symmetric_vertex {
   using vertex = symmetric_vertex<W>;
@@ -402,11 +414,12 @@ struct symmetric_vertex {
    * allocated in a shared array */
   void clear() {
     exit(-1);
-    // pbbslib::free_array(neighbors);
+    // gbbs::free_array(neighbors);
   }
 
   uncompressed_neighbors<W> in_neighbors() {
-    return uncompressed_neighbors<W>(id, degree, neighbors); }
+    return uncompressed_neighbors<W>(id, degree, neighbors);
+  }
   uncompressed_neighbors<W> out_neighbors() { return in_neighbors(); }
 
   uintE in_degree() { return degree; }
@@ -423,7 +436,6 @@ struct symmetric_vertex {
   inline uintE out_block_degree(uintE block_num) {
     return in_block_degree(block_num);
   }
-
 };
 
 template <class W>
@@ -442,8 +454,7 @@ struct asymmetric_vertex {
   asymmetric_vertex() {}
 
   asymmetric_vertex(edge_type* out_neighbors_, vertex_data& out_data,
-                    edge_type* in_neighbors_, vertex_data& in_data,
-                    uintE _id) {
+                    edge_type* in_neighbors_, vertex_data& in_data, uintE _id) {
     in_nghs = in_neighbors_ + in_data.offset;
     out_nghs = out_neighbors_ + out_data.offset;
 
@@ -461,9 +472,11 @@ struct asymmetric_vertex {
   }
 
   uncompressed_neighbors<W> in_neighbors() {
-    return uncompressed_neighbors<W>(id, in_deg, in_nghs); }
+    return uncompressed_neighbors<W>(id, in_deg, in_nghs);
+  }
   uncompressed_neighbors<W> out_neighbors() {
-    return uncompressed_neighbors<W>(id, out_deg, out_nghs); }
+    return uncompressed_neighbors<W>(id, out_deg, out_nghs);
+  }
 
   uintE in_degree() { return in_deg; }
   uintE out_degree() { return out_deg; }
@@ -471,7 +484,6 @@ struct asymmetric_vertex {
   constexpr static uintE getInternalBlockSize() {
     return vertex_ops::kBlockSize;
   }
-
 };
 
 }  // namespace gbbs

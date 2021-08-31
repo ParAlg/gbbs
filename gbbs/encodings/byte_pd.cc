@@ -56,12 +56,14 @@ long compressEdge(uchar* start, long curOffset, uintE e) {
   return curOffset;
 }
 
-uintE get_num_blocks(uchar* edge_start,  uintE degree) {
-  return pbbslib::num_blocks(degree, PARALLEL_DEGREE);
+uintE get_num_blocks(uchar* edge_start, uintE degree) {
+  return parlay::num_blocks(degree, PARALLEL_DEGREE);
 }
 
-uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num){
-  if (degree == 0) { return 0; }
+uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
+  if (degree == 0) {
+    return 0;
+  }
   size_t num_blocks = get_num_blocks(edge_start, degree);
   assert(num_blocks > 0);
   if (block_num < (num_blocks - 1)) {

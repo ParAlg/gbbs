@@ -18,15 +18,15 @@ struct Co_PR_F {
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbslib::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
+    gbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }
 };
 
 double inner_product(sequence<double>& arr1, sequence<double>& arr2) {
-  auto prod = pbbslib::make_delayed<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
-  auto sum = pbbslib::reduce_add(prod);
+  auto prod = parlay::delayed_seq<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
+  auto sum = parlay::reduce(prod);
   return sum;
 }
 
@@ -70,15 +70,15 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences_v = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_v = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr_v[i]-p_next_v[i]);
     });
-    double L1_norm_v = pbbslib::reduce(differences_v, pbbslib::addm<double>());
+    double L1_norm_v = parlay::reduce(differences_v, parlay::addm<double>());
 
-    auto differences_u = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_u = parlay::delayed_seq<double>(n, [&] (size_t i) {
       return fabs(p_curr_u[i]-p_next_u[i]);
     });
-    double L1_norm_u = pbbslib::reduce(differences_u, pbbslib::addm<double>());
+    double L1_norm_u = parlay::reduce(differences_u, parlay::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
     debug(std::cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u << std::endl;);
@@ -89,11 +89,11 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     parallel_for(0, n, [&] (size_t i) { p_curr_u[i] = static_cast<double>(0); });
     std::swap(p_curr_u,p_next_u);
 
-    debug(t.stop(); t.reportTotal("iteration time"););
+    debug(t.stop(); t.next("iteration time"););
   }
 
-  auto max_pr_v = pbbslib::reduce_max(p_next_v);
-  auto max_pr_u = pbbslib::reduce_max(p_next_u);
+  auto max_pr_v = parlay::reduce_max(p_next_v);
+  auto max_pr_u = parlay::reduce_max(p_next_u);
 
   std::cout << "max_pr = " << max_pr_v << ", " << max_pr_u << std::endl;
   std::cout << "sim = " << sim << std::endl;
@@ -158,7 +158,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     timer tt; tt.start();
     auto Frontier_v_new = EM_v.template edgeMapReduce_dense<double, double>(Frontier_v, cond_f, map_f_v, reduce_f, apply_f_v, 0.0, 0);
     auto Frontier_u_new = EM_u.template edgeMapReduce_dense<double, double>(Frontier_u, cond_f, map_f_u, reduce_f, apply_f_u, 0.0, 0); //, no_output
-    tt.stop(); //tt.reportTotal("em time");
+    tt.stop(); //tt.next("em time");
 
     sim += ((double) pow(c, iter) * inner_product(p_next_u, p_next_v));
 
@@ -166,28 +166,28 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences_v = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_v = parlay::delayed_seq<double>(n, [&] (size_t i) {
       auto x = p_curr_v[i];
       p_curr_v[i] = 0;
       return fabs(x-p_next_v[i]);
     });
-    double L1_norm_v = pbbslib::reduce(differences_v, pbbslib::addm<double>());
+    double L1_norm_v = parlay::reduce(differences_v, parlay::addm<double>());
 
-    auto differences_u = pbbslib::make_delayed<double>(n, [&] (size_t i) {
+    auto differences_u = parlay::delayed_seq<double>(n, [&] (size_t i) {
       auto x = p_curr_u[i];
       p_curr_u[i] = 0;
       return fabs(x-p_next_u[i]);
     });
-    double L1_norm_u = pbbslib::reduce(differences_u, pbbslib::addm<double>());
+    double L1_norm_u = parlay::reduce(differences_u, parlay::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
     // Reset p_curr
     std::swap(p_curr_v,p_next_v);
     std::swap(p_curr_u,p_next_u);
-    t.stop(); //t.reportTotal("iteration time");
+    t.stop(); //t.next("iteration time");
   }
-  auto max_pr_v = pbbslib::reduce_max(p_next_v);
-  auto max_pr_u = pbbslib::reduce_max(p_next_u);
+  auto max_pr_v = parlay::reduce_max(p_next_v);
+  auto max_pr_u = parlay::reduce_max(p_next_u);
 
   std::cout << "max_pr = " << max_pr_v << ", " << max_pr_u << std::endl;
   std::cout << "sim = " << sim << std::endl;

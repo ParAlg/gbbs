@@ -10,7 +10,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
-#include "gbbs/pbbslib/assert.h"
+#include "gbbs/helpers/assert.h"
 
 namespace gbbs {
 namespace scan {
@@ -36,7 +36,7 @@ template <class Seq>
 auto ProjectSequenceZero(const Seq& sequence) {
   using Element =
     typename std::tuple_element<0, typename Seq::value_type>::type;
-  return pbbslib::make_delayed<Element>(
+  return parlay::delayed_seq<Element>(
           sequence.size(),
           [&](const size_t i) { return std::get<0>(sequence[i]); });
 }
@@ -116,7 +116,7 @@ typename IntersectReturn<Weight>::type seq_merge(
     if constexpr (std::is_same<Weight, gbbs::empty>::value) {
       // unweighted case
       const uintE a_id = std::get<0>(A[i]);
-      size_t mB = pbbslib::binary_search(B_ids, a_id, std::less<uintE>());
+      size_t mB = parlay::binary_search(B_ids, a_id, std::less<uintE>());
       if (mB < B.size() && a_id == std::get<0>(B[mB])) {
         if (are_sequences_swapped) {
           f(a_id, offset_B + mB, offset_A + i);
@@ -127,7 +127,7 @@ typename IntersectReturn<Weight>::type seq_merge(
       }
     } else {  // weighted case
       const auto [a_id, a_weight] = A[i];
-      size_t mB = pbbslib::binary_search(B_ids, a_id, std::less<uintE>());
+      size_t mB = parlay::binary_search(B_ids, a_id, std::less<uintE>());
       if (mB < B.size()) {
         const auto [b_id, b_weight] = B[mB];
         if (a_id == b_id) {
@@ -175,7 +175,7 @@ typename IntersectReturn<Weight>::type merge(
     const auto B_ids = ProjectSequenceZero(B);
     size_t mA = nA/2;
     size_t mB =
-      pbbslib::binary_search(B_ids, std::get<0>(A[mA]), std::less<uintE>());
+      parlay::binary_search(B_ids, std::get<0>(A[mA]), std::less<uintE>());
     ReturnType m_left = 0;
     ReturnType m_right = 0;
     par_do(
@@ -239,9 +239,9 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
   if constexpr (
       std::is_same<VertexTemplate<Weight>, symmetric_vertex<Weight>>::value) {
     using Neighbor = typename VertexTemplate<Weight>::edge_type;
-    const auto seqA{pbbslib::make_delayed<Neighbor>(
+    const auto seqA{gbbs::make_slice<Neighbor>(
         A->neighbors, A->out_degree())};
-    const auto seqB{pbbslib::make_delayed<Neighbor>(
+    const auto seqB{gbbs::make_slice<Neighbor>(
         B->neighbors, B->out_degree())};
     constexpr size_t kOffset{0};
     constexpr bool kAreSeqsSwapped{false};
