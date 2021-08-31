@@ -43,37 +43,37 @@ namespace gbbs {
     public:
       pbbs::sequence<unsigned int> table_mark;
       pbbs::sequence<Obj*> table_obj;
-      int num_workers;
+      int nw;
       ThreadLocalObj(){
-        num_workers = num_workers();
-        table_mark = pbbs::sequence<unsigned int>(num_workers * 1.5, [](std::size_t i) {return 0;});
-        table_obj = pbbs::sequence<Obj*>(num_workers * 1.5, [](std::size_t i){return nullptr;});
+        nw = num_workers();
+        table_mark = pbbs::sequence<unsigned int>(nw * 1.5, [](std::size_t i) {return 0;});
+        table_obj = pbbs::sequence<Obj*>(nw * 1.5, [](std::size_t i){return nullptr;});
       }
 
       Obj* init_idx(unsigned int idx) {
         auto obj = table_obj[idx];
         if (obj != nullptr) return obj;
-        obj = new Obj();
-        return obj;
+        table_obj[idx] = new Obj();
+        return table_obj[idx];
       }
 
       void unreserve(unsigned int idx) {
         while(true) {
-         if (pbbslib::CAS(&table_mark[idx], unsigned int{1}, unsigned int{0})) { return; }
+         if (pbbslib::CAS(&table_mark[idx], (unsigned int) 1, (unsigned int) 0)) { return; }
         }
       }
 
       std::pair<unsigned int, Obj*> reserve(){
         auto worker_id = worker_id();
-        auto idx = hash32(worker_id) % num_workers;
+        auto idx = hash32(worker_id) % nw;
         while(true) {
           if (table_mark[idx] == 0) {
-            if (pbbslib::CAS(&table_mark[idx], unsigned int{0}, unsigned int{1})) {
+            if (pbbslib::CAS(&table_mark[idx], (unsigned int) 0, (unsigned int) 1)) {
               return std::make_pair(idx, init_idx(idx));
             }
           }
           idx++;
-          idx = idx % num_workers;
+          idx = idx % nw;
         }
       }
   };
