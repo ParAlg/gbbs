@@ -269,7 +269,7 @@ class list_buffer {
 
     void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
       if (efficient == 2) {
-        use_size_ = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
+        use_size = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
         //if (use_size > ss) use_size = ss;
         size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size_*1.1));
         source_table.resize_no_copy(space_required);
