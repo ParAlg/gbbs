@@ -47,12 +47,10 @@ struct U_FastReset {
     num_distinct = 0;
   }
 
-  void del() {
+  ~U_FastReset() {
     if (U) { free(U); U = nullptr; }
     if (distinct) { free(distinct); distinct = nullptr; }
   }
-
-  ~U_FastReset() { del(); }
 };
 
 constexpr const size_t binary_search_base = 16;
@@ -396,8 +394,6 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   // std::cout << std::endl;
   double tt2 = t2.stop();
   std::cout << "##### Actual counting: " << tt2 << std::endl;
-  GDO.del();
-  DGDO.del();
   return total;
 }
 
@@ -447,8 +443,6 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
 
   double tt = t.stop();
   std::cout << "##### Actual counting: " << tt << std::endl;
-  GDO.del();
-  DGDO.del();
   return cycleCount;
 }
 
@@ -491,8 +485,6 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
 
   double tt2 = t2.stop();
   std::cout << "##### Actual counting: " << tt2 << std::endl;
-  GDO.del();
-  DGDO.del();
   return total;
 }
 
@@ -610,8 +602,6 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
 
   double tt = t.stop();
   std::cout << "##### Actual counting: " << tt << std::endl;
-  GDO.del();
-  DGDO.del();
   return cycleCount;
 }
 
@@ -784,9 +774,6 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
   double tt = t.stop();
   std::cout << "##### Actual counting: " << tt << std::endl;
-  GDO.del();
-  ING.del();
-  OUTG.del();
   return cycleCount;
 }
 
@@ -989,9 +976,6 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
 
   double tt2 = t2.stop();
   std::cout << "##### Actual counting: " << tt2 << std::endl;
-  GDO.del();
-  ING.del();
-  OUTG.del();
   return cycleCount;
 }
 }  // namespace gbbs

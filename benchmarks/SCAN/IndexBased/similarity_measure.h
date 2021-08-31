@@ -283,7 +283,6 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
         compute_similarity);
   });
 
-  directed_graph.del();
   return similarities;
 }
 
@@ -591,7 +590,6 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         compute_similarity);
   });
 
-  directed_graph.del();
   return similarities;
 }
 
@@ -795,7 +793,6 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         compute_similarity);
   });
 
-  directed_graph.del();
   return similarities;
 }
 
@@ -909,7 +906,6 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
            compute_similarity);
     });
 
-    directed_graph.del();
     return similarities;
   }
 }

@@ -244,7 +244,6 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("MinimumSpanningForest", [&] (graph& G) {
       auto G_copy = G.copy();
       auto edges = compiled::MinimumSpanningForest(G_copy);
-      G_copy.del();
       return build_edgelist<W>(edges);
     })
     .def("BellmanFord", [&] (graph& G, uintE source) {

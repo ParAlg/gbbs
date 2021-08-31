@@ -177,7 +177,6 @@ namespace workefficient_sf {
 
     auto rec_edge_arr = SpanningForest_Impl(GC, beta, level + 1, new_edge_mapping);
     rec_edge_arr.copyIn(edges, edges.size());
-    GC.del();
     return rec_edge_arr;
   }
 

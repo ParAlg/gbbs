@@ -176,7 +176,6 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   // Return if only counting in total
   if (!use_base) {
-    DG.del();
     return count;
   }
 
@@ -215,7 +214,6 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   // Cleanup
   free(per_vert);
-  DG.del();
 
   return count;
 }
@@ -255,7 +253,6 @@ inline size_t Clique_enum(Graph& GA, size_t k, long order_type, double epsilon,
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << k << " cliques = " << count << "\n";
 
-  DG.del();
   return count;
 }
 

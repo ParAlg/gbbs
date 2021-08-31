@@ -122,8 +122,18 @@ struct symmetric_graph {
                   std::function<void()> _deletion_fn, edge_type* _e0)
       : v_data(v_data), e0(_e0), n(n), m(m), deletion_fn(_deletion_fn) {}
 
-  // TODO: remove, change to destructors.
-  void del() { deletion_fn(); }
+  symmetric_graph(symmetric_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    v_data = other.v_data;
+    e0 = other.e0;
+    deletion_fn = std::move(other.deletion_fn);
+    other.v_data = nullptr;
+    other.e0 = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  ~symmetric_graph() { deletion_fn(); }
 
   // creates an in-memory copy of the graph.
   graph copy() {
@@ -240,8 +250,20 @@ struct symmetric_ptr_graph {
         edge_list_sizes(_edge_list_sizes),
         deletion_fn(_deletion_fn) {}
 
-  // TODO: remove: change to destructors.
-  void del() { deletion_fn(); }
+  symmetric_ptr_graph(symmetric_ptr_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    vertices = other.vertices;
+    edge_list_sizes = other.edge_list_sizes;
+    deletion_fn = std::move(other.deletion_fn);
+    other.vertices = nullptr;
+    other.edge_list_sizes = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  ~symmetric_ptr_graph() {
+    deletion_fn();
+  }
 
   // creates an in-memory copy of the graph.
   graph copy() {
@@ -357,8 +379,22 @@ struct asymmetric_graph {
         out_edges(_out_edges),
         in_edges(_in_edges) {}
 
-  // TODO: remove
-  void del() { deletion_fn(); }
+  asymmetric_graph(asymmetric_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    v_out_data = other.v_out_data;
+    v_in_data = other.v_in_data;
+    out_edges = other.out_edges;
+    in_edges = other.in_edges;
+    deletion_fn = std::move(other.deletion_fn);
+    other.v_out_data = nullptr;
+    other.v_in_data = nullptr;
+    other.out_edges = nullptr;
+    other.in_edges = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  ~asymmetric_graph() { deletion_fn(); }
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) {
@@ -397,7 +433,16 @@ struct asymmetric_ptr_graph {
                        std::function<void()> _deletion_fn)
       : n(n), m(m), vertices(_vertices), deletion_fn(_deletion_fn) {}
 
-  void del() { deletion_fn(); }
+  asymmetric_ptr_graph(asymmetric_ptr_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    vertices = other.vertices;
+    deletion_fn = std::move(other.deletion_fn);
+    other.vertices = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  ~asymmetric_ptr_graph() { deletion_fn(); }
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) {

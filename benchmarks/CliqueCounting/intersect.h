@@ -362,7 +362,7 @@ struct HybridSpace_lw {
   static void init(){}
   static void finish(){}
 
-  void del() {
+  ~HybridSpace_lw() {
     if (labels) {
       free(labels);
       labels=nullptr;
@@ -398,8 +398,6 @@ struct HybridSpace_lw {
     }
   }
 
-  ~HybridSpace_lw() { del(); }
-
 };
 
 
@@ -429,13 +427,12 @@ struct InducedSpace_lw {
       }
     }
   }
-  void del() {
+
+  ~InducedSpace_lw() {
     if (induced) { free(induced); induced = nullptr; }
     if (num_induced) { free(num_induced); num_induced = nullptr; }
     if (intersect) { free(intersect); intersect = nullptr; }
   }
-
-  ~InducedSpace_lw() { del(); }
 };
 
 struct FullSpace_orig_lw {
@@ -505,7 +502,7 @@ struct FullSpace_orig_lw {
   static void init(){}
   static void finish(){}
 
-  void del() {
+  ~FullSpace_orig_lw() {
     if (labels) { free(labels); labels = nullptr; }
     if (induced) { free(induced); induced = nullptr; }
     if (induced_edges) { free(induced_edges); induced_edges = nullptr; }
@@ -514,8 +511,6 @@ struct FullSpace_orig_lw {
     if (num_induced) { free(num_induced); num_induced = nullptr; }
     if (old_labels) { free(old_labels); old_labels=nullptr; }
   }
-
-  ~FullSpace_orig_lw() { del(); }
 
 };
 

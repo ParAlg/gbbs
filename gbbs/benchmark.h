@@ -10,8 +10,7 @@
     total_time += APP(G, P);                                 \
   }                                                          \
   auto time_per_iter = total_time / rounds;                  \
-  std::cout << "# time per iter: " << time_per_iter << "\n"; \
-  G.del();
+  std::cout << "# time per iter: " << time_per_iter << "\n";
 
 /* Macro to generate binary for graph applications that read a graph (either
  * asymmetric or symmetric) and transform it into a COO (edge-array)

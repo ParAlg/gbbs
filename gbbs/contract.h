@@ -62,6 +62,7 @@ sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters,
   auto edge_table =
       gbbs::make_sparse_table<K, V>(small_cluster_size, empty, hash_pair);
 
+  debug(std::cout << "Made edge table, size = " << small_cluster_size << " about to insert" << std::endl;);
   timer ins_t;
   ins_t.start();
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -75,7 +76,6 @@ sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters,
   parallel_for(0, n, 1,
                [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   auto edges = edge_table.entries();
-  ins_t.stop();
   debug(ins_t.next("insertion time"););
   debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
@@ -107,7 +107,6 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
   });
   deg_map[n] = 0;
   parlay::scan_inplace(make_slice(deg_map));
-  count_t.stop();
   debug(count_t.next("count time"););
 
   timer ins_t;
@@ -136,7 +135,6 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
   parallel_for(0, n, 1,
                [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   auto edges = edge_table.entries();
-  ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
@@ -185,7 +183,6 @@ sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters,
     return fetch_intercluster_te(GA, clusters, num_clusters);
   }
   auto edges = edge_table.entries();
-  ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
@@ -216,8 +213,7 @@ sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters,
 // (2) A sequence `T` that is the inverse to (1). Vertex i in the contracted
 //   graph is the contraction of cluster `T[i]`.
 template <class Graph>
-inline std::tuple<symmetric_graph<symmetric_vertex, gbbs::empty>,
-                  sequence<uintE>, sequence<uintE>>
+inline auto
 contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
   // Remove duplicates by hashing
   using K = std::tuple<uintE, uintE, gbbs::empty>;
@@ -267,7 +263,7 @@ contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
 
   auto GC = sym_graph_from_edges<gbbs::empty>(/* edges = */ sym_edges,
                                               /* n = */ num_ns_clusters);
-  return std::make_tuple(GC, std::move(flags), std::move(mapping));
+  return std::make_tuple(std::move(GC), std::move(flags), std::move(mapping));
 }
 
 }  // namespace contract

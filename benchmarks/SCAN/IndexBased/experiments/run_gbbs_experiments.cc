@@ -446,13 +446,11 @@ int main(int argc, char* argv[]) {
         input_graph_file, should_mmap_graph, is_graph_binary)};
     gbbs::alloc_init(graph);
     gbbs::RunScanWeighted(graph, params);
-    graph.del();
   } else {
     auto graph{gbbs::gbbs_io::read_unweighted_symmetric_graph(
         input_graph_file, should_mmap_graph, is_graph_binary)};
     gbbs::alloc_init(graph);
     gbbs::RunScanUnweighted(graph, params);
-    graph.del();
   }
   gbbs::alloc_finish();
 }

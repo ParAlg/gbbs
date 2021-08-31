@@ -159,7 +159,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
       size_t max_deg = get_max_deg(DG);
       auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
-      auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+      auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
         if (DG.get_vertex(i).out_degree() != 0) {
           induced->setup(DG, k, i);

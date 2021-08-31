@@ -65,7 +65,6 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   truss_utils::TCDirected(DG, inc_truss_f);
   tct.stop(); tct.next("TC time");
 
-  DG.del();
 }
 
 // High-level desc:

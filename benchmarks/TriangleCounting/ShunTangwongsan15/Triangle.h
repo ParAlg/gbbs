@@ -198,7 +198,6 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
 
   size_t count = CountDirectedBalanced(DG, counts.begin(), f);
   std::cout << "### Num triangles = " << count << "\n";
-  DG.del();
   ct.stop();
   ct.next("count time");
   gbbs::free_array(rank, G.n);
@@ -235,7 +234,6 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f,
 
   size_t count = CountDirectedBalanced(DG, counts.begin(), f);
   std::cout << "### Num triangles = " << count << "\n";
-  DG.del();
   ct.stop();
   ct.next("count time");
   return count;
