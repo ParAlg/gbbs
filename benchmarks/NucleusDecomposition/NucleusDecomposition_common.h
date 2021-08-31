@@ -642,7 +642,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   });
 
   auto num_entries_filter = num_entries;
-  if (is_efficient == 1) num_entries_filter += 1024;
+  if (is_efficient == 1) num_entries_filter += num_workers() * 1024;
   auto D_filter = sequence<std::tuple<uintE, bucket_t>>(num_entries_filter);
 
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
