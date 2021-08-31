@@ -127,6 +127,13 @@ struct buckets {
     update_buckets(get_id_and_bkt, n);
   }
 
+  ~buckets() {
+    for (size_t i = 0; i < total_buckets; i++) {
+      bkts[i].clear();
+    }
+    bkts.clear();
+  }
+
   // Returns the next non-empty bucket from the bucket structure. The return
   // value's bkt_id is null_bkt when no further buckets remain.
   inline bucket next_bucket() {
@@ -172,16 +179,6 @@ struct buckets {
       }
     }
     return null_bkt;
-  }
-
-  void del() {
-    if (allocated) {
-      for (size_t i = 0; i < total_buckets; i++) {
-        bkts[i].clear();
-      }
-      bkts.clear();
-      allocated = false;
-    }
   }
 
   inline size_t update_buckets(vertexSubsetData<uintE>& VS) {

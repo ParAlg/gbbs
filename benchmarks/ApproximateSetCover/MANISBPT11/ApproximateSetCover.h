@@ -182,7 +182,6 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     bktt.stop();
     r = r.next();
   }
-  b.del();
 
   bktt.next("bucket");
   nbt.next("next bucket time");
