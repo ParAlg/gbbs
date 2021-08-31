@@ -222,7 +222,7 @@ namespace contract_sf {
 
     table.clear_table();
 
-    return std::make_pair(GC, std::move(ret_table));
+    return std::make_pair(std::move(GC), std::move(ret_table));
   }
 
 }  // namespace contract

@@ -105,10 +105,10 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   size_t count = 0;
   if (sparsify) {
     // Sparsify graph, with random seed
-    auto GA_sparse = clr_sparsify_graph(GA, sparsify_denom, 7398234);
+    clr_sparsify_graph(GA, sparsify_denom, 7398234);
 
     // k-clique counting
-    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level,
+    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level,
                    approx_peel, approx_eps);
     std::cout << "sparse count: " << count << std::endl;
     count = count * pow(sparsify_denom,k-1);

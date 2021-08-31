@@ -122,6 +122,7 @@ struct symmetric_graph {
                   std::function<void()> _deletion_fn, edge_type* _e0)
       : v_data(v_data), e0(_e0), n(n), m(m), deletion_fn(_deletion_fn) {}
 
+  // Move constructor
   symmetric_graph(symmetric_graph&& other) noexcept {
     n = other.n;
     m = other.m;
@@ -131,6 +132,33 @@ struct symmetric_graph {
     other.v_data = nullptr;
     other.e0 = nullptr;
     other.deletion_fn = [](){};
+  }
+
+  // Move assignment
+  symmetric_graph& operator=(symmetric_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    v_data = other.v_data;
+    e0 = other.e0;
+    deletion_fn();
+    deletion_fn = std::move(other.deletion_fn);
+    other.v_data = nullptr;
+    other.e0 = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  symmetric_graph(const symmetric_graph& other) {
+    debug(std::cout << "Copying symmetric graph." << std::endl;);
+    n = other.n;
+    m = other.m;
+    v_data = gbbs::new_array_no_init<vertex_data>(n);
+    e0 = gbbs::new_array_no_init<edge_type>(m);
+    parallel_for(0, n, [&](size_t i) { v_data[i] = other.v_data[i]; });
+    parallel_for(0, m, [&](size_t i) { e0[i] = other.e0[i]; });
+    deletion_fn = [=]() {
+      gbbs::free_array(v_data, n);
+      gbbs::free_array(e0, m);
+    };
   }
 
   ~symmetric_graph() { deletion_fn(); }
@@ -261,6 +289,24 @@ struct symmetric_ptr_graph {
     other.deletion_fn = [](){};
   }
 
+  // Move assignment
+  symmetric_ptr_graph& operator=(symmetric_ptr_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    vertices = other.vertices;
+    edge_list_sizes = other.edge_list_sizes;
+    deletion_fn();
+    deletion_fn = std::move(other.deletion_fn);
+    other.vertices = nullptr;
+    other.edge_list_sizes = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  symmetric_ptr_graph(const symmetric_ptr_graph& other) {
+    std::cout << "Copying symmetric ptr graph (currently unimplemented)." << std::endl;
+    exit(-1);  // unimplemented
+  }
+
   ~symmetric_ptr_graph() {
     deletion_fn();
   }
@@ -379,6 +425,7 @@ struct asymmetric_graph {
         out_edges(_out_edges),
         in_edges(_in_edges) {}
 
+  // Move constructor
   asymmetric_graph(asymmetric_graph&& other) noexcept {
     n = other.n;
     m = other.m;
@@ -392,6 +439,43 @@ struct asymmetric_graph {
     other.out_edges = nullptr;
     other.in_edges = nullptr;
     other.deletion_fn = [](){};
+  }
+
+  // Move assignment
+  asymmetric_graph& operator=(asymmetric_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    v_out_data = other.v_out_data;
+    v_in_data = other.v_in_data;
+    out_edges = other.out_edges;
+    in_edges = other.in_edges;
+    deletion_fn();
+    deletion_fn = std::move(other.deletion_fn);
+    other.v_out_data = nullptr;
+    other.v_in_data = nullptr;
+    other.out_edges = nullptr;
+    other.in_edges = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  asymmetric_graph(const asymmetric_graph& other) {
+    debug(std::cout << "Copying asymmetric graph." << std::endl;);
+    n = other.n;
+    m = other.m;
+    v_out_data = gbbs::new_array_no_init<vertex_data>(n);
+    v_in_data = gbbs::new_array_no_init<vertex_data>(n);
+    out_edges = gbbs::new_array_no_init<edge_type>(m);
+    in_edges = gbbs::new_array_no_init<edge_type>(m);
+    parallel_for(0, n, [&](size_t i) { v_out_data[i] = other.v_out_data[i]; });
+    parallel_for(0, n, [&](size_t i) { v_in_data[i] = other.v_in_data[i]; });
+    parallel_for(0, m, [&](size_t i) { out_edges[i] = other.out_edges[i]; });
+    parallel_for(0, m, [&](size_t i) { in_edges[i] = other.in_edges[i]; });
+    deletion_fn = [=]() {
+      gbbs::free_array(v_out_data, n);
+      gbbs::free_array(v_in_data, n);
+      gbbs::free_array(out_edges, m);
+      gbbs::free_array(in_edges, m);
+    };
   }
 
   ~asymmetric_graph() { deletion_fn(); }
@@ -440,6 +524,22 @@ struct asymmetric_ptr_graph {
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
     other.deletion_fn = [](){};
+  }
+
+  // Move assignment
+  asymmetric_ptr_graph& operator=(asymmetric_ptr_graph&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    vertices = other.vertices;
+    deletion_fn();
+    deletion_fn = std::move(other.deletion_fn);
+    other.vertices = nullptr;
+    other.deletion_fn = [](){};
+  }
+
+  asymmetric_ptr_graph(const asymmetric_ptr_graph& other) {
+    std::cout << "Copying asymmetric ptr graph (currently unimplemented)." << std::endl;
+    exit(-1);  // unimplemented
   }
 
   ~asymmetric_ptr_graph() { deletion_fn(); }

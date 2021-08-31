@@ -157,8 +157,8 @@ namespace workefficient_sf {
     auto GC_and_new_mapping = contract_sf::contract(G, clusters, num_clusters, edge_mapping);
     contract_t.stop();
     debug(contract_t.next("contract time"););
-    auto GC = GC_and_new_mapping.first;
-    auto& new_mapping = GC_and_new_mapping.second; // sparse_table<edge, edge>
+    auto GC = std::move(GC_and_new_mapping.first);
+    auto new_mapping = std::move(GC_and_new_mapping.second); // sparse_table<edge, edge>
 
     if (GC.m == 0) {
       auto D = gbbs::dyn_arr<edge>(edges.size());

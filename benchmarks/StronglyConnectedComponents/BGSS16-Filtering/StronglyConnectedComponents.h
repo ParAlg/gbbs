@@ -147,9 +147,7 @@ inline auto multi_search(Graph& GA,
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << parlay::log2_up(frontier.size() * 2);
-  auto table_backing = gbbs::new_array_no_init<T>(backing_size);
-  auto table = gbbs::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
-                                                       table_backing, true);
+  auto table = gbbs::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv());
   frontier.toSparse();
   parallel_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];

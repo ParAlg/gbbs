@@ -214,7 +214,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
 }
 
 template <class Graph>
-auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
+void clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
   // Color vertices with denom colors
@@ -226,10 +226,8 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
     if (colors[u] == colors[v]) return 0;
     return 1;
   };
-  filter_edges(GA, pack_predicate);  // auto edges =
-  // auto edges_seq = edges.to_seq();
-  // return filter_graph(GA, pack_predicate);
-  return GA;  // sym_graph_from_edges(edges_seq, edges_seq.size());
+  // Mutates in-place.
+  filter_edges(GA, pack_predicate);
 }
 
 }  // namespace gbbs

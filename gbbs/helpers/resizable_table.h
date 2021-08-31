@@ -45,14 +45,14 @@ struct iter_kv {
   K k;
   size_t h;
   size_t mask;
-  size_t num_probes;
+  // size_t num_probes;  // For debugging.
   T* table;
   K empty_key;
   iter_kv(K _k, size_t _h, size_t _mask, T* _table, K _empty_key)
       : k(_k),
         h(_h),
         mask(_mask),
-        num_probes(0),
+        // num_probes(0),
         table(_table),
         empty_key(_empty_key) {}
 
@@ -65,7 +65,7 @@ struct iter_kv {
         return true;
       }
       h = incrementIndex(h, mask);
-      num_probes++;
+      // num_probes++;
     }
     return false;
   }
@@ -80,7 +80,7 @@ struct iter_kv {
         return true;
       }
       h = incrementIndex(h, mask);
-      num_probes++;
+      // num_probes++;
     }
     return false;
   }
@@ -98,30 +98,15 @@ class resizable_table {
   size_t ne;
   T empty;
   K empty_key;
-  T* table;
+  sequence<T> table;
   KeyHash key_hash;
-  bool alloc;
-  size_t* cts;
-
-  static void clearA(T* A, long n, T kv) {
-    parallel_for(0, n, [&](size_t i) { A[i] = kv; });
-  }
+  sequence<size_t> cts;
 
   inline size_t firstIndex(K& k) { return hashToRange(key_hash(k), mask); }
 
-  void del() {
-    if (alloc) {
-      size_t workers = num_workers();
-      gbbs::free_array(table, m);
-      gbbs::free_array(cts, kResizableTableCacheLineSz * workers);
-      alloc = false;
-    }
-  }
-
   void init_counts() {
     size_t workers = num_workers();
-    cts = gbbs::new_array_no_init<size_t>(kResizableTableCacheLineSz *
-                                             workers);
+    cts = sequence<size_t>::uninitialized(kResizableTableCacheLineSz * workers);
     for (size_t i = 0; i < workers; i++) {
       cts[i * kResizableTableCacheLineSz] = 0;
     }
@@ -137,21 +122,6 @@ class resizable_table {
 
   resizable_table() : m(0), ne(0) {
     mask = 0;
-    alloc = false;
-    init_counts();
-  }
-
-  resizable_table(size_t _m, T _empty, KeyHash _key_hash, T* backing,
-                  bool _alloc = false)
-      : m(_m),
-        mask(m - 1),
-        ne(0),
-        empty(_empty),
-        empty_key(std::get<0>(empty)),
-        table(backing),
-        key_hash(_key_hash),
-        alloc(_alloc) {
-    clearA(table, m, empty);
     init_counts();
   }
 
@@ -162,12 +132,9 @@ class resizable_table {
         empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-    size_t line_size = 64;
-    size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
-    table = (T*)aligned_alloc(line_size, bytes);
-    clearA(table, m, empty);
+    table = sequence<T>::uninitialized(m);
+    clear();
     init_counts();
-    alloc = true;
   }
 
   void analyze() {
@@ -198,33 +165,27 @@ class resizable_table {
     size_t nt = ne + n_inc;
     if (nt > (0.25 * m)) {
       size_t old_m = m;
-      auto old_t = table;
+      auto old_t = std::move(table);
       m = ((size_t)1 << parlay::log2_up((size_t)(10 * nt)));
       if (m == old_m) {
         return;
       }
       mask = m - 1;
       ne = 0;
-      size_t line_size = 64;
-      size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
-      table = (T*)aligned_alloc(line_size, bytes);
-      clearA(table, m, empty);
+      table = sequence<T>::uninitialized(m);
+      clear();
       parallel_for(0, old_m, [&](size_t i) {
         if (std::get<0>(old_t[i]) != empty_key) {
           insert(old_t[i]);
         }
       });
       update_nelms();
-      if (alloc) {
-        gbbs::free_array(old_t, old_m);
-      }
-      alloc = true;
     }
   }
 
   iter_kv<K, V> get_iter(K k) {
     size_t h = firstIndex(k);
-    return iter_kv<K, V>(k, h, mask, table, empty_key);
+    return iter_kv<K, V>(k, h, mask, table.begin(), empty_key);
   }
 
   bool insert(std::tuple<K, V> kv) {

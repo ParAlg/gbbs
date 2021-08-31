@@ -86,9 +86,8 @@ inline size_t _binary_search(T* I, const F& less, size_t n) {
  * (possibly) directed graph. For convenience in cases where the graph needed is
  * symmetric, we coerce this to a symmetric_graph. */
 template <template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
-                            int>::type = 0>
-inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) {
+typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value, int>::type = 0>
+inline auto relabel_graph(symmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) {
   using w_vertex = vertex<W>;
   size_t n = G.n;
 
@@ -146,30 +145,30 @@ template <template <class W> class vertex, class W,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
-inline auto relabel_graph(symmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) -> decltype(G) {
+inline auto relabel_graph(symmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) {
   std::cout << "Relabel graph not implemented for byte representation" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return G;
+  assert(false);
+  return symmetric_graph<vertex, W>();
 }
 
 template <
     template <class W> class vertex, class W,
     typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
                             int>::type = 0>
-inline auto relabel_graph(asymmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) -> decltype(G) {
+inline auto relabel_graph(asymmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) {
   std::cout << "Relabel graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
-  return G;
+  return asymmetric_graph<vertex, W>();
 }
 
 template <
     template <class W> class vertex, class W,
     typename std::enable_if<
         std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
-inline auto relabel_graph(asymmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) -> decltype(G) {
+inline auto relabel_graph(asymmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) {
   std::cout << "Relabel graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
-  return G;
+  return asymmetric_graph<vertex, W>();
 }
 
 // highest degree go first
@@ -516,6 +515,7 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
                 { rank[order_to_vertex[i]] = i; });
   }
   std::cout << "Rank abd Order done\n"; fflush(stdout);
+
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
 
   //auto GDO = GA;
