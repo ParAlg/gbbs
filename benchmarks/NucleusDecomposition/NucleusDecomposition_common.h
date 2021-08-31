@@ -59,7 +59,7 @@ namespace gbbs {
 
       void unreserve(unsigned int idx) {
         while(true) {
-         if (pbbslib::CAS(&table_mark[idx], 1, 0)) { return; }
+         if (pbbslib::CAS(&table_mark[idx], unsigned int{1}, unsigned int{0})) { return; }
         }
       }
 
@@ -68,7 +68,7 @@ namespace gbbs {
         auto idx = hash32(worker_id) % num_workers;
         while(true) {
           if (table_mark[idx] == 0) {
-            if (pbbslib::CAS(&table_mark[idx], 0, 1)) {
+            if (pbbslib::CAS(&table_mark[idx], unsigned int{0}, unsigned int{1})) {
               return std::make_pair(idx, init_idx(idx));
             }
           }
@@ -271,7 +271,7 @@ class list_buffer {
       if (efficient == 2) {
         use_size = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
         //if (use_size > ss) use_size = ss;
-        size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size_*1.1));
+        size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
         source_table.resize_no_copy(space_required);
         use_table = pbbslib::make_sparse_table<uintE, uintE>(
           source_table.table, space_required,
