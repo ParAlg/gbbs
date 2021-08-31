@@ -65,7 +65,7 @@ namespace gbbs {
 
       std::pair<unsigned int, Obj*> reserve(){
         auto worker_id = worker_id();
-        auto idx = nhash32(worker_id) % num_workers;
+        auto idx = hash32(worker_id) % num_workers;
         while(true) {
           if (table_mark[idx] == 0) {
             if (pbbslib::CAS(&table_mark[idx], 0, 1)) {
