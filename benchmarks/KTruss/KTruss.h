@@ -33,8 +33,28 @@
 
 namespace gbbs {
 
+template <class Graph, class T>
+void CountCliquesNucPND(Graph& DG, T apply_func) {
+      //auto tots = sequence<size_t>(DG.n, size_t{0});
+      parallel_for(0, DG.n, [&](size_t i) {
+        auto vert_i = DG.get_vertex(i);
+        auto iter_i = vert_i.getOutIter(i);
+        for (std::size_t j = 0; j < vert_i.getOutDegree(); j++) {
+          auto x = std::get<0>(iter_i.cur());
+          if (iter_i.has_next()) iter_i.next();
+          std::vector<uintE> inter;
+          truss_utils::intersectionPND(DG, i, x, inter);
+          //tots[i] += inter.size();
+          for (std::size_t l = 0; l < inter.size(); l++) {
+            apply_func(i, x, inter[l]);
+          }
+        }
+      });
+      //return pbbslib::reduce_add(tots);
+  }
+
 template <class Graph, class MT>
-void initialize_trussness_values(Graph& GA, MT& multi_table) {
+void initialize_trussness_values(Graph& GA, MT& multi_table, bool use_pnd = false) {
   using W = typename Graph::weight_type;
 
   timer it; it.start();
@@ -62,7 +82,8 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
     multi_table.increment(v, w);
   };
   timer tct; tct.start();
-  truss_utils::TCDirected(DG, inc_truss_f);
+  if (!use_pnd) truss_utils::TCDirected(DG, inc_truss_f);
+  else CountCliquesNucPND(DG, inc_truss_f);
   tct.stop(); tct.reportTotal("TC time");
 
   DG.del();
@@ -87,7 +108,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
 //   3.b Get the entries of the HT, actually decrement their coreness, see if
 //   their bucket needs to be updated and if so, update.
 template <class Graph>
-void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
+void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
   using W = typename Graph::weight_type;
   size_t n_edges = GA.m / 2;
 
@@ -139,7 +160,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   // * for small enough vertices, use an array instead of a hash table.
 
   // Initially stores #triangles incident/edge.
-  initialize_trussness_values(GA, trussness_multi);
+  initialize_trussness_values(GA, trussness_multi, use_pnd);
 
   // Initialize the bucket structure. #ids = trussness table size
   auto get_bkt = pbbslib::make_sequence<uintE>(trussness_multi.size(), [&] (size_t i) {
@@ -205,7 +226,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       edge_t id = rem_edges[i];
       uintE u = trussness_multi.u_for_id(id);
       uintE v = std::get<0>(trussness_multi.big_table[id]);
-      truss_utils::decrement_trussness<edge_t, trussness_t>(GA, id, u, v, decr_tab, get_trussness_and_id, k);
+      truss_utils::decrement_trussness<edge_t, trussness_t>(GA, id, u, v, decr_tab, get_trussness_and_id, k, use_pnd);
     });
     decrement_t.stop();
 //    std::cout << "finished decrements" << std::endl;

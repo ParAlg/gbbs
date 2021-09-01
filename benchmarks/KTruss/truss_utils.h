@@ -375,12 +375,41 @@ namespace truss_utils {
     return true;
   }
 
+  template <class Graph>
+void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersection){
+  auto vert_v = G.get_vertex(v);
+  auto vert_u = G.get_vertex(u);
+  uintE idx_v = 0;
+  uintE idx_u = 0;
+  auto iter_v = vert_v.getOutIter(v);
+  auto iter_u = vert_u.getOutIter(u);
+  auto deg_v = vert_v.getOutDegree();
+  auto deg_u = vert_u.getOutDegree();
+  while(idx_v < deg_v && idx_u < deg_u) {
+    uintE v_nbhr = std::get<0>(iter_v.cur());
+    uintE u_nbhr = std::get<0>(iter_u.cur());
+    if (v_nbhr < u_nbhr) {
+      idx_v++;
+      if (iter_v.has_next()) iter_v.next();
+    }
+    else if (u_nbhr < v_nbhr){
+      idx_u++;
+      if (iter_u.has_next()) iter_u.next();
+    } 
+    else {
+      intersection.push_back(v_nbhr);
+      idx_u++; idx_v++;
+      if (iter_v.has_next()) iter_v.next();
+      if (iter_u.has_next()) iter_u.next();
+    }
+  }
+}
 
   // get_trussness_and_id: (uintE, uintE) -> (trussness, id)
   // Intersect u and v's neighbors. Check if we should remove an edge, and if
   // so, insert it into decrement_tab (concurrent write)
   template <class edge_t, class trussness_t, class HT, class Trussness, class Graph>
-  void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v, HT&  decrement_tab, Trussness& get_trussness_and_id, uintE k) {
+  void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v, HT&  decrement_tab, Trussness& get_trussness_and_id, uintE k, bool use_pnd = false) {
 
     trussness_t trussness_uv = k; edge_t uv_id = id;
 
@@ -408,7 +437,15 @@ namespace truss_utils {
       }
     };
     auto v_v = G.get_vertex(v);
-    G.get_vertex(u).intersect_f_par(&v_v, u, v, f);
+    if (!use_pnd) {
+      G.get_vertex(u).intersect_f_par(&v_v, u, v, f);
+    } else {
+      std::vector<uintE> inter;
+      intersectionPND(G, v, u, inter);
+      for (std::size_t p = 0; p < inter.size(); p++) {
+        f(u, v, inter[p]);
+      }
+    }
   }
 
 }  // namespace truss_utils

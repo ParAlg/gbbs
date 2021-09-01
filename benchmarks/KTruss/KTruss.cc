@@ -39,6 +39,7 @@ template <class Graph>
 double KTruss_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
   bool no_buckets = P.getOption("-no_buckets");
+  bool use_pnd = P.getOption("-pnd");
   std::cout << "### Application: KTruss" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -56,7 +57,7 @@ double KTruss_runner(Graph& G, commandLine P) {
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
   //auto trusses = (!no_buckets) ? KTruss(G, num_buckets) : KTruss_no_bucket(G);
-  KTruss_ht(G, num_buckets);
+  KTruss_ht(G, num_buckets, use_pnd);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
