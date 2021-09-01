@@ -408,7 +408,7 @@ void intersectionPND(Graph& G, uintE v, uintE u, uintE w, std::vector<uintE>& in
       intersection.push_back(v_nbhr);
       idx_u++; idx_v++; idx_w++;
     } else {
-      auto max_nbhr = max(max(v_nbhr, u_nbhr), w_nbhr);
+      auto max_nbhr = std::max(std::max(v_nbhr, u_nbhr), w_nbhr);
       if (v_nbhr < max_nbhr) idx_v++;
       if (u_nbhr < max_nbhr) idx_u++;
       if (w_nbhr < max_nbhr) idx_w++;
@@ -541,7 +541,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         uintE u = relabel ? inverse_rank[std::get<0>(v1v2v3)] : std::get<0>(v1v2v3);
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
         uintE w = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
-        std::vector<uintE> u_v_intersection;
+        std::vector<uintE> u_v_w_intersection;
         intersectionPND(G, u, v, w, u_v_w_intersection);
         for (std::size_t p = 0; p < u_v_w_intersection.size(); p++) {
           uintE actual_ngh = relabel ? rank[u_v_w_intersection[p]] : u_v_w_intersection[p];
