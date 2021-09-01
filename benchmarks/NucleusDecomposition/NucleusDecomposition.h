@@ -98,7 +98,14 @@ inline void NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
 
   //std::cout << "Start count" << std::endl;
   timer t; t.start();
-  size_t count = CountCliquesNuc(DG, s, r, max_deg, &table);
+  size_t count;
+  // efficient = 3 is fake; it means efficient = 1, but run PND clique counting
+  if (efficient == 3) {
+    count = CountCliquesNucPND(DG, s, r, max_deg, &table);
+  }
+  else {
+    count = CountCliquesNuc(DG, s, r, max_deg, &table);
+  }
   double tt = t.stop();
   //std::cout << "End count" << std::endl;
 
