@@ -375,16 +375,26 @@ void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersectio
   auto vert_u = G.get_vertex(u);
   uintE idx_v = 0;
   uintE idx_u = 0;
+  auto iter_v = vert_v.getOutIter(v);
+  auto iter_u = vert_u.getOutIter(u);
   auto deg_v = vert_v.getOutDegree();
   auto deg_u = vert_u.getOutDegree();
   while(idx_v < deg_v && idx_u < deg_u) {
-    uintE v_nbhr = vert_v.getOutNeighbor(idx_v);
-    uintE u_nbhr = vert_u.getOutNeighbor(idx_u);
-    if (v_nbhr < u_nbhr) idx_v++;
-    else if (u_nbhr < v_nbhr) idx_u++;
+    uintE v_nbhr = std::get<0>(iter_v.cur());
+    uintE u_nbhr = std::get<0>(iter_u.cur());
+    if (v_nbhr < u_nbhr) {
+      idx_v++;
+      if (iter_v.has_next()) iter_v.next();
+    }
+    else if (u_nbhr < v_nbhr){
+      idx_u++;
+      if (iter_u.has_next()) iter_u.next();
+    } 
     else {
       intersection.push_back(v_nbhr);
       idx_u++; idx_v++;
+      if (iter_v.has_next()) iter_v.next();
+      if (iter_u.has_next()) iter_u.next();
     }
   }
 }
@@ -397,21 +407,36 @@ void intersectionPND(Graph& G, uintE v, uintE u, uintE w, std::vector<uintE>& in
   uintE idx_v = 0;
   uintE idx_u = 0;
   uintE idx_w = 0;
+  auto iter_v = vert_v.getOutIter(v);
+  auto iter_u = vert_u.getOutIter(u);
+  auto iter_w = vert_w.getOutIter(w);
   auto deg_v = vert_v.getOutDegree();
   auto deg_u = vert_u.getOutDegree();
   auto deg_w = vert_w.getOutDegree();
   while(idx_v < deg_v && idx_u < deg_u && idx_w < deg_w) {
-    uintE v_nbhr = vert_v.getOutNeighbor(idx_v);
-    uintE u_nbhr = vert_u.getOutNeighbor(idx_u);
-    uintE w_nbhr = vert_w.getOUtNeighbor(idx_w);
+    uintE v_nbhr = std::get<0>(iter_v.cur());
+    uintE u_nbhr = std::get<0>(iter_u.cur());
+    uintE w_nbhr = std::get<0>(iter_w.cur());
     if (u_nbhr == v_nbhr && u_nbhr == w_nbhr) {
       intersection.push_back(v_nbhr);
       idx_u++; idx_v++; idx_w++;
+      if (iter_v.has_next()) iter_v.next();
+      if (iter_u.has_next()) iter_u.next();
+      if (iter_w.has_next()) iter_w.next();
     } else {
       auto max_nbhr = std::max(std::max(v_nbhr, u_nbhr), w_nbhr);
-      if (v_nbhr < max_nbhr) idx_v++;
-      if (u_nbhr < max_nbhr) idx_u++;
-      if (w_nbhr < max_nbhr) idx_w++;
+      if (v_nbhr < max_nbhr) {
+        idx_v++;
+        if (iter_v.has_next()) iter_v.next();
+      }
+      if (u_nbhr < max_nbhr) {
+        idx_u++;
+        if (iter_u.has_next()) iter_u.next();
+      }
+      if (w_nbhr < max_nbhr) {
+        idx_w++;
+        if (iter_w.has_next()) iter_w.next();
+      }
     }
   }
 }
@@ -428,8 +453,10 @@ template <class Graph, class T>
       };
       parallel_for(0, DG.n, [&](size_t i) {
         auto vert_i = DG.get_vertex(i);
+        auto iter_i = vert_i.getOutIter(i);
         for (std::size_t j = 0; j < vert_i.getOutDegree(); j++) {
-          auto x = vert_i.getOutNeighbor(j);
+          auto x = std::get<0>(iter_i.cur());
+          if (iter_i.has_next()) iter_i.next();
           std::vector<uintE> inter;
           intersectionPND(DG, i, x, inter);
           tots[i] += inter.size();
@@ -451,8 +478,10 @@ template <class Graph, class T>
       auto base = sequence<uintE>(k + 1);
       base[0] = i;
       auto vert_i = DG.get_vertex(i);
+      auto iter_i = vert_i.getOutIter(i);
       for (std::size_t j = 0; j < vert_i.getOutDegree(); j++) {
-        auto x = vert_i.getOutNeighbor(j);
+        auto x = std::get<0>(iter_i.cur());
+        if (iter_i.has_next()) iter_i.next();
         base[1] = x;
         std::vector<uintE> inter;
         intersectionPND(DG, i, x, inter);
