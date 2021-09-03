@@ -149,8 +149,8 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
   }
 
   /* construct transpose of the graph */
-  sequence<uintT> tOffsets = sequence<uintT>::uninitialized(n);
-  parallel_for(0, n, [&](size_t i) { tOffsets[i] = INT_T_MAX; });
+  sequence<uintT> tOffsets = sequence<uintT>::uninitialized(n + 1);
+  parallel_for(0, n + 1, [&](size_t i) { tOffsets[i] = INT_T_MAX; });
   intPair* temp = gbbs::new_array_no_init<intPair>(m);
   parallel_for(0, n, [&](size_t i) {
     uintT o = v_data[i].offset;
