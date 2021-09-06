@@ -65,6 +65,8 @@ def main():
         num_workers = params.copy()
       elif line.startswith("Epsilons"):
         epss = params.copy()
+      elif line.startswith("Initial Graph File"):
+        initial_graph = split[1]
       elif line.startswith("Lambdas/Deltas"):
         deltas = params.copy()
       elif line.startswith("Number of Levels Divisor"):
@@ -109,7 +111,10 @@ def main():
                 "-s -i " + read_dir + filename + " -eps " + e + " "
                 "-delta " + d + " -b " + b + " " + stats + " " + size + " " +
                 opt + " "  + str(divisor) + " " +
-                "-rounds " + str(num_rounds) + " " + empty)
+                "-rounds " + str(num_rounds))
+                if len(initial_graph) > 0:
+                    ss += " -init_graph_file " + initial_graph
+                ss += " " + empty
                 print(ss)
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)

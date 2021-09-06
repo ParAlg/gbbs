@@ -8,5 +8,6 @@ Lambdas/Deltas: 3, 6, 12, 24, 48, 96
 Batch sizes: 100000
 Output stats: True
 Output sizes: False
+Initial Graph File: dblp_initial
 Number of Levels Divisor: 75, 100, 150, 200, 500
 Opt: True
