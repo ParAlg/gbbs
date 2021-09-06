@@ -94,7 +94,8 @@ def main():
   for program in programs:
     program_path = os.path.join(program_dir, program)
     program_local_dir = os.path.dirname(program_path)
-    subprocess.Popen(["make"], stdout=subprocess.PIPE, cwd=program_local_dir)
+    sub = subprocess.Popen(["make"], stdout=subprocess.PIPE, cwd=program_local_dir)
+    sub.wait()
   for file_idx, filename in enumerate(files):
     for program_idx, program in enumerate(programs):
       for e in epss:
@@ -113,7 +114,7 @@ def main():
                 opt + " "  + str(divisor) + " " +
                 "-rounds " + str(num_rounds))
                 if len(initial_graph) > 0:
-                    ss += " -init_graph_file " + initial_graph
+                    ss += " -init_graph_file " + read_dir + initial_graph
                 ss += " " + empty
                 print(ss)
                 out = shellGetOutput(ss)

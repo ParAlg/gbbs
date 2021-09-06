@@ -1,6 +1,6 @@
-Input graph directory: ../../dynamic_graph/
+Input graph directory: ../../dynamic_graphs/
 Dynamic graphs: dblp_insertion_edges, dblp_edges
-Output directory: ../../levels/
+Output directory: ../../out/gbbs
 Benchmarks: ParallelLDS
 Numbers of workers: 60
 Epsilons: 0.2, 0.4, 0.8, 1.6, 3.2, 6.4
