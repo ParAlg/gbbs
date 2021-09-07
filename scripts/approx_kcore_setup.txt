@@ -1,13 +1,13 @@
 Input graph directory: ../../dynamic_graphs/
-Dynamic graphs: dblp_insertion_edges, dblp_edges
-Output directory: ../../out/gbbs
+Dynamic graphs: livejournal_batch
+Output directory: ../../out/gbbs/exp9
 Benchmarks: ParallelLDS
 Numbers of workers: 60
 Epsilons: 0.2, 0.4, 0.8, 1.6, 3.2, 6.4
 Lambdas/Deltas: 3, 6, 12, 24, 48, 96
-Batch sizes: 100000
+Batch sizes: 1000000
 Output stats: True
-Output sizes: False
-Initial Graph File: dblp_initial
-Number of Levels Divisor: 75, 100, 150, 200, 500
-Opt: True
+Output sizes: True
+Initial Graph File: livejournal_initial,
+Number of Levels Divisor: 50
+Opt: False

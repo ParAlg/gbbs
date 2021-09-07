@@ -106,6 +106,7 @@ def main():
                 best_total_time = 0
                 best_avg_error = 0
                 best_max_error = 0
+                best_space = 0
 
                 with open(read_filename, "r") as read_file:
                     cur_max_time = 0
@@ -123,11 +124,13 @@ def main():
                                 best_total_time = cur_total_time
                                 best_avg_error = cur_total_error / num_iterations
                                 best_max_error = cur_max_error
+                                best_space = cur_best_space
                             cur_max_time = 0
                             cur_total_time = 0
                             num_iterations = 0
                             cur_max_error = 0
                             cur_total_error = 0
+                            cur_best_space = 0
                         else:
                             split = [x.strip() for x in line.split(':')]
                             if split[0].startswith("### Batch Running Time"):
@@ -140,21 +143,30 @@ def main():
                             elif split[0].startswith("### Per Vertex Max"):
                                 if float(split[1]) > cur_max_error:
                                     cur_max_error = float(split[1])
+                            elif split[0].startswith("### Size"):
+                                cur_best_space = float(split[1])
 
                     cur_avg_time = cur_total_time / num_iterations
                     if best_avg_time == 0 or cur_avg_time < best_avg_time:
                         best_avg_time = cur_avg_time
-                        max_time = cur_max_time
+                        best_max_time = cur_max_time
                         best_total_time = cur_total_time
                         best_avg_error = cur_total_error / num_iterations
                         best_max_error = cur_max_error
+                        best_space = cur_best_space
                 for param in out_path_components:
-                    print(str(param), end = ",")
+                    if not param == ".out":
+                        print(str(param), end = ",")
                 print(str(best_avg_time), end = ",")
                 print(str(best_max_time), end = ",")
-                print(str(best_total_time), end = ",")
-                print(str(best_avg_error), end=",")
-                print(str(best_max_error), end="\n")
+                if not best_space == 0:
+                    print(str(best_space), end = ",")
+                if not best_avg_error == 0:
+                    print(str(best_total_time), end = ",")
+                    print(str(best_avg_error), end=",")
+                    print(str(best_max_error), end="\n")
+                else:
+                    print(str(best_total_time), end = "\n")
 
 if __name__ == "__main__":
   main()

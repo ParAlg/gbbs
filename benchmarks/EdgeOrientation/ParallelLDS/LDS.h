@@ -1476,14 +1476,12 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     size_t max_degree = 0;
     // First, insert / delete everything up to offset
     if (offset != 0) {
-      for (size_t i = 0; i < offset; i += batch_size) {
-        auto end_size = std::min(i + batch_size, offset);
-        auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
-                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
+        auto insertions = parlay::filter(parlay::make_slice(batch.begin(),
+                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
             return edge.insert;
         });
-        auto deletions = parlay::filter(parlay::make_slice(batch.begin() + i,
-                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
+        auto deletions = parlay::filter(parlay::make_slice(batch.begin(),
+                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
             return !edge.insert;
         });
         auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
@@ -1500,7 +1498,6 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         });
         num_insertion_flips += layers.batch_insertion(batch_insertions);
         num_deletion_flips += layers.batch_deletion(batch_deletions);
-      }
     }
 
     for (size_t i = offset; i < batch.size(); i += batch_size) {

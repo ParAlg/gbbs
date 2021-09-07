@@ -66,7 +66,7 @@ def main():
       elif line.startswith("Epsilons"):
         epss = params.copy()
       elif line.startswith("Initial Graph File"):
-        initial_graph = split[1]
+        initial_graphs = params.copy()
       elif line.startswith("Lambdas/Deltas"):
         deltas = params.copy()
       elif line.startswith("Number of Levels Divisor"):
@@ -103,7 +103,7 @@ def main():
           for divisor in divisors:
             for b in batch_sizes:
               for nw in num_workers:
-                num_rounds = 4
+                num_rounds = 3
                 out_path_components = [program_pres[program_idx], filename, e,
                         d, b, nw, divisor, ".out"]
                 out_filename = os.path.join(write_dir, "_".join(out_path_components))
@@ -111,10 +111,10 @@ def main():
                 ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_path + " "
                 "-s -i " + read_dir + filename + " -eps " + e + " "
                 "-delta " + d + " -b " + b + " " + stats + " " + size + " " +
-                opt + " "  + str(divisor) + " " +
+                opt + " -opt "  + str(divisor) + " " +
                 "-rounds " + str(num_rounds))
-                if len(initial_graph) > 0:
-                    ss += " -init_graph_file " + read_dir + initial_graph
+                if len(initial_graphs) > file_idx:
+                    ss += " -init_graph_file " + read_dir + initial_graphs[file_idx]
                 ss += " " + empty
                 print(ss)
                 out = shellGetOutput(ss)
