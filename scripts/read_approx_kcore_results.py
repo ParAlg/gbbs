@@ -114,6 +114,7 @@ def main():
                     num_iterations = 0
                     cur_max_error = 0
                     cur_total_error = 0
+                    cur_best_space = 0
                     for line in read_file:
                         line = line.strip()
                         if "------------" in line and cur_max_time > 0:
