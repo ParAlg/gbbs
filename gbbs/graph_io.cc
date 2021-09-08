@@ -126,27 +126,21 @@ symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
 }
 
 asymmetric_graph<asymmetric_vertex, gbbs::empty>
-read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
+read_unweighted_asymmetric_graph(const char* fname, bool mmap,
                                  char* bytes, size_t bytes_size) {
   size_t n, m;
   uintT* offsets;
   uintE* edges;
-  if (binary) {
-    std::cout << "Todo: implement binary support for asymmetric graphs"
-              << std::endl;
-    exit(-1);
-  }
+  // Reads in just the out-edges and computes the in-edges.
   std::tie(n, m, offsets, edges) =
-      parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
+      parse_unweighted_graph(fname, mmap, false, bytes, bytes_size);
+  gbbs::free_array(offsets, n + 1);
 
   auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i + 1] - v_data[i].offset;
   });
-  if (!binary) {
-    gbbs::free_array(offsets, n + 1);
-  }
 
   /* construct transpose of the graph */
   sequence<uintT> tOffsets = sequence<uintT>::uninitialized(n + 1);
@@ -200,6 +194,49 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
       },
       (std::tuple<uintE, gbbs::empty>*)edges,
       (std::tuple<uintE, gbbs::empty>*)inEdges);
+}
+
+asymmetric_graph<asymmetric_vertex, gbbs::empty>
+read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
+                                 char* bytes, size_t bytes_size) {
+  if (!binary) {
+    return read_unweighted_asymmetric_graph(fname, mmap, bytes, bytes_size);
+  } else {  // binary input
+    size_t n, m;
+    std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+    auto mmap_file = MM.first;
+    long* sizes = (long*)mmap_file;
+    n = sizes[0], m = sizes[1];
+    uintT* out_offsets = (uintT*)(mmap_file + 3 * sizeof(long));
+    uint64_t skip = 3 * sizeof(long) + (n + 1) * sizeof(uintT);
+    uintE* out_edges = (uintE*)(mmap_file + skip);
+    skip += m * sizeof(uintE);
+
+    uintT* in_offsets = (uintT*)(mmap_file + skip + 3*sizeof(long));
+    skip += 3*sizeof(long) + (n+1) * sizeof(uintT);
+    uintE* in_edges = (uintE*)(mmap_file + skip);
+
+    auto v_out_data = gbbs::new_array_no_init<vertex_data>(n);
+    parallel_for(0, n, [&](size_t i) {
+      v_out_data[i].offset = out_offsets[i];
+      v_out_data[i].degree = out_offsets[i + 1] - v_out_data[i].offset;
+    });
+
+    auto v_in_data = gbbs::new_array_no_init<vertex_data>(n);
+    parallel_for(0, n, [&](size_t i) {
+      v_in_data[i].offset = in_offsets[i];
+      v_in_data[i].degree = in_offsets[i + 1] - v_in_data[i].offset;
+    });
+
+    return asymmetric_graph<asymmetric_vertex, gbbs::empty>(
+      v_out_data, v_in_data, n, m,
+      [=]() {
+        gbbs::free_array(v_out_data, n);
+        gbbs::free_array(v_in_data, n);
+      },
+      (std::tuple<uintE, gbbs::empty>*)out_edges,
+      (std::tuple<uintE, gbbs::empty>*)in_edges);
+  }
 }
 
 std::tuple<char*, size_t> parse_compressed_graph(const char* fname, bool mmap,

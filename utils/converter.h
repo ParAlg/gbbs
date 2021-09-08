@@ -855,7 +855,7 @@ namespace bytepd_amortized {
 namespace binary_format {
 
   template <class Graph>
-  void write_graph_binary_format(Graph& GA, std::ofstream& out, size_t n_batches=4) {
+  void write_symmetric_graph_binary_format(Graph& GA, std::ofstream& out, size_t n_batches=4) {
     size_t n = GA.n; size_t m = GA.m;
     using W = typename Graph::weight_type;
     using edge_type = std::tuple<uintE, W>;
@@ -918,6 +918,94 @@ namespace binary_format {
   }
 
 
+  template <class Graph>
+  void write_asymmetric_graph_binary_format(Graph& GA, std::ofstream& out, size_t n_batches=4) {
+    size_t n = GA.n; size_t m = GA.m;
+    using W = typename Graph::weight_type;
+    using edge_type = std::tuple<uintE, W>;
+
+    auto get_outdegree = [&] (size_t i) {
+      return GA.get_vertex(i).out_degree(); };
+    auto get_indegree = [&] (size_t i) {
+      return GA.get_vertex(i).in_degree(); };
+
+    auto get_outnghs = [&] (size_t i) {
+      return GA.get_vertex(i).out_neighbors(); };
+    auto get_innghs = [&] (size_t i) {
+      return GA.get_vertex(i).in_neighbors(); };
+
+    auto write_edges = [&] (auto get_degree, auto get_nghs) {
+      // 1. Calculate total size
+      auto offsets = parlay::sequence<uintT>(n+1);
+      std::cout << "# calculating size" << std::endl;
+      parallel_for(0, n, [&] (size_t i) {
+        offsets[i] = get_degree(i);
+      });
+      offsets[n] = 0;
+      size_t offset_scan = parlay::scan_inplace(make_slice(offsets));
+      std::cout << "# offset_scan = " << offset_scan << " m = " << m << std::endl;
+      assert(offset_scan == m);
+
+      long* sizes = gbbs::new_array_no_init<long>(3);
+      sizes[0] = GA.n;
+      sizes[1] = GA.m;
+      sizes[2] = sizeof(long) * 3 + sizeof(uintT)*(n+1) + sizeof(edge_type)*m;
+      out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
+      out.write((char*)offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+
+      // 2. Create compressed format in-memory (batched)
+      size_t block_size = parlay::num_blocks(n, n_batches);
+      size_t edges_written = 0;
+      for (size_t b=0; b<n_batches; b++) {
+        size_t start = b*block_size;
+        size_t end = std::min(start + block_size, n);
+        if (start >= end) break;
+        std::cout << "# writing vertices " << start << " to " << end << std::endl;
+
+        // create slab of graph and write out
+        size_t start_offset = offsets[start];
+        size_t end_offset = offsets[end];
+        size_t n_edges = end_offset - start_offset;
+        edge_type* edges = gbbs::new_array_no_init<edge_type>(n_edges);
+
+        parallel_for(start, end, [&] (size_t i) {
+          size_t our_offset = offsets[i] - start_offset;
+          auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+            return wgh;
+          };
+          auto write_f = [&] (const uintE& ngh, const uintT& offset, const W& val) {
+            edges[offset] = std::make_tuple(ngh, val);
+          };
+          get_nghs(i).copy(our_offset, map_f, write_f);
+        });
+
+        size_t edge_space = sizeof(edge_type)*n_edges;
+        out.write((char*)edges,edge_space); //write edges
+
+        std::cout << "# finished writing vertices " << start << " to " << end << std::endl;
+        edges_written += n_edges;
+
+        gbbs::free_array(edges, n_edges);
+      }
+    };
+
+    write_edges(get_outdegree, get_outnghs);
+    write_edges(get_indegree, get_innghs);
+
+    out.close();
+  }
+
+
+  template <class Graph>
+  void write_graph_binary_format(Graph& GA, std::ofstream& out, bool symmetric, size_t n_batches=4) {
+    if (symmetric) {
+      write_symmetric_graph_binary_format(GA, out, n_batches);
+    } else {
+      write_asymmetric_graph_binary_format(GA, out, n_batches);
+    }
+  }
+
+
 }; // namespace binary_format
 
 template <class Graph>
@@ -968,7 +1056,7 @@ auto converter(Graph& GA, commandLine P) {
   } else if (encoding == "bytepd-amortized") {
     bytepd_amortized::write_graph_bytepd_amortized_format(GA, out, symmetric);
   } else if (encoding == "binary") {
-    binary_format::write_graph_binary_format(GA, out);
+    binary_format::write_graph_binary_format(GA, out, symmetric);
   } else if (encoding == "degree") {
     bytepd_amortized::degree_reorder(GA, out, symmetric);
   } else if (encoding == "edgearray") {
