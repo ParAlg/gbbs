@@ -1476,28 +1476,31 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     size_t max_degree = 0;
     // First, insert / delete everything up to offset
     if (offset != 0) {
-        auto insertions = parlay::filter(parlay::make_slice(batch.begin(),
-                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
-            return edge.insert;
-        });
-        auto deletions = parlay::filter(parlay::make_slice(batch.begin(),
-                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
-            return !edge.insert;
-        });
-        auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
+        for (size_t i = 0; i < offset; i += 1000000) {
+            auto end_size = std::min(i + 1000000, offset);
+            auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
+                return edge.insert;
+            });
+            auto deletions = parlay::filter(parlay::make_slice(batch.begin() + i,
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
+                return !edge.insert;
+            });
+            auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
                 [&] (size_t i) {
-            uintE vert1 = insertions[i].from;
-            uintE vert2 = insertions[i].to;
-            return std::make_pair(vert1, vert2);
-        });
-        auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
+                uintE vert1 = insertions[i].from;
+                uintE vert2 = insertions[i].to;
+                return std::make_pair(vert1, vert2);
+            });
+            auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
             [&] (size_t i) {
-            uintE vert1 = deletions[i].from;
-            uintE vert2 = deletions[i].to;
-            return std::make_pair(vert1, vert2);
-        });
-        num_insertion_flips += layers.batch_insertion(batch_insertions);
-        num_deletion_flips += layers.batch_deletion(batch_deletions);
+                uintE vert1 = deletions[i].from;
+                uintE vert2 = deletions[i].to;
+                return std::make_pair(vert1, vert2);
+            });
+            num_insertion_flips += layers.batch_insertion(batch_insertions);
+            num_deletion_flips += layers.batch_deletion(batch_deletions);
+        }
     }
 
     for (size_t i = offset; i < batch.size(); i += batch_size) {
