@@ -92,7 +92,7 @@ sequence<Edge<weight_type>> sort_and_dedupe(sequence<Edge<weight_type>> edges);
  * vertices, edges, the vertex offsets, and the edge values, after
  * parsing the input graph file */
 std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
-    const char* fname, bool mmap, char* bytes = nullptr,
+    const char* fname, bool mmap, bool binary, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
 symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
@@ -104,8 +104,7 @@ read_unweighted_asymmetric_graph(
     const char* fname, bool mmap, bool binary, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
-std::tuple<char*, size_t> parse_compressed_graph(const char* fname, bool mmap,
-                                                 bool mmapcopy);
+std::tuple<char*, size_t> parse_compressed_graph(const char* fname, bool mmap);
 
 template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type> read_weighted_symmetric_graph(
@@ -219,10 +218,10 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
 
 template <class weight_type>
 symmetric_graph<csv_bytepd_amortized, weight_type>
-read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
+read_compressed_symmetric_graph(const char* fname, bool mmap) {
   char* bytes;
   size_t bytes_size;
-  std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap, mmapcopy);
+  std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap);
 
   long* sizes = (long*)bytes;
   uint64_t n = sizes[0], m = sizes[1];
@@ -248,7 +247,7 @@ read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
     gbbs::free_array(bytes, bytes_size);
   };
 
-  if (mmap && !mmapcopy) {
+  if (mmap) {
     deletion_fn = [=]() {
       gbbs::free_array(v_data, n);
       unmmap(bytes, bytes_size);
@@ -261,10 +260,10 @@ read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
 
 template <class weight_type>
 asymmetric_graph<cav_bytepd_amortized, weight_type>
-read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
+read_compressed_asymmetric_graph(const char* fname, bool mmap) {
   char* bytes;
   size_t bytes_size;
-  std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap, mmapcopy);
+  std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap);
 
   long* sizes = (long*)bytes;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
@@ -309,7 +308,7 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
     gbbs::free_array(v_in_data, n);
     gbbs::free_array(bytes, bytes_size);
   };
-  if (mmap && !mmapcopy) {
+  if (mmap) {
     deletion_fn = [=]() {
       gbbs::free_array(v_data, n);
       gbbs::free_array(v_in_data, n);

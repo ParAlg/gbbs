@@ -142,17 +142,16 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   auto in_f = P.getOptionValue("-if");
   auto out_f = P.getOptionValue("-of");
   assert(P.getOptionValue("-s"));
+  double tt = 0;
   if (in_f) {
     BiconnectivityStats(GA, in_f);
   } else {
     timer t; t.start();
     Biconnectivity(GA, out_f);
-    double tt = t.stop();
+    tt = t.stop();
     std::cout << "### Running Time: " << tt << std::endl;
   }
-  // Note that Biconnectivity mutates the graph, so we only run the algorithm
-  // once.
-  exit(0);
+  return tt;
 }
 
 }  // namespace gbbs

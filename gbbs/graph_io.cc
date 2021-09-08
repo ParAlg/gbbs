@@ -239,24 +239,12 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
   }
 }
 
-std::tuple<char*, size_t> parse_compressed_graph(const char* fname, bool mmap,
-                                                 bool mmapcopy) {
+std::tuple<char*, size_t> parse_compressed_graph(const char* fname, bool mmap) {
   char* bytes;
   size_t bytes_size;
 
   if (mmap) {
     std::tie(bytes, bytes_size) = mmapStringFromFile(fname);
-    if (mmapcopy) {
-      debug(std::cout << "# Copying compressed graph due to mmapcopy being set."
-                      << "\n";);
-      char* next_bytes = gbbs::new_array_no_init<char>(bytes_size);
-      parallel_for(0, bytes_size, [&](size_t i) { next_bytes[i] = bytes[i]; });
-      if (munmap(bytes, bytes_size) == -1) {
-        perror("munmap");
-        exit(-1);
-      }
-      bytes = next_bytes;
-    }
   } else {
     std::tie(bytes, bytes_size) = read_o_direct(fname);
   }

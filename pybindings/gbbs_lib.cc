@@ -387,8 +387,7 @@ PYBIND11_MODULE(gbbs_lib, m) {
   m.def("readCompressedSymmetricUnweightedGraph", [&] (std::string& path) {
     auto G = gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(
         path.c_str(),
-        /* mmap = */true,
-        /* mmap_copy = */false);
+        /* mmap = */true);
     alloc_init(G);
     return G;
   });
@@ -396,8 +395,7 @@ PYBIND11_MODULE(gbbs_lib, m) {
   m.def("readCompressedAsymmetricUnweightedGraph", [&] (std::string& path) {
     auto G = gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(
         path.c_str(),
-        /* mmap = */true,
-        /* mmap_copy = */false);
+        /* mmap = */true);
     alloc_init(G);
     return G;
   });

@@ -90,10 +90,7 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
     }
     out.close();
   }
-  // Maximal-matching mutates the underlying graph (unless it is copied, which
-  // we don't do to prevent memory issues), so we make sure the algorithm is run
-  // exactly once.
-  exit(0);
+  return tt;
 }
 
 }  // namespace gbbs
