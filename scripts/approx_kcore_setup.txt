@@ -1,13 +1,13 @@
 Input graph directory: ../../dynamic_graphs/
-Dynamic graphs: livejournal_batch
-Output directory: ../../out/gbbs/exp9
+Dynamic graphs: dblp_batch, livejournal_batch, orkut_batch, stackoverflow_batch, wiki_batch, ctr_batch, usa_batch, youtube_batch, brain_batch
+Output directory: ../../out/gbbs/exp4plds/
 Benchmarks: ParallelLDS
 Numbers of workers: 60
-Epsilons: 0.2, 0.4, 0.8, 1.6, 3.2, 6.4
-Lambdas/Deltas: 3, 6, 12, 24, 48, 96
+Epsilons: 0.4
+Lambdas/Deltas: 3
 Batch sizes: 1000000
-Output stats: True
-Output sizes: True
-Initial Graph File: livejournal_initial,
-Number of Levels Divisor: 50
+Output stats: False
+Output sizes: False
+Initial Graph File: dblp_initial, livejournal_initial, orkut_initial, stackoverflow_initial, wiki_initial, ctr_initial, usa_initial, youtube_initial, brain_initial
+Number of Levels Divisor: 1
 Opt: False
