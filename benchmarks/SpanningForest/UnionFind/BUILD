@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
   name = "union_find_rules",
   hdrs = ["union_find_rules.h"],

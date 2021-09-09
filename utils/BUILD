@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_binary(
     name = "compressor",
     srcs = ["compressor.cc"],

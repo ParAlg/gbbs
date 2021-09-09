@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
   name = "HAC_api",
   hdrs = ["HAC_api.h"],

@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_binary(
     name = "BarabasiAlbert",
     srcs = ["BarabasiAlbert.cc"],

@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
   name = "liu_tarjan_rules",
   hdrs = ["liu_tarjan_rules.h"],

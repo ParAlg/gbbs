@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_binary(
     name = "jayanti_starting",
     srcs = ["jayanti.cc"],

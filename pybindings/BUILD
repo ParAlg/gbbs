@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 package(default_visibility = ["//visibility:public"])
 
 load("//internal_tools:py_extension.bzl", "py_extension")

@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
   name = "contract_sf",
   hdrs = ["contract_sf.h"],

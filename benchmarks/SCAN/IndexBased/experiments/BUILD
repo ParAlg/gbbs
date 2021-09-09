@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 #cc_binary(
 #    name = "run_gbbs_experiments",
 #    srcs = ["run_gbbs_experiments.cc"],

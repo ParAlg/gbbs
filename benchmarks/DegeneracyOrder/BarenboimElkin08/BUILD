@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
   name = "DegeneracyOrder",
   hdrs = ["DegeneracyOrder.h"],

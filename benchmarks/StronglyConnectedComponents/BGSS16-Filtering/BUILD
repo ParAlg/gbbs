@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
   name = "StronglyConnectedComponents",
   hdrs = ["StronglyConnectedComponents.h"],
