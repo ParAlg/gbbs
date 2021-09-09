@@ -14,14 +14,6 @@ local_repository(
     path = "external/PAM/include",
 )
 
-new_git_repository(
-  name = "simdinter",
-  remote = "https://github.com/lemire/SIMDCompressionAndIntersection.git",
-  commit = "f002db1d47f252dd17daa8206e3ebbbeee9e4d9b",
-  shallow_since = "1562290323 -0400",
-  build_file = "BUILD_simdinter.bazel",
-)
-
 http_archive(
   name = "googletest",
   urls = ["https://github.com/google/googletest/archive/release-1.10.0.tar.gz"],
