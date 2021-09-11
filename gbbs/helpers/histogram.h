@@ -623,7 +623,6 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   // laid out as num_buckets (row), blocks (col)
   auto& counts = std::get<1>(p);
   size_t num_blocks = std::get<2>(p);
-  size_t m = std::get<3>(p);
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
 #define S_STRIDE 64
