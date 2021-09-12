@@ -115,6 +115,7 @@ def main():
                     cur_max_error = 0
                     cur_total_error = 0
                     cur_best_space = 0
+                    num_zero_batches = 0
                     for line in read_file:
                         line = line.strip()
                         if "------------" in line and cur_max_time > 0:
@@ -123,7 +124,7 @@ def main():
                                 best_avg_time = cur_avg_time
                                 best_max_time = cur_max_time
                                 best_total_time = cur_total_time
-                                best_avg_error = cur_total_error / num_iterations
+                                best_avg_error = cur_total_error / (num_iterations - num_zero_batches)
                                 best_max_error = cur_max_error
                                 best_space = cur_best_space
                             cur_max_time = 0
@@ -141,6 +142,8 @@ def main():
                                 num_iterations += 1
                             elif split[0].startswith("### Per Vertex Average"):
                                 cur_total_error += float(split[1])
+                                if int(float(split[1])) == 0:
+                                    num_zero_batches += 1
                             elif split[0].startswith("### Per Vertex Max"):
                                 if float(split[1]) > cur_max_error:
                                     cur_max_error = float(split[1])
@@ -152,7 +155,7 @@ def main():
                         best_avg_time = cur_avg_time
                         best_max_time = cur_max_time
                         best_total_time = cur_total_time
-                        best_avg_error = cur_total_error / num_iterations
+                        best_avg_error = cur_total_error / (num_iterations - num_zero_batches)
                         best_max_error = cur_max_error
                         best_space = cur_best_space
                 for param in out_path_components:
