@@ -26,7 +26,8 @@ def benchmarkToProgramPath(benchmark):
   benchmark_dict = {
     "LDS" : "EdgeOrientation/LDS/LDS",
     "ParallelLDS" : "EdgeOrientation/ParallelLDS/LDS",
-    "KCore" : "KCore/ApproximateKCore/KCore"
+    "KCore" : "KCore/ApproximateKCore/KCore",
+    "EKCore" : "KCore/JulienneDBS17/KCore"
   }
   return benchmark_dict.get(benchmark)
 
@@ -34,7 +35,8 @@ def benchmarkToIsDynamic(benchmark):
   benchmark_dict = {
     "LDS" : True,
     "ParallelLDS" : True,
-    "KCore" : False
+    "KCore" : False,
+    "EKCore" : False
   }
   return benchmark_dict.get(benchmark)
 
@@ -113,7 +115,7 @@ def main():
                 "-delta " + d + " -b " + b + " " + stats + " " + size + " " +
                 opt + " -opt "  + str(divisor) + " " +
                 "-rounds " + str(num_rounds))
-                if len(initial_graphs) > file_idx:
+                if len(initial_graphs) > file_idx and len(initial_graphs[file_idx]) > 0:
                     ss += " -init_graph_file " + read_dir + initial_graphs[file_idx]
                 ss += " " + empty
                 print(ss)
