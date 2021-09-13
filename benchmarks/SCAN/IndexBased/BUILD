@@ -35,7 +35,7 @@ cc_library(
     deps = [
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
         "//gbbs:bridge",
-        "//gbbs:graph_mutation",
+        "//gbbs:macros",
         "//gbbs:vertex",
         "//gbbs/helpers:assert",
     ],

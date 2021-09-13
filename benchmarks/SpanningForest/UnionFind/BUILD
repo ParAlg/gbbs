@@ -19,17 +19,6 @@ cc_library(
   ]
 )
 
-cc_library(
-  name = "Connectivity",
-  hdrs = ["Connectivity.h"],
-  deps = [
-  ":union_find_rules",
-  "//gbbs:bridge",
-  "//gbbs:gbbs",
-  "//gbbs/helpers:sparse_table"
-  ]
-)
-
 package(
   default_visibility = ["//visibility:public"],
 )

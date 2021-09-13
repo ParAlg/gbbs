@@ -5,6 +5,7 @@ cc_library(
   hdrs = ["FiveCycle.h"],
   deps = [
   "//gbbs:gbbs",
+  "//gbbs:graph",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore"

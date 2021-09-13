@@ -39,6 +39,7 @@ cc_library(
   name = "induced_split",
   hdrs = ["induced_split.h"],
   deps = [
+  ":induced_hybrid",
   ":intersect",
   ]
 )

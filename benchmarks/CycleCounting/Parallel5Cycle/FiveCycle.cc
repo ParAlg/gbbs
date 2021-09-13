@@ -26,7 +26,7 @@ double Count5Cycle_runner(Graph& G, commandLine P) {
 
   // runs the fetch-and-add based implementation if set.
   std::cout << "### Threads: " << num_workers() << std::endl;
-  ulong numCycles;
+  ulong numCycles = 0;
   timer t; t.start();
   if (experiment) {
     std::cout << "### Experiment (parallel)" << std::endl;

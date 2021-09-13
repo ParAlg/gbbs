@@ -5,6 +5,7 @@ cc_library(
   hdrs = ["DegeneracyOrder.h"],
   deps = [
   "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
   "//gbbs/helpers:dyn_arr",
   "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph",

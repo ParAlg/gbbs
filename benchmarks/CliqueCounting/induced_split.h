@@ -1,5 +1,6 @@
 #pragma once
 
+#include "induced_hybrid.h"
 #include "intersect.h"
 
 /* TODO: describe what this file does */

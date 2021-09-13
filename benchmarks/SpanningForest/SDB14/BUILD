@@ -18,6 +18,7 @@ cc_library(
   ":contract_sf",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
   "//gbbs:gbbs",
+  "//gbbs/helpers:dyn_arr",
   "//gbbs/helpers:sparse_table"
   ]
 )
