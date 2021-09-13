@@ -96,6 +96,16 @@ cc_library(
   ]
 )
 
+cc_library(
+  name = "StronglyConnectedComponents_lib",
+  srcs = ["StronglyConnectedComponents_lib.cc"],
+  hdrs = ["StronglyConnectedComponents_lib.h"],
+  deps = [
+    "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",
+    "//gbbs:gbbs",
+  ]
+)
+
 py_extension(
   name = "gbbs_lib",
   srcs = ["gbbs_lib.cc"],
@@ -111,6 +121,7 @@ py_extension(
     ":PageRank_lib",
     ":MinimumSpanningForest_lib",
     ":ApproximateSetCover_lib",
+    ":StronglyConnectedComponents_lib",
     "//gbbs:compressed_vertex",
     "//gbbs:graph",
     "//gbbs:graph_io",
