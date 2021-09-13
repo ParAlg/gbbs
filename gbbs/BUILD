@@ -199,6 +199,7 @@ cc_library(
   ":io",
   ":macros",
   ":vertex",
+  "@parlaylib//parlay:io",
   ]
 )
 
