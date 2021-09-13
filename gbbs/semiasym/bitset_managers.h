@@ -28,6 +28,7 @@
 
 #include "gbbs/flags.h"
 #include "gbbs/macros.h"
+#include "gbbs/encodings/byte_pd_amortized.h"
 
 namespace gbbs {
 
