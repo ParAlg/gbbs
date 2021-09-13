@@ -39,6 +39,7 @@ cc_library(
   name = "graph_test_utils",
   hdrs = ["graph_test_utils.h"],
   srcs = ["graph_test_utils.cc"],
+  testonly = 1,
   deps = [
   "//gbbs:graph",
   "//gbbs:bridge",

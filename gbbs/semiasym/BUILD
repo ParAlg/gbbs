@@ -9,6 +9,7 @@ cc_library(
   hdrs = ["graph_filter.h"],
   deps = [
   ":bitset_managers",
+  "//gbbs:flags",
   "//gbbs:graph",
   ]
 )
