@@ -85,7 +85,7 @@ def main():
           size = ""
       elif line.startswith("Opt"):
         if split[1] == "True":
-          opt = "-opt"
+          opt = "-ins-opt"
         else:
           opt = ""
   # Setup other parameters
@@ -113,7 +113,7 @@ def main():
                 "-delta " + d + " -b " + b + " " + stats + " " + size + " " +
                 opt + " -opt "  + str(divisor) + " " +
                 "-rounds " + str(num_rounds))
-                if len(initial_graphs) > file_idx:
+                if len(initial_graphs) > file_idx and len(initial_graphs[file_idx]) > 0:
                     ss += " -init_graph_file " + read_dir + initial_graphs[file_idx]
                 ss += " " + empty
                 print(ss)
