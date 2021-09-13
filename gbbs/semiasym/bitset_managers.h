@@ -24,13 +24,10 @@
 #pragma once
 
 #include "bitset.h"
+#include "utils.h"
 
-#include "gbbs/encodings/byte_pd.h"
 #include "gbbs/flags.h"
 #include "gbbs/macros.h"
-// #include "gbbs/encodings/byte_pd_amortized.h"
-
-#include "utils.h"
 
 namespace gbbs {
 
