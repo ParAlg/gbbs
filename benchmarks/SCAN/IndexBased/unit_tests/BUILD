@@ -43,6 +43,7 @@ gbbs_cc_test(
 cc_library(
     name = "similarity_measure_test_utils",
     hdrs = ["similarity_measure_test_utils.h"],
+    testonly = 1,
     deps = [
         "//benchmarks/SCAN/IndexBased:similarity_measure",
         "@googletest//:gtest",

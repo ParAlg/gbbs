@@ -10,14 +10,6 @@ cc_library(
 )
 
 cc_library(
-  name = "HAC_configuration",
-  hdrs = ["HAC_configuration.h"],
-  deps = [
-  "//gbbs:macros",
-  ]
-)
-
-cc_library(
   name = "HeapBased",
   hdrs = ["HeapBased.h"],
   deps = [
