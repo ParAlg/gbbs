@@ -87,7 +87,7 @@ def main():
           size = ""
       elif line.startswith("Opt"):
         if split[1] == "True":
-          opt = "-opt"
+          opt = "-ins-opt"
         else:
           opt = ""
   # Setup other parameters
