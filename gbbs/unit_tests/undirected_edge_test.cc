@@ -1,6 +1,6 @@
 #include "gbbs/helpers/undirected_edge.h"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 namespace gbbs {
 
