@@ -4,6 +4,7 @@ cc_library(
   name = "MinimumSpanningForest",
   hdrs = ["MinimumSpanningForest.h"],
   deps = [
+  "//benchmarks/Connectivity:common",
   "//benchmarks/Connectivity/UnionFind:union_find_rules",
   "//gbbs:gbbs",
   "//gbbs/helpers:sparse_table",
