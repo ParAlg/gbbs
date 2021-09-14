@@ -25,7 +25,7 @@ cc_library(
   deps = [
   ":union_find_rules",
   "//gbbs:gbbs",
-  "//gbbs/helpers:sparse_table"
+  "//gbbs/helpers:sparse_table",
   "//benchmarks/Connectivity:common",
   ]
 )
