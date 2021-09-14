@@ -9,6 +9,7 @@ gbbs_cc_test(
         ":similarity_measure_test_utils",
         "//benchmarks/SCAN/IndexBased:scan",
         "//benchmarks/SCAN/IndexBased:similarity_measure",
+        "//benchmarks/SCAN/IndexBased:utils",
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:vertex",

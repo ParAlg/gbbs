@@ -15,7 +15,7 @@ cc_library(
   hdrs = ["jayanti.h"],
   deps = [
   "//gbbs:gbbs",
-  "//benchmarks/Connectivity:common",
+  "//benchmarks/SpanningForest:common",
   ]
 )
 

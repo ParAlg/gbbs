@@ -6,6 +6,7 @@ cc_library(
   deps = [
   "//gbbs:gbbs",
   "//benchmarks/SpanningForest:common",
+  "//benchmarks/Connectivity:common",
   ]
 )
 

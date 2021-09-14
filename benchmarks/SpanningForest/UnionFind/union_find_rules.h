@@ -143,7 +143,7 @@ namespace unite_variants {
     }
 
     ~UniteRemLock() {
-      gbbs::free_array(locks);
+      gbbs::free_array(locks, n);
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
