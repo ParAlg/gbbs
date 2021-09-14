@@ -5,6 +5,7 @@ cc_library(
   hdrs = ["SSBetweennessCentrality.h"],
   deps = [
   "//gbbs:gbbs",
+  "//gbbs:bridge",
   "//gbbs:edge_map_reduce",
   "//gbbs/helpers:sparse_table",
   ]

@@ -8,6 +8,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//gbbs:graph",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )

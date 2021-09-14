@@ -149,7 +149,6 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
       parent rx = u_orig;
       parent ry = v_orig;
-      parent z;
       uintE pathlen = 1;
       while (Parents[rx] != Parents[ry]) {
         /* link from high -> low */
