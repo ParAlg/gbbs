@@ -5,7 +5,7 @@
 namespace gbbs {
 namespace lt {
 
-  inline boollt_less(uintE u, uintE v) {
+  inline bool lt_less(uintE u, uintE v) {
     if (u == UINT_E_MAX) {
       return (v != UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
@@ -14,7 +14,7 @@ namespace lt {
     return u < v;
   }
 
-  inline boollt_greater(uintE u, uintE v) {
+  inline bool lt_greater(uintE u, uintE v) {
     if (u == UINT_E_MAX) {
       return (v == UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
@@ -50,7 +50,7 @@ namespace lt {
     message() {}
   };
 
-  inline boolmessage_less(message l, message r) {
+  inline bool message_less(message l, message r) {
     return lt_less(l.component, r.component);
   }
 
@@ -58,7 +58,7 @@ namespace lt {
 
     // For each edge e, request e.v.p from e.v and e.w.p from e.w; send the minimum of
     // the received vertices to the maximum of the received vertices.
-    inline boolparent_connect(uintE u, uintE v, sequence<parent>& P, sequence<message>& messages) {
+    inline bool parent_connect(uintE u, uintE v, sequence<parent>& P, sequence<message>& messages) {
       uintE p_u = P[u];
       uintE p_v = P[v];
       auto min_v = lt_min(p_u, p_v);
@@ -72,7 +72,7 @@ namespace lt {
     // For each edge e, request e.v.p from e.v and e.w.p from e.w; let the received
     // values be x and y, respectively; if y < x then send y to v and to x
     // else send x to w and to y.
-    inline boolextended_connect(uintE v, uintE w, sequence<parent>& P, sequence<message>& messages) {
+    inline bool extended_connect(uintE v, uintE w, sequence<parent>& P, sequence<message>& messages) {
       uintE x = P[v];
       uintE y = P[w];
       bool updated = false;
