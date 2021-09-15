@@ -15,7 +15,7 @@ cc_library(
         "//gbbs:graph",
         "//gbbs:macros",
         "//gbbs:vertex_subset",
-        "//gbbs/helpers:undirected_edge",
         "//gbbs/helpers:sparse_table",
+        "//gbbs/helpers:undirected_edge",
     ],
 )

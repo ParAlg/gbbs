@@ -8,8 +8,8 @@ gbbs_cc_test(
     deps = [
         "//benchmarks/KCore/JulienneDBS17:KCore",
         "//gbbs:graph",
-        "//gbbs/unit_tests:graph_test_utils",
         "//gbbs:macros",
+        "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",
     ],
 )

@@ -4,6 +4,7 @@ load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
 
 gbbs_cc_test(
     name = "test_clique",
+    size = "small",
     srcs = ["test_clique.cc"],
     deps = [
         "//benchmarks/CliqueCounting:Clique",
@@ -12,5 +13,4 @@ gbbs_cc_test(
         "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",
     ],
-    size="small"
 )
