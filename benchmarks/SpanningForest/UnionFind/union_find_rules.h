@@ -170,7 +170,6 @@ namespace unite_variants {
       compress(u_orig, Parents);
       compress(v_orig, Parents);
       report_pathlen(pathlen);
-      return;
     }
   };
 
@@ -204,7 +203,6 @@ namespace unite_variants {
         pathlen++;
       }
       report_pathlen(pathlen);
-      return;
     }
   };
 
@@ -218,7 +216,7 @@ namespace unite_variants {
         if(v > u) std::swap(u,v);
         if (Parents[u] == u && gbbs::atomic_compare_and_swap(&Parents[u],u,v)) {
           Edges[u] = std::make_pair(u_orig, v_orig);
-          return;
+          break;
         }
         parent z = Parents[u];
         parent w = Parents[z];
