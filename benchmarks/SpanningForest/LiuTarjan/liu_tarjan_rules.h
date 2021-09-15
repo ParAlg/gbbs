@@ -5,7 +5,7 @@
 namespace gbbs {
 namespace lt {
 
-  bool lt_less(uintE u, uintE v) {
+  inline boollt_less(uintE u, uintE v) {
     if (u == UINT_E_MAX) {
       return (v != UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
@@ -14,7 +14,7 @@ namespace lt {
     return u < v;
   }
 
-  bool lt_greater(uintE u, uintE v) {
+  inline boollt_greater(uintE u, uintE v) {
     if (u == UINT_E_MAX) {
       return (v == UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
@@ -23,7 +23,7 @@ namespace lt {
     return u > v;
   }
 
-  uintE lt_min(uintE u, uintE v) {
+  inline uintE lt_min(uintE u, uintE v) {
     if (u == UINT_E_MAX) {
       return u;
     } else if (v == UINT_E_MAX) {
@@ -32,7 +32,7 @@ namespace lt {
     return std::min(u, v);
   }
 
-  uintE lt_max(uintE u, uintE v) {
+  inline uintE lt_max(uintE u, uintE v) {
     if (u == UINT_E_MAX) {
       return v;
     } else if (v == UINT_E_MAX) {
@@ -50,7 +50,7 @@ namespace lt {
     message() {}
   };
 
-  bool message_less(message l, message r) {
+  inline boolmessage_less(message l, message r) {
     return lt_less(l.component, r.component);
   }
 
@@ -58,7 +58,7 @@ namespace lt {
 
     // For each edge e, request e.v.p from e.v and e.w.p from e.w; send the minimum of
     // the received vertices to the maximum of the received vertices.
-    bool parent_connect(uintE u, uintE v, sequence<parent>& P, sequence<message>& messages) {
+    inline boolparent_connect(uintE u, uintE v, sequence<parent>& P, sequence<message>& messages) {
       uintE p_u = P[u];
       uintE p_v = P[v];
       auto min_v = lt_min(p_u, p_v);
@@ -72,7 +72,7 @@ namespace lt {
     // For each edge e, request e.v.p from e.v and e.w.p from e.w; let the received
     // values be x and y, respectively; if y < x then send y to v and to x
     // else send x to w and to y.
-    bool extended_connect(uintE v, uintE w, sequence<parent>& P, sequence<message>& messages) {
+    inline boolextended_connect(uintE v, uintE w, sequence<parent>& P, sequence<message>& messages) {
       uintE x = P[v];
       uintE y = P[w];
       bool updated = false;
@@ -86,7 +86,7 @@ namespace lt {
       return updated;
     }
 
-    void root_update(uintE u, sequence<parent>& P, sequence<message>& messages, sequence<edge>& Edges) {
+    inline void root_update(uintE u, sequence<parent>& P, sequence<message>& messages, sequence<edge>& Edges) {
       // find root
       uintE p_u = P[u];
       if (u != p_u) {
@@ -101,14 +101,14 @@ namespace lt {
       }
     }
 
-    void shortcut(uintE u, sequence<parent>& P) {
+    inline void shortcut(uintE u, sequence<parent>& P) {
       uintE p_u = P[u];
       if (p_u != spanning_forest::largest_comp && p_u != P[p_u]) {
         P[u] = P[p_u];
       }
     }
 
-    void root_shortcut(uintE u, sequence<parent>& P) {
+    inline void root_shortcut(uintE u, sequence<parent>& P) {
       uintE p_u = P[u];
       while (p_u != spanning_forest::largest_comp && p_u != P[p_u]) {
         P[u] = P[p_u];
@@ -116,7 +116,7 @@ namespace lt {
       }
     }
 
-    std::tuple<uintE, uintE>
+    inline std::tuple<uintE, uintE>
     alter(uintE u, uintE v, sequence<parent>& P) {
       uintE x = P[u];
       uintE y = P[v];
