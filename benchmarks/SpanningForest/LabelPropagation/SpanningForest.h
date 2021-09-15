@@ -34,7 +34,7 @@ namespace labelprop_sf {
   constexpr uint8_t need_emit = 1;
   constexpr uint8_t emitted = 2;
 
-  bool lp_less(uintE u, uintE v) {
+  inline bool lp_less(uintE u, uintE v) {
     if (u == spanning_forest::largest_comp) {
       return (v != spanning_forest::largest_comp);
     } else if (v == spanning_forest::largest_comp) {
