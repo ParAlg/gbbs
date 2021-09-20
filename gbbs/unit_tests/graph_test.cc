@@ -21,7 +21,7 @@ namespace {
       vertices[i] = G.get_vertex(i);
     }
     auto GP = symmetric_ptr_graph<symmetric_vertex, Wgh>(G.n, G.m, vertices, G.deletion_fn);
-    G.deletion_fn = [](){};
+    G.deletion_fn = [=](){ gbbs::free_array(vertices, n);};
     return GP;
   }
 
