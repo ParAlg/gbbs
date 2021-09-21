@@ -55,7 +55,7 @@ TEST(MaximalMatching, BasicUsage) {
       {0, 1}, {2, 3}, {3, 4}, {3, 5}, {4, 5}, {5, 6},
   };
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
-  auto graph_copy = graph.copy();
+  auto graph_copy = graph;
 
   const sequence<std::tuple<uintE, uintE, gbbs::empty>> matchingResult{
       MaximalMatching(graph)};

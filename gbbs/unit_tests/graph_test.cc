@@ -91,7 +91,7 @@ TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
-  auto G = graph.copy();
+  auto G = graph;
 
   ASSERT_EQ(G.n, n);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
@@ -175,7 +175,7 @@ TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
 
-  auto G = graph.copy();
+  auto G = graph;
 
   ASSERT_EQ(G.n, n);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 1);

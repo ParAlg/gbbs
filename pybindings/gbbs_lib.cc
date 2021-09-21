@@ -242,7 +242,7 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       return wrap_array(ranks);
     })
     .def("MinimumSpanningForest", [&] (graph& G) {
-      auto G_copy = G.copy();
+      auto G_copy = G;
       auto edges = compiled::MinimumSpanningForest(G_copy);
       return build_edgelist<W>(edges);
     })
