@@ -106,6 +106,16 @@ cc_library(
   ]
 )
 
+cc_library(
+  name = "CliqueCounting_lib",
+  srcs = ["CliqueCounting_lib.cc"],
+  hdrs = ["CliqueCounting_lib.h"],
+  deps = [
+    "//benchmarks/CliqueCounting:Clique",
+    "//gbbs:gbbs",
+  ]
+)
+
 py_extension(
   name = "gbbs_lib",
   srcs = ["gbbs_lib.cc"],
@@ -122,6 +132,7 @@ py_extension(
     ":MinimumSpanningForest_lib",
     ":ApproximateSetCover_lib",
     ":StronglyConnectedComponents_lib",
+    ":CliqueCounting_lib",
     "//gbbs:compressed_vertex",
     "//gbbs:graph",
     "//gbbs:graph_io",

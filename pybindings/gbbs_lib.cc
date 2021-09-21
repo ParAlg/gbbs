@@ -15,6 +15,7 @@
 #include "PageRank_lib.h"
 #include "ApproximateSetCover_lib.h"
 #include "StronglyConnectedComponents_lib.h"
+#include "CliqueCounting_lib.h"
 
 //#include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
 //#include "benchmarks/Clustering/SeqHAC/HAC_api.h"
@@ -237,6 +238,10 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("StronglyConnectedComponents.h", [&] (graph& G, double beta) {
       auto ccs = compiled::StronglyConnectedComponents(G, beta);
       return wrap_array(ccs);
+    })
+    .def("CliqueCounting.h", [&] (graph& G, size_t k) {//, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base, long recursive_level, bool approx_peel, double approx_eps) {
+      // auto ccs = compiled::CliqueCounting(G, k, order_type, epsilon, space_type, label, filter, use_base, recursive_level, approx_peel, approx_eps);
+      // return ccs;
     })
     .def("KCore", [&] (graph& G) {
       auto cores = compiled::KCore(G);
