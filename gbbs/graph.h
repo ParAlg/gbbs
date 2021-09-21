@@ -163,20 +163,6 @@ struct symmetric_graph {
 
   ~symmetric_graph() { deletion_fn(); }
 
-  // creates an in-memory copy of the graph.
-  graph copy() {
-    auto vd = gbbs::new_array_no_init<vertex_data>(n);
-    auto ed = gbbs::new_array_no_init<edge_type>(m);
-    parallel_for(0, n, [&](size_t i) { vd[i] = v_data[i]; });
-    parallel_for(0, m, [&](size_t i) { ed[i] = e0[i]; });
-    return graph(vd, n, m,
-                 [=]() {
-                   gbbs::free_array(vd, n);
-                   gbbs::free_array(ed, m);
-                 },
-                 ed);
-  }
-
   vertex get_vertex(uintE i) { return vertex(e0, v_data[i], i); }
 
   // Graph Data
