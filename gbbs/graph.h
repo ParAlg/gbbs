@@ -131,7 +131,7 @@ struct symmetric_graph {
     deletion_fn = std::move(other.deletion_fn);
     other.v_data = nullptr;
     other.e0 = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   // Move assignment
@@ -144,7 +144,7 @@ struct symmetric_graph {
     deletion_fn = std::move(other.deletion_fn);
     other.v_data = nullptr;
     other.e0 = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   symmetric_graph(const symmetric_graph& other) {
@@ -272,7 +272,7 @@ struct symmetric_ptr_graph {
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
     other.edge_list_sizes = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   // Move assignment
@@ -285,53 +285,40 @@ struct symmetric_ptr_graph {
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
     other.edge_list_sizes = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   symmetric_ptr_graph(const symmetric_ptr_graph& other) {
-    std::cout << "Copying symmetric ptr graph (currently unimplemented)." << std::endl;
-    exit(-1);  // unimplemented
-  }
-
-  ~symmetric_ptr_graph() {
-    deletion_fn();
-  }
-
-  // creates an in-memory copy of the graph.
-  graph copy() {
-    vertex* V = gbbs::new_array_no_init<vertex>(n);
+    n = other.n;
+    vertices = gbbs::new_array_no_init<vertex>(n);
     auto offsets = sequence<size_t>(n + 1);
     parallel_for(0, n, [&](size_t i) {
-      V[i] = vertices[i];
-      offsets[i] =
-          (edge_list_sizes == nullptr) ? V[i].out_degree() : edge_list_sizes[i];
+      vertices[i] = other.vertices[i];
+      offsets[i] = vertices[i].out_degree();
     });
     offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(offsets));
     edge_type* E = gbbs::new_array_no_init<edge_type>(total_space);
+
     parallel_for(0, n, [&](size_t i) {
       size_t offset = offsets[i];
-      if
-        constexpr(std::is_same<vertex, symmetric_vertex<W>>::value) {
-          auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
-                           size_t ind) {
-            E[offset + ind] = std::make_tuple(v, wgh);
-          };
-          V[i].out_neighbors().map_with_index(map_f);
-        }
-      else {
-        size_t next_offset = offsets[i + 1];
-        size_t to_copy = next_offset - offset;
-        // memcpy?
-        parallel_for(0, to_copy,
-                     [&](size_t j) { E[offset + j] = V[i].neighbors[j]; });
-      }
+      auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
+                       size_t ind) {
+        E[offset + ind] = std::make_tuple(v, wgh);
+      };
+      // Copy neighbor data into E.
+      vertices[i].out_neighbors().map_with_index(map_f);
+      // Update this vertex's pointer to point to E.
+      vertices[i].neighbors = E + offset;
     });
-    return graph(n, m, V, [=]() {
-      gbbs::free_array(V, n);
+
+    deletion_fn = [=]() {
+      gbbs::free_array(vertices, n);
       gbbs::free_array(E, total_space);
-    });
+    };
   }
+
+  ~symmetric_ptr_graph() { deletion_fn(); }
 
   // Note that observers recieve a handle to a vertex object which is only valid
   // so long as this graph's memory is valid.
@@ -424,7 +411,7 @@ struct asymmetric_graph {
     other.v_in_data = nullptr;
     other.out_edges = nullptr;
     other.in_edges = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   // Move assignment
@@ -441,7 +428,7 @@ struct asymmetric_graph {
     other.v_in_data = nullptr;
     other.out_edges = nullptr;
     other.in_edges = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   asymmetric_graph(const asymmetric_graph& other) {
@@ -509,7 +496,7 @@ struct asymmetric_ptr_graph {
     vertices = other.vertices;
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   // Move assignment
@@ -520,11 +507,12 @@ struct asymmetric_ptr_graph {
     deletion_fn();
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
-    other.deletion_fn = [](){};
+    other.deletion_fn = []() {};
   }
 
   asymmetric_ptr_graph(const asymmetric_ptr_graph& other) {
-    std::cout << "Copying asymmetric ptr graph (currently unimplemented)." << std::endl;
+    std::cout << "Copying asymmetric ptr graph (currently unimplemented)."
+              << std::endl;
     exit(-1);  // unimplemented
   }
 
@@ -610,8 +598,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   });
   return symmetric_graph<symmetric_vertex, Wgh>(v_data, n, m,
                                                 [=]() {
-                                                  gbbs::free_array(v_data,
-                                                                      n);
+                                                  gbbs::free_array(v_data, n);
                                                   gbbs::free_array(edges, m);
                                                 },
                                                 (edge_type*)edges);
