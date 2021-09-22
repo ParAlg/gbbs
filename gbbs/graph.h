@@ -511,9 +511,48 @@ struct asymmetric_ptr_graph {
   }
 
   asymmetric_ptr_graph(const asymmetric_ptr_graph& other) {
-    std::cout << "Copying asymmetric ptr graph (currently unimplemented)."
-              << std::endl;
-    exit(-1);  // unimplemented
+    n = other.n;
+    vertices = gbbs::new_array_no_init<vertex>(n);
+    auto in_offsets = sequence<size_t>(n + 1);
+    auto out_offsets = sequence<size_t>(n + 1);
+    parallel_for(0, n, [&](size_t i) {
+      vertices[i] = other.vertices[i];
+      out_offsets[i] = vertices[i].out_degree();
+      in_offsets[i] = vertices[i].in_degree();
+    });
+    in_offsets[n] = 0;
+    out_offsets[n] = 0;
+
+    size_t in_space = parlay::scan_inplace(make_slice(in_offsets));
+    size_t out_space = parlay::scan_inplace(make_slice(out_offsets));
+    edge_type* inE = gbbs::new_array_no_init<edge_type>(in_space);
+    edge_type* outE = gbbs::new_array_no_init<edge_type>(out_space);
+
+    parallel_for(0, n, [&](size_t i) {
+      size_t out_offset = out_offsets[i];
+      if (out_offsets[i+1] != out_offset) {
+        auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
+                         size_t ind) {
+          outE[out_offset + ind] = std::make_tuple(v, wgh);
+        };
+        // Copy neighbor data into E.
+        vertices[i].out_neighbors().map_with_index(map_f);
+        // Update this vertex's pointer to point to E.
+        vertices[i].out_nghs = outE + out_offset;
+      }
+
+      size_t in_offset = in_offsets[i];
+      if (in_offsets[i+1] != in_offset) {
+        auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
+                         size_t ind) {
+          inE[in_offset + ind] = std::make_tuple(v, wgh);
+        };
+        // Copy neighbor data into E.
+        vertices[i].in_neighbors().map_with_index(map_f);
+        // Update this vertex's pointer to point to E.
+        vertices[i].in_nghs = inE + in_offset;
+      }
+    });
   }
 
   ~asymmetric_ptr_graph() { deletion_fn(); }
