@@ -402,7 +402,7 @@ struct symmetric_vertex {
   uintE degree;
   edge_type* neighbors;
 
-  symmetric_vertex() {}
+  symmetric_vertex() : id(std::numeric_limits<uintE>::max()), degree(0), neighbors(nullptr) {}
 
   symmetric_vertex(edge_type* n, vertex_data& vdata, uintE _id) {
     neighbors = (n + vdata.offset);
@@ -451,7 +451,7 @@ struct asymmetric_vertex {
 
   uintE id;
 
-  asymmetric_vertex() {}
+  asymmetric_vertex() : in_nghs(nullptr), out_nghs(nullptr), in_deg(0), out_deg(0), id(std::numeric_limits<uintE>::max()) {}
 
   asymmetric_vertex(edge_type* out_neighbors_, vertex_data& out_data,
                     edge_type* in_neighbors_, vertex_data& in_data, uintE _id) {

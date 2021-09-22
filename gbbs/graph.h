@@ -553,6 +553,11 @@ struct asymmetric_ptr_graph {
         vertices[i].in_nghs = inE + in_offset;
       }
     });
+    deletion_fn = [=] () {
+      gbbs::free_array(vertices, n);
+      gbbs::free_array(inE, in_space);
+      gbbs::free_array(outE, out_space);
+    };
   }
 
   ~asymmetric_ptr_graph() { deletion_fn(); }
