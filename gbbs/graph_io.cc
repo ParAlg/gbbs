@@ -134,13 +134,13 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap,
   // Reads in just the out-edges and computes the in-edges.
   std::tie(n, m, offsets, edges) =
       parse_unweighted_graph(fname, mmap, false, bytes, bytes_size);
-  gbbs::free_array(offsets, n + 1);
 
   auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i + 1] - v_data[i].offset;
   });
+  gbbs::free_array(offsets, n + 1);
 
   /* construct transpose of the graph */
   sequence<uintT> tOffsets = sequence<uintT>::uninitialized(n + 1);
