@@ -290,6 +290,7 @@ struct symmetric_ptr_graph {
 
   symmetric_ptr_graph(const symmetric_ptr_graph& other) {
     n = other.n;
+    m = other.m;
     vertices = gbbs::new_array_no_init<vertex>(n);
     auto offsets = sequence<size_t>(n + 1);
     parallel_for(0, n, [&](size_t i) {
@@ -512,6 +513,7 @@ struct asymmetric_ptr_graph {
 
   asymmetric_ptr_graph(const asymmetric_ptr_graph& other) {
     n = other.n;
+    m = other.m;
     vertices = gbbs::new_array_no_init<vertex>(n);
     auto in_offsets = sequence<size_t>(n + 1);
     auto out_offsets = sequence<size_t>(n + 1);
