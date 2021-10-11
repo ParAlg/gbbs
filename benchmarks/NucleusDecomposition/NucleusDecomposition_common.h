@@ -424,6 +424,7 @@ class list_buffer {
             if (j < dyn_to_pack.size) dyn_to_pack.A[j] = true;
           }
         });
+        return max_size;
       }
     }
 
