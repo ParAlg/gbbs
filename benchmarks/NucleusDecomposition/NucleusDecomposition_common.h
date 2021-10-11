@@ -347,7 +347,7 @@ class list_buffer {
           // But now we need to make sure that dyn_lists[dyn_list_starts[worker]] actually has space....
           // TODO check this is ok esp for contention maybe take a lock instead
           while(dyn_list_init[dyn_list_starts[worker]] == false) {
-            if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], false, true)) {
+            if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
               dyn_lists[dyn_list_starts[worker]] = ListType(init_size);
               break;
             }
