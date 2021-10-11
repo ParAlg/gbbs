@@ -375,6 +375,18 @@ inline bool write_max(ET* a, ET b) {
   return write_max<ET>(a, b, std::less<ET>());
 }
 
+template <typename ET>
+inline ET atomic_load(ET* a) {
+  ET tmp;
+  __atomic_load(a, &tmp, __ATOMIC_RELAXED);
+  return tmp;
+}
+
+template <typename ET>
+inline void atomic_store(ET* a, ET b) {
+  __atomic_store(a, &b, __ATOMIC_RELAXED);
+}
+
 // Combines two hash values.
 inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
   // This is the same as boost's 32-bit `hash_combine` implementation, but with
