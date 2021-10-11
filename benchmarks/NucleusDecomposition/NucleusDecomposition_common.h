@@ -247,7 +247,7 @@ class list_buffer {
     sequence<size_t> dyn_list_starts;
     sequence<size_t> nexts;
     sequence<char> dyn_list_init;
-    dyn_arr<bool> dyn_to_pack;
+    pbbslib::dyn_arr<bool> dyn_to_pack;
     size_t init_size;
     size_t next_dyn_list;
 
@@ -294,7 +294,7 @@ class list_buffer {
         std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * init_size << std::endl;
         nexts = sequence<size_t>(multiplier, [](size_t i){return 0;});
         nexts[0] = num_workers2 * buffer2;
-        dyn_to_pack = dyn_arr<bool>(init_size);
+        dyn_to_pack = pbbslib::dyn_arr<bool>(init_size);
         dyn_to_pack.copyInF([](size_t i){return true;}, init_size);
       }
     }
