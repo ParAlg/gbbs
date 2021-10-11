@@ -426,6 +426,7 @@ class list_buffer {
         });
         return max_size;
       }
+      return 0;
     }
 
     void reset() {
