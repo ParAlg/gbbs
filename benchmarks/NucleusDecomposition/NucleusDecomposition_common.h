@@ -241,6 +241,16 @@ class list_buffer {
     size_t use_size;
     STable use_table;
 
+    // for dynamic
+    using ListType = sequence<uintE>;
+    sequence<ListType> dyn_lists;
+    sequence<size_t> dyn_list_starts;
+    sequence<size_t> nexts;
+    sequence<char> dyn_list_init;
+    dyn_arr<bool> dyn_to_pack;
+    size_t init_size;
+    size_t next_dyn_list;
+
 // option to have a thread local vector that's resizable per thread to hold
 // the new r cliques; you need to get your thread id
     list_buffer(size_t s, size_t _efficient = 1){
@@ -259,18 +269,40 @@ class list_buffer {
         list = sequence<uintE>(s, static_cast<uintE>(UINT_E_MAX));
         std::cout << "list size: " << sizeof(uintE) * list.size() << std::endl;
         next = 0;
-      } else {
+      } else if (efficient == 2) {
         // fix for hash table version -- efficient = 2
+        ss = s;
         source_table = pbbslib::make_sparse_table<uintE, uintE>(std::min(size_t{1 << 20}, s), std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
         std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
         use_size = s;
+      } else if (efficient == 4) {
+        // version of list buffer that's dynamically sized
+        ss = s;
+        num_workers2 = num_workers();
+        buffer = 1024;
+        int buffer2 = 1024;
+        int multiplier = 10000;
+        init_size = (s / multiplier)  + buffer2 * num_workers2;
+        dyn_lists = sequence<ListType>(multiplier, [](size_t i){return ListType();});
+        dyn_list_init = sequence<char>(multiplier, [](size_t i){return false;});
+        dyn_lists[0] = ListType(init_size);
+        dyn_list_init[0] = true;
+        next_dyn_list = 0;
+        //dyn_list = dyn_arr<uintE>(init_size);
+        dyn_list_starts = sequence<size_t>(num_workers2, [&](size_t i){return 0;});
+        starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
+        std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * init_size << std::endl;
+        nexts = sequence<size_t>(multiplier, [](size_t i){return 0;});
+        nexts[0] = num_workers2 * buffer2;
+        dyn_to_pack = dyn_arr<bool>(init_size);
+        dyn_to_pack.copyInF([](size_t i){return true;}, init_size);
       }
     }
 
     void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
       if (efficient == 2) {
         use_size = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
-        //if (use_size > ss) use_size = ss;
+        if (use_size > ss) use_size = std::min(size_t{1 << 20}, ss);
         size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
         source_table.resize_no_copy(space_required);
         use_table = pbbslib::make_sparse_table<uintE, uintE>(
@@ -297,8 +329,34 @@ class list_buffer {
       } else if (efficient == 0) {
         size_t use_next = pbbs::fetch_and_add(&next, 1);
         list[use_next] = index;
-      } else {
+      } else if (efficient == 2){
         use_table.insert(std::make_tuple(index, uintE{1}));
+      } else if (efficient == 4) {
+        size_t worker = worker_id();
+        dyn_lists[dyn_list_starts[worker]][starts[worker]] = index;
+        starts[worker]++;
+        if (starts[worker] % buffer == 0) {
+          size_t use_next = pbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
+          while (use_next >= init_size) {
+            while (nexts[dyn_list_starts[worker]] >= init_size) {
+              dyn_list_starts[worker]++;
+            }
+            use_next = pbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
+          }
+          starts[worker] = use_next;
+          // But now we need to make sure that dyn_lists[dyn_list_starts[worker]] actually has space....
+          // TODO check this is ok esp for contention maybe take a lock instead
+          while(dyn_list_init[dyn_list_starts[worker]] == false) {
+            if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], false, true)) {
+              dyn_lists[dyn_list_starts[worker]] = ListType(init_size);
+              break;
+            }
+          }
+          // now need to make sure that dyn_list has space for the buffer we've just claimed
+          // this needs to take a lock around dyn_list to work? or use another array to maintain
+          // dyn_lists....
+          //dyn_list.resize(use_next + buffer);
+        }
       }
     }
 
@@ -332,12 +390,40 @@ class list_buffer {
           update_changed(per_processor_counts, worker, list[worker]);
         });
         return next;
-      } else {
+      } else if (efficient == 2){
         auto entries = use_table.entries();
         parallel_for(0, entries.size(), [&](size_t i) {
           update_changed(per_processor_counts, i, std::get<0>(entries[i]));
         });
         return entries.size();
+      } else if (efficient == 4) {
+        // First ensure that dyn_to_pack is the right size
+        // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
+        auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
+        auto max_size = pbbslib::reduce_max(sizes);
+        if (max_size < dyn_to_pack.size) dyn_to_pack.copyInF(max_size - dyn_to_pack.size, [](size_t i){return true;});
+        parallel_for(0, num_workers2, [&](size_t worker) {
+          size_t divide = starts[worker] / buffer;
+          size_t offset = dyn_list_starts[worker] * init_size;
+          for (size_t j = offset + starts[worker]; j < offset + (divide + 1) * buffer; j++) {
+            if (j < dyn_to_pack.size) dyn_to_pack.A[j] = false;
+          }
+        });
+        // Pack out 0 to next of list into pack
+        parallel_for(0, max_size, [&] (size_t i) {
+          if (dyn_to_pack.A[i]) {
+            auto val = dyn_lists[dyn_list_starts[i / init_size]][i % init_size];
+            update_changed(per_processor_counts, i, val);
+          } else
+            update_changed(per_processor_counts, i, UINT_E_MAX);
+        });
+        parallel_for(0, num_workers2, [&](size_t worker) {
+          size_t divide = starts[worker] / buffer;
+          size_t offset = dyn_list_starts[worker] * init_size;
+          for (size_t j = offset + starts[worker]; j < offset + (divide + 1) * buffer; j++) {
+            if (j < dyn_to_pack.size) dyn_to_pack.A[j] = true;
+          }
+        });
       }
     }
 
@@ -352,8 +438,15 @@ class list_buffer {
       next = num_workers2 * buffer;
       } else if (efficient == 0) {
         next = 0;
-      } else {
+      } else if (efficient == 2){
         use_table.clear();
+      } else if (efficient == 4) {
+        parallel_for (0, num_workers2, [&] (size_t j) {
+          starts[j] = j * buffer;
+          dyn_list_starts[j] = 0;
+        });
+        parallel_for(0, nexts.size(), [](size_t j){return 0;});
+        nexts[0] = num_workers2 * buffer;
       }
     }
 };
