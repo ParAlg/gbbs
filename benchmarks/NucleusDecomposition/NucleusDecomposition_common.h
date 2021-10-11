@@ -401,7 +401,7 @@ class list_buffer {
         // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
         auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
         auto max_size = pbbslib::reduce_max(sizes);
-        if (max_size < dyn_to_pack.size) dyn_to_pack.copyInF(max_size - dyn_to_pack.size, [](size_t i){return true;});
+        if (max_size < dyn_to_pack.size) dyn_to_pack.copyInF([](size_t i){return true;}, max_size - dyn_to_pack.size);
         parallel_for(0, num_workers2, [&](size_t worker) {
           size_t divide = starts[worker] / buffer;
           size_t offset = dyn_list_starts[worker] * init_size;
