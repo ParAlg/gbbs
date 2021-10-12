@@ -282,7 +282,7 @@ class list_buffer {
         buffer = 1024;
         int buffer2 = 1024;
         int multiplier = 10000;
-        init_size = (s / multiplier)  + buffer2 * num_workers2;
+        init_size = (1 + (s / multiplier) / buffer2) * buffer2  + buffer2 * num_workers2;
         dyn_lists = sequence<ListType>(multiplier, [](size_t i){return ListType();});
         dyn_list_init = sequence<char>(multiplier, [](size_t i){return false;});
         dyn_lists[0] = ListType(init_size);
