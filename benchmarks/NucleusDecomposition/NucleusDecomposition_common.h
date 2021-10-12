@@ -285,7 +285,7 @@ class list_buffer {
         init_size = (1 + (s / multiplier) / buffer2) * buffer2  + buffer2 * num_workers2;
         dyn_lists = sequence<ListType>(multiplier, [](size_t i){return ListType();});
         dyn_list_init = sequence<char>(multiplier, [](size_t i){return false;});
-        dyn_lists[0] = ListType(init_size, [](size_t i){return UINT_E_MAX;}); //TODO REMOVE INIT LATER
+        dyn_lists[0] = ListType(init_size);
         dyn_list_init[0] = true;
         next_dyn_list = 0;
         //dyn_list = dyn_arr<uintE>(init_size);
@@ -348,7 +348,7 @@ class list_buffer {
           // TODO check this is ok esp for contention maybe take a lock instead
           while(dyn_lists[dyn_list_starts[worker]].size() == 0) {
             if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
-              dyn_lists[dyn_list_starts[worker]] = ListType(init_size); //TODO REMOVE INIT LATER
+              dyn_lists[dyn_list_starts[worker]] = ListType(init_size); 
               break;
             }
           }
@@ -397,8 +397,8 @@ class list_buffer {
         });
         return entries.size();
       } else if (efficient == 4) {
-        std::cout << "FILTER" << std::endl;
-        fflush(stdout);
+        //std::cout << "FILTER" << std::endl;
+        //fflush(stdout);
         // First ensure that dyn_to_pack is the right size
         // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
         auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
@@ -434,8 +434,8 @@ class list_buffer {
             if (j < dyn_to_pack.size) dyn_to_pack.A[j] = true;
           }
         });
-        std::cout << "END FILTER" << std::endl;
-        fflush(stdout);
+        //std::cout << "END FILTER" << std::endl;
+        //fflush(stdout);
         return max_size;
       }
       return 0;
