@@ -348,7 +348,7 @@ class list_buffer {
           // TODO check this is ok esp for contention maybe take a lock instead
           while(dyn_list_init[dyn_list_starts[worker]] == false) {
             if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
-              dyn_lists[dyn_list_starts[worker]] = ListType(init_size, [](size_t i){return UINT_E_MAX}); //TODO REMOVE INIT LATER
+              dyn_lists[dyn_list_starts[worker]] = ListType(init_size, [](size_t i){return UINT_E_MAX;}); //TODO REMOVE INIT LATER
               break;
             }
           }
