@@ -397,6 +397,8 @@ class list_buffer {
         });
         return entries.size();
       } else if (efficient == 4) {
+        std::cout << "FILTER" << std::endl;
+        fflush(stdout);
         // First ensure that dyn_to_pack is the right size
         // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
         auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
