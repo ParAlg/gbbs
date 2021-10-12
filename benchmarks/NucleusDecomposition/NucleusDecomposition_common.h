@@ -348,7 +348,7 @@ class list_buffer {
           // TODO check this is ok esp for contention maybe take a lock instead
           while(dyn_lists[dyn_list_starts[worker]].size() == 0) {
             if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
-              dyn_lists[dyn_list_starts[worker]] = ListType(init_size, [](size_t i){return UINT_E_MAX;}); //TODO REMOVE INIT LATER
+              dyn_lists[dyn_list_starts[worker]] = ListType(init_size); //TODO REMOVE INIT LATER
               break;
             }
           }
@@ -419,7 +419,7 @@ class list_buffer {
         parallel_for(0, max_size, [&] (size_t i) {
           if (dyn_to_pack.A[i]) {
             auto val = dyn_lists[i / init_size][i % init_size];
-            assert(val != UINT_E_MAX);
+            //assert(val != UINT_E_MAX);
             update_changed(per_processor_counts, i, val);
           } else {
             //auto val = dyn_lists[i / init_size][i % init_size];
