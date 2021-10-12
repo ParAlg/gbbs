@@ -412,7 +412,7 @@ class list_buffer {
           size_t offset = dyn_list_starts[worker] * init_size;
           for (size_t j = offset + starts[worker]; j < offset + (divide + 1) * buffer; j++) {
             if (j < dyn_to_pack.size) dyn_to_pack.A[j] = false;
-            assert(dyn_lists[dyn_list_starts[worker]][j - offset] == UINT_E_MAX);
+            //assert(dyn_lists[dyn_list_starts[worker]][j - offset] == UINT_E_MAX);
           }
         });
         // Pack out 0 to next of list into pack
@@ -422,8 +422,8 @@ class list_buffer {
             assert(val != UINT_E_MAX);
             update_changed(per_processor_counts, i, val);
           } else {
-            auto val = dyn_lists[i / init_size][i % init_size];
-            assert(val == UINT_E_MAX);
+            //auto val = dyn_lists[i / init_size][i % init_size];
+            //assert(val == UINT_E_MAX);
             update_changed(per_processor_counts, i, UINT_E_MAX);
           }
         });
