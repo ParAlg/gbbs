@@ -338,9 +338,9 @@ class list_buffer {
         if (starts[worker] % buffer == 0) {
           size_t use_next = pbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
           while (use_next >= init_size) {
-            while (nexts[dyn_list_starts[worker]] >= init_size) {
-              dyn_list_starts[worker]++;
-            }
+            //while (nexts[dyn_list_starts[worker]] >= init_size) {
+            dyn_list_starts[worker]++;
+            //}
             use_next = pbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
           }
           starts[worker] = use_next;
@@ -404,6 +404,7 @@ class list_buffer {
         auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
         auto max_size = pbbslib::reduce_max(sizes);
         if (max_size > dyn_to_pack.size) dyn_to_pack.copyInF([](size_t i){return true;}, max_size - dyn_to_pack.size);
+        assert(dyn_to_pack.size >= max_size);
         parallel_for(0, num_workers2, [&](size_t worker) {
           size_t divide = starts[worker] / buffer;
           size_t offset = dyn_list_starts[worker] * init_size;
@@ -426,6 +427,8 @@ class list_buffer {
             if (j < dyn_to_pack.size) dyn_to_pack.A[j] = true;
           }
         });
+        std::cout << "END FILTER" << std::endl;
+        fflush(stdout);
         return max_size;
       }
       return 0;
