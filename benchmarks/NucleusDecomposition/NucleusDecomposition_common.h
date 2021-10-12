@@ -403,6 +403,8 @@ class list_buffer {
         // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
         auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
         auto max_size = pbbslib::reduce_max(sizes);
+        auto absolute_max = 1 + 10000 * ((1 + (ss / 10000) / 1024) * 1024  + 1024* num_workers());
+        assert(max_size <= absolute_max);
         if (max_size > dyn_to_pack.size) dyn_to_pack.copyInF([](size_t i){return true;}, max_size - dyn_to_pack.size);
         assert(dyn_to_pack.size >= max_size);
         parallel_for(0, num_workers2, [&](size_t worker) {
@@ -416,11 +418,11 @@ class list_buffer {
         // Pack out 0 to next of list into pack
         parallel_for(0, max_size, [&] (size_t i) {
           if (dyn_to_pack.A[i]) {
-            auto val = dyn_lists[dyn_list_starts[i / init_size]][i % init_size];
+            auto val = dyn_lists[i / init_size][i % init_size];
             assert(val != UINT_E_MAX);
             update_changed(per_processor_counts, i, val);
           } else {
-            auto val = dyn_lists[dyn_list_starts[i / init_size]][i % init_size];
+            auto val = dyn_lists[i / init_size][i % init_size];
             assert(val == UINT_E_MAX);
             update_changed(per_processor_counts, i, UINT_E_MAX);
           }
