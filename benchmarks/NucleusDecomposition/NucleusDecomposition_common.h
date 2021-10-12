@@ -418,10 +418,11 @@ class list_buffer {
             auto val = dyn_lists[dyn_list_starts[i / init_size]][i % init_size];
             assert(val != UINT_E_MAX);
             update_changed(per_processor_counts, i, val);
-          } else
+          } else {
             auto val = dyn_lists[dyn_list_starts[i / init_size]][i % init_size];
             assert(val == UINT_E_MAX);
             update_changed(per_processor_counts, i, UINT_E_MAX);
+          }
         });
         parallel_for(0, num_workers2, [&](size_t worker) {
           size_t divide = starts[worker] / buffer;
