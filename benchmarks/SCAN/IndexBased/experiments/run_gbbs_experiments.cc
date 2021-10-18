@@ -444,13 +444,10 @@ int main(int argc, char* argv[]) {
   if (is_graph_float_weighted) {
     auto graph{gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
         input_graph_file, should_mmap_graph, is_graph_binary)};
-    gbbs::alloc_init(graph);
     gbbs::RunScanWeighted(graph, params);
   } else {
     auto graph{gbbs::gbbs_io::read_unweighted_symmetric_graph(
         input_graph_file, should_mmap_graph, is_graph_binary)};
-    gbbs::alloc_init(graph);
     gbbs::RunScanUnweighted(graph, params);
   }
-  gbbs::alloc_finish();
 }

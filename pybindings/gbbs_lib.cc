@@ -353,7 +353,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
         path.c_str(),
         /* mmap = */true,
         binary);
-    alloc_init(G);
     return G;
   });
 
@@ -362,7 +361,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
         path.c_str(),
         /* mmap = */true,
         binary);
-    alloc_init(G);
     return G;
   });
 
@@ -371,7 +369,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
         path.c_str(),
         /* mmap = */true,
         binary);
-    alloc_init(G);
     return G;
   });
 
@@ -380,7 +377,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
         path.c_str(),
         /* mmap = */true,
         binary);
-    alloc_init(G);
     return G;
   });
 
@@ -388,7 +384,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
     auto G = gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(
         path.c_str(),
         /* mmap = */true);
-    alloc_init(G);
     return G;
   });
 
@@ -396,7 +391,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
     auto G = gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(
         path.c_str(),
         /* mmap = */true);
-    alloc_init(G);
     return G;
   });
 
@@ -432,7 +426,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
   m.def("numpyUintEdgeListToSymmetricWeightedGraph", [&] (py::array_t<uint32_t> input) {
     std::cout << "Constructing uint weighted graph." << std::endl;
     auto G = edgeListToSymmetricWeightedGraph<uint32_t>(input);
-    alloc_init(G);
     return G;
   });
 
@@ -440,7 +433,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
   m.def("numpyFloatEdgeListToSymmetricWeightedGraph", [&] (py::array_t<float> input) {
     std::cout << "Constructing float weighted graph." << std::endl;
     auto G = edgeListToSymmetricWeightedGraph<float>(input);
-    alloc_init(G);
     return G;
   });
 
@@ -457,7 +449,6 @@ PYBIND11_MODULE(gbbs_lib, m) {
         outpath.c_str(),
         /* mmap = */true,
         /* binary = */false);  /* TODO: use binary */
-    alloc_init(G);
     return G;
   });
 
@@ -474,21 +465,18 @@ PYBIND11_MODULE(gbbs_lib, m) {
         outpath.c_str(),
         /* mmap = */true,
         /* binary = */ false);  /* TODO: use binary */
-    alloc_init(G);
     return G;
   });
 
   m.def("loadSymmetricFloatEdgeListAsGraph", [&] (std::string& inpath) {
     const auto edge_list{gbbs_io::read_weighted_edge_list<float>(inpath.c_str())};
     auto graph{gbbs_io::edge_list_to_symmetric_graph(edge_list)};
-    alloc_init(graph);
     return graph;
   });
 
   m.def("loadAsymmetricFloatEdgeListAsGraph", [&] (std::string& inpath) {
     const auto edge_list{gbbs_io::read_weighted_edge_list<float>(inpath.c_str())};
     auto graph{gbbs_io::edge_list_to_asymmetric_graph(edge_list)};
-    alloc_init(graph);
     return graph;
   });
 
