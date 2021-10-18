@@ -116,6 +116,16 @@ cc_library(
   ]
 )
 
+cc_library(
+  name = "BetweennessCentrality_lib",
+  srcs = ["BetweennessCentrality_lib.cc"],
+  hdrs = ["BetweennessCentrality_lib.h"],
+  deps = [
+    "//benchmarks/SSBetweenessCentrality/Brandes:SSBetweennessCentrality",
+    "//gbbs:gbbs",
+  ]
+)
+
 py_extension(
   name = "gbbs_lib",
   srcs = ["gbbs_lib.cc"],
@@ -133,6 +143,7 @@ py_extension(
     ":ApproximateSetCover_lib",
     ":StronglyConnectedComponents_lib",
     ":CliqueCounting_lib",
+    ":BetweennessCentrality_lib",
     "//gbbs:compressed_vertex",
     "//gbbs:graph",
     "//gbbs:graph_io",

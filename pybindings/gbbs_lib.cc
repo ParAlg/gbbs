@@ -16,6 +16,7 @@
 #include "ApproximateSetCover_lib.h"
 #include "StronglyConnectedComponents_lib.h"
 #include "CliqueCounting_lib.h"
+#include "BetweennessCentrality_lib.h"
 
 //#include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
 //#include "benchmarks/Clustering/SeqHAC/HAC_api.h"
@@ -242,6 +243,10 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("CliqueCounting.h", [&] (graph& G, size_t k) {//, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base, long recursive_level, bool approx_peel, double approx_eps) {
       // auto ccs = compiled::CliqueCounting(G, k, order_type, epsilon, space_type, label, filter, use_base, recursive_level, approx_peel, approx_eps);
       // return ccs;
+    })
+    .def("BetweennessCentrality.h", [&] (graph& G, size_t start) {
+      auto bc = compiled::BetweennessCentrality(G, start);
+      return wrap_array(bc);
     })
     .def("KCore", [&] (graph& G) {
       auto cores = compiled::KCore(G);
