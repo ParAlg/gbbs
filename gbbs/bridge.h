@@ -485,15 +485,15 @@ auto filter_index(In_Seq const& In, F f, flags fl = no_flag)
   size_t l = num_blocks(n, _block_size);
   sequence<size_t> Sums(l);
   sequence<bool> Fl(n);
-  sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+  parlay::internal::sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
     size_t r = 0;
     for (size_t j = s; j < e; j++) r += (Fl[j] = f(In[j], j));
     Sums[i] = r;
   });
   size_t m = parlay::scan_inplace(make_slice(Sums));
   sequence<T> Out = sequence<T>::uninitialized(m);
-  sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
-    pack_serial_at(
+  parlay::internal::sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      parlay::internal::pack_serial_at(
         make_slice(In).cut(s, e), make_slice(Fl).cut(s, e),
         make_slice(Out).cut(Sums[i], (i == l - 1) ? m : Sums[i + 1]));
   });
