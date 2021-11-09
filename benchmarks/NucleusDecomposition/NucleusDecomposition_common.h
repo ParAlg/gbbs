@@ -306,7 +306,7 @@ class list_buffer {
         buffer = 1024;
         int buffer2 = 1024;
         ddyn_lists = std::vector<std::vector<uintE>>(num_workers2, std::vector<uintE>(100, 0));
-        starts = sequence<size_t>(num_workers2, [&](size_t i){return 0;});
+        starts = sequence<size_t>(num_workers2 + 1, [&](size_t i){return 0;});
       }
     }
 
@@ -414,11 +414,12 @@ class list_buffer {
         });
         return entries.size();
       } else if (efficient == 5) {
+        starts[num_workers2] = 0;
         size_t total = pbbslib::scan_add_inplace(starts.slice());
         parallel_for(0, num_workers2, [&](size_t worker){
-          parallel_for(0, starts[worker], [&](size_t j){
-            size_t i = starts[worker] + j;
-            update_changed(per_processor_counts, i, ddyn_lists[worker][j]);
+          parallel_for(starts[worker], starts[worker] + 1, [&](size_t j){
+            size_t i = j - starts[worker];
+            update_changed(per_processor_counts, j, ddyn_lists[worker][i]);
           });
         });
       }else if (efficient == 4) {
