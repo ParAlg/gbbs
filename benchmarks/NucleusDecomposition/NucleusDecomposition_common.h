@@ -413,7 +413,7 @@ class list_buffer {
         });
         return entries.size();
       } else if (efficient == 5) {
-        size_t total = pbbs::scan_add(starts, starts);
+        size_t total = pbbslib::scan_add_inplace(starts.slice());
         parallel_for(0, num_workers2, [&](size_t worker){
           parallel_for(0, starts[worker], [&](size_t j){
             size_t i = starts[worker] + j;
