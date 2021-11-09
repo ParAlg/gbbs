@@ -305,7 +305,7 @@ class list_buffer {
         num_workers2 = num_workers();
         buffer = 1024;
         int buffer2 = 1024;
-        ddyn_lists.resize(num_workers2);
+        ddyn_lists = std::vector<std::vector<uintE>>(num_workers2, std::vector<uintE>(100, 0));
         starts = sequence<size_t>(num_workers2, [&](size_t i){return 0;});
       }
     }
@@ -344,7 +344,8 @@ class list_buffer {
         use_table.insert(std::make_tuple(index, uintE{1}));
       } else if (efficient == 5) {
         size_t worker = worker_id();
-        ddyn_lists[worker].resize(starts[worker] + 1);
+        if (ddyn_lists[worker].size() < starts[worker] + 1)
+          ddyn_lists[worker].resize(2 * (starts[worker] + 1));
         ddyn_lists[worker][starts[worker]] = index;
         starts[worker]++;
       } else if (efficient == 4) {
