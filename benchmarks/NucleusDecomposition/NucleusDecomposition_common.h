@@ -422,6 +422,7 @@ class list_buffer {
             update_changed(per_processor_counts, j, ddyn_lists[worker][i]);
           });
         });
+        return total;
       }else if (efficient == 4) {
         //std::cout << "FILTER" << std::endl;
         //fflush(stdout);
