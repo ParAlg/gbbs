@@ -417,7 +417,7 @@ class list_buffer {
         starts[num_workers2] = 0;
         size_t total = pbbslib::scan_add_inplace(starts.slice());
         parallel_for(0, num_workers2, [&](size_t worker){
-          parallel_for(starts[worker], starts[worker] + 1, [&](size_t j){
+          parallel_for(starts[worker], starts[worker + 1], [&](size_t j){
             size_t i = j - starts[worker];
             update_changed(per_processor_counts, j, ddyn_lists[worker][i]);
           });
