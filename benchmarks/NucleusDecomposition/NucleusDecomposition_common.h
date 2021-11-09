@@ -251,6 +251,9 @@ class list_buffer {
     size_t init_size;
     size_t next_dyn_list;
 
+    // for easier dynamic?
+    std::vector<std::vector<uintE>> ddyn_lists;
+
 // option to have a thread local vector that's resizable per thread to hold
 // the new r cliques; you need to get your thread id
     list_buffer(size_t s, size_t _efficient = 1){
@@ -296,6 +299,14 @@ class list_buffer {
         nexts[0] = num_workers2 * buffer2;
         dyn_to_pack = pbbslib::dyn_arr<bool>(init_size);
         dyn_to_pack.copyInF([](size_t i){return true;}, init_size);
+      } else if (efficient == 5) {
+        // easier dynamically sized list buffer
+        ss = s;
+        num_workers2 = num_workers();
+        buffer = 1024;
+        int buffer2 = 1024;
+        ddyn_lists.resize(num_workers2);
+        starts = sequence<size_t>(num_workers2, [&](size_t i){return 0;});
       }
     }
 
@@ -331,6 +342,11 @@ class list_buffer {
         list[use_next] = index;
       } else if (efficient == 2){
         use_table.insert(std::make_tuple(index, uintE{1}));
+      } else if (efficient == 5) {
+        size_t worker = worker_id();
+        ddyn_lists[worker].resize(starts[worker] + 1);
+        ddyn_lists[worker][starts[worker]] = index;
+        starts[worker]++;
       } else if (efficient == 4) {
         size_t worker = worker_id();
         dyn_lists[dyn_list_starts[worker]][starts[worker]] = index;
@@ -396,7 +412,15 @@ class list_buffer {
           update_changed(per_processor_counts, i, std::get<0>(entries[i]));
         });
         return entries.size();
-      } else if (efficient == 4) {
+      } else if (efficient == 5) {
+        size_t total = pbbs::scan_add(starts, starts);
+        parallel_for(0, num_workers2, [&](size_t worker){
+          parallel_for(0, starts[worker], [&](size_t j){
+            size_t i = starts[worker] + j;
+            update_changed(per_processor_counts, i, ddyn_lists[worker][j]);
+          });
+        });
+      }else if (efficient == 4) {
         //std::cout << "FILTER" << std::endl;
         //fflush(stdout);
         // First ensure that dyn_to_pack is the right size
@@ -454,7 +478,11 @@ class list_buffer {
         next = 0;
       } else if (efficient == 2){
         use_table.clear();
-      } else if (efficient == 4) {
+      } else if(efficient == 5) {
+        parallel_for (0, num_workers2, [&] (size_t j) {
+          starts[j] = 0;
+        });
+      }else if (efficient == 4) {
         parallel_for (0, num_workers2, [&] (size_t j) {
           starts[j] = j * buffer;
           dyn_list_starts[j] = 0;
