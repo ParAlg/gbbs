@@ -1358,10 +1358,10 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     parallel_for(0, num_count_idxs, [&](size_t i){
       auto v = count_idxs.get_v(i);
         if (v == UINT_E_MAX) {
-          v = num_entries + 1;
+          //v = num_entries + 1;
           count_idxs.void_v(i, v);
         } else if (per_processor_counts[v] == 0) {
-          v = num_entries + 1;
+          //v = num_entries + 1;
           count_idxs.void_v(i, v);
         }
         else {
@@ -1373,7 +1373,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
           } else {
-            v = num_entries + 1;
+            //v = num_entries + 1;
             count_idxs.void_v(i, v);
           }
            per_processor_counts[v] = 0;
