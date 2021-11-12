@@ -402,7 +402,7 @@ class list_buffer {
           auto ending = starts[worker + 1];
           if (i >= beginning && i < ending) {
             size_t idx = i - beginning;
-            ddyn_lists[worker][idx] = actual_v;
+            ddyn_lists[worker][idx] = UINT_E_MAX;
             return;
           }
         }
@@ -1378,7 +1378,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
       auto v = count_idxs.get_v(i);
        
-      if (v != num_entries + 1) {
+      if (v != UINT_E_MAX) {
       bucket_t bucket = D[v];
         if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
