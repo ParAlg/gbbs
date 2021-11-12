@@ -1389,6 +1389,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
     
     b.update_buckets(apply_f, num_count_idxs);
+    count_idxs.reset();
     t_update.stop();
 
     rounds++;
