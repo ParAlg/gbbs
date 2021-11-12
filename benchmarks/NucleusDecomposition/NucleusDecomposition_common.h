@@ -397,7 +397,7 @@ class list_buffer {
     uintE get_v(size_t i) {
       if (efficient == 5) {
         // ***TODO this should be a binary search
-        for (size_t worker = 0; worker < num_workers; worker++) {
+        for (size_t worker = 0; worker < num_workers2; worker++) {
           auto beginning = starts[worker];
           auto ending = starts[worker + 1];
           if (i >= beginning && i < ending) {
@@ -410,6 +410,7 @@ class list_buffer {
         std::cout << "unsupported" << std::endl; fflush(stdout);
         exit(0);
       }
+      return 0;
     }
 
     template <class I>
