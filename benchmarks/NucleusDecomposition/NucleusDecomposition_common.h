@@ -394,6 +394,24 @@ class list_buffer {
       return 0;
     }
 
+    void void_v(size_t i) {
+      if (efficient == 5) {
+        // ***TODO this should be a binary search
+        for (size_t worker = 0; worker < num_workers2; worker++) {
+          auto beginning = starts[worker];
+          auto ending = starts[worker + 1];
+          if (i >= beginning && i < ending) {
+            size_t idx = i - beginning;
+            ddyn_lists[worker][idx] = UINT_E_MAX;
+            return;
+          }
+        }
+      }
+      else {
+        std::cout << "unsupported" << std::endl; fflush(stdout);
+        exit(0);
+      }
+    }
     uintE get_v(size_t i) {
       if (efficient == 5) {
         // ***TODO this should be a binary search
@@ -410,6 +428,7 @@ class list_buffer {
         std::cout << "unsupported" << std::endl; fflush(stdout);
         exit(0);
       }
+      std::cout << "error" << std::endl; fflush(stdout);
       return 0;
     }
 
@@ -1330,16 +1349,16 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //std::size_t num_count_idxs = 0;
   //num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
   //count_idxs.reset();
+  t_update.start();
     auto num_count_idxs = count_idxs.num_entries();
-    auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
+    parallel_for(0, num_count_idxs, [&](size_t i){
       auto v = count_idxs.get_v(i);
-      bucket_t bucket = 0;
         if (v == UINT_E_MAX) {
           v = num_entries + 1;
-          bucket = 0;
+          count_idxs.void_v(i);
         } else if (per_processor_counts[v] == 0) {
           v = num_entries + 1;
-          bucket = 0;
+          count_idxs.void_v(i);
         }
         else {
           bucket_t deg = D[v];
@@ -1349,21 +1368,24 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
-            bucket = new_deg;
           } else {
             v = num_entries + 1;
-            bucket = 0;
+            count_idxs.void_v(i);
           }
            per_processor_counts[v] = 0;
         }
+    });
+    auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
+      auto v = count_idxs.get_v(i);
        
       if (v != num_entries + 1) {
+      bucket_t bucket = D[v];
         if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
     };
 
-    t_update.start();
+    
     b.update_buckets(apply_f, num_count_idxs);
     t_update.stop();
 
