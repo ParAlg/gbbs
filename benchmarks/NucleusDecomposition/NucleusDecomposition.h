@@ -113,7 +113,8 @@ inline void NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   std::cout << "### Num " << s << " cliques = " << count << "\n";
 
   timer t2; t2.start();
-  auto peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress);
+  if (use_compress) auto peel = Peel_space_efficient<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress);
+  else auto peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
 

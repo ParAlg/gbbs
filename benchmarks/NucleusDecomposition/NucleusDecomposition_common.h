@@ -377,6 +377,41 @@ class list_buffer {
       }
     }
 
+    size_t num_entries() {
+      if (efficient == 1) return next;
+      if (efficient == 0) return next;
+      if (efficient == 2) return use_table.size();
+      if (efficient == 5) {
+        starts[num_workers2] = 0;
+        size_t total = pbbslib::scan_add_inplace(starts.slice());
+        return total;
+      }
+      if (efficient == 4){
+        auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
+        auto max_size = pbbslib::reduce_max(sizes);
+        return max_size;
+      }
+      return 0;
+    }
+
+    uintE get_v(size_t i) {
+      if (efficient == 5) {
+        // ***TODO this should be a binary search
+        for (size_t worker = 0; worker < num_workers; worker++) {
+          auto beginning = starts[worker];
+          auto ending = starts[worker + 1];
+          if (i >= beginning && i < ending) {
+            size_t idx = i - beginning;
+            return ddyn_lists[worker][idx];
+          }
+        }
+      }
+      else {
+        std::cout << "unsupported" << std::endl; fflush(stdout);
+        exit(0);
+      }
+    }
+
     template <class I>
     size_t filter(I& update_changed, sequence<double>& per_processor_counts) {
       if (efficient == 1) {
@@ -719,12 +754,15 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   else {std::cout << "ERROR" << std::endl; assert(false); exit(0); } // should never happen
   t1.stop();
 
+ std::size_t num_count_idxs = 0;
+if (do_update_changed) {
 t_update_d.start();
   // Perform update_changed on each vertex with changed clique counts
-  std::size_t num_count_idxs = 0;
+ 
   num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
   count_idxs.reset();
 t_update_d.stop();
+}
 
   // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {
@@ -969,12 +1007,15 @@ t1.start();
   }
 t1.stop();
 
+  std::size_t num_count_idxs = 0;
+if (do_update_changed) {
 t_update_d.start();
   // Perform update_changed on each vertex with changed clique counts
-  std::size_t num_count_idxs = 0;
+
   num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
   count_idxs.reset();
 t_update_d.stop();
+}
 
   // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {
@@ -1152,6 +1193,180 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         //std::cout << "End compress" << std::endl;
       }
     }*/
+  
+  }
+
+  t_extract.reportTotal("### Peel Extract time: ");
+  t_count.reportTotal("### Peel Count time: ");
+  t_update.reportTotal("### Peel Update time: ");
+  //t_compress.reportTotal("### Compress time: ");
+  t_x.reportTotal("Inner counting: ");
+  t_update_d.reportTotal("Update d time: ");
+
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+
+  std::cout.precision(17);
+  std::cout << "rho: " << rounds << std::endl;
+  std::cout << "clique core: " << max_bkt << std::endl;
+  if (use_max_density) std::cout << "max density: " << max_density << std::endl;
+
+  b.del();
+  free(still_active);
+
+  return D;
+}
+
+
+//*************************************************SPACE EFFICIENT CODE******************
+
+
+template <typename bucket_t, class Graph, class Graph2, class T>
+sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
+  T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
+  bool use_compress,
+  size_t num_buckets=16) {
+    size_t efficient = fake_efficient;
+    if (fake_efficient == 3) efficient = 1;
+  sequence<uintE> inverse_rank;
+  if (relabel) {
+    // This maps a DG vertex to a G vertex
+    inverse_rank = sequence<uintE>(G.n);
+    parallel_for(0, G.n, [&](size_t i){
+      inverse_rank[rank[i]] = i;
+    });
+  }
+    k--; r--;
+  timer t2; t2.start();
+
+  size_t num_entries = cliques->return_total();
+  std::cout << "num entries: " << num_entries << std::endl;
+  auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
+    return cliques->get_count(i);
+  });
+
+  auto num_entries_filter = num_entries;
+  if (efficient == 1) num_entries_filter += num_workers() * 1024;
+  else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
+  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(num_entries_filter);
+
+  auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
+
+  auto per_processor_counts = sequence<double>(num_entries , static_cast<double>(0));
+  
+  list_buffer count_idxs(num_entries, efficient);
+
+  char* still_active = (char*) calloc(num_entries, sizeof(char));
+  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
+
+  timer t_extract;
+  timer t_count;
+  timer t_update;
+  timer t_x;
+  timer t_update_d;
+
+  size_t rounds = 0;
+  size_t finished = 0;
+  bucket_t cur_bkt = 0;
+  bucket_t max_bkt = 0;
+  double max_density = 0;
+  bool use_max_density = false;
+  size_t iter = 0;
+
+  while (finished < num_entries) {
+    t_extract.start();
+    // Retrieve next bucket
+    auto bkt = b.next_bucket();
+    auto active = bkt.identifiers; //vertexSubset(num_entries, bkt.identifiers);
+    auto active_size = active.size();
+    cur_bkt = bkt.id;
+    t_extract.stop();
+
+    auto get_active = [&](size_t j) -> unsigned __int128 { 
+      return active[j]; }; //active.vtx(j); };
+
+    if (active_size == 0) continue;
+
+    finished += active_size;
+
+    max_bkt = std::max(cur_bkt, max_bkt);
+    if (cur_bkt == 0 || finished == num_entries) {
+      parallel_for (0, active_size, [&] (size_t j) {
+        auto index = get_active(j);
+        still_active[index] = 2;
+        cliques->set_count(index, UINT_E_MAX);
+      }, 2048);
+      continue;
+    }
+
+    //std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
+    //std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
+    iter++;
+
+    size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
+
+    size_t filter_size = 0;
+
+      auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
+
+      };
+    t_count.start();
+    count_idxs.resize(active_size, k, r, cur_bkt);
+    if (fake_efficient == 3) {
+      filter_size = cliqueUpdatePND(G, DG, r, k, max_deg, true, get_active, active_size, 
+     granularity, still_active, rank, per_processor_counts,
+      false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
+      t_update_d);
+    } else {
+     filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
+     granularity, still_active, rank, per_processor_counts,
+      false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
+      t_update_d);
+    }
+      t_count.stop();
+
+  // Perform update_changed on each vertex with changed clique counts
+  //std::size_t num_count_idxs = 0;
+  //num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
+  //count_idxs.reset();
+    auto num_count_idxs = count_idxs.num_entries();
+    auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
+      auto v = count_idxs.get_v(i);
+      bucket_t bucket = 0;
+        if (v == UINT_E_MAX) {
+          v = num_entries + 1;
+          bucket = 0;
+        } else if (per_processor_counts[v] == 0) {
+          v = num_entries + 1;
+          bucket = 0;
+        }
+        else {
+          bucket_t deg = D[v];
+          assert(deg > cur_bkt);
+          auto val = cliques->get_count(v) - std::round(per_processor_counts[v]);
+          cliques->set_count(v, val);
+          if (deg > cur_bkt) {
+            bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
+            D[v] = new_deg;
+            bucket = new_deg;
+          } else {
+            v = num_entries + 1;
+            bucket = 0;
+          }
+           per_processor_counts[v] = 0;
+        }
+       
+      if (v != num_entries + 1) {
+        if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
+      }
+      return std::nullopt;
+    };
+
+    t_update.start();
+    b.update_buckets(apply_f, num_count_idxs);
+    t_update.stop();
+
+    rounds++;
   
   }
 
