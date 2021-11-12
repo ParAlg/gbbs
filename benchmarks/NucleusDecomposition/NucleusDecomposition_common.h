@@ -394,7 +394,7 @@ class list_buffer {
       return 0;
     }
 
-    void void_v(size_t i) {
+    void void_v(size_t i, uintE actual_v) {
       if (efficient == 5) {
         // ***TODO this should be a binary search
         for (size_t worker = 0; worker < num_workers2; worker++) {
@@ -402,7 +402,7 @@ class list_buffer {
           auto ending = starts[worker + 1];
           if (i >= beginning && i < ending) {
             size_t idx = i - beginning;
-            ddyn_lists[worker][idx] = UINT_E_MAX;
+            ddyn_lists[worker][idx] = actual_v;
             return;
           }
         }
@@ -1355,10 +1355,10 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       auto v = count_idxs.get_v(i);
         if (v == UINT_E_MAX) {
           v = num_entries + 1;
-          count_idxs.void_v(i);
+          count_idxs.void_v(i, v);
         } else if (per_processor_counts[v] == 0) {
           v = num_entries + 1;
-          count_idxs.void_v(i);
+          count_idxs.void_v(i, v);
         }
         else {
           bucket_t deg = D[v];
@@ -1370,7 +1370,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
             D[v] = new_deg;
           } else {
             v = num_entries + 1;
-            count_idxs.void_v(i);
+            count_idxs.void_v(i, v);
           }
            per_processor_counts[v] = 0;
         }
