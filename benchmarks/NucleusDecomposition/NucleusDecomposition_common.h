@@ -406,6 +406,8 @@ class list_buffer {
             return;
           }
         }
+      } else if (efficient == 0) {
+        list[i] = UINT_E_MAX;
       }
       else {
         std::cout << "unsupported" << std::endl; fflush(stdout);
@@ -423,6 +425,8 @@ class list_buffer {
             return ddyn_lists[worker][idx];
           }
         }
+      } else if (efficient == 0) {
+        return list[i];
       }
       else {
         std::cout << "unsupported" << std::endl; fflush(stdout);
