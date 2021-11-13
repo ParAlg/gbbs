@@ -25,9 +25,8 @@ jobs:
     steps:
       - name: Checkout source tree
         uses: actions/checkout@v2
-
-      - name: Checkout submodules
-        uses: textbook/git-checkout-submodule-action@master
+        with:
+          submodules: recursive
 
       - name: Setup bazelisk
         uses: ./.github/actions/setup-bazelisk
