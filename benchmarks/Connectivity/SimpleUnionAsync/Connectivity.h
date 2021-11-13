@@ -46,7 +46,7 @@ inline uintE find_compress(uintE i, sequence<parent>& parents) {
 }
 
 
-void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
+inline void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
   parent u = u_orig;
   parent v = v_orig;
   while(1) {
@@ -81,7 +81,7 @@ inline uintE find_compress_atomic(uintE i, sequence<parent>& parents) {
   return j;
 }
 
-void unite_impl_atomic(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
+inline void unite_impl_atomic(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
   parent u = u_orig;
   parent v = v_orig;
   while(1) {
