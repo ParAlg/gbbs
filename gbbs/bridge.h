@@ -249,6 +249,20 @@ inline E fetch_and_add(E* a, EV b) {
   return oldV;
 }
 
+// Atomically increment *a by b unless the value is larger than max_v.
+template <typename E, typename EV>
+inline std::optional<E> fetch_and_add_threshold(E* a, EV b, EV max_v) {
+  volatile E newV, oldV;
+  oldV = *a;
+  newV = oldV + b;
+  while (oldV <= max_v) {
+    if (atomic_compare_and_swap(a, oldV, newV)) return oldV;
+    oldV = atomic_load(a);
+    newV = oldV + b;
+  }
+  return std::nullopt;
+}
+
 template <typename E, typename EV>
 inline void write_add(E* a, EV b) {
   // volatile E newV, oldV;
