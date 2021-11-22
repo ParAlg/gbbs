@@ -250,6 +250,8 @@ inline E fetch_and_add(E* a, EV b) {
 }
 
 // Atomically increment *a by b unless the value is larger than max_v.
+// If the increment is successful, it returns an opption containing
+// the previous value and returns an empty std::optional<E> otherwise.
 template <typename E, typename EV>
 inline std::optional<E> fetch_and_add_threshold(E* a, EV b, EV max_v) {
   volatile E newV, oldV;
