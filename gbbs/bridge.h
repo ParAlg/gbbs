@@ -168,6 +168,18 @@ using parlay::internal::timer;
 // }
 
 template <typename ET>
+inline ET atomic_load(ET* a) {
+  ET tmp;
+  __atomic_load(a, &tmp, __ATOMIC_RELAXED);
+  return tmp;
+}
+
+template <typename ET>
+inline void atomic_store(ET* a, ET b) {
+  __atomic_store(a, &b, __ATOMIC_RELAXED);
+}
+
+template <typename ET>
 inline bool atomic_compare_and_swap(ET* a, ET oldval, ET newval) {
   if
     constexpr(sizeof(ET) == 1) {
@@ -358,18 +370,6 @@ inline bool write_min(ET* a, ET b) {
 template <typename ET>
 inline bool write_max(ET* a, ET b) {
   return write_max<ET>(a, b, std::less<ET>());
-}
-
-template <typename ET>
-inline ET atomic_load(ET* a) {
-  ET tmp;
-  __atomic_load(a, &tmp, __ATOMIC_RELAXED);
-  return tmp;
-}
-
-template <typename ET>
-inline void atomic_store(ET* a, ET b) {
-  __atomic_store(a, &b, __ATOMIC_RELAXED);
 }
 
 // Combines two hash values.
