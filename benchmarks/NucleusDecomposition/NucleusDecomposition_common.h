@@ -1055,7 +1055,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   bool use_compress,
   size_t num_buckets=16) {
     size_t efficient = fake_efficient;
-    if (fake_efficient == 3) efficient = 1;
+    if (fake_efficient == 3) efficient = 5;
   sequence<uintE> inverse_rank;
   if (relabel) {
     // This maps a DG vertex to a G vertex
