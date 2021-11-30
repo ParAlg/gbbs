@@ -1269,10 +1269,12 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     return cliques->get_count(i);
   });
 
-  auto num_entries_filter = num_entries;
-  if (efficient == 1) num_entries_filter += num_workers() * 1024;
-  else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
-  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(num_entries_filter);
+  //auto num_entries_filter = num_entries;
+  //if (efficient == 1) num_entries_filter += num_workers() * 1024;
+  //else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
+  auto D_filter = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
+    return cliques->get_count(i);
+  });
 
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
 
@@ -1371,7 +1373,8 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
           cliques->set_count(v, val);
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
-            D[v] = b.get_bucket(deg, new_deg); //new_deg;
+            D[v] = new_deg;
+            D_filter[v] = b.get_bucket(deg, new_deg);
           } else {
             //v = num_entries + 1;
             count_idxs.void_v(i, v);
@@ -1385,7 +1388,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       if (v != UINT_E_MAX) {
         if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
         assert(v < D.size());
-      bucket_t bucket = D[v];
+      bucket_t bucket = D_filter[v];
         if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
