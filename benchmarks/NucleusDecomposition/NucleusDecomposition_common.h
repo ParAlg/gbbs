@@ -1371,7 +1371,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
           cliques->set_count(v, val);
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
-            D[v] = new_deg;
+            D[v] = b.get_bucket(deg, new_deg); //new_deg;
           } else {
             //v = num_entries + 1;
             count_idxs.void_v(i, v);
