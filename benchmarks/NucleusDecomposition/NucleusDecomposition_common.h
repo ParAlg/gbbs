@@ -1055,7 +1055,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   bool use_compress,
   size_t num_buckets=16) {
     size_t efficient = fake_efficient;
-    if (fake_efficient == 3) efficient = 5;
+    if (fake_efficient == 3) efficient = 1;
   sequence<uintE> inverse_rank;
   if (relabel) {
     // This maps a DG vertex to a G vertex
@@ -1135,8 +1135,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       continue;
     }
 
-    std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
-    std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
+    //std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
+    //std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
     iter++;
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
@@ -1251,7 +1251,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   bool use_compress,
   size_t num_buckets=16) {
     size_t efficient = fake_efficient;
-    if (fake_efficient == 3) efficient = 1;
+    if (fake_efficient == 3) efficient = 5;
   sequence<uintE> inverse_rank;
   if (relabel) {
     // This maps a DG vertex to a G vertex
