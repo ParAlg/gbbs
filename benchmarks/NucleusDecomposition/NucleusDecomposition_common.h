@@ -1136,7 +1136,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     }
 
     //std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
-    //std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
+    std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
     iter++;
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
