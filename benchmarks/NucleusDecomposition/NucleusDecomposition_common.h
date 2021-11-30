@@ -1272,17 +1272,23 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //auto num_entries_filter = num_entries;
   //if (efficient == 1) num_entries_filter += num_workers() * 1024;
   //else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
+  std::cout << "created 1 " << std::endl; fflush(stdout);
   auto D_filter = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
   });
+  std::cout << "created 2 " << std::endl; fflush(stdout);
 
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
+  std::cout << "created 3 " << std::endl; fflush(stdout);
 
   auto per_processor_counts = sequence<double>(num_entries , static_cast<double>(0));
+  std::cout << "created 4 " << std::endl; fflush(stdout);
   
   list_buffer count_idxs(num_entries, efficient);
+  std::cout << "created 5 " << std::endl; fflush(stdout);
 
   char* still_active = (char*) calloc(num_entries, sizeof(char));
+  std::cout << "created 6 " << std::endl; fflush(stdout);
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
   timer t_extract;
