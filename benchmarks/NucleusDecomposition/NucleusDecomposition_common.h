@@ -1368,13 +1368,13 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
         }
         else {
           bucket_t deg = D[v];
-          assert(deg > cur_bkt);
+          //assert(deg > cur_bkt);
           auto val = cliques->get_count(v) - std::round(per_processor_counts[v]);
           cliques->set_count(v, val);
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
-            D[v] = new_deg;
-            D_filter[v] = b.get_bucket(deg, new_deg);
+            D[v] = b.get_bucket(deg, new_deg); //new_deg;
+            //D_filter[v] = b.get_bucket(deg, new_deg);
           } else {
             //v = num_entries + 1;
             count_idxs.void_v(i, v);
@@ -1388,7 +1388,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       if (v != UINT_E_MAX) {
         if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
         assert(v < D.size());
-      bucket_t bucket = D_filter[v];
+      bucket_t bucket = D[v];
         if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
