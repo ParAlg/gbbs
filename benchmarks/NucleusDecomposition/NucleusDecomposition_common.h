@@ -1273,10 +1273,6 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //if (efficient == 1) num_entries_filter += num_workers() * 1024;
   //else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
   std::cout << "created 1 " << std::endl; fflush(stdout);
-  auto D_filter = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
-    return cliques->get_count(i);
-  });
-  std::cout << "created 2 " << std::endl; fflush(stdout);
 
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
   std::cout << "created 3 " << std::endl; fflush(stdout);
@@ -1363,14 +1359,18 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //count_idxs.reset();
   t_update.start();
     auto num_count_idxs = count_idxs.num_entries();
+    auto D_filter = sequence<bucket_t>(num_count_idxs);
+    
     parallel_for(0, num_count_idxs, [&](size_t i){
       auto v = count_idxs.get_v(i);
         if (v == UINT_E_MAX) {
           //v = num_entries + 1;
           count_idxs.void_v(i, v);
+          D_filter[i] = num_entries + 1;
         } else if (per_processor_counts[v] == 0) {
           //v = num_entries + 1;
           count_idxs.void_v(i, v);
+          D_filter[i] = num_entries + 1;
         }
         else {
           bucket_t deg = D[v];
@@ -1380,10 +1380,11 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
-            D_filter[v] = b.get_bucket(deg, new_deg);
+            D_filter[i] = b.get_bucket(deg, new_deg); //std::make_tuple(v, 
           } else {
             //v = num_entries + 1;
             count_idxs.void_v(i, v);
+            D_filter[i] = num_entries + 1; //std::make_tuple(num_entries + 1, 0);
           }
            per_processor_counts[v] = 0;
         }
@@ -1395,6 +1396,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
         if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
         assert(v < D.size());
       bucket_t bucket = D_filter[v];
+      assert(bucket != num_entries + 1);
         if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
