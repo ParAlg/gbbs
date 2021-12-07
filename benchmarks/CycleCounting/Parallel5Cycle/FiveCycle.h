@@ -31,7 +31,7 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   size_t n = GA.n;
   // Color vertices with denom colors
   uintE numColors = std::max((size_t) 1,denom);
-  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbs::hash64_2((uintE) seed+i) % numColors; });
+  auto colors = sequence<uintE>::from_function(n, [&](size_t i) { return pbbs::hash64_2((uintE) seed+i) % numColors; });
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (colors[u] == colors[v]) return 0;
     return 1;
@@ -46,21 +46,21 @@ template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
     const edge_array<weight_type>& edge_list) {
   using edge_type = typename symmetric_vertex<weight_type>::edge_type;
-  using Edge = gbbs_io::Edge;
+  using Edge = gbbs_io::Edge<weight_type>;
 
   if (edge_list.E.size() == 0) {
     return symmetric_graph<symmetric_vertex, weight_type>{};
   }
 
-  sequence<Edge<weight_type>> edges_both_directions(2 * edge_list.E.size());
+  sequence<Edge> edges_both_directions(2 * edge_list.E.size());
   parallel_for(0, edge_list.E.size(), [&](const size_t i) {
     const auto& orig_edge = edge_list.E[i];
-    Edge<weight_type> edge(std::get<0>(orig_edge), std::get<1>(orig_edge), std::get<2>(orig_edge));
+    Edge edge(std::get<0>(orig_edge), std::get<1>(orig_edge), std::get<2>(orig_edge));
     edges_both_directions[2 * i] = edge;
     edges_both_directions[2 * i + 1] =
-        Edge<weight_type>{edge.to, edge.from, edge.weight};
+        Edge{edge.to, edge.from, edge.weight};
   });
-  const sequence<Edge<weight_type>> edges =
+  const sequence<Edge> edges =
       internal::sort_and_dedupe(std::move(edges_both_directions));
   const size_t num_edges = edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
@@ -69,7 +69,7 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
 
   edge_type* edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
   parallel_for(0, num_edges, [&](const size_t i) {
-    const Edge<weight_type>& edge = edges[i];
+    const Edge& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
   });
 
