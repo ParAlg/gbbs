@@ -38,8 +38,8 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
     return 1;
   };
   auto edges = filter_edges(GA, pack_predicate);
-
-  return gbbs_io::edge_list_to_symmetric_graph(edges);
+  auto edges_seq = edges.to_seq();
+  return sym_graph_from_edges(edges_seq, n);
 }
 
 template <class Graph>
