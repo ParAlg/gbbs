@@ -9,6 +9,7 @@ cc_library(
         "//benchmarks/KCore/JulienneDBS17:KCore",
         "//gbbs",
         "//gbbs:graph",
+        "//gbbs:graph_io",
     ],
 )
 
