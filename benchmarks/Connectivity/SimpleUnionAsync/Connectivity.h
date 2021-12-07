@@ -45,12 +45,48 @@ inline uintE find_compress(uintE i, sequence<parent>& parents) {
   return j;
 }
 
-void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
+
+inline void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
   parent u = u_orig;
   parent v = v_orig;
   while(1) {
     u = find_compress(u,parents);
     v = find_compress(v,parents);
+    if(u == v) break;
+    else if (u > v && parents[u] == u && gbbs::atomic_compare_and_swap(&parents[u],u,v)) {
+      break;
+    }
+    else if (v > u && parents[v] == v && gbbs::atomic_compare_and_swap(&parents[v],v,u)) {
+      break;
+    }
+  }
+}
+
+inline uintE find_compress_atomic(uintE i, sequence<parent>& parents) {
+  uintE pathlen = 1;
+  parent j = i;
+  if (gbbs::atomic_load(&parents[j]) == j) return j;
+  do {
+    j = gbbs::atomic_load(&parents[j]);
+    pathlen++;
+  } while (gbbs::atomic_load(&parents[j]) != j);
+  parent tmp;
+  while ((tmp=gbbs::atomic_load(&parents[i])) > j) {
+    if (!gbbs::atomic_compare_and_swap(&parents[i], tmp, j)) {
+      return j;
+    }
+    i=tmp;
+  }
+  report_pathlen(pathlen);
+  return j;
+}
+
+inline void unite_impl_atomic(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
+  parent u = u_orig;
+  parent v = v_orig;
+  while(1) {
+    u = find_compress_atomic(u,parents);
+    v = find_compress_atomic(v,parents);
     if(u == v) break;
     else if (u > v && parents[u] == u && gbbs::atomic_compare_and_swap(&parents[u],u,v)) {
       break;

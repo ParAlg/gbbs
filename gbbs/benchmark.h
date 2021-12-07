@@ -34,13 +34,11 @@
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(  \
             iFile, mmap);                                                      \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, rounds)                                   \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>( \
             iFile, mmap);                                                      \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, rounds)                                   \
       }                                                                        \
@@ -48,18 +46,15 @@
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap,   \
                                                                 binary);       \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, rounds)                                   \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap,  \
                                                                  binary);      \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, rounds)                                   \
       }                                                                        \
     }                                                                          \
-    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for graph applications that read a graph (either
@@ -79,13 +74,11 @@
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(  \
             iFile, mmap);                                                      \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, 1)                                        \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>( \
             iFile, mmap);                                                      \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, 1)                                        \
       }                                                                        \
@@ -93,18 +86,15 @@
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap,   \
                                                                 binary);       \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, 1)                                        \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap,  \
                                                                  binary);      \
-        gbbs::alloc_init(G);                                                   \
         auto G_coo = to_edge_array<gbbs::empty>(G);                            \
         run_app(G_coo, APP, mutates, 1)                                        \
       }                                                                        \
     }                                                                          \
-    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest
@@ -123,28 +113,23 @@
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(  \
             iFile, mmap);                                                      \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>( \
             iFile, mmap);                                                      \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap,   \
                                                                 binary);       \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap,  \
                                                                  binary);      \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       }                                                                        \
     }                                                                          \
-    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest
@@ -160,15 +145,12 @@
     if (compressed) {                                                        \
       auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>( \
           iFile, mmap);                                                      \
-      gbbs::alloc_init(G);                                                   \
       run_app(G, APP, mutates, rounds)                                       \
     } else {                                                                 \
       auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap,  \
                                                                binary);      \
-      gbbs::alloc_init(G);                                                   \
       run_app(G, APP, mutates, rounds)                                       \
     }                                                                        \
-    gbbs::alloc_finish();                                                    \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest
@@ -193,15 +175,12 @@
     if (compressed) {                                                          \
       auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(    \
           iFile, mmap);                                                        \
-      gbbs::alloc_init(G);                                                     \
       run_app(G, APP, mutates, rounds)                                         \
     } else {                                                                   \
       auto G =                                                                 \
           gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap, binary); \
-      gbbs::alloc_init(G);                                                     \
       run_app(G, APP, mutates, rounds)                                         \
     }                                                                          \
-    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest
@@ -225,15 +204,12 @@
     if (compressed) {                                                          \
       auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(    \
           iFile, mmap);                                                        \
-      gbbs::alloc_init(G);                                                     \
       run_app(G, APP, mutates, 1)                                              \
     } else {                                                                   \
       auto G =                                                                 \
           gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap, binary); \
-      gbbs::alloc_init(G);                                                     \
       run_app(G, APP, mutates, 1)                                              \
     }                                                                          \
-    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for weighted graph applications that can ingest
@@ -251,28 +227,23 @@
       if (symmetric) {                                                        \
         auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>(  \
             iFile, mmap);                                                     \
-        gbbs::alloc_init(G);                                                  \
         run_app(G, APP, mutates, rounds)                                      \
       } else {                                                                \
         auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::intE>( \
             iFile, mmap);                                                     \
-        gbbs::alloc_init(G);                                                  \
         run_app(G, APP, mutates, rounds)                                      \
       }                                                                       \
     } else {                                                                  \
       if (symmetric) {                                                        \
         auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(    \
             iFile, mmap, binary);                                             \
-        gbbs::alloc_init(G);                                                  \
         run_app(G, APP, mutates, rounds)                                      \
       } else {                                                                \
         auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph<gbbs::intE>(   \
             iFile, mmap, binary);                                             \
-        gbbs::alloc_init(G);                                                  \
         run_app(G, APP, mutates, rounds)                                      \
       }                                                                       \
     }                                                                         \
-    gbbs::alloc_finish();                                                     \
   }
 
 /* Macro to generate binary for weighted graph applications that can ingest
@@ -290,28 +261,23 @@
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<float>(iFile,  \
                                                                        mmap);  \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<float>(iFile, \
                                                                         mmap); \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(          \
             iFile, mmap, binary);                                              \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph<float>(         \
             iFile, mmap, binary);                                              \
-        gbbs::alloc_init(G);                                                   \
         run_app(G, APP, mutates, rounds)                                       \
       }                                                                        \
     }                                                                          \
-    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for weighted graph applications that can ingest
@@ -328,15 +294,12 @@
     if (compressed) {                                                      \
       auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>( \
           iFile, mmap);                                                    \
-      gbbs::alloc_init(G);                                                 \
       run_app(G, APP, mutates, rounds)                                     \
     } else {                                                               \
       auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(   \
           iFile, mmap, binary);                                            \
-      gbbs::alloc_init(G);                                                 \
       run_app(G, APP, mutates, rounds)                                     \
     }                                                                      \
-    gbbs::alloc_finish();                                                  \
   }
 
 /* Macro to generate binary for floating-point weighted graph applications that
@@ -355,8 +318,6 @@
     } else {                                                            \
       auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(     \
           iFile, mmap, binary);                                         \
-      gbbs::alloc_init(G);                                              \
       run_app(G, APP, mutates, rounds)                                  \
     }                                                                   \
-    gbbs::alloc_finish();                                               \
   }

@@ -33,7 +33,7 @@ namespace labelprop_cc {
   constexpr uint8_t need_emit = 1;
   constexpr uint8_t emitted = 2;
 
-  bool lp_less(uintE u, uintE v) {
+  inline bool lp_less(uintE u, uintE v) {
     if (u == largest_comp) {
       return (v != largest_comp);
     } else if (v == largest_comp) {

@@ -8,8 +8,8 @@ gbbs_cc_test(
     deps = [
         "//benchmarks/MaximalMatching/RandomGreedy:MaximalMatching",
         "//gbbs:graph",
-        "//gbbs/unit_tests:graph_test_utils",
         "//gbbs:macros",
+        "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",
     ],
 )

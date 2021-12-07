@@ -129,7 +129,7 @@ struct buckets {
 
   ~buckets() {
     for (size_t i = 0; i < total_buckets; i++) {
-      bkts[i].clear();
+      bkts[i].del();
     }
     bkts.clear();
   }

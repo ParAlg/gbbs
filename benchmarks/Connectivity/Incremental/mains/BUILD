@@ -208,7 +208,7 @@ cc_library(
     name = "subsample_starting_graph",
     hdrs = ["subsample_starting_graph.h"],
     deps = [
-      "//gbbs"
+        "//gbbs",
     ],
 )
 
@@ -217,5 +217,5 @@ cc_library(
     hdrs = ["uf_utils.h"],
     deps = [
         "//benchmarks/Connectivity:common",
-    ]
+    ],
 )

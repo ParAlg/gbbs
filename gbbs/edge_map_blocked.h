@@ -221,7 +221,6 @@ struct em_data_block {
   size_t block_size;
   uint8_t data[kDataBlockSizeBytes];
 };
-using data_block_allocator = parlay::type_allocator<em_data_block>;
 
 // block format:
 // size_t block_size (8 bytes for alignment)
@@ -297,14 +296,14 @@ struct emhelper {
     size_t offset = 0;
     auto& vec = perthread_blocks[group_id * kThreadBlockStride];
     if (vec.size() == 0) {  // alloc new
-      block_ptr = data_block_allocator::alloc();
+      block_ptr = gbbs::new_array_no_init<em_data_block>(1);
       vec.emplace_back(block_ptr);
       block_ptr->block_size = 0;
     } else {
       block_ptr = vec.back();
       offset = block_ptr->block_size;
       if (offset + work_block_size > max_block_size) {  // realloc
-        block_ptr = data_block_allocator::alloc();
+        block_ptr = gbbs::new_array_no_init<em_data_block>(1);
         vec.emplace_back(block_ptr);
         block_ptr->block_size = 0;
         offset = 0;
@@ -313,22 +312,6 @@ struct emhelper {
     return block_ptr;
   }
 };
-
-template <class Graph>
-void alloc_init(Graph& G) {
-  size_t uintes_per_block = kDataBlockSizeBytes / sizeof(uintE);
-  size_t list_alloc_init_blocks =
-      std::max(static_cast<size_t>(0.5 * (G.n / uintes_per_block)),
-               static_cast<size_t>(1000));
-  std::cout << "# list_alloc init_blocks: " << list_alloc_init_blocks
-            << std::endl;
-  data_block_allocator::reserve(list_alloc_init_blocks);
-  std::cout << "# after init: " << std::endl;
-  data_block_allocator::print_stats();
-}
-
-// Call this to clean up at the end of a program that invokes `alloc_init`.
-inline void alloc_finish() { data_block_allocator::finish(); }
 
 template <
     class data /* data associated with vertices in the output vertex_subset */,
@@ -458,14 +441,14 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
                      out[block_offset + i] = block_data[i];
                    }
                    // deallocate block to list_alloc
-                   data_block_allocator::free(block);
+                   gbbs::free_array(block, 1);
                  },
                  1);
     ret = vertexSubsetData<data>(n, std::move(out));
   } else {
     parallel_for(0, all_blocks.size(), [&](size_t block_id) {
       em_data_block* block = all_blocks[block_id];
-      data_block_allocator::free(block);
+      gbbs::free_array(block, 1);
     });
   }
   block_offsets.clear();

@@ -3,7 +3,7 @@ licenses(["notice"])
 load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )
 
 gbbs_cc_test(
@@ -34,18 +34,17 @@ gbbs_cc_test(
     ],
 )
 
-
 cc_library(
-  name = "graph_test_utils",
-  hdrs = ["graph_test_utils.h"],
-  srcs = ["graph_test_utils.cc"],
-  testonly = 1,
-  deps = [
-  "//gbbs:graph",
-  "//gbbs:bridge",
-  "//gbbs:macros",
-  "//gbbs:vertex",
-  "//gbbs/helpers:undirected_edge",
-  "@googletest//:gtest",
-  ]
+    name = "graph_test_utils",
+    testonly = 1,
+    srcs = ["graph_test_utils.cc"],
+    hdrs = ["graph_test_utils.h"],
+    deps = [
+        "//gbbs:bridge",
+        "//gbbs:graph",
+        "//gbbs:macros",
+        "//gbbs:vertex",
+        "//gbbs/helpers:undirected_edge",
+        "@googletest//:gtest",
+    ],
 )

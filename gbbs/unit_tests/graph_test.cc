@@ -7,7 +7,8 @@ namespace {
 
   // Purely for the sake of quickly testing the _ptr_ graph objects.
   template <class Wgh>
-  static inline symmetric_ptr_graph<symmetric_vertex, Wgh> sym_ptr_graph_from_edges(
+  static inline std::pair<symmetric_ptr_graph<symmetric_vertex, Wgh>, symmetric_vertex<Wgh>*>
+  sym_ptr_graph_from_edges(
       sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
       bool is_sorted = false) {
     using edge = std::tuple<uintE, uintE, Wgh>;
@@ -20,9 +21,9 @@ namespace {
     for (size_t i=0; i<G.n; i++) {
       vertices[i] = G.get_vertex(i);
     }
-    auto GP = symmetric_ptr_graph<symmetric_vertex, Wgh>(G.n, G.m, vertices, G.deletion_fn);
-    G.deletion_fn = [](){};
-    return GP;
+    auto GP = symmetric_ptr_graph<symmetric_vertex, Wgh>(G.n, G.m, vertices, std::move(G.deletion_fn));
+    G.deletion_fn = [=](){};
+    return {std::move(GP), vertices};
   }
 
 }
@@ -90,7 +91,7 @@ TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
-  auto G = graph.copy();
+  auto G = graph;
 
   ASSERT_EQ(G.n, n);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
@@ -108,7 +109,8 @@ TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   std::cout << "In SymPtrGraph" << std::endl;
-  auto graph = sym_ptr_graph_from_edges(edges, n);
+  auto P = sym_ptr_graph_from_edges(edges, n);
+  auto& graph = P.first;
   std::cout << "Created SymPtrGraph" << std::endl;
 
   ASSERT_EQ(graph.n, n);
@@ -116,6 +118,7 @@ TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
+  gbbs::free_array(P.second, graph.n);
   std::cout << "Exiting SymPtrGraph" << std::endl;
 }
 
@@ -135,7 +138,8 @@ TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
   edges[4] = std::make_tuple(1, last_vtx_id, 1);
   edges[5] = std::make_tuple(last_vtx_id, 1, 1);
   std::cout << "In SymPtrGraph" << std::endl;
-  auto G = sym_ptr_graph_from_edges(edges, n, /* is_sorted = */false);
+  auto P = sym_ptr_graph_from_edges(edges, n, /* is_sorted = */false);
+  auto& G = P.first;
   std::cout << "Created SymPtrGraph" << std::endl;
 
   ASSERT_EQ(G.n, 11);
@@ -150,6 +154,7 @@ TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
   ASSERT_EQ(G.get_vertex(8).out_degree(), 2);
   ASSERT_EQ(G.get_vertex(9).out_degree(), 2);
   ASSERT_EQ(G.get_vertex(10).out_degree(), 3);
+  gbbs::free_array(P.second, G.n);
   std::cout << "Exiting SymPtrGraph" << std::endl;
 }
 
@@ -161,7 +166,8 @@ TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
   sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
-  auto graph = sym_ptr_graph_from_edges(edges, n);
+  auto P = sym_ptr_graph_from_edges(edges, n);
+  auto& graph = P.first;
 
   ASSERT_EQ(graph.n, n);
   ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
@@ -169,13 +175,14 @@ TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
 
-  auto G = graph.copy();
+  auto G = graph;
 
   ASSERT_EQ(G.n, n);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
   ASSERT_EQ(G.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(G.get_vertex(3).out_degree(), 0);
+  gbbs::free_array(P.second, graph.n);
 }
 
 }  // namespace gbbs

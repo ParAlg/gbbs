@@ -67,7 +67,7 @@ namespace spanning_forest {
     std::cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << std::endl;
   }
 
-  sequence<std::tuple<uintE, uintE, gbbs::empty>> double_edges(sequence<edge>& in) {
+  inline sequence<std::tuple<uintE, uintE, gbbs::empty>> double_edges(sequence<edge>& in) {
     using weighted_edge = std::tuple<uintE, uintE, gbbs::empty>;
     auto double_in = sequence<weighted_edge>::from_function(in.size() * 2, [&] (size_t i) {
       size_t ind = i/2;
@@ -81,7 +81,7 @@ namespace spanning_forest {
     return double_in;
   }
 
-  void check_spanning_forest(size_t n, sequence<edge>& correct, sequence<edge>& check) {
+  inline void check_spanning_forest(size_t n, sequence<edge>& correct, sequence<edge>& check) {
     // check sizes
     if (correct.size() != check.size()) {
       std::cout << "## Correct forest has: " << correct.size() << " many edges, but supplied forest has: " << check.size() << " edges." << std::endl;

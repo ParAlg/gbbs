@@ -219,6 +219,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     std::tie(u, v, wgh) = matching.A[i];
     return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
   }); // allocated
+  matching.del();
   mt.stop();
   eff.next("eff for time");
   gete.next("get edges time");

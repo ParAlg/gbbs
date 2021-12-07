@@ -8,10 +8,10 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//gbbs",
         "//gbbs:bridge",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs:gbbs",
         "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],

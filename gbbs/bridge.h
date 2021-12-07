@@ -168,6 +168,18 @@ using parlay::internal::timer;
 // }
 
 template <typename ET>
+inline ET atomic_load(ET* a) {
+  ET tmp;
+  __atomic_load(a, &tmp, __ATOMIC_RELAXED);
+  return tmp;
+}
+
+template <typename ET>
+inline void atomic_store(ET* a, ET b) {
+  __atomic_store(a, &b, __ATOMIC_RELAXED);
+}
+
+template <typename ET>
 inline bool atomic_compare_and_swap(ET* a, ET oldval, ET newval) {
   if
     constexpr(sizeof(ET) == 1) {
@@ -247,6 +259,22 @@ inline E fetch_and_add(E* a, EV b) {
     newV = oldV + b;
   } while (!atomic_compare_and_swap(a, oldV, newV));
   return oldV;
+}
+
+// Atomically increment *a by b unless the value is larger than max_v.
+// If the increment is successful, it returns an opption containing
+// the previous value and returns an empty std::optional<E> otherwise.
+template <typename E, typename EV>
+inline std::optional<E> fetch_and_add_threshold(E* a, EV b, EV max_v) {
+  volatile E newV, oldV;
+  oldV = *a;
+  newV = oldV + b;
+  while (oldV <= max_v) {
+    if (atomic_compare_and_swap(a, oldV, newV)) return oldV;
+    oldV = atomic_load(a);
+    newV = oldV + b;
+  }
+  return std::nullopt;
 }
 
 template <typename E, typename EV>
@@ -332,37 +360,6 @@ inline bool write_max(std::atomic<ET>* a, ET b, F less) {
 template <typename ET>
 inline bool CAS(ET* ptr, const ET oldv, const ET newv) {
   return atomic_compare_and_swap(ptr, oldv, newv);
-}
-
-inline long xaddl(long* variable, long value) {
-  asm volatile("lock; xaddl %%eax, %2;"
-               : "=a"(value)                 // Output
-               : "a"(value), "m"(*variable)  // Input
-               : "memory");
-  return value;
-}
-
-inline int xaddi(int* variable, int value) {
-  asm volatile("lock; xadd %%eax, %2;"
-               : "=a"(value)                 // Output
-               : "a"(value), "m"(*variable)  // Input
-               : "memory");
-  return value;
-}
-
-// The conditional should be removed by the compiler
-// this should work with pointer types, or pairs of integers
-template <class ET>
-inline ET xadd(ET* variable, ET value) {
-  if (sizeof(ET) == 8) {
-    return xaddl((long*)variable, (long)value);
-  } else if (sizeof(ET) == 4) {
-    return xaddi((int*)variable, (int)value);
-  } else {
-    std::cout << "xadd bad length"
-              << "\n";
-    abort();
-  }
 }
 
 template <typename ET>
@@ -504,15 +501,15 @@ auto filter_index(In_Seq const& In, F f, flags fl = no_flag)
   size_t l = num_blocks(n, _block_size);
   sequence<size_t> Sums(l);
   sequence<bool> Fl(n);
-  sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+  parlay::internal::sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
     size_t r = 0;
     for (size_t j = s; j < e; j++) r += (Fl[j] = f(In[j], j));
     Sums[i] = r;
   });
   size_t m = parlay::scan_inplace(make_slice(Sums));
   sequence<T> Out = sequence<T>::uninitialized(m);
-  sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
-    pack_serial_at(
+  parlay::internal::sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      parlay::internal::pack_serial_at(
         make_slice(In).cut(s, e), make_slice(Fl).cut(s, e),
         make_slice(Out).cut(Sums[i], (i == l - 1) ? m : Sums[i + 1]));
   });

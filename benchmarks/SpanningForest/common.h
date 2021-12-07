@@ -9,9 +9,9 @@ using parent = uintE;
 constexpr edge empty_edge = std::make_pair(UINT_E_MAX, UINT_E_MAX);
 
 namespace spanning_forest {
-  uintE largest_comp = UINT_E_MAX;
+  constexpr uintE largest_comp = UINT_E_MAX;
 
-  auto parents_to_edges(sequence<parent>& parents) -> sequence<edge> {
+  inline sequence<edge> parents_to_edges(sequence<parent>& parents) {
     auto all_edges = parlay::delayed_seq<edge>(parents.size(), [&] (uintE i) {
       return std::make_pair(i,parents[i]);
     });

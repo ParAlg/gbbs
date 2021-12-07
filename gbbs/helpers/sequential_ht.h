@@ -51,7 +51,7 @@ class sequentialHT {
 
   sequentialHT(T* _table, size_t size, float loadFactor,
                std::tuple<K, V> _empty)
-      : m((size_t)1 << parlay::log2_up((size_t)(loadFactor * size))),
+      : m((size_t)1 << parlay::log2_up((size_t)(loadFactor * size + 1))),
         mask(m - 1),
         empty(_empty),
         max_key(std::get<0>(_empty)),
