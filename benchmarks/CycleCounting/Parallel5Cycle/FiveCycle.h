@@ -24,6 +24,84 @@
 
 
 namespace gbbs {
+
+template <class Graph>
+auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
+  using W = typename Graph::weight_type;
+  size_t n = GA.n;
+  // Color vertices with denom colors
+  uintE numColors = std::max((size_t) 1,denom);
+  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbs::hash64_2((uintE) seed+i) % numColors; });
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    if (colors[u] == colors[v]) return 0;
+    return 1;
+  };
+  filter_edges(GA, pack_predicate); //auto edges =
+  //auto edges_seq = edges.to_seq();
+  //return filter_graph(GA, pack_predicate);
+  return GA; //sym_graph_from_edges(edges_seq, edges_seq.size());
+}
+
+template <class weight_type>
+symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
+    const edge_array<weight_type>& edge_list) {
+  using edge_type = typename symmetric_vertex<weight_type>::edge_type;
+  using Edge = gbbs_io::Edge;
+
+  if (edge_list.E.size() == 0) {
+    return symmetric_graph<symmetric_vertex, weight_type>{};
+  }
+
+  sequence<Edge<weight_type>> edges_both_directions(2 * edge_list.E.size());
+  parallel_for(0, edge_list.E.size(), [&](const size_t i) {
+    const auto& orig_edge = edge_list.E[i];
+    Edge<weight_type> edge(std::get<0>(orig_edge), std::get<1>(orig_edge), std::get<2>(orig_edge));
+    edges_both_directions[2 * i] = edge;
+    edges_both_directions[2 * i + 1] =
+        Edge<weight_type>{edge.to, edge.from, edge.weight};
+  });
+  const sequence<Edge<weight_type>> edges =
+      internal::sort_and_dedupe(std::move(edges_both_directions));
+  const size_t num_edges = edges.size();
+  const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
+  vertex_data* vertex_data =
+      internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
+
+  edge_type* edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
+  parallel_for(0, num_edges, [&](const size_t i) {
+    const Edge<weight_type>& edge = edges[i];
+    edges_array[i] = std::make_tuple(edge.to, edge.weight);
+  });
+
+  return symmetric_graph<symmetric_vertex, weight_type>{
+      vertex_data, num_vertices, num_edges,
+      [=]() {
+        gbbs::free_array(vertex_data, num_vertices);
+        gbbs::free_array(edges_array, num_edges);
+      },
+      edges_array};
+}
+
+template <class Graph>
+auto edge_sparsify_graph(Graph& GA, size_t denom, long seed) {
+  // If we sparsify and then symmetrize, probability of or is
+  // 1 - (1-p)^2
+  // So we want to sample with probability q such that p = 1 - (1 - q)^2
+  // q = 1 - sqrt(1 - p) where p = 1 / denom
+  using W = typename Graph::weight_type;
+  size_t n = GA.n;
+  // Color vertices with denom colors
+  uintE numColors = std::max((uintE) 1, (uintE) (1.0 / (1.0 - std::sqrt(1 - 1.0 /denom))));
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    if ((pbbs::hash64_2((uintE) seed+i) % numColors) == 0) return 2;
+    return 1;
+  };
+  // Filter into an edge array, and then construct sym graph from edges
+  auto edges = filter_edges(GA, pack_predicate);
+
+  return edge_list_to_symmetric_graph(edges);
+}
+
 struct U_FastReset {
   uintE* U = nullptr;
   uintE* distinct = nullptr;
