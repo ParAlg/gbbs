@@ -54,7 +54,7 @@ auto edge_sparsify_graph(Graph& GA, size_t denom, long seed) {
   // Color vertices with denom colors
   uintE numColors = std::max((uintE) 1, (uintE) (1.0 / (1.0 - std::sqrt(1 - 1.0 /denom))));
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    if ((parlay::hash64((uintE) seed+i) % numColors) == 0) return 2;
+    if ((parlay::hash64((uintE) seed+parlay::hash64(u * n + v)) % numColors) == 0) return 2;
     return 1;
   };
   // Filter into an edge array, and then construct sym graph from edges
