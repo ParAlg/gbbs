@@ -34,13 +34,12 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   uintE numColors = std::max((size_t) 1,denom);
   auto colors = sequence<uintE>::from_function(n, [&](size_t i) { return parlay::hash64((uintE) seed+i) % numColors; });
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    if (colors[u] == colors[v]) return 0;
+    if (colors[u] == colors[v]) return 2;
     return 1;
   };
-  filter_edges(GA, pack_predicate); //auto edges =
-  //auto edges_seq = edges.to_seq();
-  //return filter_graph(GA, pack_predicate);
-  return GA; //sym_graph_from_edges(edges_seq, edges_seq.size());
+  auto edges = filter_edges(GA, pack_predicate);
+
+  return gbbs_io::edge_list_to_symmetric_graph(edges);
 }
 
 template <class Graph>
