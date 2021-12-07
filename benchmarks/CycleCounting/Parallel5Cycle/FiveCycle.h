@@ -60,7 +60,7 @@ auto edge_sparsify_graph(Graph& GA, size_t denom, long seed) {
   // Filter into an edge array, and then construct sym graph from edges
   auto edges = filter_edges(GA, pack_predicate);
 
-  return edge_list_to_symmetric_graph(edges);
+  return gbbs_io::edge_list_to_symmetric_graph(edges);
 }
 
 struct U_FastReset {
