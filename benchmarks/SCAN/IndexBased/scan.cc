@@ -220,7 +220,7 @@ Clustering Index::Cluster(
 void Index::Cluster(
     const uint64_t mu,
     const sequence<float>& epsilons,
-    const std::function<void(Clustering, size_t)> f,
+    const std::function<void(Clustering&&, size_t)> f,
     const bool get_deterministic_result) const {
   // TODO(tomtseng): please refactor this. this is messy, copy-and-pasted code
   // written in a rush

@@ -232,7 +232,7 @@ QueryInfo SearchForClusters(
   scan::Clustering best_clusters{};
   for (size_t mu{2}; mu <= max_degree + 1; mu *= 2) {
     const auto update_best_clusters{
-      [&](scan::Clustering clusters, size_t i) {
+      [&](scan::Clustering&& clusters, size_t i) {
         const double modularity{scan::Modularity(graph, clusters)};
         if (modularity > best_modularity) {
           best_modularity = modularity;

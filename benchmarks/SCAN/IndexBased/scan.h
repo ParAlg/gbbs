@@ -81,7 +81,7 @@ class Index {
   void Cluster(
       uint64_t mu,
       const sequence<float>& epsilons,
-      const std::function<void(Clustering, size_t)> f,
+      const std::function<void(Clustering&&, size_t)> f,
       bool get_deterministic_result = false) const;
 
  private:
