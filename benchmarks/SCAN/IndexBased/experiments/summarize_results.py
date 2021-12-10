@@ -4,7 +4,7 @@ organizes the data into several files in ~/scan-experiments-results/summary
 representing the data for each plot in the paper "Parallel Index-Based
 Structural Graph Clustering and Its Approximation".
 """
-# 1/usr/bin/env python3.6
+#!/usr/bin/env python3.6
 
 import collections
 import csv
