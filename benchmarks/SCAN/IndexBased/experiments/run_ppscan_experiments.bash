@@ -10,7 +10,7 @@ mkdir --parents ${RESULTS_DIR}
 cd ${CODE_DIR}
 git clone https://github.com/RapidsAtHKUST/ppSCAN.git
 cd ppSCAN
-git reset --hard ${COMMIT_SHA}
+git checkout ${COMMIT_SHA}
 cd pSCAN-refactor
 tar --extract --verbose --file=${GBBS_DIR}/benchmarks/SCAN/IndexBased/experiments/ppscan-changed-files.tar.gz
 cp ppscan-changed-files/*.{h,cpp} .
@@ -25,5 +25,5 @@ for GRAPH in "${GRAPHS[@]}"
 do
   mkdir --parents ${DATA_DIR}/${GRAPH}-pp
   converter/converter ${DATA_DIR}/${GRAPH}-edges ${DATA_DIR}/${GRAPH}-pp/b_degree.bin ${DATA_DIR}/${GRAPH}-pp/b_adj.bin
-  numactl -i all ./pSCANParallelAVX2 ${DATA_DIR}/${GRAPH}-pp/ 0.6 5 2>&1 | tee ${RESULTS_DIR}/${GRAPH}-pp.txt
+  numactl -i all ./pSCANParallelAVX2 ${DATA_DIR}/${GRAPH}-pp/ 0.6 5 2>&1 >/dev/null | tee ${RESULTS_DIR}/${GRAPH}-pp.txt
 done
