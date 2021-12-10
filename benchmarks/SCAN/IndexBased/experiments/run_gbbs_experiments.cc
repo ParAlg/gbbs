@@ -83,6 +83,58 @@ double AriQuerier::AdjustedRandIndex(
   return adjusted_rand_index;
 }
 
+// Represents one line in the output CSV.
+struct CsvEntry {
+  std::string similarity_measure{};
+  int approximation_samples{0};
+  std::string operation{};
+  uint64_t mu{0};
+  float epsilon{-1};
+  double median_time{-1};
+  double quality{-1};
+
+  static void OutputHeader() {
+    std::cerr
+      << "similarity measure,"
+      << "approximation samples,"
+      << "operation,"
+      << "mu,"
+      << "epsilon,"
+      << "median_time,"
+      << "quality\n";
+  }
+
+  void Output() const {
+    if (!similarity_measure.empty()) std::cerr << similarity_measure;
+    std::cerr << ',';
+    if (approximation_samples) std::cerr << approximation_samples;
+    std::cerr << ',';
+    if (!operation.empty()) std::cerr << operation;
+    std::cerr << ',';
+    if (mu) std::cerr << mu;
+    std::cerr << ',';
+    if (epsilon >= 0) std::cerr << epsilon;
+    std::cerr << ',';
+    if (median_time >= 0) std::cerr << median_time;
+    std::cerr << ',';
+    if (quality >= 0) std::cerr << quality;
+    std::cerr << '\n';
+  }
+};
+
+template <typename T>
+std::string SimilarityToString() {
+  if constexpr (std::is_same_v<T, scan::CosineSimilarity>) {
+    return "cosine similarity";
+  } else if constexpr (std::is_same_v<T, scan::ApproxCosineSimilarity>) {
+    return "approximate cosine similarity";
+  } else if constexpr (std::is_same_v<T, scan::JaccardSimilarity>) {
+    return "jaccard similarity";
+  } else if constexpr (std::is_same_v<T, scan::ApproxJaccardSimilarity>) {
+    return "approximate jaccard similarity";
+  }
+}
+
 template <typename T>
 double Median(std::vector<T> v) {
   const size_t size = v.size();
@@ -102,6 +154,9 @@ std::string ParametersToString(const size_t mu, const float epsilon) {
 }
 
 void PrintClock() {
+  if (!verbose) {
+    return;
+  }
   std::time_t time{std::chrono::system_clock::to_time_t(
       std::chrono::system_clock::now())};
   std::cerr << "[Clock] " << std::ctime(&time);
@@ -135,7 +190,13 @@ indexed_scan::Index BuildIndexAndOutputTimes(
   indexed_scan::Index index{graph, scan::CosineSimilarity{}};
   times.emplace_back(timer.stop());
   if (verbose) { std::cerr << ' ' << times.back(); }
-  std::cerr << "** Index construction median time: " << Median(times) << "\n\n";
+
+  CsvEntry csv;
+  csv.similarity_measure = SimilarityToString<SimilarityMeasure>();
+  csv.operation = "index construction";
+  csv.median_time = Median(times);
+  csv.Output();
+
   return index;
 }
 
@@ -143,7 +204,10 @@ indexed_scan::Index BuildIndexAndOutputTimes(
 void OutputQueryTimes(
     const indexed_scan::Index& index,
     const size_t max_degree,
-    const size_t num_rounds) {
+    const size_t num_rounds,
+    CsvEntry partial_csv) {
+  partial_csv.operation = "cluster";
+
   // Output query times with fixed epsilon and varying mu.
   for (size_t mu{2}; mu <= max_degree + 1; mu *= 2) {
     std::vector<double> query_times;
@@ -157,14 +221,17 @@ void OutputQueryTimes(
       query_times.emplace_back(query_timer.stop());
       if (verbose) { std::cerr << ' ' << query_times.back(); }
     }
-    std::cerr << "** Cluster median time " << ParametersToString(mu, kEpsilon)
-      << ": " << Median(query_times) << "\n";
+
+    CsvEntry csv = partial_csv;
+    csv.mu = mu;
+    csv.epsilon = kEpsilon;
+    csv.median_time = Median(query_times);
+    csv.Output();
   }
 
   // Output query times with fixed mu and varying epsilon.
   constexpr double kMu{5};
   const sequence<float> epsilons{{.1, .2, .3, .4, .5, .6, .7, .8, .9}};
-  std::vector<double> total_query_times(num_rounds, 0);
   for (float epsilon : epsilons) {
     std::vector<double> query_times;
     if (verbose) { std::cerr << "query " << ParametersToString(kMu, epsilon) << ":"; }
@@ -173,21 +240,13 @@ void OutputQueryTimes(
       const scan::Clustering clusters{index.Cluster(kMu, epsilon)};
       query_times.emplace_back(query_timer.stop());
       if (verbose) { std::cerr << ' ' << query_times.back(); }
-      total_query_times[i] += query_times.back();
     }
-    std::cerr << "** Cluster median time " << ParametersToString(kMu, epsilon)
-      << ": " << Median(query_times) << "\n";
+    CsvEntry csv = partial_csv;
+    csv.mu = kMu;
+    csv.epsilon = epsilon;
+    csv.median_time = Median(query_times);
+    csv.Output();
   }
-  std::vector<double> bulk_query_times;
-  constexpr auto clustering_no_op{[](scan::Clustering, size_t) {}};
-  for (size_t i{0}; i < num_rounds; i++) {
-    timer bulk_query_timer{"query"};
-    index.Cluster(kMu, epsilons, clustering_no_op);
-    bulk_query_times.emplace_back(bulk_query_timer.stop());
-    if (verbose) { std::cerr << ' ' << bulk_query_times.back(); }
-  }
-  std::cerr << "** Bulk cluster median time mu=5: " << Median(bulk_query_times)
-    << " vs. total individual queries: " << Median(total_query_times) << "\n";
 }
 
 // Output approximate index construction time as the median of several trials
@@ -205,7 +264,13 @@ void OutputBuildApproximateIndexTimes(
     times.emplace_back(timer.stop());
     if (verbose) { std::cerr << ' ' << times.back(); }
   }
-  std::cerr << "** Index construction median time: " << Median(times) << "\n\n";
+
+  CsvEntry csv;
+  csv.similarity_measure = SimilarityToString<SimilarityMeasure>();
+  csv.approximation_samples = num_samples;
+  csv.operation = "index construction";
+  csv.median_time = Median(times);
+  csv.Output();
 }
 
 struct QueryInfo {
@@ -270,7 +335,6 @@ void OutputApproximateQuality(
     const size_t max_degree,
     const uint32_t num_samples,
     const size_t num_rounds) {
-  double total_modularity_at_exact = 0.0;
   double total_modularity_at_approx = 0.0;
   double total_ari = 0.0;
   for (size_t seed{0}; seed < num_rounds; seed++) {
@@ -282,28 +346,42 @@ void OutputApproximateQuality(
           best_exact_clustering.mu,
           best_exact_clustering.epsilon,
           kDeterministic)};
-      const double modularity{scan::Modularity(graph, clusters)};
       const double ari{ari_querier.AdjustedRandIndex(
           best_exact_clustering.clusters, clusters)};
-      total_modularity_at_exact += modularity;
       total_ari += ari;
-      std::cerr << "At exact params: modularity=" << modularity
+      if (verbose) {
+        const double modularity{scan::Modularity(graph, clusters)};
+        std::cerr << "At exact params: modularity=" << modularity
         << " ARI=" << ari << '\n';
+      }
     }
     {
       const QueryInfo best_approx_query{
         SearchForClusters(graph, approx_index, max_degree)};
       total_modularity_at_approx += best_approx_query.modularity;
-      std::cerr << "At best approx params "
+      if (verbose) std::cerr << "At best approx params "
         << ParametersToString(best_approx_query.mu, best_approx_query.epsilon)
         << " modularity=" << best_approx_query.modularity << '\n';
     }
   }
-  std::cerr << "Mean modularity @ exact params="
-    << total_modularity_at_exact / num_rounds
-    << " mean ari=" << total_ari / num_rounds << '\n';
-  std::cerr << "Mean modularity @ approx best params="
-    << total_modularity_at_approx / num_rounds << '\n';
+  {
+    CsvEntry entry;
+    entry.similarity_measure = SimilarityToString<SimilarityMeasure>();
+    entry.approximation_samples = num_samples;
+    entry.operation = "mean ari at best exact clustering";
+    entry.mu = best_exact_clustering.mu;
+    entry.epsilon = best_exact_clustering.epsilon;
+    entry.quality = total_ari / num_rounds;
+    entry.Output();
+  }
+  {
+    CsvEntry entry;
+    entry.similarity_measure = SimilarityToString<SimilarityMeasure>();
+    entry.approximation_samples = num_samples;
+    entry.operation = "mean modularity at best approximate clustering";
+    entry.quality = total_modularity_at_approx / num_rounds;
+    entry.Output();
+  }
 }
 
 // Run experiments with cosine similarity as the similarity measure.
@@ -314,37 +392,39 @@ void RunCosineExperiments(
     const size_t num_cluster_rounds,
     const bool skip_approx_experiments) {
   const size_t max_degree{GetMaxDegree(graph)};
-  std::cerr << "\n";
-  std::cerr << "**********************\n";
-  std::cerr << "** CosineSimilarity **\n";
-  std::cerr << "**********************\n";
+
+  // Exact cosine similarity experiments
 
   PrintClock();
   indexed_scan::Index exact_index{BuildIndexAndOutputTimes(
       graph, scan::CosineSimilarity{}, num_index_rounds)};
   PrintClock();
-  OutputQueryTimes(exact_index, max_degree, num_cluster_rounds);
+  {
+    CsvEntry entry;
+    entry.similarity_measure = SimilarityToString<scan::CosineSimilarity>();
+    OutputQueryTimes(exact_index, max_degree, num_cluster_rounds, entry);
+  }
 
   if (skip_approx_experiments) {
     return;
   }
 
-  std::cerr << "****************************\n";
-  std::cerr << "** ApproxCosineSimilarity **\n";
-  std::cerr << "****************************\n";
+  // Approximate cosine similarity experiments
 
   const QueryInfo best_exact_clustering{
     SearchForClusters(graph, exact_index, max_degree)};
-  std::cerr << "Best exact params "
-    << ParametersToString(
-        best_exact_clustering.mu, best_exact_clustering.epsilon)
-    << ", modularity " << best_exact_clustering.modularity << '\n';
+  {
+    CsvEntry entry;
+    entry.similarity_measure = SimilarityToString<scan::CosineSimilarity>();
+    entry.operation = "best exact clustering";
+    entry.mu = best_exact_clustering.mu;
+    entry.epsilon = best_exact_clustering.epsilon;
+    entry.quality = best_exact_clustering.modularity;
+    entry.Output();
+  }
   exact_index = indexed_scan::Index{};  // destruct index to save memory
 
   for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
-    std::cerr << "\n";
-    std::cerr << "Samples=" << num_samples << '\n';
-    std::cerr << "----------\n";
     PrintClock();
     OutputBuildApproximateIndexTimes<Graph, scan::ApproxCosineSimilarity>(
           graph, num_samples, num_index_rounds);
@@ -368,24 +448,22 @@ void RunJaccardExperiments(
     return;
   }
   const size_t max_degree{GetMaxDegree(graph)};
-  std::cerr << "\n";
-  std::cerr << "*****************************\n";
-  std::cerr << "** ApproxJaccardSimilarity **\n";
-  std::cerr << "*****************************\n";
 
   indexed_scan::Index exact_index{graph, scan::JaccardSimilarity{}};
   const QueryInfo best_exact_clustering{
     SearchForClusters(graph, exact_index, max_degree)};
-  std::cerr << "Best exact params "
-    << ParametersToString(
-        best_exact_clustering.mu, best_exact_clustering.epsilon)
-    << ", modularity " << best_exact_clustering.modularity << '\n';
+  {
+    CsvEntry entry;
+    entry.similarity_measure = SimilarityToString<scan::JaccardSimilarity>();
+    entry.operation = "best exact clustering";
+    entry.mu = best_exact_clustering.mu;
+    entry.epsilon = best_exact_clustering.epsilon;
+    entry.quality = best_exact_clustering.modularity;
+    entry.Output();
+  }
   exact_index = indexed_scan::Index{};  // destruct index to save memory
 
   for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
-    std::cerr << "\n";
-    std::cerr << "Samples=" << num_samples << '\n';
-    std::cerr << "----------\n";
     PrintClock();
     OutputBuildApproximateIndexTimes<Graph, scan::ApproxJaccardSimilarity>(
           graph, num_samples, num_index_rounds);
@@ -442,6 +520,7 @@ int main(int argc, char* argv[]) {
   const bool is_graph_float_weighted{params.getOptionValue("-wf")};
   const bool should_mmap_graph{params.getOptionValue("-m")};
   const bool is_graph_binary{params.getOptionValue("-b")};
+  gbbs::CsvEntry::OutputHeader();
   if (is_graph_float_weighted) {
     auto graph{gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
         input_graph_file, should_mmap_graph, is_graph_binary)};
