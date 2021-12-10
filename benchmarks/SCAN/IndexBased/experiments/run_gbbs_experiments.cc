@@ -31,10 +31,10 @@ namespace {
 constexpr bool verbose{false};
 
 // Wrapper class for computing the adjusted Rand index between two clusterings.
-class ARIQuerier {
+class AriQuerier {
  public:
-  ARIQuerier();
-  ~ARIQuerier();
+  AriQuerier();
+  ~AriQuerier();
 
   double
   AdjustedRandIndex(const scan::Clustering& a, const scan::Clustering& b) const;
@@ -45,7 +45,7 @@ class ARIQuerier {
   PyObject* py_ari_func_{nullptr};
 } ari_querier;
 
-ARIQuerier::ARIQuerier() {
+AriQuerier::AriQuerier() {
   Py_Initialize();
   py_module_name_ = PyUnicode_DecodeFSDefault("sklearn.metrics");
   py_module_ = PyImport_Import(py_module_name_);
@@ -56,14 +56,14 @@ ARIQuerier::ARIQuerier() {
   ASSERT(PyCallable_Check(py_ari_func_));
 }
 
-ARIQuerier::~ARIQuerier() {
+AriQuerier::~AriQuerier() {
   Py_DECREF(py_ari_func_);
   Py_DECREF(py_module_);
   Py_DECREF(py_module_name_);
   Py_FinalizeEx();
 }
 
-double ARIQuerier::AdjustedRandIndex(
+double AriQuerier::AdjustedRandIndex(
     const scan::Clustering& a,
     const scan::Clustering& b) const {
   PyObject* py_args{PyTuple_New(2)};
