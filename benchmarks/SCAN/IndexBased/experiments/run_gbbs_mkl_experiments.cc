@@ -24,6 +24,59 @@ namespace {
 
 constexpr bool verbose{false};
 
+struct CsvEntry {
+  std::string similarity_measure{};
+  int approximation_samples{0};
+  std::string operation{};
+  uint64_t mu{0};
+  float epsilon{-1};
+  double median_time{-1};
+  double quality{-1};
+
+  static void OutputHeader() {
+    std::cerr
+      << "similarity measure,"
+      << "approximation samples,"
+      << "operation,"
+      << "mu,"
+      << "epsilon,"
+      << "median_time,"
+      << "quality\n";
+  }
+
+  void Output() const {
+    std::cerr << similarity_measure;
+    std::cerr << ',';
+    if (approximation_samples) std::cerr << approximation_samples;
+    std::cerr << ',';
+    std::cerr << operation;
+    std::cerr << ',';
+    if (mu) std::cerr << mu;
+    std::cerr << ',';
+    if (epsilon >= 0) std::cerr << epsilon;
+    std::cerr << ',';
+    if (median_time >= 0) std::cerr << median_time;
+    std::cerr << ',';
+    if (quality >= 0) std::cerr << quality;
+    std::cerr << '\n';
+  }
+};
+
+template <typename T>
+std::string SimilarityToString() {
+  if constexpr (std::is_same_v<T, scan::CosineSimilarity>) {
+    return "cosine similarity";
+  } else if constexpr (std::is_same_v<T, scan::ApproxCosineSimilarity>) {
+    return "approximate cosine similarity";
+  } else if constexpr (std::is_same_v<T, scan::JaccardSimilarity>) {
+    return "jaccard similarity";
+  } else if constexpr (std::is_same_v<T, scan::ApproxJaccardSimilarity>) {
+    return "approximate jaccard similarity";
+  } else if constexpr (std::is_same_v<T, scan::DenseCosineSimilarity>) {
+    return "cosine similarity";
+  }
+}
+
 template <typename T>
 double Median(std::vector<T> v) {
   const size_t size = v.size();
@@ -39,6 +92,9 @@ double Median(std::vector<T> v) {
 }
 
 void PrintClock() {
+  if (!verbose) {
+    return;
+  }
   std::time_t time{std::chrono::system_clock::to_time_t(
       std::chrono::system_clock::now())};
   std::cerr << "[Clock] " << std::ctime(&time);
@@ -63,7 +119,13 @@ indexed_scan::Index BuildIndexAndOutputTimes(
   indexed_scan::Index index{graph, scan::CosineSimilarity{}};
   times.emplace_back(timer.stop());
   if (verbose) { std::cerr << ' ' << times.back(); }
-  std::cerr << "** Index construction median time: " << Median(times) << "\n\n";
+
+  CsvEntry csv;
+  csv.similarity_measure = SimilarityToString<SimilarityMeasure>();
+  csv.operation = "index construction";
+  csv.median_time = Median(times);
+  csv.Output();
+
   return index;
 }
 
@@ -74,10 +136,6 @@ void RunScan(Graph& graph, const commandLine& params) {
     // get the graph into cache so timings are consistent
     indexed_scan::Index{&graph, scan::ApproxCosineSimilarity{1, 0}};
   }
-  std::cerr << "\n";
-  std::cerr << "**********************\n";
-  std::cerr << "** DenseCosineSimilarity **\n";
-  std::cerr << "**********************\n";
   PrintClock();
   constexpr size_t kIndexRounds{5};
   BuildIndexAndOutputTimes(&graph, scan::DenseCosineSimilarity{}, kIndexRounds);
@@ -98,6 +156,8 @@ int main(int argc, char* argv[]) {
   const bool is_graph_float_weighted{params.getOptionValue("-wf")};
   const bool should_mmap_graph{params.getOptionValue("-m")};
   const bool is_graph_binary{params.getOptionValue("-b")};
+  std::cerr << "\n\nBEGIN GBBS EXPERIMENTS OUTPUT\n";
+  gbbs::CsvEntry::OutputHeader();
   if (is_graph_float_weighted) {
     auto graph{gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
         input_graph_file, should_mmap_graph, is_graph_binary)};
