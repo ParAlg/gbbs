@@ -18,8 +18,8 @@ do
   ${RUN_PARALLEL} -wf ${DATA_DIR}/${GRAPH}-csr 2>&1 | tee ${RESULTS_DIR}/${GRAPH}-gbbs-mkl.txt
 done
 
-SERIAL=1
-MKL_NUM_THREADS=1
+export SERIAL=1
+export MKL_NUM_THREADS=1
 cd ..
 make
 cd -
