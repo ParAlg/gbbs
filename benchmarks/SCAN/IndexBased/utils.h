@@ -107,6 +107,9 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
     Monoid&& reduce_fn,
     size_t num_keys) {
   using Value = typename std::remove_reference_t<Monoid>::T;
+  if (seq.empty()) {
+    return sequence<Value>(num_keys, reduce_fn.identity);
+  }
   sequence<size_t> bucketed_indices = sequence<size_t>::from_function(
     seq.size(),
     [](const size_t i) { return i; });
@@ -169,12 +172,11 @@ double Modularity(
   }
   const size_t num_vertices{graph->n};
   const size_t num_clusters{
-    1 +
     parlay::reduce_max(parlay::delayed_seq<uintE>(
       num_vertices,
       [&](const size_t vertex_id) {
         const uintE cluster_id{clustering[vertex_id]};
-        return cluster_id == kUnclustered ? 0 : cluster_id;
+        return cluster_id == kUnclustered ? 0 : cluster_id + 1;
       }))};
 
   if constexpr (std::is_same<Weight, gbbs::empty>::value) {
