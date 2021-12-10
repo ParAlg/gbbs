@@ -100,7 +100,7 @@ struct CsvEntry {
       << "operation,"
       << "mu,"
       << "epsilon,"
-      << "median_time,"
+      << "median time,"
       << "quality\n";
   }
 
