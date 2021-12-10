@@ -248,12 +248,12 @@ double Modularity(
     }};
     const parlay::addm<double> add_weights{};
     // weighted_degrees[i] = sum of weights of incident edges on vertex i
-    const sequence<double> weighted_degrees{
+    const auto weighted_degrees{sequence<double>::from_function(
       graph->n,
       [&](const size_t i) {
         return graph->get_vertex(i)
           .out_neighbors().reduce(get_weight, add_weights);
-      }};
+      })};
     // 2 * sum of all edge weights
     const double total_weight{parlay::reduce(weighted_degrees)};
 

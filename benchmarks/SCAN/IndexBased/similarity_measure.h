@@ -519,7 +519,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     if constexpr (std::is_same<Weight, gbbs::empty>::value) {  // unweighted
       return {};
     } else {  // weighted case
-      return sequence<double>{
+      return sequence<double>::from_function(
         graph->n,
         [&](const size_t vertex_id) {
           double norm = kWeightFactor * kWeightFactor;  // add self-loop weight
@@ -531,7 +531,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
             }};
           vertex.out_neighbors().map(update_norm, kParallel);
           return std::sqrt(norm);
-        }};
+        });
     }
   }()};
 
@@ -866,7 +866,7 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
       vertex.out_neighbors().map_with_index(intersect, kParallel);
     });
 
-    const sequence<double> norms{
+    const auto norms{sequence<double>::from_function(
       graph->n,
       [&](const size_t vertex_id) {
         double norm = kWeightFactor * kWeightFactor;  // add self-loop weight
@@ -878,7 +878,7 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
           }};
         vertex.out_neighbors().map(update_norm, kParallel);
         return std::sqrt(norm);
-      }};
+      })};
 
     sequence<EdgeSimilarity> similarities(graph->m);
     // Convert shared neighbor counts into similarities for each edge.
