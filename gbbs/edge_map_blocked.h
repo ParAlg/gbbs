@@ -304,9 +304,9 @@ void alloc_init(Graph& G) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
   size_t list_alloc_init_blocks = std::max(static_cast<size_t>(0.5 * (G.n/uintes_per_block)),
       static_cast<size_t>(1000));
-  std::cout << "# list_alloc init_blocks: " << list_alloc_init_blocks << std::endl;
+  // std::cout << "# list_alloc init_blocks: " << list_alloc_init_blocks << std::endl;
   data_block_allocator::reserve(list_alloc_init_blocks);
-  std::cout << "# after init: " << std::endl;
+  // std::cout << "# after init: " << std::endl;
   data_block_allocator::print_stats();
 }
 
