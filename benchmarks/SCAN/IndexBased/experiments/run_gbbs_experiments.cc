@@ -520,6 +520,7 @@ int main(int argc, char* argv[]) {
   const bool is_graph_float_weighted{params.getOptionValue("-wf")};
   const bool should_mmap_graph{params.getOptionValue("-m")};
   const bool is_graph_binary{params.getOptionValue("-b")};
+  std::cerr << "\n\nBEGIN GBBS EXPERIMENTS OUTPUT\n";
   gbbs::CsvEntry::OutputHeader();
   if (is_graph_float_weighted) {
     auto graph{gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
