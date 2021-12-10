@@ -3,7 +3,7 @@
 DATA_DIR=~/data
 RESULTS_DIR=~/scan-experiment-results
 RUN_PARALLEL="numactl -i all ./run_gbbs_mkl_experiments -s"
-RUN_SERIAL="MKL_NUM_THREADS=1 ./run_gbbs_mkl_experiments -s
+RUN_SERIAL="MKL_NUM_THREADS=1 ./run_gbbs_mkl_experiments -s"
 
 mkdir --parents ${RESULTS_DIR}
 
