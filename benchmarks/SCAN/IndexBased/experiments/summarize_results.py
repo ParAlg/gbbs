@@ -1,8 +1,8 @@
 """
-This is a script that takes all the outputs in ~/scan-experiment-results (after
-the user has ran all the experiments) and organizes the data into several files
-in ~/scan-experiments-results/summary representing the data for each plot in the
-paper "Parallel Index-Based Structural Graph Clustering and Its Approximation".
+This is a script that takes all the outputs in ~/scan-experiment-results and
+organizes the data into several files in ~/scan-experiments-results/summary
+representing the data for each plot in the paper "Parallel Index-Based
+Structural Graph Clustering and Its Approximation".
 """
 # 1/usr/bin/env python3.6
 
@@ -173,6 +173,13 @@ def fig9(data):
                 **val,
             }
         )
+    rows.sort(
+        key=lambda r: (
+            r["graph"],
+            r["similarity measure"],
+            int(r["approximation samples"] or 0),
+        )
+    )
     write_summary("figure-9.txt", rows)
 
 
@@ -205,6 +212,13 @@ def fig10(data):
                 **val,
             }
         )
+    rows.sort(
+        key=lambda r: (
+            r["graph"],
+            r["similarity measure"],
+            int(r["approximation samples"] or 0),
+        )
+    )
     write_summary("figure-10.txt", rows)
 
 
