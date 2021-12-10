@@ -105,11 +105,11 @@ struct CsvEntry {
   }
 
   void Output() const {
-    if (!similarity_measure.empty()) std::cerr << similarity_measure;
+    std::cerr << similarity_measure;
     std::cerr << ',';
     if (approximation_samples) std::cerr << approximation_samples;
     std::cerr << ',';
-    if (!operation.empty()) std::cerr << operation;
+    std::cerr << operation;
     std::cerr << ',';
     if (mu) std::cerr << mu;
     std::cerr << ',';
