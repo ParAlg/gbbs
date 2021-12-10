@@ -11,15 +11,14 @@ import csv
 import itertools
 import os
 
-input_directory = os.path.expanduser("~/scan-experiment-results")
-output_directory = input_directory + "/summary"
-if not os.path.exists(output_directory):
-    os.makedirs(output_directory)
-
+INPUT_DIRECTORY = os.path.expanduser("~/scan-experiment-results")
+OUTPUT_DIRECTORY = INPUT_DIRECTORY + "/summary"
+if not os.path.exists(OUTPUT_DIRECTORY):
+    os.makedirs(OUTPUT_DIRECTORY)
 
 def get_all_data():
     all_data = []
-    for filename in os.listdir(input_directory):
+    for filename in os.listdir(INPUT_DIRECTORY):
         if not filename.endswith(".txt"):
             continue
         split_filename = filename[:-4].split("-")
@@ -27,6 +26,7 @@ def get_all_data():
             print("ignoring file " + filename)
             continue
 
+        path = INPUT_DIRECTORY + "/" + filename
         graph = split_filename[0]
         is_mkl = len(split_filename) >= 3 and split_filename[2] == "mkl"
         is_serial = split_filename[-1] == "serial"
@@ -37,7 +37,7 @@ def get_all_data():
             if is_serial:
                 algorithm += "_1-thread"
 
-            with open(filename, newline="") as csvfile:
+            with open(path, newline="") as csvfile:
                 truncated_file = itertools.dropwhile(
                     lambda line: not line.startswith("BEGIN GBBS EXPERIMENTS OUTPUT"),
                     csvfile,
@@ -49,7 +49,7 @@ def get_all_data():
                     row["algorithm"] = algorithm
                     all_data.append(dict(row))
         elif split_filename[1] == "pp":
-            with open(filename, newline="") as csvfile:
+            with open(path, newline="") as csvfile:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
                     row["graph"] = graph
@@ -77,7 +77,7 @@ FIELD_NAMES = [
 
 
 def write_summary(filename, rows):
-    with open(output_directory + "/" + filename, "w", newline="") as csvfile:
+    with open(OUTPUT_DIRECTORY + "/" + filename, "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=FIELD_NAMES)
         writer.writeheader()
         for row in rows:
