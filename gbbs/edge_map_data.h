@@ -141,7 +141,8 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
   if (threshold == -1) dense_threshold = numEdges / 20;
   if (vs.size() == 0) return vertexSubsetData<Data>(numVertices);
 
-  if (vs.isDense && vs.size() > numVertices / 10) {
+  if ((fl && dense_only) || (vs.isDense && vs.size() > numVertices / 10)) {
+    vs.toDense();
     timer dt;
     dt.start();
     auto ret = (fl & dense_forward)
