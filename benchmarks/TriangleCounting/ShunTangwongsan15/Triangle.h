@@ -41,14 +41,14 @@ struct countF {
   inline bool update(uintE s, uintE d) {
     auto d_neighbors = G.get_vertex(d).out_neighbors();
     gbbs::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(
-                                       &d_neighbors, s, d));
+                                    &d_neighbors, s, d));
     return 1;
   }
 
   inline bool updateAtomic(uintE s, uintE d) {
     auto d_neighbors = G.get_vertex(d).out_neighbors();
     gbbs::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(
-                                       &d_neighbors, s, d));
+                                    &d_neighbors, s, d));
     return 1;
   }
   inline bool cond(uintE d) { return cond_true(d); }
@@ -60,10 +60,9 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   sequence<uintE> o = sequence<uintE>::uninitialized(n);
 
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) { o[i] = i; });
-  parlay::sample_sort_inplace(
-      make_slice(o), [&](const uintE u, const uintE v) {
-        return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
-      });
+  parlay::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
+    return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
+  });
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) { r[o[i]] = i; });
   return r;
 }

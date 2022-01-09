@@ -13,13 +13,13 @@ struct LDD_Edges_Fn {
 
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
     Parents[d] = Parents[s];
-    Edges[d] = std::make_pair(s,d);
+    Edges[d] = std::make_pair(s, d);
     return true;
   }
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (gbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, Parents[s])) {
-      Edges[d] = std::make_pair(s,d);
+      Edges[d] = std::make_pair(s, d);
       return true;
     }
     return false;
@@ -28,11 +28,10 @@ struct LDD_Edges_Fn {
   inline bool cond(uintE d) { return Parents[d] == UINT_E_MAX; }
 };
 
-
 // Returns a pair containing the clusters and edges.
 template <class Graph>
-inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
-    double beta, bool permute = true, bool pack = false) {
+inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(
+    Graph& G, double beta, bool permute = true, bool pack = false) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
 
@@ -42,8 +41,8 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto Parents = sequence<uintE>(n);
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
-                  { Parents[i] = UINT_E_MAX; });
+  parallel_for(0, n, kDefaultGranularity,
+               [&](size_t i) { Parents[i] = UINT_E_MAX; });
 
   auto Edges = sequence<edge>(n, empty_edge);
 
@@ -66,7 +65,7 @@ inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
       auto pred = [&](uintE v) { return Parents[v] == UINT_E_MAX; };
       auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      parallel_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
+      parallel_for(0, new_centers.size(), kDefaultGranularity, [&](size_t i) {
         uintE v = new_centers[i];
         Parents[v] = v;
       });
@@ -90,14 +89,16 @@ template <class G>
 struct LDDSamplingTemplate {
   G& GA;
 
-  LDDSamplingTemplate(G& GA, commandLine& P) : GA(GA) { }
+  LDDSamplingTemplate(G& GA, commandLine& P) : GA(GA) {}
 
   auto initial_spanning_forest() {
     size_t n = GA.n;
 
-    timer lddt; lddt.start();
-    auto [Parents, Edges] = LDD_sample_edges(GA, 0.2, /* permute = */false);
-    lddt.stop(); lddt.next("## ldd time");
+    timer lddt;
+    lddt.start();
+    auto[Parents, Edges] = LDD_sample_edges(GA, 0.2, /* permute = */ false);
+    lddt.stop();
+    lddt.next("## ldd time");
 
     return std::make_pair(Parents, Edges);
   }

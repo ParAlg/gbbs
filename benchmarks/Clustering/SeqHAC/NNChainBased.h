@@ -37,7 +37,7 @@ void run_chain(Weights& weights, ClusterGraph& CG, std::stack<uintE>& chain,
   assert(chain.size() > 0);
 
   debug(std::cout << std::endl;
-  std::cout << "Starting chain from " << chain.top() << std::endl;);
+        std::cout << "Starting chain from " << chain.top() << std::endl;);
 
   while (chain.size() > 0) {
     uintE top = chain.top();

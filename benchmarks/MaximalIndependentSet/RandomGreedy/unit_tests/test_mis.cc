@@ -2,11 +2,11 @@
 
 #include <unordered_set>
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::AnyOf;
 using ::testing::UnorderedElementsAre;
@@ -33,22 +33,22 @@ inline void CheckMIS(Graph& G, parlay::sequence<bool>& mis) {
       d[ngh] = 1;
     }
   };
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&](size_t i) {
     if (mis[i]) {
       G.get_vertex(i).out_neighbors().map(map_f);
     }
   });
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&](size_t i) {
     if (mis[i]) {
       EXPECT_FALSE(d[i]);
     }
   });
 
-  auto mis_int = parlay::delayed_seq<size_t>(G.n, [&](size_t i) { return (size_t)mis[i]; });
+  auto mis_int = parlay::delayed_seq<size_t>(
+      G.n, [&](size_t i) { return (size_t)mis[i]; });
   size_t mis_size = parlay::reduce(mis_int);
   EXPECT_EQ(parlay::reduce(d), (G.n - mis_size));
 }
-
 
 TEST(MaximalIndependentSet, BasicUsage) {
   // Graph diagram:
@@ -57,12 +57,7 @@ TEST(MaximalIndependentSet, BasicUsage) {
   //                      5 -- 6    7
   constexpr uintE kNumVertices{8};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {2, 3},
-    {3, 4},
-    {3, 5},
-    {4, 5},
-    {5, 6},
+      {0, 1}, {2, 3}, {3, 4}, {3, 5}, {4, 5}, {5, 6},
   };
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 

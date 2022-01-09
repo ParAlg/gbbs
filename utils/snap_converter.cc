@@ -33,10 +33,9 @@ namespace {
 
 // Convert `edge_list` to a graph and write it to `output_file`.
 template <typename Weight>
-void WriteEdgeListAsGraph(
-    const char* output_file,
-    const std::vector<gbbs_io::Edge<Weight>>& edge_list,
-    bool is_symmetric_graph) {
+void WriteEdgeListAsGraph(const char* output_file,
+                          const std::vector<gbbs_io::Edge<Weight>>& edge_list,
+                          bool is_symmetric_graph) {
   if (is_symmetric_graph) {
     auto graph{gbbs_io::edge_list_to_symmetric_graph(edge_list)};
     gbbs_io::write_graph_to_file(output_file, graph);
@@ -48,23 +47,24 @@ void WriteEdgeListAsGraph(
 
 int RunSnapConverter(int argc, char* argv[]) {
   const std::string kCommandLineHelpString{
-    "Usage: ./snap_converter [-s] [-w] -i <input file> -o <output file>\n"
-    "\n"
-    "Converts a graph in edge-list format to the adjacency graph format that\n"
-    "GBBS uses. In particular, graph files downloaded from the SNAP dataset\n"
-    "collection (http://snap.stanford.edu/data/index.html) are often in\n"
-    "edge-list format and may be converted using this tool.\n"
-    "\n"
-    "Arguments:\n"
-    "  -i <filename>: Path to the input edge-list file.\n"
-    "  -o <filename>: Path to the output adjacency graph file.\n"
-    "Optional arguments:\n"
-    "  -s: Treat the edges as a list of undirected edges and create a\n"
-    "      symmetric graph. (Without this flag, the edges are treated as a\n"
-    "      list of directed edges.)\n"
-    "  -w: Use this flag if the edge list is weighted with 32-bit integers.\n"
-    "  -wf: Use this flag if the edge list is weighted with 32-bit floats.\n"
-  };
+      "Usage: ./snap_converter [-s] [-w] -i <input file> -o <output file>\n"
+      "\n"
+      "Converts a graph in edge-list format to the adjacency graph format "
+      "that\n"
+      "GBBS uses. In particular, graph files downloaded from the SNAP dataset\n"
+      "collection (http://snap.stanford.edu/data/index.html) are often in\n"
+      "edge-list format and may be converted using this tool.\n"
+      "\n"
+      "Arguments:\n"
+      "  -i <filename>: Path to the input edge-list file.\n"
+      "  -o <filename>: Path to the output adjacency graph file.\n"
+      "Optional arguments:\n"
+      "  -s: Treat the edges as a list of undirected edges and create a\n"
+      "      symmetric graph. (Without this flag, the edges are treated as a\n"
+      "      list of directed edges.)\n"
+      "  -w: Use this flag if the edge list is weighted with 32-bit integers.\n"
+      "  -wf: Use this flag if the edge list is weighted with 32-bit "
+      "floats.\n"};
   const std::string kInputFlag{"-i"};
   const std::string kOutputFlag{"-o"};
 
@@ -75,17 +75,16 @@ int RunSnapConverter(int argc, char* argv[]) {
   const bool integer_weighted{parameters.getOption("-w")};
   const bool float_weighted{parameters.getOption("-wf")};
 
-  if (argc < 2 ||
-      std::string(argv[1]) == "-h" ||
+  if (argc < 2 || std::string(argv[1]) == "-h" ||
       std::string(argv[1]) == "--help") {
     std::cout << kCommandLineHelpString << '\n';
     return 0;
   }
 
   if (input_file == nullptr || output_file == nullptr) {
-    std::cerr << "ERROR: Please specify the input SNAP file with the '" <<
-      kInputFlag << "' flag and the output file with the '" << kOutputFlag <<
-      "' flag.\n";
+    std::cerr << "ERROR: Please specify the input SNAP file with the '"
+              << kInputFlag << "' flag and the output file with the '"
+              << kOutputFlag << "' flag.\n";
     std::terminate();
   }
   if (integer_weighted && float_weighted) {
@@ -109,6 +108,4 @@ int RunSnapConverter(int argc, char* argv[]) {
 }  // namespace
 }  // namespace gbbs
 
-int main(int argc, char* argv[]) {
-  return gbbs::RunSnapConverter(argc, argv);
-}
+int main(int argc, char* argv[]) { return gbbs::RunSnapConverter(argc, argv); }

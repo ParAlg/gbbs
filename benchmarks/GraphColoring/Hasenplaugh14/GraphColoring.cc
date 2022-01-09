@@ -54,7 +54,8 @@ double Coloring_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -lf = " << runLF << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   auto colors = Coloring(G, runLF);
   double tt = t.stop();
   if (P.getOption("-stats")) {

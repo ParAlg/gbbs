@@ -31,18 +31,19 @@
 namespace gbbs {
 namespace approx_average_linkage {
 
-
-
 template <class Weights>
 struct heap_entry {
   using W = typename Weights::weight_type;
-  using key_t = uintE;  // our_id
-  using val_t = std::pair<uintE, W>;      // (ngh_id, weight)
-  using aug_t = W;      // aggregated weight
+  using key_t = uintE;                // our_id
+  using val_t = std::pair<uintE, W>;  // (ngh_id, weight)
+  using aug_t = W;                    // aggregated weight
   static inline bool comp(key_t a, key_t b) { return a < b; }
-  static aug_t get_empty() { return Weights::id(); }  // check
+  static aug_t get_empty() { return Weights::id(); }              // check
   static aug_t from_entry(key_t k, val_t v) { return v.second; }  // v
-  static aug_t combine(aug_t a, aug_t b) { return Weights::augmented_combine(a, b); }  // used to select min/max edges based on similarity/dissimilarity clustering.
+  static aug_t combine(aug_t a, aug_t b) {
+    return Weights::augmented_combine(a, b);
+  }  // used to select min/max edges based on similarity/dissimilarity
+     // clustering.
 };
 
 template <class Weights,
@@ -53,12 +54,14 @@ template <class Weights,
           template <class WW> class w_vertex,
           class IW>  // the weight type of the underlying graph
 auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.1) {
-  using W = typename Weights::weight_type;  // potentially a more complex type than IW
+  using W =
+      typename Weights::weight_type;  // potentially a more complex type than IW
 
   using pq_elt = std::tuple<uintE, uintE, W>;
   using edge = std::pair<uintE, W>;
 
-  using clustered_graph = gbbs::approx_average_linkage::clustered_graph<Weights, IW, w_vertex>;
+  using clustered_graph =
+      gbbs::approx_average_linkage::clustered_graph<Weights, IW, w_vertex>;
   // using cluster_id = clustering::cluster_id;
 
   size_t n = G.n;
@@ -67,7 +70,6 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
   // clusters formed throughout the clustering process.
   auto CG = clustered_graph(G, weights, epsilon);
 
-
   // PQ stores O(n) values --- one per cluster. The PQ values are (cluster,
   // cluster, weight) triples.
   auto pq_cmp = [](const pq_elt& l, const pq_elt& r) {
@@ -75,14 +77,14 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
   };
   std::priority_queue<pq_elt, std::vector<pq_elt>, decltype(pq_cmp)> pq(pq_cmp);
 
-  //Compute the min-weight edge incident to each original vertex
+  // Compute the min-weight edge incident to each original vertex
   parlay::sequence<edge> best_neighbors(
       n, std::make_pair(UINT_E_MAX, std::numeric_limits<W>::max()));
-   parallel_for(0, n, [&](size_t i) {
-     auto edge_option = CG.clusters[i].highest_priority_edge();
-     if (edge_option.has_value()) {
-       best_neighbors[i] = edge_option.value();
-     }
+  parallel_for(0, n, [&](size_t i) {
+    auto edge_option = CG.clusters[i].highest_priority_edge();
+    if (edge_option.has_value()) {
+      best_neighbors[i] = edge_option.value();
+    }
   });
 
   std::cout << "Starting clustering" << std::endl;
@@ -90,12 +92,10 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
   // Build initial heap elements (min-weight edge incident to each vertex).
   using heap_map = aug_map<heap_entry<Weights>>;
   using heap_ent = std::pair<uintE, std::pair<uintE, W>>;
-  auto ngh_seq = parlay::delayed_seq<heap_ent>(n, [&] (size_t i) {
-    return std::make_pair(i, best_neighbors[i]);
-  });
-  auto initial_heap_elts = parlay::filter(ngh_seq, [&] (auto e) {
-    return e.second.first != UINT_E_MAX;
-  });
+  auto ngh_seq = parlay::delayed_seq<heap_ent>(
+      n, [&](size_t i) { return std::make_pair(i, best_neighbors[i]); });
+  auto initial_heap_elts = parlay::filter(
+      ngh_seq, [&](auto e) { return e.second.first != UINT_E_MAX; });
 
   // Build the heap. All edges stored in the heap are min-edges. An entry for
   // key i in the heap means that the value stored is the min-weight edge
@@ -168,12 +168,11 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
       continue;
     }
 
-
     unites++;
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh);
-    debug(
-    std::cout << "Min weight edge of weight = " << Weights::AsString(wgh) << " between " << u << " " << v << std::endl;
-    std::cout << "Done unite. Merged into " << merged_id << std::endl;);
+    debug(std::cout << "Min weight edge of weight = " << Weights::AsString(wgh)
+                    << " between " << u << " " << v << std::endl;
+          std::cout << "Done unite. Merged into " << merged_id << std::endl;);
 
     auto heap_save = std::move(the_heap);
     auto rem_u = heap_map::remove(std::move(heap_save), u);
@@ -198,4 +197,3 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.
 
 }  // namespace approx_average_linkage
 }  // namespace gbbs
-

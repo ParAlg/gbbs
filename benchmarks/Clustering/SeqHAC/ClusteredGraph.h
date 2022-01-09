@@ -34,7 +34,6 @@ namespace clustering {
 
 template <class Weights, class IW, template <class W> class w_vertex>
 struct clustered_graph {
-
   using orig_vertex = w_vertex<IW>;
   using Graph = symmetric_graph<w_vertex, IW>;
 
@@ -46,18 +45,21 @@ struct clustered_graph {
     using val_t = W;      // weight
     using aug_t = W;      // aggregated weight
     static inline bool comp(key_t a, key_t b) { return a < b; }
-    static aug_t get_empty() { return Weights::id(); }  // check
+    static aug_t get_empty() { return Weights::id(); }       // check
     static aug_t from_entry(key_t k, val_t v) { return v; }  // v
-    static aug_t combine(aug_t a, aug_t b) { return Weights::augmented_combine(a, b); }  // used to select min/max edges based on similarity/dissimilarity clustering.
+    static aug_t combine(aug_t a, aug_t b) {
+      return Weights::augmented_combine(a, b);
+    }  // used to select min/max edges based on similarity/dissimilarity
+       // clustering.
   };
 
   using neighbor_map = aug_map<neighbor_entry>;
 
   struct clustered_vertex {
-
     clustered_vertex() : staleness(0), active(0) {}
 
-    clustered_vertex(uintE vtx_id, orig_vertex& vertex, const Weights& weights) {
+    clustered_vertex(uintE vtx_id, orig_vertex& vertex,
+                     const Weights& weights) {
       auto cluster_size = vertex.out_degree();
       staleness = cluster_size;
       active = true;
@@ -66,15 +68,14 @@ struct clustered_graph {
       auto edges = sequence<edge>::uninitialized(cluster_size);
 
       size_t i = 0;
-      auto map_f = [&] (const uintE& u, const uintE& v, const IW& wgh) {
+      auto map_f = [&](const uintE& u, const uintE& v, const IW& wgh) {
         W true_weight = weights.get_weight(u, v, wgh);
         edges[i++] = std::make_pair(v, true_weight);
       };
-      vertex.out_neighbors().map(map_f, /* parallel = */false);
+      vertex.out_neighbors().map(map_f, /* parallel = */ false);
 
       neighbors = neighbor_map(edges);
     }
-
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -92,21 +93,13 @@ struct clustered_graph {
 #pragma GCC diagnostic pop
 #endif
 
-    uintE size() {
-      return neighbors.size();
-    }
+    uintE size() { return neighbors.size(); }
 
-    bool is_active() {
-      return active;
-    }
+    bool is_active() { return active; }
 
-    uintE get_current_id() {
-      return current_id;
-    }
+    uintE get_current_id() { return current_id; }
 
-    void set_current_id(uintE id) {
-      current_id = id;
-    }
+    void set_current_id(uintE id) { current_id = id; }
 
     // Tracks the last cluster update size.
     uintE staleness;
@@ -130,9 +123,7 @@ struct clustered_graph {
 
   // Returns whether this cluster is still active, or whether it has been merged
   // into a _larger_ cluster.
-  bool is_active(uintE id) {
-    return clusters[id].is_active();
-  }
+  bool is_active(uintE id) { return clusters[id].is_active(); }
 
   uintE new_cluster_id() {
     uintE ret = last_cluster_id;
@@ -148,9 +139,11 @@ struct clustered_graph {
     uintE d_b = clusters[b].size();
     uintE smaller, larger;
     if (d_a < d_b) {
-      smaller = a; larger = b;
+      smaller = a;
+      larger = b;
     } else {
-      larger = a; smaller = b;
+      larger = a;
+      smaller = b;
     }
 
     // Deactivate smaller.
@@ -172,10 +165,9 @@ struct clustered_graph {
 
     auto smaller_keys = neighbor_map::keys(small_pre_merge);
 
-    auto merged = neighbor_map::map_union(
-        std::move(small_pre_merge),
-        std::move(large_pre_merge),
-        Weights::linkage);
+    auto merged =
+        neighbor_map::map_union(std::move(small_pre_merge),
+                                std::move(large_pre_merge), Weights::linkage);
     clusters[larger].neighbors = std::move(merged);
 
     // Save that clusters a and b are merged.
@@ -194,7 +186,7 @@ struct clustered_graph {
     // larger. If the neighbor, w, also has an edge to larger (a
     // smaller-larger-w triangle), then update the weight of this edge.
 
-    for (size_t i=0; i<smaller_keys.size(); i++) {
+    for (size_t i = 0; i < smaller_keys.size(); i++) {
       uintE w = smaller_keys[i];
       assert(clusters[w].neighbors.contains(smaller));  // Sanity.
 
@@ -213,15 +205,15 @@ struct clustered_graph {
     return larger;
   }
 
-
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
     n = G.n;
     last_cluster_id = n;
     num_merges_performed = 0;
     clusters = parlay::sequence<clustered_vertex>(n);
-    dendrogram = parlay::sequence<std::pair<uintE, W>>(2*n - 1, std::make_pair(UINT_E_MAX, W()));
+    dendrogram = parlay::sequence<std::pair<uintE, W>>(
+        2 * n - 1, std::make_pair(UINT_E_MAX, W()));
 
-    parallel_for(0, n, [&] (size_t i) {
+    parallel_for(0, n, [&](size_t i) {
       auto orig = G.get_vertex(i);
       clusters[i] = clustered_vertex(i, orig, weights);
     });
@@ -230,22 +222,23 @@ struct clustered_graph {
 
   // extract dendrogram
   sequence<std::pair<uintE, W>> get_dendrogram() {
-
-    debug(std::cout << "num_merges_performed = " << num_merges_performed << std::endl;);
+    debug(std::cout << "num_merges_performed = " << num_merges_performed
+                    << std::endl;);
     debug(std::cout << "n = " << n << std::endl;);
 
-    if (num_merges_performed < n-1) {
+    if (num_merges_performed < n - 1) {
       size_t last_clust = last_cluster_id;
-      auto ids = parlay::delayed_seq<uintE>(last_clust + 1, [&] (size_t i) {
+      auto ids = parlay::delayed_seq<uintE>(last_clust + 1, [&](size_t i) {
         if (dendrogram[i].first == UINT_E_MAX) return (uintE)i;
         return UINT_E_MAX;
       });
-      auto bad = parlay::filter(ids, [&] (const uintE& e) { return e != UINT_E_MAX; });
+      auto bad =
+          parlay::filter(ids, [&](const uintE& e) { return e != UINT_E_MAX; });
 
       debug(std::cout << "num bad = " << bad.size() << std::endl;);
 
       std::queue<uintE> bad_queue;
-      for (size_t i=0; i<bad.size(); i++) {
+      for (size_t i = 0; i < bad.size(); i++) {
         bad_queue.push(bad[i]);
       }
 
@@ -259,7 +252,8 @@ struct clustered_graph {
         dendrogram[fst] = {new_id, Weights::id()};
         dendrogram[snd] = {new_id, Weights::id()};
 
-        debug(std::cout << "Merged components for: " << fst << " " << snd << " dend_size = " << dendrogram.size() << std::endl;);
+        debug(std::cout << "Merged components for: " << fst << " " << snd
+                        << " dend_size = " << dendrogram.size() << std::endl;);
 
         bad_queue.push(new_id);
       }
@@ -267,10 +261,7 @@ struct clustered_graph {
 
     return std::move(dendrogram);
   }
-
-
 };
-
 
 }  // namespace clustering
 }  // namespace gbbs

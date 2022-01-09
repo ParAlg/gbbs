@@ -9,13 +9,12 @@ namespace scan {
 
 namespace internal {
 
-sequence<float>
-RandomNormalNumbers(const size_t num_numbers, const parlay::random rng) {
-  using RngInt =
-    std::result_of<
-      decltype(&parlay::random::ith_rand)(parlay::random*, uint64_t)>::type;
+sequence<float> RandomNormalNumbers(const size_t num_numbers,
+                                    const parlay::random rng) {
+  using RngInt = std::result_of<decltype (&parlay::random::ith_rand)(
+      parlay::random*, uint64_t)>::type;
   constexpr float max_rng_val{
-    static_cast<float>(std::numeric_limits<RngInt>::max())};
+      static_cast<float>(std::numeric_limits<RngInt>::max())};
 
   sequence<float> normals{sequence<float>::uninitialized(num_numbers)};
   // Generate normal numbers with the Box–Muller transform.
@@ -36,27 +35,23 @@ RandomNormalNumbers(const size_t num_numbers, const parlay::random rng) {
 
 bool operator==(const EdgeSimilarity& a, const EdgeSimilarity& b) {
   return std::tie(a.source, a.neighbor, a.similarity) ==
-    std::tie(b.source, b.neighbor, b.similarity);
+         std::tie(b.source, b.neighbor, b.similarity);
 }
 
-std::ostream&
-operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
+std::ostream& operator<<(std::ostream& os,
+                         const EdgeSimilarity& edge_similarity) {
   os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
      << "), similarity=" << edge_similarity.similarity << '}';
   return os;
 }
 
-ApproxCosineSimilarity::ApproxCosineSimilarity(
-    const uint32_t num_samples,
-    const size_t random_seed)
-  : num_samples_{num_samples}
-  , random_seed_{random_seed} {}
+ApproxCosineSimilarity::ApproxCosineSimilarity(const uint32_t num_samples,
+                                               const size_t random_seed)
+    : num_samples_{num_samples}, random_seed_{random_seed} {}
 
-ApproxJaccardSimilarity::ApproxJaccardSimilarity(
-    const uint32_t num_samples,
-    const size_t random_seed)
-  : num_samples_{num_samples}
-  , random_seed_{random_seed} {}
+ApproxJaccardSimilarity::ApproxJaccardSimilarity(const uint32_t num_samples,
+                                                 const size_t random_seed)
+    : num_samples_{num_samples}, random_seed_{random_seed} {}
 
 }  // namespace scan
 

@@ -44,22 +44,24 @@ double CC_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -beta = " << beta << " -permute = " << P.getOption("-permute") << std::endl;
+  std::cout << "### Params: -beta = " << beta
+            << " -permute = " << P.getOption("-permute") << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   auto pack = P.getOption("-pack");
   assert(P.getOption("-s"));
-  assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
+  assert(!pack);  // discouraged for now. Using the optimized contraction method
+                  // is faster.
   timer t;
   t.start();
-  auto components = workefficient_cc::CC(G, beta, pack, P.getOption("-permute"));
+  auto components =
+      workefficient_cc::CC(G, beta, pack, P.getOption("-permute"));
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
   if (P.getOption("-stats")) {
     auto cc_f = [&](size_t i) { return components[i]; };
-    auto cc_im =
-        parlay::delayed_seq<uintE>(G.n, cc_f);
+    auto cc_im = parlay::delayed_seq<uintE>(G.n, cc_f);
     workefficient_cc::num_cc(cc_im);
     workefficient_cc::largest_cc(cc_im);
   }

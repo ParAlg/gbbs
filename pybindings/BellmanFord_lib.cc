@@ -31,41 +31,56 @@ namespace gbbs {
 namespace compiled {
 
 sequence<uintE> BellmanFord(symmetric_unweighted_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<uintE> BellmanFord(symmetric_uint32_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<float> BellmanFord(symmetric_float_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<double> BellmanFord(symmetric_double_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 
 sequence<uintE> BellmanFord(symmetric_unweighted_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<uintE> BellmanFord(symmetric_uint32_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<float> BellmanFord(symmetric_float_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<double> BellmanFord(symmetric_double_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 
 sequence<uintE> BellmanFord(asymmetric_unweighted_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<uintE> BellmanFord(asymmetric_uint32_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<float> BellmanFord(asymmetric_float_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<double> BellmanFord(asymmetric_double_graph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 
 sequence<uintE> BellmanFord(asymmetric_unweighted_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<uintE> BellmanFord(asymmetric_uint32_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<float> BellmanFord(asymmetric_float_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 sequence<double> BellmanFord(asymmetric_double_cgraph& G, uintE src) {
-  return gbbs::BellmanFord(G, src); }
+  return gbbs::BellmanFord(G, src);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

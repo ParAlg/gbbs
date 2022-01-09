@@ -2,11 +2,11 @@
 
 #include <unordered_set>
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
@@ -29,27 +29,12 @@ TEST(KCore, BasicUsage) {
   //                      5 -- 6    7
   constexpr uintE kNumVertices{8};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {2, 3},
-    {3, 4},
-    {3, 5},
-    {4, 5},
-    {5, 6},
+      {0, 1}, {2, 3}, {3, 4}, {3, 5}, {4, 5}, {5, 6},
   };
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const sequence<uintE> kcoreResult{KCore(graph)};
-  EXPECT_THAT(
-      kcoreResult,
-      ElementsAre(
-        1,
-        1,
-        1,
-        2,
-        2,
-        2,
-        1,
-        0));
+  EXPECT_THAT(kcoreResult, ElementsAre(1, 1, 1, 2, 2, 2, 1, 0));
 }
 
 }  // namespace gbbs

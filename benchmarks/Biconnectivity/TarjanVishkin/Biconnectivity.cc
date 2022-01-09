@@ -48,12 +48,13 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
   auto S = parlay::chars_from_file(s);
-  sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
-        [] (auto x) { return parlay::make_slice(x); });
+  sequence<slice<char>> tokens = parlay::map_tokens(
+      parlay::make_slice(S), [](auto x) { return parlay::make_slice(x); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
     labels[i] =
-        std::make_tuple(parlay::chars_to_int_t<uintE>(tokens[2 * i]), parlay::chars_to_int_t<uintE>(tokens[2 * i + 1]));
+        std::make_tuple(parlay::chars_to_int_t<uintE>(tokens[2 * i]),
+                        parlay::chars_to_int_t<uintE>(tokens[2 * i + 1]));
   });
 
   auto bits = sequence<uintE>(n, (uintE)0);
@@ -95,8 +96,9 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
       }
     }
   };
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
-                  { GA.get_vertex(i).out_neighbors().map(map_bc_label); });
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
+    GA.get_vertex(i).out_neighbors().map(map_bc_label);
+  });
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();
@@ -146,7 +148,8 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   if (in_f) {
     BiconnectivityStats(GA, in_f);
   } else {
-    timer t; t.start();
+    timer t;
+    t.start();
     Biconnectivity(GA, out_f);
     tt = t.stop();
     std::cout << "### Running Time: " << tt << std::endl;

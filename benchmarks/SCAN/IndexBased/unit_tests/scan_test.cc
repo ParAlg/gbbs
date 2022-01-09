@@ -2,24 +2,24 @@
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
 #include <math.h>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <optional>
 #include <utility>
 #include <vector>
 
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "benchmarks/SCAN/IndexBased/unit_tests/similarity_measure_test_utils.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
-#include "gbbs/vertex.h"
 #include "gbbs/helpers/undirected_edge.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gbbs/vertex.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace gbbs {
 
@@ -42,12 +42,11 @@ namespace s = scan;
 namespace {
 
 // Googletest-like equality matcher for `indexed_scan::internal::CoreThreshold`.
-auto CoreThresholdEq(
-    const uintE expected_vertex,
-    const float expected_threshold) {
+auto CoreThresholdEq(const uintE expected_vertex,
+                     const float expected_threshold) {
   return AllOf(
-    Field(&ii::CoreThreshold::vertex_id, Eq(expected_vertex)),
-    Field(&ii::CoreThreshold::threshold, FloatEq(expected_threshold)));
+      Field(&ii::CoreThreshold::vertex_id, Eq(expected_vertex)),
+      Field(&ii::CoreThreshold::threshold, FloatEq(expected_threshold)));
 }
 
 // Checks that `clustering` has the expected clusters and returns true if the
@@ -62,9 +61,8 @@ auto CoreThresholdEq(
 //   expected_clusters
 //     List of distinct clusters that we expect to see, where each cluster is
 //     given as a list of vertex IDs.
-bool CheckClustering(
-    const i::Clustering& clustering,
-    const ClusterList& expected_clusters) {
+bool CheckClustering(const i::Clustering& clustering,
+                     const ClusterList& expected_clusters) {
   std::unordered_map<uintE, std::set<uintE>> actual_clusters_map;
   actual_clusters_map.reserve(expected_clusters.size());
   for (size_t v = 0; v < clustering.size(); v++) {
@@ -79,8 +77,8 @@ bool CheckClustering(
   }
 
   if (actual_clusters != expected_clusters) {
-    std::cerr << "Clusters don't match. Actual clustering:\n" <<
-      scan::ClusteringToString(clustering) << '\n';
+    std::cerr << "Clusters don't match. Actual clustering:\n"
+              << scan::ClusteringToString(clustering) << '\n';
     return false;
   } else {
     return true;
@@ -104,8 +102,7 @@ bool CheckClustering(
 //     List of vertices that we expect to be outliers.
 void CheckUnclusteredVertices(
     symmetric_graph<symmetric_vertex, gbbs::empty>* graph,
-    const i::Clustering& clustering,
-    const VertexList& expected_hubs,
+    const i::Clustering& clustering, const VertexList& expected_hubs,
     const VertexList& expected_outliers) {
   for (const auto v : expected_hubs) {
     EXPECT_EQ(clustering[v], scan::kUnclustered);
@@ -162,48 +159,32 @@ TEST(ScanSubroutines, BasicUsage) {
   //           3 -- 4
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {1, 2},
-    {1, 3},
-    {2, 3},
-    {2, 4},
-    {2, 5},
-    {3, 4},
+      {0, 1}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {2, 5}, {3, 4},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const ii::NeighborOrder neighbor_order{&graph, scan::CosineSimilarity{}};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
-  EXPECT_THAT(
-      neighbor_order[0],
-      ElementsAre(EdgeSimilarityEq(0, 1, 2.0 / sqrt(8))));
-  EXPECT_THAT(
-      neighbor_order[1],
-      ElementsAre(
-        EdgeSimilarityEq(1, 3, 3.0 / sqrt(16)),
-        EdgeSimilarityEq(1, 0, 2.0 / sqrt(8)),
-        EdgeSimilarityEq(1, 2, 3.0 / sqrt(20))));
-  EXPECT_THAT(
-      neighbor_order[2],
-      ElementsAre(
-        EdgeSimilarityEq(2, 3, 4.0 / sqrt(20)),
-        EdgeSimilarityEq(2, 4, 3.0 / sqrt(15)),
-        EdgeSimilarityEq(2, 1, 3.0 / sqrt(20)),
-        EdgeSimilarityEq(2, 5, 2.0 / sqrt(10))));
-  EXPECT_THAT(
-      neighbor_order[3],
-      ElementsAre(
-        EdgeSimilarityEq(3, 2, 4.0 / sqrt(20)),
-        EdgeSimilarityEq(3, 4, 3.0 / sqrt(12)),
-        EdgeSimilarityEq(3, 1, 3.0 / sqrt(16))));
-  EXPECT_THAT(
-      neighbor_order[4],
-      ElementsAre(
-        EdgeSimilarityEq(4, 3, 3.0 / sqrt(12)),
-        EdgeSimilarityEq(4, 2, 3.0 / sqrt(15))));
-  EXPECT_THAT(
-      neighbor_order[5],
-      ElementsAre(EdgeSimilarityEq(5, 2, 2.0 / sqrt(10))));
+  EXPECT_THAT(neighbor_order[0],
+              ElementsAre(EdgeSimilarityEq(0, 1, 2.0 / sqrt(8))));
+  EXPECT_THAT(neighbor_order[1],
+              ElementsAre(EdgeSimilarityEq(1, 3, 3.0 / sqrt(16)),
+                          EdgeSimilarityEq(1, 0, 2.0 / sqrt(8)),
+                          EdgeSimilarityEq(1, 2, 3.0 / sqrt(20))));
+  EXPECT_THAT(neighbor_order[2],
+              ElementsAre(EdgeSimilarityEq(2, 3, 4.0 / sqrt(20)),
+                          EdgeSimilarityEq(2, 4, 3.0 / sqrt(15)),
+                          EdgeSimilarityEq(2, 1, 3.0 / sqrt(20)),
+                          EdgeSimilarityEq(2, 5, 2.0 / sqrt(10))));
+  EXPECT_THAT(neighbor_order[3],
+              ElementsAre(EdgeSimilarityEq(3, 2, 4.0 / sqrt(20)),
+                          EdgeSimilarityEq(3, 4, 3.0 / sqrt(12)),
+                          EdgeSimilarityEq(3, 1, 3.0 / sqrt(16))));
+  EXPECT_THAT(neighbor_order[4],
+              ElementsAre(EdgeSimilarityEq(4, 3, 3.0 / sqrt(12)),
+                          EdgeSimilarityEq(4, 2, 3.0 / sqrt(15))));
+  EXPECT_THAT(neighbor_order[5],
+              ElementsAre(EdgeSimilarityEq(5, 2, 2.0 / sqrt(10))));
 
   {
     const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -211,37 +192,27 @@ TEST(ScanSubroutines, BasicUsage) {
     EXPECT_THAT(core_order[0], IsEmpty());
     EXPECT_THAT(core_order[1], IsEmpty());
     ASSERT_EQ(core_order[2].size(), 6);
-    EXPECT_THAT(
-        core_order[2].cut(0, 2),
-        UnorderedElementsAre(
-          CoreThresholdEq(2, 4.0 / sqrt(20)),
-          CoreThresholdEq(3, 4.0 / sqrt(20))));
-    EXPECT_THAT(
-        core_order[2].cut(2, core_order[2].size()),
-        ElementsAre(
-          CoreThresholdEq(4, 3.0 / sqrt(12)),
-          CoreThresholdEq(1, 3.0 / sqrt(16)),
-          CoreThresholdEq(0, 2.0 / sqrt(8)),
-          CoreThresholdEq(5, 2.0 / sqrt(10))));
+    EXPECT_THAT(core_order[2].cut(0, 2),
+                UnorderedElementsAre(CoreThresholdEq(2, 4.0 / sqrt(20)),
+                                     CoreThresholdEq(3, 4.0 / sqrt(20))));
+    EXPECT_THAT(core_order[2].cut(2, core_order[2].size()),
+                ElementsAre(CoreThresholdEq(4, 3.0 / sqrt(12)),
+                            CoreThresholdEq(1, 3.0 / sqrt(16)),
+                            CoreThresholdEq(0, 2.0 / sqrt(8)),
+                            CoreThresholdEq(5, 2.0 / sqrt(10))));
     ASSERT_EQ(core_order[3].size(), 4);
     EXPECT_THAT(core_order[3][0], CoreThresholdEq(3, 3.0 / sqrt(12)));
-    EXPECT_THAT(
-        core_order[3].cut(1, 3),
-        UnorderedElementsAre(
-          CoreThresholdEq(2, 3.0 / sqrt(15)),
-          CoreThresholdEq(4, 3.0 / sqrt(15))));
-    EXPECT_THAT(
-        core_order[3].cut(3, core_order[3].size()),
-        ElementsAre(CoreThresholdEq(1, 2.0 / sqrt(8))));
+    EXPECT_THAT(core_order[3].cut(1, 3),
+                UnorderedElementsAre(CoreThresholdEq(2, 3.0 / sqrt(15)),
+                                     CoreThresholdEq(4, 3.0 / sqrt(15))));
+    EXPECT_THAT(core_order[3].cut(3, core_order[3].size()),
+                ElementsAre(CoreThresholdEq(1, 2.0 / sqrt(8))));
     ASSERT_EQ(core_order[4].size(), 3);
     EXPECT_THAT(core_order[4][0], CoreThresholdEq(3, 3.0 / sqrt(16)));
-    EXPECT_THAT(
-        core_order[4].cut(1, core_order[4].size()),
-        UnorderedElementsAre(
-          CoreThresholdEq(1, 3.0 / sqrt(20)),
-          CoreThresholdEq(2, 3.0 / sqrt(20))));
-    EXPECT_THAT(
-        core_order[5], ElementsAre(CoreThresholdEq(2, 2.0 / sqrt(10))));
+    EXPECT_THAT(core_order[4].cut(1, core_order[4].size()),
+                UnorderedElementsAre(CoreThresholdEq(1, 3.0 / sqrt(20)),
+                                     CoreThresholdEq(2, 3.0 / sqrt(20))));
+    EXPECT_THAT(core_order[5], ElementsAre(CoreThresholdEq(2, 2.0 / sqrt(10))));
   }
 
   {
@@ -278,9 +249,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   //     0 -- 1    2    3 -- 4 -- 5
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {3, 4},
-    {4, 5},
+      {0, 1}, {3, 4}, {4, 5},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
@@ -289,17 +258,13 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   EXPECT_THAT(neighbor_order[0], ElementsAre(EdgeSimilarityEq(0, 1, 1.0)));
   EXPECT_THAT(neighbor_order[1], ElementsAre(EdgeSimilarityEq(1, 0, 1.0)));
   EXPECT_THAT(neighbor_order[2], IsEmpty());
-  EXPECT_THAT(
-      neighbor_order[3],
-      ElementsAre(EdgeSimilarityEq(3, 4, 2.0 / sqrt(6))));
-  EXPECT_THAT(
-      neighbor_order[4],
-      UnorderedElementsAre(
-        EdgeSimilarityEq(4, 3, 2.0 / sqrt(6)),
-        EdgeSimilarityEq(4, 5, 2.0 / sqrt(6))));
-  EXPECT_THAT(
-      neighbor_order[5],
-      ElementsAre(EdgeSimilarityEq(5, 4, 2.0 / sqrt(6))));
+  EXPECT_THAT(neighbor_order[3],
+              ElementsAre(EdgeSimilarityEq(3, 4, 2.0 / sqrt(6))));
+  EXPECT_THAT(neighbor_order[4],
+              UnorderedElementsAre(EdgeSimilarityEq(4, 3, 2.0 / sqrt(6)),
+                                   EdgeSimilarityEq(4, 5, 2.0 / sqrt(6))));
+  EXPECT_THAT(neighbor_order[5],
+              ElementsAre(EdgeSimilarityEq(5, 4, 2.0 / sqrt(6))));
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   EXPECT_EQ(core_order.size(), 4);
@@ -308,15 +273,11 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   ASSERT_EQ(core_order[2].size(), 5);
   EXPECT_THAT(
       core_order[2].cut(0, 2),
-      UnorderedElementsAre(
-        CoreThresholdEq(0, 1.0),
-        CoreThresholdEq(1, 1.0)));
-  EXPECT_THAT(
-      core_order[2].cut(2, core_order[2].size()),
-      UnorderedElementsAre(
-        CoreThresholdEq(3, 2.0 / sqrt(6)),
-        CoreThresholdEq(4, 2.0 / sqrt(6)),
-        CoreThresholdEq(5, 2.0 / sqrt(6))));
+      UnorderedElementsAre(CoreThresholdEq(0, 1.0), CoreThresholdEq(1, 1.0)));
+  EXPECT_THAT(core_order[2].cut(2, core_order[2].size()),
+              UnorderedElementsAre(CoreThresholdEq(3, 2.0 / sqrt(6)),
+                                   CoreThresholdEq(4, 2.0 / sqrt(6)),
+                                   CoreThresholdEq(5, 2.0 / sqrt(6))));
   EXPECT_THAT(core_order[3], ElementsAre(CoreThresholdEq(4, 2.0 / sqrt(6))));
 }
 
@@ -346,8 +307,8 @@ TEST(Cluster, EmptyGraph) {
   const VertexList kExpectedHubs{};
   const VertexList kExpectedOutliers{0, 1, 2, 3, 4, 5};
   EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-  CheckUnclusteredVertices(
-      &graph, clustering, kExpectedHubs, kExpectedOutliers);
+  CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                           kExpectedOutliers);
 }
 
 TEST(Cluster, BasicUsage) {
@@ -361,13 +322,7 @@ TEST(Cluster, BasicUsage) {
   //             .87
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {1, 2},
-    {1, 3},
-    {2, 3},
-    {2, 4},
-    {2, 5},
-    {3, 4},
+      {0, 1}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {2, 5}, {3, 4},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   const i::Index index{&graph};
@@ -381,8 +336,8 @@ TEST(Cluster, BasicUsage) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{2};
@@ -393,8 +348,8 @@ TEST(Cluster, BasicUsage) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{2};
@@ -405,8 +360,8 @@ TEST(Cluster, BasicUsage) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{0, 5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{2};
@@ -417,8 +372,8 @@ TEST(Cluster, BasicUsage) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{0, 1, 4, 5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{2};
@@ -429,8 +384,8 @@ TEST(Cluster, BasicUsage) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{0, 1, 2, 3, 4, 5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{4};
@@ -441,8 +396,8 @@ TEST(Cluster, BasicUsage) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{0, 5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
 }
 
@@ -452,9 +407,7 @@ TEST(Cluster, DisconnectedGraph) {
   //     0 -- 1    2    3 -- 4 -- 5
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {3, 4},
-    {4, 5},
+      {0, 1}, {3, 4}, {4, 5},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   const i::Index index{&graph};
@@ -468,8 +421,8 @@ TEST(Cluster, DisconnectedGraph) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{2, 3, 4, 5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{2};
@@ -480,8 +433,8 @@ TEST(Cluster, DisconnectedGraph) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{2};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{3};
@@ -492,8 +445,8 @@ TEST(Cluster, DisconnectedGraph) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{0, 1, 2};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
   {
     constexpr uint64_t kMu{4};
@@ -504,8 +457,8 @@ TEST(Cluster, DisconnectedGraph) {
     const VertexList kExpectedHubs{};
     const VertexList kExpectedOutliers{0, 1, 2, 3, 4, 5};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
 }
 
@@ -518,16 +471,8 @@ TEST(Cluster, TwoClusterGraph) {
   //   .71    .75    .58   .58    .75   .71
   const size_t kNumVertices{9};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {1, 2},
-    {1, 3},
-    {2, 3},
-    {3, 4},
-    {4, 5},
-    {5, 6},
-    {5, 7},
-    {6, 7},
-    {7, 8},
+      {0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4},
+      {4, 5}, {5, 6}, {5, 7}, {6, 7}, {7, 8},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   const i::Index index{&graph};
@@ -540,8 +485,8 @@ TEST(Cluster, TwoClusterGraph) {
     const VertexList kExpectedHubs{4};
     const VertexList kExpectedOutliers{0, 8};
     EXPECT_TRUE(CheckClustering(clustering, kExpectedClusters));
-    CheckUnclusteredVertices(
-        &graph, clustering, kExpectedHubs, kExpectedOutliers);
+    CheckUnclusteredVertices(&graph, clustering, kExpectedHubs,
+                             kExpectedOutliers);
   }
 }
 }  // namespace gbbs

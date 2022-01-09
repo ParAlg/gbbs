@@ -177,7 +177,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
 
   auto temp_seq = gbbs::make_slice(temp, m);
   parlay::integer_sort_inplace(temp_seq,
-                                [&](const triple& p) { return p.first; });
+                               [&](const triple& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
   id_and_weight* inEdges = gbbs::new_array_no_init<id_and_weight>(m);
@@ -472,10 +472,10 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
   sequence<Edge> edges_both_directions(2 * edge_list.E.size());
   parallel_for(0, edge_list.E.size(), [&](const size_t i) {
     const auto& orig_edge = edge_list.E[i];
-    Edge edge(std::get<0>(orig_edge), std::get<1>(orig_edge), std::get<2>(orig_edge));
+    Edge edge(std::get<0>(orig_edge), std::get<1>(orig_edge),
+              std::get<2>(orig_edge));
     edges_both_directions[2 * i] = edge;
-    edges_both_directions[2 * i + 1] =
-        Edge{edge.to, edge.from, edge.weight};
+    edges_both_directions[2 * i + 1] = Edge{edge.to, edge.from, edge.weight};
   });
   const sequence<Edge> edges =
       internal::sort_and_dedupe(std::move(edges_both_directions));

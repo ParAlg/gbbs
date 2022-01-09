@@ -7,7 +7,7 @@ namespace gbbs {
 // Creates a case on `case_label` and returns `case_label` as a string in the
 // case.
 #define RETURN_CASE_LABEL(case_label) \
-  case case_label: \
+  case case_label:                    \
     return #case_label;
 
 namespace connectit {
@@ -96,34 +96,28 @@ std::string alter_to_string(const LiuTarjanAlterOption alter_option) {
   ABORT_INVALID_ENUM(LiuTarjanAlterOption, alter_option);
 }
 
-std::string uf_options_to_string(
-    const SamplingOption sampling_option,
-    const FindOption find_option,
-    const UniteOption unite_option) {
-  return "uf; sample="
-    + sampling_to_string(sampling_option)
-    + "; unite=" + unite_to_string(unite_option)
-    + "; find=" + find_to_string(find_option);
+std::string uf_options_to_string(const SamplingOption sampling_option,
+                                 const FindOption find_option,
+                                 const UniteOption unite_option) {
+  return "uf; sample=" + sampling_to_string(sampling_option) + "; unite=" +
+         unite_to_string(unite_option) + "; find=" +
+         find_to_string(find_option);
 }
 
-std::string uf_options_to_string(
-    const SamplingOption sampling_option,
-    const FindOption find_option,
-    const UniteOption unite_option,
-    const SpliceOption splice_option) {
-  return "uf; sample="
-    + sampling_to_string(sampling_option)
-    + "; unite=" + unite_to_string(unite_option)
-    + "; find=" + find_to_string(find_option) +
-    + "; splice=" + splice_to_string(splice_option);
+std::string uf_options_to_string(const SamplingOption sampling_option,
+                                 const FindOption find_option,
+                                 const UniteOption unite_option,
+                                 const SpliceOption splice_option) {
+  return "uf; sample=" + sampling_to_string(sampling_option) + "; unite=" +
+         unite_to_string(unite_option) + "; find=" +
+         find_to_string(find_option) + +"; splice=" +
+         splice_to_string(splice_option);
 }
 
-std::string jayanti_options_to_string(
-    const SamplingOption sampling_option,
-    const JayantiFindOption find_option) {
-  return "jayanti; sample="
-    + sampling_to_string(sampling_option)
-    + "; find=" + jayanti_find_to_string(find_option);
+std::string jayanti_options_to_string(const SamplingOption sampling_option,
+                                      const JayantiFindOption find_option) {
+  return "jayanti; sample=" + sampling_to_string(sampling_option) + "; find=" +
+         jayanti_find_to_string(find_option);
 }
 
 std::string liu_tarjan_options_to_string(
@@ -132,11 +126,11 @@ std::string liu_tarjan_options_to_string(
     const LiuTarjanUpdateOption update_option,
     const LiuTarjanShortcutOption shortcut_option,
     const LiuTarjanAlterOption alter_option) {
-  return "liu_tarjan; sample=" + sampling_to_string(sampling_option)
-    + "; connect=" + connect_to_string(connect_option)
-    + "; update=" + update_to_string(update_option)
-    + "; shortcut=" + shortcut_to_string(shortcut_option)
-    + "; alter=" + alter_to_string(alter_option);
+  return "liu_tarjan; sample=" + sampling_to_string(sampling_option) +
+         "; connect=" + connect_to_string(connect_option) + "; update=" +
+         update_to_string(update_option) + "; shortcut=" +
+         shortcut_to_string(shortcut_option) + "; alter=" +
+         alter_to_string(alter_option);
 }
 
 }  // namespace connectit

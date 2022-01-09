@@ -2,11 +2,11 @@
 
 #include <unordered_set>
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
@@ -19,20 +19,20 @@ TEST(CliqueCounting, EdgelessGraph) {
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   size_t clique_count = Clique(graph,
-      /* k = */ 4,
-      /* order_type = */ 0,
-      /* epsilon = */ 0.01,
-      /* space_type = */ 5,
-      /* label = */ false,
-      /* filter = */ false,
-      /* use_base = */ false,
-      /* recursive_level = */ 0,
-      /* approx_peel = */ false,
-      /* approx_eps = */ 0.01);
+                               /* k = */ 4,
+                               /* order_type = */ 0,
+                               /* epsilon = */ 0.01,
+                               /* space_type = */ 5,
+                               /* label = */ false,
+                               /* filter = */ false,
+                               /* use_base = */ false,
+                               /* recursive_level = */ 0,
+                               /* approx_peel = */ false,
+                               /* approx_eps = */ 0.01);
   EXPECT_EQ(clique_count, 0);
 }
 
-//TEST(CliqueCounting, BasicUsage) {
+// TEST(CliqueCounting, BasicUsage) {
 //  // Graph diagram:
 //  //     K5 on (0,1,2,3,4)    5 - 6 - 9
 //  //                           \  | / |

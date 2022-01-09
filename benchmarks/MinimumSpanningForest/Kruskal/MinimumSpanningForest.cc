@@ -36,8 +36,8 @@
 namespace gbbs {
 
 template <template <class W> class vertex, class W>
-double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
-
+double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA,
+                                    commandLine P) {
   std::cout << "### Application: MinimumSpanningForest (Kruskal)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;

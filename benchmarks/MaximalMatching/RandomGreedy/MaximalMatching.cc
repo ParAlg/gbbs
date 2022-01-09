@@ -54,23 +54,26 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
     auto S = parlay::chars_from_file(in_f);
-    sequence<slice<char>> Words = parlay::map_tokens(parlay::make_slice(S),
-        [] (auto x) { return parlay::make_slice(x); });
+    sequence<slice<char>> Words = parlay::map_tokens(
+        parlay::make_slice(S), [](auto x) { return parlay::make_slice(x); });
     size_t ms = parlay::chars_to_int_t<unsigned long>(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
-    parallel_for(0, ms, kDefaultGranularity, [&] (size_t i) {
+    parallel_for(0, ms, kDefaultGranularity, [&](size_t i) {
       matching[i] =
-        std::make_tuple(parlay::chars_to_int_t<uintE>(Words[1 + 2 * i]), parlay::chars_to_int_t<uintE>(Words[2 + 2 * i]));
+          std::make_tuple(parlay::chars_to_int_t<uintE>(Words[1 + 2 * i]),
+                          parlay::chars_to_int_t<uintE>(Words[2 + 2 * i]));
     });
     verify_matching(G, matching);
     exit(0);
   }
-  timer t; t.start();
+  timer t;
+  t.start();
   auto matching = MaximalMatching(G);
   double tt = t.stop();
-  //for (size_t i=0; i<std::min((size_t)100, matching.size()); i++) {
-  //  std::cout << std::get<0>(matching[i]) << " " << std::get<1>(matching[i]) << std::endl;
+  // for (size_t i=0; i<std::min((size_t)100, matching.size()); i++) {
+  //  std::cout << std::get<0>(matching[i]) << " " << std::get<1>(matching[i])
+  //  << std::endl;
   //}
 
   std::cout << "### Running Time: " << tt << std::endl;

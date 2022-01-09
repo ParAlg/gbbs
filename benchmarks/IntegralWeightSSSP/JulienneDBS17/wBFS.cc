@@ -45,12 +45,14 @@ double wBFS_runner(Graph& G, commandLine P) {
   bool no_blocked = P.getOptionValue("-noblocked");
   bool largemem = P.getOptionValue("-largemem");
 
-  std::cout << "### Application: wBFS (Weighted Breadth-First Search)" << std::endl;
+  std::cout << "### Application: wBFS (Weighted Breadth-First Search)"
+            << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
+  std::cout << "### Params: -src = " << src
+            << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   if (num_buckets != (((uintE)1) << parlay::log2_up(num_buckets))) {
@@ -58,7 +60,8 @@ double wBFS_runner(Graph& G, commandLine P) {
               << "\n";
     exit(-1);
   }
-  timer t; t.start();
+  timer t;
+  t.start();
   wBFS(G, src, num_buckets, largemem, no_blocked);
   double tt = t.stop();
 

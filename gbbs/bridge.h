@@ -152,11 +152,11 @@ inline slice<T> make_slice(T* A, size_t n) {
   return parlay::make_slice((T*)A, (T*)(A + n));
 }
 
-struct empty {};  // struct containing no data (used for empty base optimization)
+struct empty {
+};  // struct containing no data (used for empty base optimization)
 
 // ========================= timer  ==========================
 using parlay::internal::timer;
-
 
 // ========================= atomic ops  ==========================
 
@@ -415,7 +415,6 @@ inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
 
 }  // namespace gbbs
 
-
 namespace parlay {
 
 template <class Seq>
@@ -464,7 +463,6 @@ size_t pack_index_out(Bool_Seq const& Fl, Out_Seq&& Out, flags fl = no_flag) {
 
 using parlay::internal::binary_search;
 
-
 constexpr size_t _F_BSIZE = 2000;
 
 // Transforms input sequence `[a_0, a_1, ..., a_{n-1}]` to sequence `[f(0, a_0),
@@ -501,18 +499,21 @@ auto filter_index(In_Seq const& In, F f, flags fl = no_flag)
   size_t l = num_blocks(n, _block_size);
   sequence<size_t> Sums(l);
   sequence<bool> Fl(n);
-  parlay::internal::sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
-    size_t r = 0;
-    for (size_t j = s; j < e; j++) r += (Fl[j] = f(In[j], j));
-    Sums[i] = r;
-  });
+  parlay::internal::sliced_for(n, _block_size,
+                               [&](size_t i, size_t s, size_t e) {
+                                 size_t r = 0;
+                                 for (size_t j = s; j < e; j++)
+                                   r += (Fl[j] = f(In[j], j));
+                                 Sums[i] = r;
+                               });
   size_t m = parlay::scan_inplace(make_slice(Sums));
   sequence<T> Out = sequence<T>::uninitialized(m);
-  parlay::internal::sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
-      parlay::internal::pack_serial_at(
-        make_slice(In).cut(s, e), make_slice(Fl).cut(s, e),
-        make_slice(Out).cut(Sums[i], (i == l - 1) ? m : Sums[i + 1]));
-  });
+  parlay::internal::sliced_for(
+      n, _block_size, [&](size_t i, size_t s, size_t e) {
+        parlay::internal::pack_serial_at(
+            make_slice(In).cut(s, e), make_slice(Fl).cut(s, e),
+            make_slice(Out).cut(Sums[i], (i == l - 1) ? m : Sums[i + 1]));
+      });
   return Out;
 }
 
@@ -642,7 +643,6 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   return m;
 }
 
-
 // String utilities
 
 inline int t_to_stringlen(long a) { return 21; }
@@ -657,7 +657,6 @@ inline int t_to_stringlen(double a) { return 18; }
 inline int t_to_stringlen(char* a) { return strlen(a) + 1; }
 inline void type_to_string(char* s, char* a) { sprintf(s, "%s", a); }
 inline void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
-
 
 template <class A, class B>
 inline int t_to_stringlen(std::pair<A, B> a) {

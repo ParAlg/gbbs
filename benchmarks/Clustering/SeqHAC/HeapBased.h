@@ -139,7 +139,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
     assert(CG.is_active(v));
 
     debug(uintE current_id_u = CG.clusters[u].get_current_id();
-    uintE current_id_v = CG.clusters[v].get_current_id(););
+          uintE current_id_v = CG.clusters[v].get_current_id(););
 
     unites++;
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh);

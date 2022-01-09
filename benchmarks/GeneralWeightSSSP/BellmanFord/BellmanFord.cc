@@ -47,7 +47,8 @@ double BellmanFord_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   auto distances = BellmanFord(G, src);
   double tt = t.stop();
 

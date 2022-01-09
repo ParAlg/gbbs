@@ -21,8 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
+#include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/common.h"
 
 #include "bench_utils.h"
@@ -31,25 +31,32 @@
 namespace gbbs {
 namespace connectit {
 template <class Graph>
-void unite_find_compress(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_compress>(G, rounds, correct, P);
+void unite_find_compress(Graph& G, int rounds, commandLine& P,
+                         sequence<edge>& correct) {
+  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_compress>(
+      G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_find_naive(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_naive>(G, rounds, correct, P);
+void unite_find_naive(Graph& G, int rounds, commandLine& P,
+                      sequence<edge>& correct) {
+  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_naive>(G, rounds,
+                                                                   correct, P);
 }
 
 template <class Graph>
-void unite_find_atomic_split(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_atomic_split>(G, rounds, correct, P);
+void unite_find_atomic_split(Graph& G, int rounds, commandLine& P,
+                             sequence<edge>& correct) {
+  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_atomic_split>(
+      G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_find_atomic_halve(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_atomic_halve>(G, rounds, correct, P);
+void unite_find_atomic_halve(Graph& G, int rounds, commandLine& P,
+                             sequence<edge>& correct) {
+  run_multiple_uf_alg<Graph, sample_kout, unite_early, find_atomic_halve>(
+      G, rounds, correct, P);
 }
-
 }
 
 template <class Graph>
@@ -62,12 +69,10 @@ double Benchmark_runner(Graph& G, commandLine P) {
     correct = bfs_sf::SpanningForestDet(G);
   }
   run_tests(G, rounds, P, correct, connectit::unite_find_naive<Graph>,
-    {
-      connectit::unite_find_compress<Graph>,
-      connectit::unite_find_naive<Graph>,
-      connectit::unite_find_atomic_split<Graph>,
-      connectit::unite_find_atomic_halve<Graph>
-    });
+            {connectit::unite_find_compress<Graph>,
+             connectit::unite_find_naive<Graph>,
+             connectit::unite_find_atomic_split<Graph>,
+             connectit::unite_find_atomic_halve<Graph>});
   return 1.0;
 }
 }  // namespace gbbs

@@ -21,9 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "benchmarks/Connectivity/BFSCC/Connectivity.h"
 #include "benchmarks/Connectivity/ConnectIt/framework.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
-#include "benchmarks/Connectivity/BFSCC/Connectivity.h"
 #include "benchmarks/Connectivity/common.h"
 
 #include "bench_utils.h"
@@ -33,62 +33,89 @@ namespace gbbs {
 namespace connectit {
 
 template <class Graph>
-void unite_rem_lock_find_naive_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive, split_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_naive_split_atomic_one(Graph& G, int rounds,
+                                                commandLine& P,
+                                                sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive,
+                      split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive, halve_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_naive_halve_atomic_one(Graph& G, int rounds,
+                                                commandLine& P,
+                                                sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive,
+                      halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive, splice_atomic>(G, rounds, correct, P);
+void unite_rem_lock_find_naive_splice_atomic(Graph& G, int rounds,
+                                             commandLine& P,
+                                             sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive,
+                      splice_atomic>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_atomic_split_split_atomic_one(
+    Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split,
+                      split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_split_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_atomic_split_halve_atomic_one(
+    Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split,
+                      halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split, splice_atomic>(G, rounds, correct, P);
+void unite_rem_lock_find_atomic_split_splice_atomic(Graph& G, int rounds,
+                                                    commandLine& P,
+                                                    sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split,
+                      splice_atomic>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_halve_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve, split_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_atomic_halve_split_atomic_one(
+    Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve,
+                      split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_atomic_halve_halve_atomic_one(
+    Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve,
+                      halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
+void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, int rounds,
+                                                    commandLine& P,
+                                                    sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve,
+                      splice_atomic>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_compress_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_compress, split_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_compress_split_atomic_one(Graph& G, int rounds,
+                                                   commandLine& P,
+                                                   sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_compress,
+                      split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_compress_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_compress, halve_atomic_one>(G, rounds, correct, P);
+void unite_rem_lock_find_compress_halve_atomic_one(Graph& G, int rounds,
+                                                   commandLine& P,
+                                                   sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_compress,
+                      halve_atomic_one>(G, rounds, correct, P);
 }
-
 }
-
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
@@ -99,20 +126,22 @@ double Benchmark_runner(Graph& G, commandLine P) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);
   }
-  run_tests(G, rounds, P, correct, connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
-    {
-//      connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
-//      connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph>,
-//      connectit::unite_rem_lock_find_naive_splice_atomic<Graph>,
-//      connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph>,
-//      connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph>,
-//      connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph>,
-//      connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph>,
-//      connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph>,
-//      connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph>,
-      connectit::unite_rem_lock_find_compress_split_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_compress_halve_atomic_one<Graph>,
-    });
+  run_tests(
+      G, rounds, P, correct,
+      connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
+      {
+          //      connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
+          //      connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph>,
+          //      connectit::unite_rem_lock_find_naive_splice_atomic<Graph>,
+          //      connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph>,
+          //      connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph>,
+          //      connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph>,
+          //      connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph>,
+          //      connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph>,
+          //      connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph>,
+          connectit::unite_rem_lock_find_compress_split_atomic_one<Graph>,
+          connectit::unite_rem_lock_find_compress_halve_atomic_one<Graph>,
+      });
   return 1.0;
 }
 }  // namespace gbbs

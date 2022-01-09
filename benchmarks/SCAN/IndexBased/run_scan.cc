@@ -25,19 +25,19 @@ namespace gbbs {
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
   const size_t cluster_rounds{
-    parameters.getOptionLongValue("-cluster-rounds", 1)};
+      parameters.getOptionLongValue("-cluster-rounds", 1)};
   const uint64_t mu{parameters.getOptionLongValue("-mu", 5)};
   const float epsilon{
-    static_cast<float>(parameters.getOptionDoubleValue("-epsilon", 0.6))};
+      static_cast<float>(parameters.getOptionDoubleValue("-epsilon", 0.6))};
   std::cout << "Scan parameters: mu = " << mu << ", epsilon = " << epsilon
-    << '\n';
+            << '\n';
 
   timer index_construction_timer{"Index construction time"};
   const indexed_scan::Index scan_index{&graph, scan::CosineSimilarity{}};
   index_construction_timer.stop();
 
-  timer cluster_timer{
-    "Clustering time over " + std::to_string(cluster_rounds) + " rounds"};
+  timer cluster_timer{"Clustering time over " + std::to_string(cluster_rounds) +
+                      " rounds"};
   for (size_t i = 0; i < cluster_rounds; i++) {
     cluster_timer.start();
     const indexed_scan::Clustering clustering{scan_index.Cluster(mu, epsilon)};
@@ -47,8 +47,8 @@ double RunScan(Graph& graph, commandLine parameters) {
 
   index_construction_timer.next("");
   cluster_timer.next("");
-  const double running_time{
-    index_construction_timer.total_time() + cluster_timer.total_time()};
+  const double running_time{index_construction_timer.total_time() +
+                            cluster_timer.total_time()};
   std::cout << "Total SCAN running time: " << running_time << '\n';
   return running_time;
 }

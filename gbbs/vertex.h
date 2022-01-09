@@ -204,8 +204,7 @@ struct uncompressed_neighbors {
           return p(id, std::get<0>(nw), std::get<1>(nw));
         };
         auto in_im = gbbs::make_slice(neighbors, degree);
-        size_t k =
-            parlay::filter_out(in_im, gbbs::make_slice(tmp, degree), pc);
+        size_t k = parlay::filter_out(in_im, gbbs::make_slice(tmp, degree), pc);
         parallel_for(0, k, [&](size_t i) { out(i, tmp[i]); });
       }
     }
@@ -402,7 +401,8 @@ struct symmetric_vertex {
   uintE degree;
   edge_type* neighbors;
 
-  symmetric_vertex() : id(std::numeric_limits<uintE>::max()), degree(0), neighbors(nullptr) {}
+  symmetric_vertex()
+      : id(std::numeric_limits<uintE>::max()), degree(0), neighbors(nullptr) {}
 
   symmetric_vertex(edge_type* n, vertex_data vdata, uintE _id) {
     neighbors = (n + vdata.offset);
@@ -451,7 +451,12 @@ struct asymmetric_vertex {
 
   uintE id;
 
-  asymmetric_vertex() : in_nghs(nullptr), out_nghs(nullptr), in_deg(0), out_deg(0), id(std::numeric_limits<uintE>::max()) {}
+  asymmetric_vertex()
+      : in_nghs(nullptr),
+        out_nghs(nullptr),
+        in_deg(0),
+        out_deg(0),
+        id(std::numeric_limits<uintE>::max()) {}
 
   asymmetric_vertex(edge_type* out_neighbors_, vertex_data out_data,
                     edge_type* in_neighbors_, vertex_data in_data, uintE _id) {

@@ -59,8 +59,9 @@ TEST(MaximalMatching, BasicUsage) {
 
   const sequence<std::tuple<uintE, uintE, gbbs::empty>> matchingResult{
       MaximalMatching(graph)};
-  for (size_t i=0; i<matchingResult.size(); i++) {
-    std::cout << std::get<0>(matchingResult[i]) << " " << std::get<1>(matchingResult[i]) << std::endl;
+  for (size_t i = 0; i < matchingResult.size(); i++) {
+    std::cout << std::get<0>(matchingResult[i]) << " "
+              << std::get<1>(matchingResult[i]) << std::endl;
   }
   CheckMatching(graph_copy, matchingResult);
 }

@@ -25,8 +25,8 @@
 
 #include "bridge.h"
 #include "flags.h"
-#include "vertex_subset.h"
 #include "helpers/histogram.h"
+#include "vertex_subset.h"
 
 #include <type_traits>
 
@@ -298,8 +298,7 @@ struct EdgeMap {
     oneHop.toSparse();
 
     auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
-    auto get_elm =
-        parlay::delayed_seq<std::tuple<K, M> >(oneHop.size(), elm_f);
+    auto get_elm = parlay::delayed_seq<std::tuple<K, M> >(oneHop.size(), elm_f);
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
     auto get_key = parlay::delayed_seq<uintE>(oneHop.size(), key_f);
 

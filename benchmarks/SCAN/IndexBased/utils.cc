@@ -22,8 +22,8 @@ std::string ClusteringToString(const Clustering& clustering) {
   str << "{";
   for (size_t i = 0; i < clustering.size(); i++) {
     str << ' ' << i << ':';
-    str << (clustering[i] == kUnclustered
-            ? "n/a" : std::to_string(clustering[i]));
+    str << (clustering[i] == kUnclustered ? "n/a"
+                                          : std::to_string(clustering[i]));
   }
   str << " }";
   return str.str();

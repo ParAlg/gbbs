@@ -15,14 +15,14 @@ double DegeneracyOrder_runner(Graph& G, commandLine P) {
   assert(P.getOption("-s"));
 
   // runs the fetch-and-add based implementation if set.
-  timer t; t.start();
+  timer t;
+  t.start();
   auto order = barenboimelkin_degen::DegeneracyOrder(G, eps);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
-
 }
 
 generate_symmetric_main(gbbs::DegeneracyOrder_runner, false);

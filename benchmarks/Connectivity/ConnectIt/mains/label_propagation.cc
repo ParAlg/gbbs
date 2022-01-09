@@ -21,30 +21,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/Connectivity/ConnectIt/framework.h"
-#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/Connectivity/BFSCC/Connectivity.h"
-#include "benchmarks/Connectivity/common.h"
+#include "benchmarks/Connectivity/ConnectIt/framework.h"
 #include "benchmarks/Connectivity/LabelPropagation/Connectivity.h"
+#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/Connectivity/common.h"
 
 #include "bench_utils.h"
 
 namespace gbbs {
 namespace connectit {
-template<
-  class Graph,
-  SamplingOption    sampling_option,
-  template <class G> class Algorithm,
-  AlgorithmType algorithm_type>
-bool run_multiple_sample_only_alg(
-    Graph& G,
-    size_t rounds,
-    sequence<parent>& correct,
-    commandLine& P,
-    std::string name) {
-  auto test = [&] (Graph& graph, commandLine params, sequence<parent>& correct_cc) {
-    timer tt; tt.start();
-    auto CC = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(graph, params);
+template <class Graph, SamplingOption sampling_option,
+          template <class G> class Algorithm, AlgorithmType algorithm_type>
+bool run_multiple_sample_only_alg(Graph& G, size_t rounds,
+                                  sequence<parent>& correct, commandLine& P,
+                                  std::string name) {
+  auto test = [&](Graph& graph, commandLine params,
+                  sequence<parent>& correct_cc) {
+    timer tt;
+    tt.start();
+    auto CC =
+        run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(
+            graph, params);
     double t = tt.stop();
     if (params.getOptionValue("-check")) {
       cc_check(correct_cc, CC);
@@ -56,27 +54,37 @@ bool run_multiple_sample_only_alg(
 }
 
 template <class Graph>
-void labelprop_nosample(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_sample_only_alg<Graph, no_sampling, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_nosample(Graph& G, int rounds, commandLine& P,
+                        sequence<parent>& correct) {
+  run_multiple_sample_only_alg<Graph, no_sampling, labelprop_cc::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
 
 template <class Graph>
-void labelprop_kout(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_sample_only_alg<Graph, sample_kout, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_kout(Graph& G, int rounds, commandLine& P,
+                    sequence<parent>& correct) {
+  run_multiple_sample_only_alg<Graph, sample_kout, labelprop_cc::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
 
 template <class Graph>
-void labelprop_bfs(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_bfs(Graph& G, int rounds, commandLine& P,
+                   sequence<parent>& correct) {
+  run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_cc::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
 
 template <class Graph>
-void labelprop_ldd(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
-  run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_ldd(Graph& G, int rounds, commandLine& P,
+                   sequence<parent>& correct) {
+  run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_cc::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
-
 }
-
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
@@ -87,13 +95,10 @@ double Benchmark_runner(Graph& G, commandLine P) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);
   }
-  run_tests(G, rounds, P, correct, connectit::labelprop_nosample<Graph>,
-    {
-      connectit::labelprop_nosample<Graph>,
-      connectit::labelprop_kout<Graph>,
-      connectit::labelprop_bfs<Graph>,
-      connectit::labelprop_ldd<Graph>
-    });
+  run_tests(
+      G, rounds, P, correct, connectit::labelprop_nosample<Graph>,
+      {connectit::labelprop_nosample<Graph>, connectit::labelprop_kout<Graph>,
+       connectit::labelprop_bfs<Graph>, connectit::labelprop_ldd<Graph>});
   return 1.0;
 }
 }  // namespace gbbs

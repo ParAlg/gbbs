@@ -93,14 +93,15 @@ struct MinMaxF {
 };
 
 template <template <typename W> class vertex, class W, class Seq>
-inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::sequence<uintE>> preorder_number(symmetric_graph<vertex, W>& GA,
-                                                           sequence<uintE>& Parents,
-                                                           Seq& Sources) {
+inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>,
+                  parlay::sequence<uintE>>
+preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
+                Seq& Sources) {
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
   auto out_edges = sequence<edge>::from_function(
       n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE p_i = Parents[i];
     if (p_i != i) {
       out_edges[i] = std::make_tuple(p_i, i);
@@ -113,8 +114,9 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
   parlay::sample_sort_inplace(make_slice(edges), sort_tup);
 
-  auto starts = sequence<uintE>::from_function(n + 1, [](size_t i) { return UINT_E_MAX; });
-  parallel_for(0, edges.size(), [&] (size_t i) {
+  auto starts = sequence<uintE>::from_function(
+      n + 1, [](size_t i) { return UINT_E_MAX; });
+  parallel_for(0, edges.size(), [&](size_t i) {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
       starts[std::get<0>(edges[i])] = i;
     }
@@ -142,7 +144,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
 
   auto v_out = parlay::sequence<vertex_data>::uninitialized(n);
   auto v_in = parlay::sequence<vertex_data>::uninitialized(n);
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
     v_out[i].offset = out_off;
@@ -157,13 +159,16 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
       v_in[i].offset = i;
     }
   });
-  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(v_out.begin(), v_in.begin(), n, nghs.size(), [](){}, (std::tuple<uintE, gbbs::empty>*)nghs.begin(), (std::tuple<uintE, gbbs::empty>*)Parents.begin());
+  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(
+      v_out.begin(), v_in.begin(), n, nghs.size(), []() {},
+      (std::tuple<uintE, gbbs::empty>*)nghs.begin(),
+      (std::tuple<uintE, gbbs::empty>*)Parents.begin());
 
   // 1. Leaffix for Augmented Sizes
   auto aug_sizes = parlay::sequence<uintE>::uninitialized(n);
-  parallel_for(0, n, [&] (size_t i) { aug_sizes[i] = 1; });
-  auto cts =
-      sequence<intE>::from_function(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
+  parallel_for(0, n, [&](size_t i) { aug_sizes[i] = 1; });
+  auto cts = sequence<intE>::from_function(
+      n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
   auto leaf_im = parlay::delayed_seq<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
@@ -179,9 +184,9 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
-    vs = edgeMap(
-        Tree, vs, wrap_em_f<gbbs::empty>(AugF(aug_sizes.begin(), cts.begin())),
-        -1, in_edges | sparse_blocked | fine_parallel);
+    vs = edgeMap(Tree, vs,
+                 wrap_em_f<gbbs::empty>(AugF(aug_sizes.begin(), cts.begin())),
+                 -1, in_edges | sparse_blocked | fine_parallel);
     vs.toSparse();
   }
   augs.stop();
@@ -197,7 +202,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
   pren.start();
   auto PN = parlay::sequence<uintE>::uninitialized(n);
   vs = vertexSubset(n, std::move(s_copy));
-  parallel_for(0, Sources.size(), [&] (size_t i) {
+  parallel_for(0, Sources.size(), [&](size_t i) {
     uintE v = vs.vtx(i);
     PN[v] = 0;
   });
@@ -212,7 +217,7 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
     });
     auto tot = parlay::scan_inplace(offsets);
     auto next_vs = sequence<uintE>::uninitialized(tot);
-    parallel_for(0, vs.size(), 1, [&] (size_t i) {
+    parallel_for(0, vs.size(), 1, [&](size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
       uintE deg_v = Tree.get_vertex(v).out_degree();
@@ -231,12 +236,12 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
         }
       } else {
         auto A = sequence<uintE>::uninitialized(deg_v);
-        parallel_for(0, deg_v, [&] (size_t j) {
+        parallel_for(0, deg_v, [&](size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
         });
         parlay::scan_inplace(A);
-        parallel_for(0, deg_v, [&] (size_t j) {
+        parallel_for(0, deg_v, [&](size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
@@ -278,15 +283,16 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
       }
     }
   };
-  parallel_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
+  parallel_for(0, n, 1,
+               [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   map_e.stop();
   debug(map_e.next("map edges time"););
 
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
-                  { cts[i] = Tree.get_vertex(i).out_degree(); });
+  parallel_for(0, n, kDefaultGranularity,
+               [&](size_t i) { cts[i] = Tree.get_vertex(i).out_degree(); });
 
   vs = vertexSubset(n, std::move(leafs));
   rds = 0, tv = 0;
@@ -294,9 +300,9 @@ inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>, parlay::seq
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
-    vs = edgeMap(
-        Tree, vs, wrap_em_f<gbbs::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
-        in_edges | sparse_blocked | fine_parallel);
+    vs = edgeMap(Tree, vs,
+                 wrap_em_f<gbbs::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
+                 in_edges | sparse_blocked | fine_parallel);
   }
   // Delete tree
   nghs.clear();
@@ -326,15 +332,16 @@ struct BC_BFS_F {
 template <template <typename W> class vertex, class W, class VS>
 inline sequence<uintE> multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
-  auto Parents = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
+  auto Parents =
+      sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  parallel_for(0, frontier.size(), 2000, [&] (size_t i) {
+  parallel_for(0, frontier.size(), 2000, [&](size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
   });
   while (!frontier.isEmpty()) {
-    frontier = edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())), -1,
-                sparse_blocked);
+    frontier = edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())),
+                       -1, sparse_blocked);
   }
   return Parents;
 }
@@ -343,7 +350,8 @@ inline sequence<uintE> multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
 struct DET_BFS_F {
   bool* visited;
   uintE* Parents;
-  DET_BFS_F(bool* visited, uintE* _Parents) : visited(visited), Parents(_Parents) {}
+  DET_BFS_F(bool* visited, uintE* _Parents)
+      : visited(visited), Parents(_Parents) {}
   inline bool update(uintE s, uintE d) {  // Update
     if (s < Parents[d]) {
       Parents[d] = s;
@@ -358,12 +366,12 @@ struct DET_BFS_F {
   inline bool cond(uintE d) { return !visited[d]; }
 };
 
-
 // Deterministic version
 struct DET_BFS_F_2 {
   bool* visited;
   uintE* Parents;
-  DET_BFS_F_2(bool* visited, uintE* _Parents) : visited(visited), Parents(_Parents) {}
+  DET_BFS_F_2(bool* visited, uintE* _Parents)
+      : visited(visited), Parents(_Parents) {}
   inline bool update(uintE s, uintE d) {  // Update
     if (Parents[d] == s) {
       visited[d] = true;
@@ -383,31 +391,37 @@ struct DET_BFS_F_2 {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
+sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA,
+                                        VS& frontier) {
   size_t n = GA.n;
-  auto visited = sequence<bool>::from_function(n, [] (size_t i) { return false; });
-  auto Parents = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
+  auto visited =
+      sequence<bool>::from_function(n, [](size_t i) { return false; });
+  auto Parents =
+      sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  parallel_for(0, frontier.size(), [&] (size_t i) {
+  parallel_for(0, frontier.size(), [&](size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
     visited[v] = true;
   });
   while (!frontier.isEmpty()) {
-    edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F(visited.begin(), Parents.begin())), -1,
-                sparse_blocked);
-    frontier = edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
+    edgeMap(GA, frontier,
+            wrap_em_f<W>(DET_BFS_F(visited.begin(), Parents.begin())), -1,
+            sparse_blocked);
+    frontier =
+        edgeMap(GA, frontier,
+                wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
                 sparse_blocked);
   }
   return Parents;
 }
 
-
 template <class Seq>
 inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return UINT_E_MAX; });
-  parallel_for(0, n, [&] (size_t i) {
+  auto flags = sequence<uintE>::from_function(
+      n + 1, [&](size_t i) { return UINT_E_MAX; });
+  parallel_for(0, n, [&](size_t i) {
     uintE label = labels[i];
     gbbs::write_min(&flags[label], (uintE)i);
   });
@@ -417,13 +431,14 @@ inline sequence<uintE> cc_sources(Seq& labels) {
 
 template <template <class W> class vertex, class W>
 inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
-    symmetric_graph<vertex, W>& GA, sequence<uintE>&& Parents, sequence<labels>&& MM, sequence<uintE>&& PN,
-    sequence<uintE>&& aug_sizes, char* out_f) {
+    symmetric_graph<vertex, W>& GA, sequence<uintE>&& Parents,
+    sequence<labels>&& MM, sequence<uintE>&& PN, sequence<uintE>&& aug_sizes,
+    char* out_f) {
   timer ccc;
   ccc.start();
   size_t n = GA.n;
 
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE pi = Parents[i];
     if (pi != i) {
       labels clab = MM[i];
@@ -453,12 +468,15 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   timer ccpred;
   ccpred.start();
   // 1. Pack out all critical edges
-  auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
+  auto pack_predicate = [&](const uintE& src, const uintE& ngh,
+                            const W& wgh) -> int {
     return !not_critical_edge(src, ngh);
   };
-  timer ft; ft.start();
+  timer ft;
+  ft.start();
   filterEdges(GA, pack_predicate);
-  ft.stop(); debug(ft.next("filter edges time"););
+  ft.stop();
+  debug(ft.next("filter edges time"););
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
@@ -466,31 +484,33 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   ccpred.stop();
   debug(ccpred.next("cc pred time"););
 
-//  //Note that counting components here will count initially isolated vertices
-//  //as distinct components.
-//   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
-//   parallel_for(0, n, [&] (size_t i) {
-//     if (!flags[cc[i]]) {
-//       flags[cc[i]] = 1;
-//     }
-//   });
-//   flags[n] = 0;
-//   parlay::scan_inplace(make_slice(flags));
-//   size_t n_cc = flags[n];
-//   std::cout << "num biconnected components, including isolated vertices = "
-//   << flags[n] << "\n";
+  //  //Note that counting components here will count initially isolated
+  //  vertices
+  //  //as distinct components.
+  //   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
+  //   parallel_for(0, n, [&] (size_t i) {
+  //     if (!flags[cc[i]]) {
+  //       flags[cc[i]] = 1;
+  //     }
+  //   });
+  //   flags[n] = 0;
+  //   parlay::scan_inplace(make_slice(flags));
+  //   size_t n_cc = flags[n];
+  //   std::cout << "num biconnected components, including isolated vertices = "
+  //   << flags[n] << "\n";
 
   if (out_f) {
     std::cout << "Writing labels to file: " << out_f << "\n";
-//    std::ofstream out(out_f, std::ofstream::out);
-//    if (!out.is_open()) {
-//      std::cout << "Unable to open file " << out_f << "\n";
-//      exit(0);
-//    }
+    //    std::ofstream out(out_f, std::ofstream::out);
+    //    if (!out.is_open()) {
+    //      std::cout << "Unable to open file " << out_f << "\n";
+    //      exit(0);
+    //    }
 
     auto tups = sequence<std::pair<uintE, uintE>>::uninitialized(n);
-    parallel_for(0, n, [&] (size_t i) {
-        tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
+    parallel_for(0, n, [&](size_t i) {
+      tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]);
+    });
 
     auto C = parlay::sequence_to_string(tups);
     parlay::chars_to_file(C, out_f);
@@ -501,7 +521,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
     // out.close();
   }
   debug(std::cout << "Bicc done"
-            << "\n";);
+                  << "\n";);
   ccc.stop();
   debug(ccc.next("critical conn time"););
   return std::make_tuple(std::move(Parents), std::move(cc));
@@ -524,10 +544,11 @@ auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   auto Sources = cc_sources(Components);
   Components.clear();
 
-//  auto Sources_copy = Sources.copy(Sources);
-  auto Sources_copy = Sources; // Use copy constructor
+  //  auto Sources_copy = Sources.copy(Sources);
+  auto Sources_copy = Sources;  // Use copy constructor
   auto Centers = vertexSubset(n, std::move(Sources));
-//  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
+  //  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for
+  //  debugging
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();
   debug(sc.next("sc, multibfs time"););
@@ -544,7 +565,8 @@ auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   pn.stop();
   debug(pn.next("preorder time"););
 
-  return critical_connectivity(GA, std::move(Parents), std::move(min_max), std::move(preorder_num), std::move(aug_sizes),
+  return critical_connectivity(GA, std::move(Parents), std::move(min_max),
+                               std::move(preorder_num), std::move(aug_sizes),
                                out_f);
 }
 

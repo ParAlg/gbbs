@@ -26,13 +26,10 @@ class NeighborOrder {
   //
   // The neighbor lists for each vertex in the graph must be sorted by ascending
   // neighbor ID.
-  template <
-    template <typename> class VertexTemplate,
-    typename Weight,
-    class SimilarityMeasure>
-  NeighborOrder(
-      symmetric_graph<VertexTemplate, Weight>* graph,
-      const SimilarityMeasure& similarity_measure);
+  template <template <typename> class VertexTemplate, typename Weight,
+            class SimilarityMeasure>
+  NeighborOrder(symmetric_graph<VertexTemplate, Weight>* graph,
+                const SimilarityMeasure& similarity_measure);
 
   NeighborOrder();
 
@@ -79,13 +76,10 @@ class CoreOrder {
 // SCAN_DETAILED_TIMES is defined, otherwise does nothing.
 void ReportTime(const timer&);
 
-template <
-  template <typename> class VertexTemplate,
-  typename Weight,
-  class SimilarityMeasure>
-NeighborOrder::NeighborOrder(
-    symmetric_graph<VertexTemplate, Weight>* graph,
-    const SimilarityMeasure& similarity_measure) {
+template <template <typename> class VertexTemplate, typename Weight,
+          class SimilarityMeasure>
+NeighborOrder::NeighborOrder(symmetric_graph<VertexTemplate, Weight>* graph,
+                             const SimilarityMeasure& similarity_measure) {
   timer function_timer{"Construct neighbor order"};
   similarities_ = similarity_measure.AllEdges(graph);
   parlay::sample_sort_inplace(
@@ -93,19 +87,19 @@ NeighborOrder::NeighborOrder(
       [](const EdgeSimilarity& left, const EdgeSimilarity& right) {
         // Sort by ascending source, then descending similarity.
         return std::tie(left.source, right.similarity) <
-          std::tie(right.source, left.similarity);
+               std::tie(right.source, left.similarity);
       });
   sequence<uintT> vertex_offsets = sequence<uintT>::from_function(
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
   parlay::scan_inplace(vertex_offsets);
-  similarities_by_source_ = sequence<gbbs::slice<EdgeSimilarity>>::from_function(
-      graph->n,
-      [&](const size_t i) {
-        return similarities_.cut(
-          vertex_offsets[i],
-          i + 1 == graph->n ? similarities_.size() : vertex_offsets[i + 1]);
-      });
+  similarities_by_source_ =
+      sequence<gbbs::slice<EdgeSimilarity>>::from_function(
+          graph->n, [&](const size_t i) {
+            return similarities_.cut(vertex_offsets[i],
+                                     i + 1 == graph->n ? similarities_.size()
+                                                       : vertex_offsets[i + 1]);
+          });
   internal::ReportTime(function_timer);
 }
 

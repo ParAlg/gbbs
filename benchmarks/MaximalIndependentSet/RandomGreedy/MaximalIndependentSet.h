@@ -38,19 +38,18 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
       d[ngh] = 1;
     }
   };
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&](size_t i) {
     if (in_mis[i]) {
       G.get_vertex(i).out_neighbors().map(map_f);
     }
   });
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, G.n, [&](size_t i) {
     if (in_mis[i]) {
       assert(!d[i]);
     }
   });
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
-  auto mis_int =
-      parlay::delayed_seq<size_t>(G.n, mis_f);
+  auto mis_int = parlay::delayed_seq<size_t>(G.n, mis_f);
   size_t mis_size = parlay::reduce(mis_int);
   if (parlay::reduce(d) != (G.n - mis_size)) {
     std::cout << "MaximalIndependentSet incorrect"
@@ -118,13 +117,14 @@ struct mis_f {
 template <class Graph>
 inline sequence<bool> MaximalIndependentSet(Graph& G) {
   using W = typename Graph::weight_type;
-  timer init_t; init_t.start();
+  timer init_t;
+  init_t.start();
   size_t n = G.n;
 
   // compute the priority DAG
   auto priorities = sequence<intE>(n);  // why intE?
   auto perm = parlay::random_permutation<uintE>(n);
-  parallel_for(0, n, 1, [&] (size_t i) {
+  parallel_for(0, n, 1, [&](size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -137,8 +137,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
 
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
-  auto zero_map =
-      parlay::delayed_seq<bool>(n, zero_f);
+  auto zero_map = parlay::delayed_seq<bool>(n, zero_f);
   auto init = parlay::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, std::move(init));
 
@@ -156,7 +155,8 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     // compute neighbors of roots that are still live using nghMap
     auto removed = get_nghs(G, roots, priorities);
     vertexMap(removed, [&](uintE v) { priorities[v] = 0; });
-    std::cout << "## removed: " << removed.size() << " many vertices" << std::endl;
+    std::cout << "## removed: " << removed.size() << " many vertices"
+              << std::endl;
 
     // compute the new roots: neighbors of removed that have their priorities
     // set to 0 after eliminating all nodes in removed
@@ -230,7 +230,8 @@ inline sequence<char> MaximalIndependentSet(Graph& G) {
   size_t n = G.n;
   auto Flags = sequence<char>::from_function(n, [&](size_t i) { return 0; });
   auto FlagsNext = sequence<char>(n);
-  auto mis = MaximalIndependentSetstep<Graph>(FlagsNext.begin(), Flags.begin(), G);
+  auto mis =
+      MaximalIndependentSetstep<Graph>(FlagsNext.begin(), Flags.begin(), G);
   eff_for<uintE>(mis, 0, n, 50);
   return Flags;
 }
@@ -241,7 +242,7 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>::from_function(n, [&](size_t i) { return 1; });
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };

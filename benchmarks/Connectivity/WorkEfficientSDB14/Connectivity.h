@@ -23,18 +23,17 @@
 
 #pragma once
 
-#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-#include "gbbs/gbbs.h"
-#include "gbbs/contract.h"
 #include "benchmarks/Connectivity/common.h"
+#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
+#include "gbbs/contract.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 namespace workefficient_cc {
 
 template <class Graph>
-inline sequence<parent> CC_impl(Graph& G, double beta,
-                                 size_t level, bool pack = false,
-                                 bool permute = false) {
+inline sequence<parent> CC_impl(Graph& G, double beta, size_t level,
+                                bool pack = false, bool permute = false) {
   size_t n = G.n;
   permute |= (level > 0);
   timer ldd_t;
@@ -59,7 +58,7 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
   if (GC.m == 0) return clusters;
 
   auto new_labels = CC_impl(GC, beta, level + 1);
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton
@@ -77,8 +76,9 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
 template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  auto flags =
+      sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }
@@ -92,7 +92,8 @@ template <class Seq>
 inline size_t largest_cc(Seq& labels) {
   size_t n = labels.size();
   // could histogram to do this in parallel.
-  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
+  auto flags =
+      sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
@@ -105,7 +106,8 @@ inline size_t largest_cc(Seq& labels) {
 // connected component `S[i]`. The component IDs will be in the range `[0, G.n)`
 // but are not necessarily contiguous.
 template <class Graph>
-inline sequence<parent> CC(Graph& G, double beta = 0.2, bool pack = false, bool permute = false) {
+inline sequence<parent> CC(Graph& G, double beta = 0.2, bool pack = false,
+                           bool permute = false) {
   return CC_impl(G, beta, 0, pack, permute);
 }
 

@@ -32,23 +32,30 @@ namespace gbbs {
 namespace compiled {
 
 sequence<edge> MinimumSpanningForest(symmetric_unweighted_graph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 sequence<uint_edge> MinimumSpanningForest(symmetric_uint32_graph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 sequence<float_edge> MinimumSpanningForest(symmetric_float_graph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 sequence<double_edge> MinimumSpanningForest(symmetric_double_graph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 
 sequence<edge> MinimumSpanningForest(symmetric_unweighted_cgraph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 sequence<uint_edge> MinimumSpanningForest(symmetric_uint32_cgraph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 sequence<float_edge> MinimumSpanningForest(symmetric_float_cgraph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 sequence<double_edge> MinimumSpanningForest(symmetric_double_cgraph& G) {
-  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G); }
+  return gbbs::MinimumSpanningForest_boruvka::MinimumSpanningForest(G);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

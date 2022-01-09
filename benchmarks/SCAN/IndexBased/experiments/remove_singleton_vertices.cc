@@ -6,23 +6,23 @@
 
 #include "gbbs/helpers/parse_command_line.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   const std::string kCommandLineHelpString{
-    "Usage: ./remove_singleton_vertices [-wf] -i <input file> -o <output file>"
-    "\n"
-    "\n"
-    "Removes zero-degree vertices from an edge list by renumbering the\n"
-    "vertices.\n"
-    "\n"
-    "Arguments:\n"
-    "  -i <filename>: Path to the input edge-list file.\n"
-    "  -o <filename>: Path to the output file.\n"
-    "Optional arguments:\n"
-    "  --skip <int>: Number of lines in beginning of file to skip\n"
-    "  -wf: Use this flag if the edge list is weighted with 32-bit floats.\n"
-  };
-  if (argc < 2 ||
-      std::string(argv[1]) == "-h" ||
+      "Usage: ./remove_singleton_vertices [-wf] -i <input file> -o <output "
+      "file>"
+      "\n"
+      "\n"
+      "Removes zero-degree vertices from an edge list by renumbering the\n"
+      "vertices.\n"
+      "\n"
+      "Arguments:\n"
+      "  -i <filename>: Path to the input edge-list file.\n"
+      "  -o <filename>: Path to the output file.\n"
+      "Optional arguments:\n"
+      "  --skip <int>: Number of lines in beginning of file to skip\n"
+      "  -wf: Use this flag if the edge list is weighted with 32-bit "
+      "floats.\n"};
+  if (argc < 2 || std::string(argv[1]) == "-h" ||
       std::string(argv[1]) == "--help") {
     std::cout << kCommandLineHelpString << '\n';
     return 0;

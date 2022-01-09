@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gtest/gtest.h"
 
 namespace gbbs {
 
@@ -25,8 +25,7 @@ TEST(EdgeListToAsymmetricGraph, DuplicateEdges) {
   // Graph diagram:
   // 0 --> 1
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {0, 1},
-    {0, 1},
+      {0, 1}, {0, 1},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 2);
@@ -53,7 +52,7 @@ TEST(EdgeListToAsymmetricGraph, SkipFirstVertex) {
   // Graph diagram:
   // 1 --> 2
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {1, 2},
+      {1, 2},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 3);
@@ -90,13 +89,7 @@ TEST(EdgeListToAsymmetricGraph, OutOfOrderEdges) {
   // 2 <-> 5
 
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {3, 6},
-    {0, 2},
-    {5, 0},
-    {5, 1},
-    {2, 5},
-    {0, 1},
-    {5, 2},
+      {3, 6}, {0, 2}, {5, 0}, {5, 1}, {2, 5}, {0, 1}, {5, 2},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 7);
@@ -167,9 +160,7 @@ TEST(EdgeListToSymmetricGraph, DuplicateEdges) {
   // Graph diagram:
   // 0 --- 1
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {0, 1},
-    {1, 0},
-    {0, 1},
+      {0, 1}, {1, 0}, {0, 1},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 2);
@@ -194,7 +185,7 @@ TEST(EdgeListToSymmetricGraph, SkipFirstVertex) {
   // Graph diagram:
   // 1 --- 2
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {1, 2},
+      {1, 2},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 3);
@@ -228,11 +219,7 @@ TEST(EdgeListToSymmetricGraph, OutOfOrderEdges) {
   // 2     5
 
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {1, 5},
-    {0, 5},
-    {6, 3},
-    {2, 0},
-    {1, 0},
+      {1, 5}, {0, 5}, {6, 3}, {2, 0}, {1, 0},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 7);

@@ -50,7 +50,8 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -src = " << src << " -delta = " << delta << " -nb (num_buckets) = " << num_buckets << std::endl;
+  std::cout << "### Params: -src = " << src << " -delta = " << delta
+            << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   if (num_buckets != (((uintE)1) << parlay::log2_up(num_buckets))) {
@@ -58,7 +59,8 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
               << "\n";
     exit(-1);
   }
-  timer t; t.start();
+  timer t;
+  t.start();
   auto dists = DeltaStepping(G, src, delta, num_buckets);
   double tt = t.stop();
 
@@ -68,5 +70,5 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
 
 }  // namespace gbbs
 
-//generate_float_main(gbbs::DeltaStepping_runner, false);
+// generate_float_main(gbbs::DeltaStepping_runner, false);
 generate_weighted_main(gbbs::DeltaStepping_runner, false);

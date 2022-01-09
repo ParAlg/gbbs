@@ -22,7 +22,8 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./MaximalIndependentSet -stats -rounds 4 -s com-orkut.ungraph.txt_SJ
+// numactl -i all ./MaximalIndependentSet -stats -rounds 4 -s
+// com-orkut.ungraph.txt_SJ
 // flags:
 //   required:
 //     -s : indicate that the graph is symmetric
@@ -45,7 +46,8 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << std::endl;
+  std::cout << "### Params: -specfor (deterministic reservations) = "
+            << spec_for << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));
@@ -54,28 +56,32 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   // Code below looks duplicated; this is because the return types of specfor
   // and rootset are different
   if (spec_for) {
-    timer t; t.start();
-    auto MaximalIndependentSet = MaximalIndependentSet_spec_for::MaximalIndependentSet(G);
+    timer t;
+    t.start();
+    auto MaximalIndependentSet =
+        MaximalIndependentSet_spec_for::MaximalIndependentSet(G);
     // in spec_for, MaximalIndependentSet[i] == 1 indicates that i was chosen
     tt = t.stop();
     auto size_f = [&](size_t i) { return (MaximalIndependentSet[i] == 1); };
-    auto size_imap =
-        parlay::delayed_seq<size_t>(G.n, size_f);
+    auto size_imap = parlay::delayed_seq<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
-      std::cout << "MaximalIndependentSet size: " << parlay::reduce(size_imap) << "\n";
+      std::cout << "MaximalIndependentSet size: " << parlay::reduce(size_imap)
+                << "\n";
     }
     if (P.getOptionValue("-verify")) {
       verify_MaximalIndependentSet(G, size_imap);
     }
   } else {
-    timer t; t.start();
-    auto MaximalIndependentSet = MaximalIndependentSet_rootset::MaximalIndependentSet(G);
+    timer t;
+    t.start();
+    auto MaximalIndependentSet =
+        MaximalIndependentSet_rootset::MaximalIndependentSet(G);
     tt = t.stop();
     auto size_f = [&](size_t i) { return MaximalIndependentSet[i]; };
-    auto size_imap =
-        parlay::delayed_seq<size_t>(G.n, size_f);
+    auto size_imap = parlay::delayed_seq<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
-      std::cout << "MaximalIndependentSet size: " << parlay::reduce(size_imap) << "\n";
+      std::cout << "MaximalIndependentSet size: " << parlay::reduce(size_imap)
+                << "\n";
     }
     if (P.getOptionValue("-verify")) {
       verify_MaximalIndependentSet(G, size_imap);

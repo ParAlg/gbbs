@@ -413,8 +413,8 @@ struct buckets {
     num_elms -= size;
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
-    auto bkt_seq = parlay::delayed_seq<ident_t>(
-        size, [&](size_t i) { return bkt.A[i]; });
+    auto bkt_seq =
+        parlay::delayed_seq<ident_t>(size, [&](size_t i) { return bkt.A[i]; });
     auto filtered = parlay::filter(bkt_seq, p);
     bkts[cur_bkt].size = 0;
     if (filtered.size() == 0) {

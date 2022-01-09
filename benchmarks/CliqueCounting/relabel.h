@@ -60,9 +60,9 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
     // need to sort tmp_edges
     tmp_edges.resize(deg);
     parlay::stable_sort_inplace(make_slice(tmp_edges),
-                                 [&](const edge u, const edge v) {
-                                   return std::get<0>(u) < std::get<0>(v);
-                                 });
+                                [&](const edge u, const edge v) {
+                                  return std::get<0>(u) < std::get<0>(v);
+                                });
 
     // now need to compute total_bytes (TODO: this could be parallelized, b/c we
     // know what last_ngh is)
@@ -109,9 +109,9 @@ inline symmetric_graph<csv_byte, W> relabel_graph(
       GA.get_vertex(i).out_neighbors().map(f, false);
       // need to sort tmp_edges
       parlay::stable_sort_inplace(make_slice(tmp_edges),
-                                   [&](const edge u, const edge v) {
-                                     return std::get<0>(u) < std::get<0>(v);
-                                   });
+                                  [&](const edge u, const edge v) {
+                                    return std::get<0>(u) < std::get<0>(v);
+                                  });
 
       auto iter = vertex_ops::get_iter(tmp_edges.begin(), deg);
       byte::sequentialCompressEdgeSet<W>(edges + byte_offsets[rank[i]], 0, deg,
@@ -190,10 +190,10 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
                                       std::get<1>(dir_nghs[j]));
       });
       parlay::stable_sort_inplace(gbbs::make_slice(dir_nghs, true_deg),
-                                   [&](const edge left, const edge right) {
-                                     return std::get<0>(left) <
-                                            std::get<0>(right);
-                                   });
+                                  [&](const edge left, const edge right) {
+                                    return std::get<0>(left) <
+                                           std::get<0>(right);
+                                  });
     }
   });
 
@@ -204,13 +204,13 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(
   });
   outOffsets.clear();
 
-  return symmetric_graph<symmetric_vertex, W>(
-      out_vdata, GA.n, outEdgeCount,
-      [=]() {
-        gbbs::free_array(out_vdata, n);
-        gbbs::free_array(out_edges, outEdgeCount);
-      },
-      out_edges);
+  return symmetric_graph<symmetric_vertex, W>(out_vdata, GA.n, outEdgeCount,
+                                              [=]() {
+                                                gbbs::free_array(out_vdata, n);
+                                                gbbs::free_array(out_edges,
+                                                                 outEdgeCount);
+                                              },
+                                              out_edges);
 }
 
 template <class Graph>

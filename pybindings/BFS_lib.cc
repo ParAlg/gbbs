@@ -31,41 +31,56 @@ namespace gbbs {
 namespace compiled {
 
 sequence<uintE> BFS(symmetric_unweighted_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(symmetric_uint32_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(symmetric_float_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(symmetric_double_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 
 sequence<uintE> BFS(symmetric_unweighted_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(symmetric_uint32_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(symmetric_float_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(symmetric_double_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 
 sequence<uintE> BFS(asymmetric_unweighted_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(asymmetric_uint32_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(asymmetric_float_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(asymmetric_double_graph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 
 sequence<uintE> BFS(asymmetric_unweighted_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(asymmetric_uint32_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(asymmetric_float_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 sequence<uintE> BFS(asymmetric_double_cgraph& G, uintE src) {
-  return gbbs::BFS(G, src); }
+  return gbbs::BFS(G, src);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

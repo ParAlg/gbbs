@@ -337,8 +337,7 @@ struct vertexSubsetData<gbbs::empty> {
 
   void toSparse() {
     if (s.size() == 0 && m > 0) {
-      auto f_in =
-          parlay::delayed_seq<bool>(n, [&](size_t i) { return d[i]; });
+      auto f_in = parlay::delayed_seq<bool>(n, [&](size_t i) { return d[i]; });
       s = parlay::pack_index<uintE>(f_in);
       if (s.size() != m) {
         std::cout << "# m is " << m << " but out.size says" << s.size()

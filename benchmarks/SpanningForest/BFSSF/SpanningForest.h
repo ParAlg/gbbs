@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "gbbs/gbbs.h"
 #include "benchmarks/SpanningForest/common.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 namespace bfs_sf {
@@ -38,7 +38,8 @@ struct BFS_SpanningForest_F {
     return 1;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (gbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(UINT_E_MAX), static_cast<parent>(s)));
+    return (gbbs::atomic_compare_and_swap(
+        &Parents[d], static_cast<parent>(UINT_E_MAX), static_cast<parent>(s)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };
@@ -48,22 +49,23 @@ template <class Graph>
 void BFS_SpanningForest(Graph& G, uintE src, sequence<parent>& parents) {
   using W = typename Graph::weight_type;
   vertexSubset Frontier(G.n, src);
-  size_t reachable = 0; size_t rounds = 0;
+  size_t reachable = 0;
+  size_t rounds = 0;
   while (!Frontier.isEmpty()) {
     reachable += Frontier.size();
     vertexSubset output =
-        edgeMap(G, Frontier, BFS_SpanningForest_F<W>(parents.begin()), -1, sparse_blocked | dense_parallel);
+        edgeMap(G, Frontier, BFS_SpanningForest_F<W>(parents.begin()), -1,
+                sparse_blocked | dense_parallel);
     Frontier = std::move(output);
     rounds++;
   }
 }
 
-
 template <class Graph>
 inline sequence<edge> SpanningForest(Graph& G) {
   size_t n = G.n;
   auto parents = sequence<parent>(n, UINT_E_MAX);
-  for (size_t i=0; i<n; i++) {
+  for (size_t i = 0; i < n; i++) {
     if (parents[i] == UINT_E_MAX) {
       parents[i] = i;
       BFS_SpanningForest(G, i, parents);
@@ -77,7 +79,8 @@ template <class W>
 struct BFS_SpanningForest_Det_F {
   sequence<parent>& Parents;
   sequence<bool>& visited;
-  BFS_SpanningForest_Det_F(sequence<parent>& _Parents, sequence<bool>& visited) : Parents(_Parents), visited(visited) {}
+  BFS_SpanningForest_Det_F(sequence<parent>& _Parents, sequence<bool>& visited)
+      : Parents(_Parents), visited(visited) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (s < Parents[d]) {
       Parents[d] = s;
@@ -85,7 +88,8 @@ struct BFS_SpanningForest_Det_F {
     return false;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    gbbs::write_min<parent>(&Parents[d], static_cast<parent>(s), std::less<parent>());
+    gbbs::write_min<parent>(&Parents[d], static_cast<parent>(s),
+                            std::less<parent>());
     return false;
   }
   inline bool cond(const uintE& d) { return (!visited[d]); }
@@ -95,7 +99,9 @@ template <class W>
 struct BFS_SpanningForest_Det_F_2 {
   sequence<parent>& Parents;
   sequence<bool>& visited;
-  BFS_SpanningForest_Det_F_2(sequence<parent>& _Parents, sequence<bool>& visited) : Parents(_Parents), visited(visited) {}
+  BFS_SpanningForest_Det_F_2(sequence<parent>& _Parents,
+                             sequence<bool>& visited)
+      : Parents(_Parents), visited(visited) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {  // Update
     if (Parents[d] == s) {
       visited[d] = true;
@@ -103,7 +109,8 @@ struct BFS_SpanningForest_Det_F_2 {
     }
     return false;
   }
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {  // Atomic version of Update
+  inline bool updateAtomic(const uintE& s, const uintE& d,
+                           const W& wgh) {  // Atomic version of Update
     if (Parents[d] == s) {
       visited[d] = true;
       return true;
@@ -115,14 +122,19 @@ struct BFS_SpanningForest_Det_F_2 {
 };
 
 template <class Graph>
-void BFS_SpanningForest_Det(Graph& G, uintE src, sequence<parent>& parents, sequence<bool>& visited) {
+void BFS_SpanningForest_Det(Graph& G, uintE src, sequence<parent>& parents,
+                            sequence<bool>& visited) {
   using W = typename Graph::weight_type;
   vertexSubset Frontier(G.n, src);
-  size_t reachable = 0; size_t rounds = 0;
+  size_t reachable = 0;
+  size_t rounds = 0;
   while (!Frontier.isEmpty()) {
     reachable += Frontier.size();
-    edgeMap(G, Frontier, BFS_SpanningForest_Det_F<W>(parents, visited), -1, sparse_blocked | dense_parallel);
-    auto output = edgeMap(G, Frontier, BFS_SpanningForest_Det_F_2<W>(parents, visited), -1, sparse_blocked | dense_parallel);
+    edgeMap(G, Frontier, BFS_SpanningForest_Det_F<W>(parents, visited), -1,
+            sparse_blocked | dense_parallel);
+    auto output =
+        edgeMap(G, Frontier, BFS_SpanningForest_Det_F_2<W>(parents, visited),
+                -1, sparse_blocked | dense_parallel);
     Frontier = std::move(output);
     rounds++;
   }
@@ -133,7 +145,7 @@ inline sequence<edge> SpanningForestDet(Graph& G) {
   size_t n = G.n;
   auto parents = sequence<parent>(n, UINT_E_MAX);
   auto visited = sequence<bool>(G.n, false);
-  for (size_t i=0; i<n; i++) {
+  for (size_t i = 0; i < n; i++) {
     if (parents[i] == UINT_E_MAX) {
       parents[i] = i;
       visited[i] = true;

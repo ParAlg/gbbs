@@ -53,7 +53,6 @@ struct Visit_Elms {
 
 }  // namespace sc
 
-
 // Try implementing version with priority array.
 // Question is how much does log(..) cost, each time when we unpack?
 
@@ -66,12 +65,16 @@ struct Visit_Elms {
 template <class Graph>
 inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   using W = typename Graph::weight_type;
-  timer it; it.start();
-  auto Elms = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
+  timer it;
+  it.start();
+  auto Elms =
+      sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
-  auto D = sequence<uintE>::from_function(G.n, [&](size_t i) { return get_bucket_clamped(G.get_vertex(i).out_degree()); });
+  auto D = sequence<uintE>::from_function(G.n, [&](size_t i) {
+    return get_bucket_clamped(G.get_vertex(i).out_degree());
+  });
   auto b = make_vertex_buckets(G.n, D, decreasing, num_buckets);
 
   auto perm = sequence<uintE>::uninitialized(G.n);
@@ -81,7 +84,8 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   size_t rounds = 0;
   gbbs::dyn_arr<uintE> cover = gbbs::dyn_arr<uintE>();
   auto r = parlay::random();
-  it.stop(); it.next("initialization time");
+  it.stop();
+  it.next("initialization time");
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
@@ -97,7 +101,9 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
       return Elms[ngh] != sc::COVERED;
     };
-    auto pack_apply = [&](uintE v, size_t ct) { D[v] = get_bucket_clamped(ct); };
+    auto pack_apply = [&](uintE v, size_t ct) {
+      D[v] = get_bucket_clamped(ct);
+    };
     auto packed_vtxs = srcPack(G, active, pack_predicate, pack_edges);
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
@@ -107,24 +113,24 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto above_threshold = [&](const uintE& v, const uintE& deg) {
       return deg >= threshold;
     };
-    //auto still_active = vertexFilter_sparse(packed_vtxs, above_threshold);
+    // auto still_active = vertexFilter_sparse(packed_vtxs, above_threshold);
     auto still_active = vertexFilter(packed_vtxs, above_threshold, no_dense);
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
     auto P = parlay::random_permutation<uintE>(still_active.size(), r);
-    parallel_for(0, still_active.size(), kDefaultGranularity, [&] (size_t i) {
-                      uintE v = still_active.vtx(i);
-                      uintE pv = P[i];
-                      perm[v] = pv;
-                    });
+    parallel_for(0, still_active.size(), kDefaultGranularity, [&](size_t i) {
+      uintE v = still_active.vtx(i);
+      uintE pv = P[i];
+      perm[v] = pv;
+    });
     P.clear();
     permt.stop();
 
     debug(std::cout << "Round = " << rounds << " bkt = " << cur_bkt
-              << " active = " << active.size()
-              << " stillactive = " << still_active.size() << "\n";);
+                    << " active = " << active.size()
+                    << " stillactive = " << still_active.size() << "\n";);
 
     emt.start();
     // 2. sets -> elements (write_min to acquire neighboring elements)
@@ -142,11 +148,13 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     };
     auto activeAndCts = srcCount(G, still_active, won_ngh_f);
     vertexMap(activeAndCts, threshold_f);
-    auto inCover =
-        vertexFilter(activeAndCts, [&](const uintE& v, const uintE& numWon) {
-        //vertexFilter_sparse(activeAndCts, [&](const uintE& v, const uintE& numWon) {
-          return numWon >= low_threshold;
-        }, no_dense);
+    auto inCover = vertexFilter(activeAndCts,
+                                [&](const uintE& v, const uintE& numWon) {
+                                  // vertexFilter_sparse(activeAndCts, [&](const
+                                  // uintE& v, const uintE& numWon) {
+                                  return numWon >= low_threshold;
+                                },
+                                no_dense);
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
 
     // 4. sets -> elements (Sets that joined the cover mark their neighboring
@@ -160,8 +168,7 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
       }
       return false;
     };
-    edgeMap(G, still_active,
-            EdgeMap_F<W, decltype(reset_f)>(reset_f), -1,
+    edgeMap(G, still_active, EdgeMap_F<W, decltype(reset_f)>(reset_f), -1,
             no_output | dense_forward);
     emt.stop();
 
@@ -172,9 +179,9 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
       const uintE v = active.vtx(i);
       const uintE v_bkt = D[v];
       uintE bucket = UINT_E_MAX;
-      if (!(v_bkt == UINT_E_MAX))
-        bucket = b.get_bucket(v_bkt);
-      return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
+      if (!(v_bkt == UINT_E_MAX)) bucket = b.get_bucket(v_bkt);
+      return std::optional<std::tuple<uintE, uintE>>(
+          std::make_tuple(v, bucket));
     };
     debug(std::cout << "cover.size = " << cover.size << "\n");
     b.update_buckets(f, active.size());

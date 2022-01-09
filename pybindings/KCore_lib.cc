@@ -30,24 +30,15 @@
 namespace gbbs {
 namespace compiled {
 
-sequence<uintE> KCore(symmetric_unweighted_graph& G) {
-  return gbbs::KCore(G); }
-sequence<uintE> KCore(symmetric_uint32_graph& G) {
-  return gbbs::KCore(G); }
-sequence<uintE> KCore(symmetric_float_graph& G) {
-  return gbbs::KCore(G); }
-sequence<uintE> KCore(symmetric_double_graph& G) {
-  return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_unweighted_graph& G) { return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_uint32_graph& G) { return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_float_graph& G) { return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_double_graph& G) { return gbbs::KCore(G); }
 
-sequence<uintE> KCore(symmetric_unweighted_cgraph& G) {
-  return gbbs::KCore(G); }
-sequence<uintE> KCore(symmetric_uint32_cgraph& G) {
-  return gbbs::KCore(G); }
-sequence<uintE> KCore(symmetric_float_cgraph& G) {
-  return gbbs::KCore(G); }
-sequence<uintE> KCore(symmetric_double_cgraph& G) {
-  return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_unweighted_cgraph& G) { return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_uint32_cgraph& G) { return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_float_cgraph& G) { return gbbs::KCore(G); }
+sequence<uintE> KCore(symmetric_double_cgraph& G) { return gbbs::KCore(G); }
 
 }  // namespace compiled
 }  // namespace gbbs
-

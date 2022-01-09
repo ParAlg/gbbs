@@ -21,11 +21,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/Connectivity/ConnectIt/framework.h"
-#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/Connectivity/BFSCC/Connectivity.h"
-#include "benchmarks/Connectivity/common.h"
+#include "benchmarks/Connectivity/ConnectIt/framework.h"
 #include "benchmarks/Connectivity/LabelPropagation/Connectivity.h"
+#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/Connectivity/common.h"
 
 #include "bench_utils.h"
 
@@ -44,12 +44,11 @@ double t_gbbs_cc(Graph& G, commandLine P, sequence<parent>& correct) {
 }
 
 template <class Graph>
-void gbbscc_nosample(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
+void gbbscc_nosample(Graph& G, int rounds, commandLine& P,
+                     sequence<parent>& correct) {
   run_multiple(G, rounds, correct, "gbbs_cc", P, t_gbbs_cc<Graph>);
 }
-
 }
-
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
@@ -61,9 +60,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
     RelabelDet(correct);
   }
   run_tests(G, rounds, P, correct, connectit::gbbscc_nosample<Graph>,
-    {
-      connectit::gbbscc_nosample<Graph>
-    });
+            {connectit::gbbscc_nosample<Graph>});
   return 1.0;
 }
 }  // namespace gbbs

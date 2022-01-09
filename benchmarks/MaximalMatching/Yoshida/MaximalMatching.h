@@ -30,21 +30,21 @@
 
 namespace gbbs {
 
-enum mm_status {
-  in,
-  out,
-  unknown
-};
+enum mm_status { in, out, unknown };
 
 /* returns pair of (in_matching, query_work) */
 template <class Graph>
-std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so_far, size_t query_cutoff) {
+std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G,
+                                      size_t work_so_far, size_t query_cutoff) {
   assert(u < v);
-  auto vtx_u = G.get_vertex(u); auto vtx_v = G.get_vertex(v);
-  uintE deg_u = vtx_u.out_degree(); uintE deg_v = vtx_v.out_degree();
-  auto nghs_u = (uintE*)vtx_u.neighbors; auto nghs_v = (uintE*)vtx_v.neighbors;
+  auto vtx_u = G.get_vertex(u);
+  auto vtx_v = G.get_vertex(v);
+  uintE deg_u = vtx_u.out_degree();
+  uintE deg_v = vtx_v.out_degree();
+  auto nghs_u = (uintE*)vtx_u.neighbors;
+  auto nghs_v = (uintE*)vtx_v.neighbors;
 
-  size_t our_pri = get_edge_pri(u,v);
+  size_t our_pri = get_edge_pri(u, v);
 
   auto it = sorted_it(nghs_u, nghs_v, deg_u, deg_v, u, v);
 
@@ -54,7 +54,7 @@ std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so
     if (work == query_cutoff) {
       return std::make_pair(unknown, query_cutoff);
     }
-    auto [a, n_a] = it.get_next();
+    auto[a, n_a] = it.get_next();
     work++;
 
     auto ep = get_edge_pri(a, n_a);
@@ -66,13 +66,13 @@ std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so
       if (a == u && n_a == v) {
         break;
       } /* not equal, but hashes equal */
-      if (std::make_pair(u,v) < std::make_pair(a, n_a)) {
+      if (std::make_pair(u, v) < std::make_pair(a, n_a)) {
         break; /* done */
       }
     }
 
     /* recursively check (a, n_a) */
-    auto [status, rec_work] = mm_query(a, n_a, G, work, query_cutoff);
+    auto[status, rec_work] = mm_query(a, n_a, G, work, query_cutoff);
     work = rec_work;
     if (status == in) { /* neighboring edge in mm */
       return std::make_pair(out, work);
@@ -94,7 +94,7 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
   size_t m = G.m;
   size_t n = G.n;
 
-  auto edge_to_priority = [&] (const uintE& u, const std::tuple<uintE, W>& ngh) {
+  auto edge_to_priority = [&](const uintE& u, const std::tuple<uintE, W>& ngh) {
     auto v = std::get<0>(ngh);
     return get_edge_pri(u, v);
   };
@@ -104,9 +104,9 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
   auto matching_cts = sequence<uintE>(n, (uintE)0);
   auto total_work = sequence<size_t>(n, (size_t)0);
   auto got_answer = sequence<size_t>(n, (size_t)0);
-  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+  auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
-      auto [in_mm, work] = mm_query(u, v, RG, 0, query_cutoff);
+      auto[in_mm, work] = mm_query(u, v, RG, 0, query_cutoff);
       gbbs::write_add(&total_work[v], work);
       gbbs::write_max(&max_query_length, work, std::less<size_t>());
       if (in_mm == in) {
@@ -120,23 +120,29 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
   };
   RG.mapEdges(map_f);
   size_t tot_work = parlay::reduce(make_slice(total_work));
-  double fraction_covered = (static_cast<double>(parlay::reduce(make_slice(got_answer))) / (static_cast<double>(m)/2));
+  double fraction_covered =
+      (static_cast<double>(parlay::reduce(make_slice(got_answer))) /
+       (static_cast<double>(m) / 2));
   std::cout << "# Max query length = " << max_query_length << std::endl;
   std::cout << "# Total work = " << tot_work << std::endl;
-  std::cout << "# Answers for: " << fraction_covered << " fraction of edges" << std::endl;
+  std::cout << "# Answers for: " << fraction_covered << " fraction of edges"
+            << std::endl;
 
   if (query_cutoff == std::numeric_limits<size_t>::max()) {
     // Verify that we found a matching.
-    for (size_t i=0; i<n; i++) {
+    for (size_t i = 0; i < n; i++) {
       if (matching_cts[i] > 1) {
-        std::cout << "mct = " << matching_cts[i] << " i = " << i << " deg = " << G.get_vertex(i).out_degree() << std::endl;
+        std::cout << "mct = " << matching_cts[i] << " i = " << i
+                  << " deg = " << G.get_vertex(i).out_degree() << std::endl;
       }
       assert(matching_cts[i] <= 1);
     }
 
     // Verify that the matching is maximal.
-    auto verify_f = [&] (const uintE u, const uintE& v, const W& wgh) {
-      assert(!(matching_cts[u] == 0 && matching_cts[v] == 0)); // !(we could add this edge to the matching)
+    auto verify_f = [&](const uintE u, const uintE& v, const W& wgh) {
+      assert(!(matching_cts[u] == 0 &&
+               matching_cts[v] ==
+                   0));  // !(we could add this edge to the matching)
     };
     G.mapEdges(verify_f);
   }

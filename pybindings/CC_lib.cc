@@ -31,23 +31,30 @@ namespace gbbs {
 namespace compiled {
 
 sequence<uintE> Connectivity(symmetric_unweighted_graph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 sequence<uintE> Connectivity(symmetric_uint32_graph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 sequence<uintE> Connectivity(symmetric_float_graph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 sequence<uintE> Connectivity(symmetric_double_graph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 
 sequence<uintE> Connectivity(symmetric_unweighted_cgraph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 sequence<uintE> Connectivity(symmetric_uint32_cgraph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 sequence<uintE> Connectivity(symmetric_float_cgraph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 sequence<uintE> Connectivity(symmetric_double_cgraph& G) {
-  return gbbs::workefficient_cc::CC(G); }
+  return gbbs::workefficient_cc::CC(G);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

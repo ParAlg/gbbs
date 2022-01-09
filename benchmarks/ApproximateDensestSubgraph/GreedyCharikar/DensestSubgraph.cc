@@ -48,7 +48,8 @@ double DensestSubgraph_runner(Graph& G, commandLine P) {
   std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
 
-  timer t; t.start();
+  timer t;
+  t.start();
   CharikarAppxDensestSubgraph(G);
   double tt = t.stop();
 

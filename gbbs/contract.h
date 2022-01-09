@@ -62,7 +62,8 @@ sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters,
   auto edge_table =
       gbbs::make_sparse_table<K, V>(small_cluster_size, empty, hash_pair);
 
-  debug(std::cout << "Made edge table, size = " << small_cluster_size << " about to insert" << std::endl;);
+  debug(std::cout << "Made edge table, size = " << small_cluster_size
+                  << " about to insert" << std::endl;);
   timer ins_t;
   ins_t.start();
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -119,8 +120,7 @@ sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters,
     size_t key = (l << 32) + r;
     return parlay::hash64_2(key);
   };
-  auto edge_table =
-      gbbs::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+  auto edge_table = gbbs::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
   debug(std::cout << "# sizeof table = " << edge_table.m << std::endl;);
   deg_map.clear();
 
@@ -213,8 +213,8 @@ sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters,
 // (2) A sequence `T` that is the inverse to (1). Vertex i in the contracted
 //   graph is the contraction of cluster `T[i]`.
 template <class Graph>
-inline auto
-contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
+inline auto contract(Graph& GA, sequence<uintE>& clusters,
+                     size_t num_clusters) {
   // Remove duplicates by hashing
   using K = std::tuple<uintE, uintE, gbbs::empty>;
 

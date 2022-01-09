@@ -31,41 +31,56 @@ namespace gbbs {
 namespace compiled {
 
 sequence<double> PageRank(symmetric_unweighted_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(symmetric_uint32_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(symmetric_float_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(symmetric_double_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 
 sequence<double> PageRank(symmetric_unweighted_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(symmetric_uint32_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(symmetric_float_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(symmetric_double_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 
 sequence<double> PageRank(asymmetric_unweighted_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(asymmetric_uint32_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(asymmetric_float_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(asymmetric_double_graph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 
 sequence<double> PageRank(asymmetric_unweighted_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(asymmetric_uint32_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(asymmetric_float_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 sequence<double> PageRank(asymmetric_double_cgraph& G) {
-  return gbbs::PageRank(G); }
+  return gbbs::PageRank(G);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

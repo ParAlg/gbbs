@@ -37,11 +37,13 @@ using edge = std::pair<uintE, uintE>;
 struct cluster_and_parent {
   uintE cluster;
   uintE parent;
-  cluster_and_parent(uintE _cluster, uintE _parent) : cluster(_cluster), parent(_parent) { }
+  cluster_and_parent(uintE _cluster, uintE _parent)
+      : cluster(_cluster), parent(_parent) {}
 };
 
 template <class Graph, class C>
-sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters) {
+sequence<edge> fetch_intercluster_te(Graph& G, C& clusters,
+                                     size_t num_clusters) {
   using W = typename Graph::weight_type;
   debug(std::cout << "Running fetch edges te" << std::endl;);
   using K = edge;
@@ -59,8 +61,9 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
     uintE c_ngh = clusters[ngh];
     return c_src < c_ngh;
   };
-  parallel_for(0, n, 1, [&] (size_t i)
-                  { deg_map[i] = G.get_vertex(i).out_neighbors().count(pred); });
+  parallel_for(0, n, 1, [&](size_t i) {
+    deg_map[i] = G.get_vertex(i).out_neighbors().count(pred);
+  });
   deg_map[n] = 0;
   parlay::scan_inplace(deg_map);
   count_t.stop();
@@ -84,19 +87,19 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
     uintE c_src = clusters[src];
     uintE c_ngh = clusters[ngh];
     if (c_src < c_ngh) {
-      edge_table.insert(
-          std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)));
+      edge_table.insert(std::make_tuple(std::make_pair(c_src, c_ngh),
+                                        std::make_pair(src, ngh)));
     }
   };
-  parallel_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
+  parallel_for(0, n, 1,
+               [&](size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
   auto edge_pairs = edge_table.entries();
   ins_t.stop();
   debug(ins_t.next("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
-  auto edges = sequence<edge>::from_function(edge_pairs.size(), [&] (size_t i) {
-    return std::get<1>(edge_pairs[i]);
-  });
+  auto edges = sequence<edge>::from_function(
+      edge_pairs.size(), [&](size_t i) { return std::get<1>(edge_pairs[i]); });
   return edges;
 }
 
@@ -109,7 +112,7 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
 
   size_t n = G.n;
   debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
-  size_t estimated_edges = num_clusters*5;
+  size_t estimated_edges = num_clusters * 5;
 
   timer ins_t;
   ins_t.start();
@@ -122,7 +125,8 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
     return parlay::hash64_2(key);
   };
 
-  auto edge_table = gbbs::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
+  auto edge_table =
+      gbbs::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
   debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
 
   bool abort = false;
@@ -130,11 +134,13 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
     uintE c_src = clusters[src];
     uintE c_ngh = clusters[ngh];
     if (c_src < c_ngh) {
-      edge_table.insert_check(
-          std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)), &abort);
+      edge_table.insert_check(std::make_tuple(std::make_pair(c_src, c_ngh),
+                                              std::make_pair(src, ngh)),
+                              &abort);
     }
   };
-  parallel_for(0, n, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map_f); }, 1);
+  parallel_for(
+      0, n, [&](size_t i) { G.get_vertex(i).out_neighbors().map(map_f); }, 1);
   if (abort) {
     debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
     return fetch_intercluster_te(G, clusters, num_clusters);
@@ -144,47 +150,48 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
   debug(ins_t.next("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
-  auto edges = sequence<edge>::from_function(edge_pairs.size(), [&] (size_t i) {
-    return std::get<1>(edge_pairs[i]);
-  });
+  auto edges = sequence<edge>::from_function(
+      edge_pairs.size(), [&](size_t i) { return std::get<1>(edge_pairs[i]); });
   return edges;
 }
 
 template <class Graph>
-sequence<edge> tree_and_intercluster_edges(Graph& G,
-    sequence<cluster_and_parent>& cluster_and_parents) {
+sequence<edge> tree_and_intercluster_edges(
+    Graph& G, sequence<cluster_and_parent>& cluster_and_parents) {
   size_t n = G.n;
-  auto edge_list = gbbs::dyn_arr<edge>(2*n);
+  auto edge_list = gbbs::dyn_arr<edge>(2 * n);
 
   // Compute and add in tree edges.
-  auto tree_edges_with_loops = parlay::delayed_seq<edge>(n, [&] (size_t i) {
-      return std::make_pair(i, cluster_and_parents[i].parent); });
-  auto tree_edges = parlay::filter(tree_edges_with_loops, [&] (const edge& e) {
+  auto tree_edges_with_loops = parlay::delayed_seq<edge>(n, [&](size_t i) {
+    return std::make_pair(i, cluster_and_parents[i].parent);
+  });
+  auto tree_edges = parlay::filter(tree_edges_with_loops, [&](const edge& e) {
     return e.first != e.second;
   });
   edge_list.copyIn(tree_edges, tree_edges.size());
 
   // Compute inter-cluster using hashing.
-  auto clusters = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
-    return cluster_and_parents[i].cluster;
-  });
+  auto clusters = parlay::delayed_seq<uintE>(
+      n, [&](size_t i) { return cluster_and_parents[i].cluster; });
   sequence<bool> flags(n, false);
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE cluster = clusters[i];
     if (!flags[cluster]) {
       flags[cluster] = true;
     }
   });
-  auto cluster_size_seq = parlay::delayed_seq<size_t>(n, [&] (size_t i) {
-    return static_cast<size_t>(flags[i]);
-  });
-  size_t num_clusters = parlay::reduce(cluster_size_seq, parlay::addm<size_t>());
+  auto cluster_size_seq = parlay::delayed_seq<size_t>(
+      n, [&](size_t i) { return static_cast<size_t>(flags[i]); });
+  size_t num_clusters =
+      parlay::reduce(cluster_size_seq, parlay::addm<size_t>());
 
   auto intercluster = fetch_intercluster(G, clusters, num_clusters);
-  debug(std::cout << "num_intercluster edges = " << intercluster.size() << std::endl;);
+  debug(std::cout << "num_intercluster edges = " << intercluster.size()
+                  << std::endl;);
   edge_list.copyIn(intercluster, intercluster.size());
   size_t edge_list_size = edge_list.size;
-  return sequence<edge>::from_function(edge_list_size, [&] (size_t i) { return edge_list.A[i]; });
+  return sequence<edge>::from_function(
+      edge_list_size, [&](size_t i) { return edge_list.A[i]; });
 }
 
 template <class W>
@@ -200,7 +207,8 @@ struct LDD_Parents_F {
   }
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (gbbs::atomic_compare_and_swap(&clusters[d].cluster, UINT_E_MAX, clusters[s].cluster)) {
+    if (gbbs::atomic_compare_and_swap(&clusters[d].cluster, UINT_E_MAX,
+                                      clusters[s].cluster)) {
       clusters[d].parent = s;
       return true;
     }
@@ -211,7 +219,8 @@ struct LDD_Parents_F {
 };
 
 template <class Graph>
-inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool permute = true) {
+inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta,
+                                                bool permute = true) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
 
@@ -220,7 +229,8 @@ inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool perm
     vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
-  auto clusters = sequence<cluster_and_parent>(n, cluster_and_parent(UINT_E_MAX, UINT_E_MAX));
+  auto clusters = sequence<cluster_and_parent>(
+      n, cluster_and_parent(UINT_E_MAX, UINT_E_MAX));
 
   size_t round = 0, num_visited = 0;
   vertexSubset frontier(n);  // Initially empty
@@ -241,11 +251,10 @@ inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool perm
       auto pred = [&](uintE v) { return clusters[v].cluster == UINT_E_MAX; };
       auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      parallel_for(0, new_centers.size(), kDefaultGranularity,
-        [&] (size_t i) {
-            uintE v = new_centers[i];
-            clusters[new_centers[i]] = cluster_and_parent(v, v);
-        });
+      parallel_for(0, new_centers.size(), kDefaultGranularity, [&](size_t i) {
+        uintE v = new_centers[i];
+        clusters[new_centers[i]] = cluster_and_parent(v, v);
+      });
       num_added += num_to_add;
     }
 

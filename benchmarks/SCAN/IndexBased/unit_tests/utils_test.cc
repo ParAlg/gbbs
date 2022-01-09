@@ -1,7 +1,7 @@
 #include "benchmarks/SCAN/IndexBased/utils.h"
 
-#include "gtest/gtest.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gtest/gtest.h"
 
 namespace gbbs {
 namespace gt = graph_test;
@@ -33,18 +33,8 @@ TEST(Modularity, BasicGraph) {
   //        8 --- 9
   constexpr size_t kNumVertices{10};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {0, 2},
-    {1, 2},
-    {2, 3},
-    {3, 4},
-    {3, 7},
-    {4, 5},
-    {4, 6},
-    {5, 6},
-    {7, 8},
-    {7, 9},
-    {8, 9},
+      {0, 1}, {0, 2}, {1, 2}, {2, 3}, {3, 4}, {3, 7},
+      {4, 5}, {4, 6}, {5, 6}, {7, 8}, {7, 9}, {8, 9},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
@@ -54,8 +44,8 @@ TEST(Modularity, BasicGraph) {
   }
   {  // Test having unclustered vertices (vertices 3, 5, 6)
     const scan::Clustering clusters{
-      0, 0, 0, scan::kUnclustered, 1, scan::kUnclustered, scan::kUnclustered,
-      2, 2, 2};
+        0, 0, 0, scan::kUnclustered, 1, scan::kUnclustered, scan::kUnclustered,
+        2, 2, 2};
     EXPECT_FLOAT_EQ(scan::Modularity(&graph, clusters), 0.28472222);
   }
 }

@@ -32,7 +32,8 @@
 //     -m : indicate that the graph should be mmap'd
 //     -largemem : set the sampling thresholds to utilize less memory
 //
-// Note: in our experiments we set -largemem when running MinimumSpanningForest on the weighted
+// Note: in our experiments we set -largemem when running MinimumSpanningForest
+// on the weighted
 // hyperlink2012 graph.
 
 #include "MinimumSpanningForest.h"
@@ -40,15 +41,19 @@
 namespace gbbs {
 
 template <template <class W> class vertex, class W>
-double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
+double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA,
+                                    commandLine P) {
   bool largemem = P.getOption("-largemem");
 
-  std::cout << "### Application: MinimumSpanningForest (Minimum Spanning Forest)" << std::endl;
+  std::cout
+      << "### Application: MinimumSpanningForest (Minimum Spanning Forest)"
+      << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params:  -largemem (use settings for huge graphs) = " << largemem << std::endl;
+  std::cout << "### Params:  -largemem (use settings for huge graphs) = "
+            << largemem << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   timer mst_t;

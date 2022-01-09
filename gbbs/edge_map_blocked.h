@@ -151,8 +151,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   parallel_for(0, n_threads,
                [&](size_t i) {
                  size_t start_off = i * kEMBlockSize;
-                 thread_offs[i] =
-                     parlay::binary_search(degrees, start_off, lt);
+                 thread_offs[i] = parlay::binary_search(degrees, start_off, lt);
                },
                1);
   thread_offs[n_threads] = num_blocks;

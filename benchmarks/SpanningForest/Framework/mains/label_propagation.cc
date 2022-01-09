@@ -21,29 +21,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
-#include "benchmarks/SpanningForest/common.h"
+#include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/LabelPropagation/SpanningForest.h"
+#include "benchmarks/SpanningForest/common.h"
 
 #include "bench_utils.h"
 
 namespace gbbs {
 namespace connectit {
-template<
-  class Graph,
-  SamplingOption    sampling_option,
-  template <class G> class Algorithm,
-  AlgorithmType algorithm_type>
-bool run_multiple_sample_only_alg(
-    Graph& G,
-    size_t rounds,
-    sequence<edge>& correct,
-    commandLine& P,
-    std::string name) {
-  auto test = [&] (Graph& G, commandLine P, sequence<edge>& correct) {
-    timer tt; tt.start();
-    auto edges = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(G, P);
+template <class Graph, SamplingOption sampling_option,
+          template <class G> class Algorithm, AlgorithmType algorithm_type>
+bool run_multiple_sample_only_alg(Graph& G, size_t rounds,
+                                  sequence<edge>& correct, commandLine& P,
+                                  std::string name) {
+  auto test = [&](Graph& G, commandLine P, sequence<edge>& correct) {
+    timer tt;
+    tt.start();
+    auto edges =
+        run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(
+            G, P);
     double t = tt.stop();
     if (P.getOptionValue("-check")) {
       spanning_forest::check_spanning_forest(G.n, correct, edges);
@@ -55,25 +52,36 @@ bool run_multiple_sample_only_alg(
 }
 
 template <class Graph>
-void labelprop_nosample(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_sample_only_alg<Graph, no_sampling, labelprop_sf::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_nosample(Graph& G, int rounds, commandLine& P,
+                        sequence<edge>& correct) {
+  run_multiple_sample_only_alg<Graph, no_sampling, labelprop_sf::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
 
 template <class Graph>
-void labelprop_kout(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_sample_only_alg<Graph, sample_kout, labelprop_sf::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_kout(Graph& G, int rounds, commandLine& P,
+                    sequence<edge>& correct) {
+  run_multiple_sample_only_alg<Graph, sample_kout, labelprop_sf::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
 
 template <class Graph>
-void labelprop_bfs(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_sf::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_bfs(Graph& G, int rounds, commandLine& P,
+                   sequence<edge>& correct) {
+  run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_sf::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
 
 template <class Graph>
-void labelprop_ldd(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
-  run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_sf::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
+void labelprop_ldd(Graph& G, int rounds, commandLine& P,
+                   sequence<edge>& correct) {
+  run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_sf::LPAlgorithm,
+                               label_prop_type>(G, rounds, correct, P,
+                                                "label_prop");
 }
-
 }
 
 template <class Graph>
@@ -85,13 +93,10 @@ double Benchmark_runner(Graph& G, commandLine P) {
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }
-  run_tests(G, rounds, P, correct, connectit::labelprop_nosample<Graph>,
-    {
-      connectit::labelprop_nosample<Graph>,
-      connectit::labelprop_kout<Graph>,
-      connectit::labelprop_bfs<Graph>,
-      connectit::labelprop_ldd<Graph>
-    });
+  run_tests(
+      G, rounds, P, correct, connectit::labelprop_nosample<Graph>,
+      {connectit::labelprop_nosample<Graph>, connectit::labelprop_kout<Graph>,
+       connectit::labelprop_bfs<Graph>, connectit::labelprop_ldd<Graph>});
   return 1.0;
 }
 }  // namespace gbbs

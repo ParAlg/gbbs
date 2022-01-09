@@ -21,23 +21,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "HAC_configuration.h"
 #include "HeapBased.h"
 #include "NNChainBased.h"
-#include "HAC_configuration.h"
 
 #include "AvgLinkageUtils/HeapBased.h"
 
 namespace gbbs {
 
 template <class Weights, class Dendrogram>
-void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram, const std::string& of) {
+void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram,
+                           const std::string& of) {
   ofstream out;
   out.open(of);
   size_t wrote = 0;
-  for (size_t i=0; i<dendrogram.size(); i++) {
+  for (size_t i = 0; i < dendrogram.size(); i++) {
     if (dendrogram[i].first != i) {
       if (dendrogram[i].first != UINT_E_MAX) {
-        out << i << " " << dendrogram[i].first << " " << Weights::AsString(dendrogram[i].second) << std::endl;
+        out << i << " " << dendrogram[i].first << " "
+            << Weights::AsString(dendrogram[i].second) << std::endl;
       }
       wrote++;
     }
@@ -47,7 +49,6 @@ void WriteDendrogramToDisk(Weights& wgh, Dendrogram& dendrogram, const std::stri
 
 template <class Graph>
 double HAC_runner(Graph& G, commandLine P) {
-
   bool heap_based = P.getOptionValue("-heapbased");
   string linkage_opt = P.getOptionValue("-linkage", "complete");
 
@@ -56,15 +57,19 @@ double HAC_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: heap-based = " << heap_based << " linkage = " << linkage_opt << std::endl;
+  std::cout << "### Params: heap-based = " << heap_based
+            << " linkage = " << linkage_opt << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   double tt;
 
   if (heap_based) {
     if (linkage_opt == "weightedavg") {
-      auto Wghs = WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs =
+          WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(
+              G);
       auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -97,7 +102,8 @@ double HAC_runner(Graph& G, commandLine P) {
         exit(0);
       }
     } else if (linkage_opt == "normalizedavg") {
-      auto Wghs = NormAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
+      auto Wghs =
+          NormAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -108,7 +114,8 @@ double HAC_runner(Graph& G, commandLine P) {
         exit(0);
       }
     } else if (linkage_opt == "avg") {
-      std::cerr << "Average-linkage only supported for the similarity setting" << std::endl;
+      std::cerr << "Average-linkage only supported for the similarity setting"
+                << std::endl;
       exit(-1);
     } else {
       std::cerr << "Unknown linkage option: " << linkage_opt << std::endl;
@@ -116,7 +123,9 @@ double HAC_runner(Graph& G, commandLine P) {
     }
   } else {
     if (linkage_opt == "weightedavg") {
-      auto Wghs = WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs =
+          WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(
+              G);
       auto dendrogram = nn_chain::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -149,7 +158,8 @@ double HAC_runner(Graph& G, commandLine P) {
         exit(0);
       }
     } else if (linkage_opt == "normalizedavg") {
-      auto Wghs = NormAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs =
+          NormAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
       auto dendrogram = nn_chain::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -160,7 +170,9 @@ double HAC_runner(Graph& G, commandLine P) {
         exit(0);
       }
     } else if (linkage_opt == "appx-avg") {
-      std::cout << "The approximate average linkage algorithm only supports the -heapbased option." << std::endl;
+      std::cout << "The approximate average linkage algorithm only supports "
+                   "the -heapbased option."
+                << std::endl;
       exit(-1);
     } else {
       std::cerr << "Unknown linkage option: " << linkage_opt << std::endl;

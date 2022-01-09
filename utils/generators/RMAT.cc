@@ -2,8 +2,8 @@
 
 #include "gbbs/gbbs.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 namespace gbbs {
 
@@ -35,19 +35,20 @@ int BuildRMAT(int argc, char* argv[]) {
   }
 
   auto C = parlay::sequence_to_string(updates);
-  for (size_t i=0; i<100; i++) {
-    std::cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i]) << std::endl;
+  for (size_t i = 0; i < 100; i++) {
+    std::cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i])
+              << std::endl;
   }
 
   size_t nn = C.size();
-  std::ofstream file (out_f.c_str(), std::ios::out | std::ios::binary);
+  std::ofstream file(out_f.c_str(), std::ios::out | std::ios::binary);
   if (!file.is_open()) {
-    std::cout << "Unable to open file for writing: " << out_f  << std::endl;
+    std::cout << "Unable to open file for writing: " << out_f << std::endl;
     return -1;
   }
-//  file << "# COO Format" << std::endl;
-//  file << "# n = " << n << std::endl;
-//  file << "# m = " << m << std::endl;
+  //  file << "# COO Format" << std::endl;
+  //  file << "# n = " << n << std::endl;
+  //  file << "# m = " << m << std::endl;
 
   file.write(C.begin(), nn);
   file.close();
@@ -58,7 +59,4 @@ int BuildRMAT(int argc, char* argv[]) {
 
 }  // namespace gbbs
 
-
-int main(int argc, char* argv[]) {
-  return gbbs::BuildRMAT(argc, argv);
-}
+int main(int argc, char* argv[]) { return gbbs::BuildRMAT(argc, argv); }

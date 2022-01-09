@@ -30,20 +30,31 @@
 namespace gbbs {
 namespace compiled {
 
-sequence<uint_parent> HAC(symmetric_uint32_graph& G, std::string linkage, bool similarity) {
-  return gbbs::HAC(G, linkage, similarity); }
-sequence<float_parent> HAC(symmetric_float_graph& G, std::string linkage, bool similarity) {
-  return gbbs::HAC(G, linkage, similarity); }
-sequence<double_parent> HAC(symmetric_double_graph& G, std::string linkage, bool similarity) {
-  return gbbs::HAC(G, linkage, similarity); }
+sequence<uint_parent> HAC(symmetric_uint32_graph& G, std::string linkage,
+                          bool similarity) {
+  return gbbs::HAC(G, linkage, similarity);
+}
+sequence<float_parent> HAC(symmetric_float_graph& G, std::string linkage,
+                           bool similarity) {
+  return gbbs::HAC(G, linkage, similarity);
+}
+sequence<double_parent> HAC(symmetric_double_graph& G, std::string linkage,
+                            bool similarity) {
+  return gbbs::HAC(G, linkage, similarity);
+}
 
-sequence<uint_parent> HAC(symmetric_uint32_cgraph& G, std::string linkage, bool similarity) {
-  return gbbs::HAC(G, linkage, similarity); }
-sequence<float_parent> HAC(symmetric_float_cgraph& G, std::string linkage, bool similarity) {
-  return gbbs::HAC(G, linkage, similarity); }
-sequence<double_parent> HAC(symmetric_double_cgraph& G, std::string linkage, bool similarity) {
-  return gbbs::HAC(G, linkage, similarity); }
+sequence<uint_parent> HAC(symmetric_uint32_cgraph& G, std::string linkage,
+                          bool similarity) {
+  return gbbs::HAC(G, linkage, similarity);
+}
+sequence<float_parent> HAC(symmetric_float_cgraph& G, std::string linkage,
+                           bool similarity) {
+  return gbbs::HAC(G, linkage, similarity);
+}
+sequence<double_parent> HAC(symmetric_double_cgraph& G, std::string linkage,
+                            bool similarity) {
+  return gbbs::HAC(G, linkage, similarity);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

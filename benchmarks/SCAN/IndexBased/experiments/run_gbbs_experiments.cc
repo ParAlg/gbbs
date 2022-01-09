@@ -2,7 +2,8 @@
 // measures clustering quality.
 //
 // Usage example:
-//     bazel run //benchmarks/SCAN/IndexBased/experiments:run_gbbs_experiments -- -s <path to graph>
+//     bazel run //benchmarks/SCAN/IndexBased/experiments:run_gbbs_experiments
+//     -- -s <path to graph>
 // flags:
 //   required:
 //     -s : indicate that the graph is symmetric
@@ -36,8 +37,8 @@ class AriQuerier {
   AriQuerier();
   ~AriQuerier();
 
-  double
-  AdjustedRandIndex(const scan::Clustering& a, const scan::Clustering& b) const;
+  double AdjustedRandIndex(const scan::Clustering& a,
+                           const scan::Clustering& b) const;
 
  private:
   PyObject* py_module_name_{nullptr};
@@ -63,11 +64,10 @@ AriQuerier::~AriQuerier() {
   Py_FinalizeEx();
 }
 
-double AriQuerier::AdjustedRandIndex(
-    const scan::Clustering& a,
-    const scan::Clustering& b) const {
+double AriQuerier::AdjustedRandIndex(const scan::Clustering& a,
+                                     const scan::Clustering& b) const {
   PyObject* py_args{PyTuple_New(2)};
-  for (const auto& [i, arg] : {std::make_pair(0, a), std::make_pair(1, b)}) {
+  for (const auto & [ i, arg ] : {std::make_pair(0, a), std::make_pair(1, b)}) {
     PyObject* py_list{PyList_New(arg.size())};
     for (size_t j{0}; j < arg.size(); j++) {
       PyObject* py_long{PyLong_FromLong(arg[j])};
@@ -94,14 +94,13 @@ struct CsvEntry {
   double quality{-1};
 
   static void OutputHeader() {
-    std::cerr
-      << "similarity measure,"
-      << "approximation samples,"
-      << "operation,"
-      << "mu,"
-      << "epsilon,"
-      << "median time,"
-      << "quality\n";
+    std::cerr << "similarity measure,"
+              << "approximation samples,"
+              << "operation,"
+              << "mu,"
+              << "epsilon,"
+              << "median time,"
+              << "quality\n";
   }
 
   void Output() const {
@@ -124,15 +123,22 @@ struct CsvEntry {
 
 template <typename T>
 std::string SimilarityToString() {
-  if constexpr (std::is_same_v<T, scan::CosineSimilarity>) {
-    return "cosine similarity";
-  } else if constexpr (std::is_same_v<T, scan::ApproxCosineSimilarity>) {
-    return "approximate cosine similarity";
-  } else if constexpr (std::is_same_v<T, scan::JaccardSimilarity>) {
-    return "jaccard similarity";
-  } else if constexpr (std::is_same_v<T, scan::ApproxJaccardSimilarity>) {
-    return "approximate jaccard similarity";
-  }
+  if
+    constexpr(std::is_same_v<T, scan::CosineSimilarity>) {
+      return "cosine similarity";
+    }
+  else if
+    constexpr(std::is_same_v<T, scan::ApproxCosineSimilarity>) {
+      return "approximate cosine similarity";
+    }
+  else if
+    constexpr(std::is_same_v<T, scan::JaccardSimilarity>) {
+      return "jaccard similarity";
+    }
+  else if
+    constexpr(std::is_same_v<T, scan::ApproxJaccardSimilarity>) {
+      return "approximate jaccard similarity";
+    }
 }
 
 template <typename T>
@@ -157,39 +163,42 @@ void PrintClock() {
   if (!verbose) {
     return;
   }
-  std::time_t time{std::chrono::system_clock::to_time_t(
-      std::chrono::system_clock::now())};
+  std::time_t time{
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())};
   std::cerr << "[Clock] " << std::ctime(&time);
 }
 
 template <class Graph>
 size_t GetMaxDegree(Graph* graph) {
   return parlay::reduce_max(parlay::delayed_seq<size_t>(
-    graph->n,
-    [&](const size_t i) {
-      return graph->get_vertex(i).out_degree();
-    }));
+      graph->n,
+      [&](const size_t i) { return graph->get_vertex(i).out_degree(); }));
 }
 
 // Output index construction time as the median of several trials.
 template <class Graph, class SimilarityMeasure>
 indexed_scan::Index BuildIndexAndOutputTimes(
-    Graph* graph,
-    const SimilarityMeasure& similarity_measure,
+    Graph* graph, const SimilarityMeasure& similarity_measure,
     const size_t num_rounds) {
   std::vector<double> times;
-  if (verbose) { std::cerr << "Index construction:"; }
+  if (verbose) {
+    std::cerr << "Index construction:";
+  }
   for (size_t i{0}; i < num_rounds - 1; i++) {
     timer timer{"Index construction"};
     const indexed_scan::Index index{graph, similarity_measure};
     times.emplace_back(timer.stop());
-    if (verbose) { std::cerr << ' ' << times.back(); }
+    if (verbose) {
+      std::cerr << ' ' << times.back();
+    }
   }
   // on last trial, keep the index
   timer timer{"Index construction"};
   indexed_scan::Index index{graph, scan::CosineSimilarity{}};
   times.emplace_back(timer.stop());
-  if (verbose) { std::cerr << ' ' << times.back(); }
+  if (verbose) {
+    std::cerr << ' ' << times.back();
+  }
 
   CsvEntry csv;
   csv.similarity_measure = SimilarityToString<SimilarityMeasure>();
@@ -201,25 +210,26 @@ indexed_scan::Index BuildIndexAndOutputTimes(
 }
 
 // Output query time as the median of several trials.
-void OutputQueryTimes(
-    const indexed_scan::Index& index,
-    const size_t max_degree,
-    const size_t num_rounds,
-    CsvEntry partial_csv) {
+void OutputQueryTimes(const indexed_scan::Index& index, const size_t max_degree,
+                      const size_t num_rounds, CsvEntry partial_csv) {
   partial_csv.operation = "cluster";
 
   // Output query times with fixed epsilon and varying mu.
   for (size_t mu{2}; mu <= max_degree + 1; mu *= 2) {
     std::vector<double> query_times;
     constexpr double kEpsilon{0.6};
-    if (verbose) { std::cerr << "query " << ParametersToString(mu, kEpsilon) << ":"; }
+    if (verbose) {
+      std::cerr << "query " << ParametersToString(mu, kEpsilon) << ":";
+    }
     for (size_t i{0}; i < num_rounds; i++) {
       timer query_timer{};
       // unused variable `clusters`, but keep it anyway so that it doesn't get
       // destructed within the timer
       const scan::Clustering clusters{index.Cluster(mu, kEpsilon)};
       query_times.emplace_back(query_timer.stop());
-      if (verbose) { std::cerr << ' ' << query_times.back(); }
+      if (verbose) {
+        std::cerr << ' ' << query_times.back();
+      }
     }
 
     CsvEntry csv = partial_csv;
@@ -234,12 +244,16 @@ void OutputQueryTimes(
   const sequence<float> epsilons{{.1, .2, .3, .4, .5, .6, .7, .8, .9}};
   for (float epsilon : epsilons) {
     std::vector<double> query_times;
-    if (verbose) { std::cerr << "query " << ParametersToString(kMu, epsilon) << ":"; }
+    if (verbose) {
+      std::cerr << "query " << ParametersToString(kMu, epsilon) << ":";
+    }
     for (size_t i{0}; i < num_rounds; i++) {
       timer query_timer{"query"};
       const scan::Clustering clusters{index.Cluster(kMu, epsilon)};
       query_times.emplace_back(query_timer.stop());
-      if (verbose) { std::cerr << ' ' << query_times.back(); }
+      if (verbose) {
+        std::cerr << ' ' << query_times.back();
+      }
     }
     CsvEntry csv = partial_csv;
     csv.mu = kMu;
@@ -252,17 +266,19 @@ void OutputQueryTimes(
 // Output approximate index construction time as the median of several trials
 // with different pseudorandom seeds.
 template <class Graph, class SimilarityMeasure>
-void OutputBuildApproximateIndexTimes(
-    Graph* graph,
-    const uint32_t num_samples,
-    const size_t num_rounds) {
+void OutputBuildApproximateIndexTimes(Graph* graph, const uint32_t num_samples,
+                                      const size_t num_rounds) {
   std::vector<double> times;
-  if (verbose) { std::cerr << "Index construction:"; }
+  if (verbose) {
+    std::cerr << "Index construction:";
+  }
   for (size_t i{0}; i < num_rounds; i++) {
     timer timer{"Index construction"};
     const indexed_scan::Index index{graph, SimilarityMeasure{num_samples, i}};
     times.emplace_back(timer.stop());
-    if (verbose) { std::cerr << ' ' << times.back(); }
+    if (verbose) {
+      std::cerr << ' ' << times.back();
+    }
   }
 
   CsvEntry csv;
@@ -284,36 +300,31 @@ struct QueryInfo {
 // among parameters mu in {2, 4, 8, 16, ...} and epsilon in {.01, .02, .03, ...,
 // .99}.
 template <class Graph>
-QueryInfo SearchForClusters(
-    Graph* graph,
-    const indexed_scan::Index index,
-    const size_t max_degree) {
+QueryInfo SearchForClusters(Graph* graph, const indexed_scan::Index index,
+                            const size_t max_degree) {
   const auto epsilons{sequence<float>::from_function(
-      99,
-      [](const size_t i) { return (i + 1) * .01; })};
+      99, [](const size_t i) { return (i + 1) * .01; })};
   double best_modularity{-2.0};
   uint64_t best_mu{0};
   float best_epsilon{-1.0};
   scan::Clustering best_clusters{};
   for (size_t mu{2}; mu <= max_degree + 1; mu *= 2) {
-    const auto update_best_clusters{
-      [&](scan::Clustering&& clusters, size_t i) {
-        const double modularity{scan::Modularity(graph, clusters)};
-        if (modularity > best_modularity) {
-          best_modularity = modularity;
-          best_mu = mu;
-          best_epsilon = epsilons[i];
-          best_clusters = std::move(clusters);
-        }
-      }};
+    const auto update_best_clusters{[&](scan::Clustering&& clusters, size_t i) {
+      const double modularity{scan::Modularity(graph, clusters)};
+      if (modularity > best_modularity) {
+        best_modularity = modularity;
+        best_mu = mu;
+        best_epsilon = epsilons[i];
+        best_clusters = std::move(clusters);
+      }
+    }};
     constexpr bool kDeterministic{true};  // for consistency
     index.Cluster(mu, epsilons, update_best_clusters, kDeterministic);
   }
-  return QueryInfo {
-    .mu = best_mu,
-    .epsilon = best_epsilon,
-    .clusters = std::move(best_clusters),
-    .modularity = best_modularity};
+  return QueryInfo{.mu = best_mu,
+                   .epsilon = best_epsilon,
+                   .clusters = std::move(best_clusters),
+                   .modularity = best_modularity};
 }
 
 // Builds an index with an approximate similarity measure and outputs
@@ -329,39 +340,39 @@ QueryInfo SearchForClusters(
 // Measurements are the mean across several rounds with different pseudorandom
 // seeds.
 template <class Graph, class SimilarityMeasure>
-void OutputApproximateQuality(
-    Graph* graph,
-    const QueryInfo& best_exact_clustering,
-    const size_t max_degree,
-    const uint32_t num_samples,
-    const size_t num_rounds) {
+void OutputApproximateQuality(Graph* graph,
+                              const QueryInfo& best_exact_clustering,
+                              const size_t max_degree,
+                              const uint32_t num_samples,
+                              const size_t num_rounds) {
   double total_modularity_at_approx = 0.0;
   double total_ari = 0.0;
   for (size_t seed{0}; seed < num_rounds; seed++) {
     const indexed_scan::Index approx_index{
-      graph, SimilarityMeasure{num_samples, seed}};
+        graph, SimilarityMeasure{num_samples, seed}};
     {
       constexpr bool kDeterministic{true};  // for consistency
-      const scan::Clustering clusters{approx_index.Cluster(
-          best_exact_clustering.mu,
-          best_exact_clustering.epsilon,
-          kDeterministic)};
+      const scan::Clustering clusters{
+          approx_index.Cluster(best_exact_clustering.mu,
+                               best_exact_clustering.epsilon, kDeterministic)};
       const double ari{ari_querier.AdjustedRandIndex(
           best_exact_clustering.clusters, clusters)};
       total_ari += ari;
       if (verbose) {
         const double modularity{scan::Modularity(graph, clusters)};
         std::cerr << "At exact params: modularity=" << modularity
-        << " ARI=" << ari << '\n';
+                  << " ARI=" << ari << '\n';
       }
     }
     {
       const QueryInfo best_approx_query{
-        SearchForClusters(graph, approx_index, max_degree)};
+          SearchForClusters(graph, approx_index, max_degree)};
       total_modularity_at_approx += best_approx_query.modularity;
-      if (verbose) std::cerr << "At best approx params "
-        << ParametersToString(best_approx_query.mu, best_approx_query.epsilon)
-        << " modularity=" << best_approx_query.modularity << '\n';
+      if (verbose)
+        std::cerr << "At best approx params "
+                  << ParametersToString(best_approx_query.mu,
+                                        best_approx_query.epsilon)
+                  << " modularity=" << best_approx_query.modularity << '\n';
     }
   }
   {
@@ -386,11 +397,9 @@ void OutputApproximateQuality(
 
 // Run experiments with cosine similarity as the similarity measure.
 template <class Graph>
-void RunCosineExperiments(
-    Graph* graph,
-    const size_t num_index_rounds,
-    const size_t num_cluster_rounds,
-    const bool skip_approx_experiments) {
+void RunCosineExperiments(Graph* graph, const size_t num_index_rounds,
+                          const size_t num_cluster_rounds,
+                          const bool skip_approx_experiments) {
   const size_t max_degree{GetMaxDegree(graph)};
 
   // Exact cosine similarity experiments
@@ -412,7 +421,7 @@ void RunCosineExperiments(
   // Approximate cosine similarity experiments
 
   const QueryInfo best_exact_clustering{
-    SearchForClusters(graph, exact_index, max_degree)};
+      SearchForClusters(graph, exact_index, max_degree)};
   {
     CsvEntry entry;
     entry.similarity_measure = SimilarityToString<scan::CosineSimilarity>();
@@ -424,26 +433,22 @@ void RunCosineExperiments(
   }
   exact_index = indexed_scan::Index{};  // destruct index to save memory
 
-  for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
+  for (uint32_t num_samples{64}; 2 * num_samples < max_degree;
+       num_samples *= 2) {
     PrintClock();
     OutputBuildApproximateIndexTimes<Graph, scan::ApproxCosineSimilarity>(
-          graph, num_samples, num_index_rounds);
+        graph, num_samples, num_index_rounds);
     PrintClock();
     OutputApproximateQuality<Graph, scan::ApproxCosineSimilarity>(
-          graph,
-          best_exact_clustering,
-          max_degree,
-          num_samples,
-          num_index_rounds);
+        graph, best_exact_clustering, max_degree, num_samples,
+        num_index_rounds);
   }
 }
 
 // Run experiments with Jaccard similarity as the similarity measure.
 template <class Graph>
-void RunJaccardExperiments(
-    Graph* graph,
-    const size_t num_index_rounds,
-    const bool skip_approx_experiments) {
+void RunJaccardExperiments(Graph* graph, const size_t num_index_rounds,
+                           const bool skip_approx_experiments) {
   if (skip_approx_experiments) {
     return;
   }
@@ -451,7 +456,7 @@ void RunJaccardExperiments(
 
   indexed_scan::Index exact_index{graph, scan::JaccardSimilarity{}};
   const QueryInfo best_exact_clustering{
-    SearchForClusters(graph, exact_index, max_degree)};
+      SearchForClusters(graph, exact_index, max_degree)};
   {
     CsvEntry entry;
     entry.similarity_measure = SimilarityToString<scan::JaccardSimilarity>();
@@ -463,17 +468,15 @@ void RunJaccardExperiments(
   }
   exact_index = indexed_scan::Index{};  // destruct index to save memory
 
-  for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
+  for (uint32_t num_samples{64}; 2 * num_samples < max_degree;
+       num_samples *= 2) {
     PrintClock();
     OutputBuildApproximateIndexTimes<Graph, scan::ApproxJaccardSimilarity>(
-          graph, num_samples, num_index_rounds);
+        graph, num_samples, num_index_rounds);
     PrintClock();
     OutputApproximateQuality<Graph, scan::ApproxJaccardSimilarity>(
-          graph,
-          best_exact_clustering,
-          max_degree,
-          num_samples,
-          num_index_rounds);
+        graph, best_exact_clustering, max_degree, num_samples,
+        num_index_rounds);
   }
 }
 
@@ -510,8 +513,8 @@ void RunScanWeighted(Graph& graph, const commandLine& params) {
 }  // namespace gbbs
 
 int main(int argc, char* argv[]) {
-  gbbs::commandLine params{
-    argc, argv, "-s [-wf] [--serial] <input graph file>"};
+  gbbs::commandLine params{argc, argv,
+                           "-s [-wf] [--serial] <input graph file>"};
   const char* input_graph_file{params.getArgument(0)};
   const bool is_graph_symmetric{params.getOptionValue("-s")};
   ASSERT(is_graph_symmetric);

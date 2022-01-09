@@ -26,9 +26,9 @@
 #include "bitset.h"
 #include "utils.h"
 
+#include "gbbs/encodings/byte_pd_amortized.h"
 #include "gbbs/flags.h"
 #include "gbbs/macros.h"
-#include "gbbs/encodings/byte_pd_amortized.h"
 
 namespace gbbs {
 

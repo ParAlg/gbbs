@@ -39,8 +39,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     else
       bits = (bool*)s_bits;
 
-    parallel_for(0, deg, kDefaultGranularity, [&] (size_t i)
-                    { bits[i] = 0; });
+    parallel_for(0, deg, kDefaultGranularity, [&](size_t i) { bits[i] = 0; });
     auto map_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE color = colors[ngh];
       if (color < deg) {
@@ -48,7 +47,9 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
       }
     };
     G.get_vertex(v).out_neighbors().map(map_f);
-    auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
+    auto im_f = [&](size_t i) {
+      return (bits[i] == 0) ? (uintE)i : UINT_E_MAX;
+    };
     auto im = parlay::delayed_seq<uintE>(deg, im_f);
     uintE color = parlay::reduce(im, parlay::minm<uintE>());
     if (deg > 1000) {
@@ -93,14 +94,15 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
 
   // For each vertex count the number of out-neighbors with log-degree >= us
   auto priorities = sequence<intE>(n);
-  auto colors = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
+  auto colors =
+      sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
 
   if (lf) {
     std::cout << "### Running LF"
               << "\n";
     // LF heuristic
     auto P = parlay::random_permutation<uintE>(n);
-    parallel_for(0, n, 1, [&] (size_t i) {
+    parallel_for(0, n, 1, [&](size_t i) {
       uintE our_deg = G.get_vertex(i).out_degree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
@@ -114,7 +116,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
               << "\n";
     // LLF heuristic
     auto P = parlay::random_permutation<uintE>(n);
-    parallel_for(0, n, 1, [&] (size_t i) {
+    parallel_for(0, n, 1, [&](size_t i) {
       uintE our_deg = parlay::log2_up(G.get_vertex(i).out_degree());
       uintE i_p = P[i];
       // breaks ties using P
@@ -141,7 +143,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
 
     // color the rootset
     color_t.start();
-    parallel_for(0, roots.size(), 1, [&] (size_t i) {
+    parallel_for(0, roots.size(), 1, [&](size_t i) {
       uintE v = roots.vtx(i);
       colors[v] = coloring::color(G, v, colors);
     });
@@ -156,8 +158,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     rounds++;
   }
   std::cout << "### Total rounds = " << rounds << "\n";
-  debug(color_t.next("coloring time");
-  em_t.next("edge map time"););
+  debug(color_t.next("coloring time"); em_t.next("edge map time"););
   return colors;
 }
 
@@ -166,7 +167,7 @@ inline void verify_coloring(Graph& G, Seq& colors) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>(n);
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE src_color = colors[i];
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       uintE ngh_color = colors[ngh];

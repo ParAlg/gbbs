@@ -34,8 +34,7 @@ struct reservation {
   intT r;
   reservation() : r(std::numeric_limits<intT>::max()) {}
   void reserve(intT i) {
-    gbbs::write_min(&r, i,
-                       [](intT left, intT right) { return left < right; });
+    gbbs::write_min(&r, i, [](intT left, intT right) { return left < right; });
   }
   bool reserved() { return (r < std::numeric_limits<intT>::max()); }
   void reset() { r = std::numeric_limits<intT>::max(); }

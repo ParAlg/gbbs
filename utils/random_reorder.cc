@@ -1,7 +1,7 @@
-#include <iostream>
-#include <fstream>
 #include <stdlib.h>
 #include <cmath>
+#include <fstream>
+#include <iostream>
 
 #include "gbbs/gbbs.h"
 
@@ -15,24 +15,24 @@ void randomReorder(Graph& GA, std::string& outfile) {
 
   auto edges = sequence<uintE>(m);
   auto offs = sequence<uintT>(n);
-  parallel_for(0, n, [&] (size_t i) {
-    offs[perm[i]] = GA.get_vertex(i).out_degree();
-  });
+  parallel_for(
+      0, n, [&](size_t i) { offs[perm[i]] = GA.get_vertex(i).out_degree(); });
   size_t tot = parlay::scan_inplace(make_slice(offs));
   std::cout << "m = " << m << " tot = " << tot << std::endl;
 
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     size_t off = offs[perm[i]];
-    size_t next_off = (perm[i] == (n-1)) ? m : offs[perm[i]+1];
-    auto map_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+    size_t next_off = (perm[i] == (n - 1)) ? m : offs[perm[i] + 1];
+    auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       uintE ngh_perm = perm[ngh];
       edges[off++] = ngh_perm;
     };
     GA.get_vertex(i).out_neighbors().map(map_f, false);
-    std::sort(edges.begin()+off, edges.begin()+next_off, std::less<uintE>());
+    std::sort(edges.begin() + off, edges.begin() + next_off,
+              std::less<uintE>());
   });
 
-  std::ofstream file (outfile, std::ios::out | std::ios::binary);
+  std::ofstream file(outfile, std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     std::cout << "Unable to open file: " << outfile << std::endl;
     exit(0);
@@ -51,7 +51,8 @@ void randomReorder(Graph& GA, std::string& outfile) {
 
 template <class Graph>
 double Reorderer(Graph& GA, commandLine P) {
-  auto outfile = P.getOptionValue("-of", "/ssd0/graphs/bench_experiments/out.adj");
+  auto outfile =
+      P.getOptionValue("-of", "/ssd0/graphs/bench_experiments/out.adj");
   randomReorder(GA, outfile);
   exit(0);
   return 1.0;

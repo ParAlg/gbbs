@@ -22,7 +22,8 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./StronglyConnectedComponents -beta 1.5 -rounds 2 -s -m twitter_J
+// numactl -i all ./StronglyConnectedComponents -beta 1.5 -rounds 2 -s -m
+// twitter_J
 // flags:
 //   optional:
 //     -m : indicate that the graph should be mmap'd
@@ -39,9 +40,7 @@ namespace filter_based_scc {
 
 template <class Seq>
 inline size_t num_done(Seq& labels) {
-  auto im_f = [&](size_t i) {
-    return (size_t)(labels[i] != kUnfinished);
-  };
+  auto im_f = [&](size_t i) { return (size_t)(labels[i] != kUnfinished); };
   auto im = parlay::delayed_seq<size_t>(labels.size(), im_f);
 
   return parlay::reduce(im);
@@ -50,8 +49,9 @@ inline size_t num_done(Seq& labels) {
 template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
-  parallel_for(0, n, kDefaultGranularity, [&] (size_t i) {
+  auto flags =
+      sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
     size_t label = labels[i];
     if ((label != kUnfinished) && !flags[label]) {
       flags[label] = 1;
@@ -66,11 +66,11 @@ inline size_t num_scc(Seq& labels) {
 template <class Seq>
 inline void scc_stats(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
+  auto flags =
+      sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     size_t label = labels[i];
-    if (label != kUnfinished)
-      flags[label]++;
+    if (label != kUnfinished) flags[label]++;
   }
   size_t maxv = parlay::reduce_max(flags);
   std::cout << "Largest StronglyConnectedComponents has " << maxv << " vertices"
@@ -82,11 +82,12 @@ inline void scc_stats(Seq& labels) {
   }
 }
 
-
 template <class Graph>
 double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
-  std::cout << "### Application: StronglyConnectedComponents (Strongly Connected Components)" << std::endl;
+  std::cout << "### Application: StronglyConnectedComponents (Strongly "
+               "Connected Components)"
+            << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
@@ -110,4 +111,5 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
 }  // namespace filter_based_scc
 }  // namespace gbbs
 
-generate_asymmetric_main(gbbs::filter_based_scc::StronglyConnectedComponents_runner, false);
+generate_asymmetric_main(
+    gbbs::filter_based_scc::StronglyConnectedComponents_runner, false);

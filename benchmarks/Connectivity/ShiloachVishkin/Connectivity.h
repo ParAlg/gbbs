@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "gbbs/gbbs.h"
 #include "benchmarks/Connectivity/common.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 namespace shiloachvishkin_cc {
@@ -42,7 +42,8 @@ struct SVAlgorithm {
   }
 
   template <SamplingOption sampling_option>
-  void compute_components(sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
+  void compute_components(sequence<parent>& parents,
+                          parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -53,43 +54,50 @@ struct SVAlgorithm {
     /* generate candidates based on frequent_comp (if using sampling) */
     size_t candidates_size = n;
     sequence<uintE> unhooked;
-    if constexpr (sampling_option != no_sampling) {
-      auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
-      unhooked = parlay::filter(all_vertices, [&] (uintE v) {
-        return parents[v] != frequent_comp;
-      });
-      candidates_size = unhooked.size();
-    }
-
-    auto candidates = parlay::delayed_seq<uintE>(candidates_size, [&] (size_t i) {
-      if constexpr (sampling_option == no_sampling) {
-        return i;
-      } else {
-        return unhooked[i];
+    if
+      constexpr(sampling_option != no_sampling) {
+        auto all_vertices =
+            parlay::delayed_seq<uintE>(n, [&](size_t i) { return i; });
+        unhooked = parlay::filter(
+            all_vertices, [&](uintE v) { return parents[v] != frequent_comp; });
+        candidates_size = unhooked.size();
       }
-    });
+
+    auto candidates =
+        parlay::delayed_seq<uintE>(candidates_size, [&](size_t i) {
+          if
+            constexpr(sampling_option == no_sampling) { return i; }
+          else {
+            return unhooked[i];
+          }
+        });
 
     while (changed) {
       changed = false;
       rounds++;
       std::cout << "# round = " << rounds << std::endl;
-      parallel_for(0, candidates.size(), [&] (uintE i) {
-        uintE u = candidates[i];
-        auto map_f = [&] (const uintE& _u, const uintE& _v, const W& wgh) {
-          parent p_u = prev_parents[_u];
-          parent p_v = prev_parents[_v];
-          parent l = std::min(p_u, p_v);
-          parent h = std::max(p_u, p_v);
-          if (l != h && h == prev_parents[h]) {
-            gbbs::write_min<parent>(&parents[h], l, std::less<parent>());
-            if (!changed) { changed = true; }
-          }
-        };
-        GA.get_vertex(u).out_neighbors().map(map_f);
-      }, 1);
+      parallel_for(
+          0, candidates.size(),
+          [&](uintE i) {
+            uintE u = candidates[i];
+            auto map_f = [&](const uintE& _u, const uintE& _v, const W& wgh) {
+              parent p_u = prev_parents[_u];
+              parent p_v = prev_parents[_v];
+              parent l = std::min(p_u, p_v);
+              parent h = std::max(p_u, p_v);
+              if (l != h && h == prev_parents[h]) {
+                gbbs::write_min<parent>(&parents[h], l, std::less<parent>());
+                if (!changed) {
+                  changed = true;
+                }
+              }
+            };
+            GA.get_vertex(u).out_neighbors().map(map_f);
+          },
+          1);
 
       // compress
-      parallel_for(0, n, [&] (uintE u) {
+      parallel_for(0, n, [&](uintE u) {
         uintE pathlen = 1;
         while (parents[u] != parents[parents[u]]) {
           parents[u] = parents[parents[u]];
@@ -112,10 +120,10 @@ struct SVAlgorithm {
       rounds++;
       std::cout << "# running round = " << rounds << std::endl;
       changed = false;
-      parallel_for(0, updates.size(), [&] (size_t i) {
+      parallel_for(0, updates.size(), [&](size_t i) {
         parent u, v;
         UpdateType utype;
-        std::tie(u,v, utype) = updates[i];
+        std::tie(u, v, utype) = updates[i];
         if (utype == insertion_type) { /* update */
           parent p_u = prev_parents[u];
           parent p_v = prev_parents[v];
@@ -123,21 +131,25 @@ struct SVAlgorithm {
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
             gbbs::write_min<parent>(&parents[h], l, std::less<parent>());
-            if (!changed) { changed = true; }
+            if (!changed) {
+              changed = true;
+            }
           }
         } /* ignore queries for now */
       });
 
-//      auto diff_map = parlay::delayed_seq<size_t>(parents.size(), [&] (size_t i) {
-//        return parents[i] != prev_parents[i];
-//      });
+      //      auto diff_map = parlay::delayed_seq<size_t>(parents.size(), [&]
+      //      (size_t i) {
+      //        return parents[i] != prev_parents[i];
+      //      });
 
       // compress
-      parallel_for(0, updates.size(), [&] (size_t i) {
+      parallel_for(0, updates.size(), [&](size_t i) {
         uintE pathlen = 1;
-        auto [u, v, utype] = updates[i];
+        auto[u, v, utype] = updates[i];
         (void)utype;
-        if (flags[u] == false && gbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false &&
+            gbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           while (parents[u] != parents[parents[u]]) {
             parents[u] = parents[parents[u]];
             pathlen++;
@@ -146,7 +158,8 @@ struct SVAlgorithm {
           report_pathlen(pathlen);
         }
 
-        if (flags[v] == false && gbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false &&
+            gbbs::atomic_compare_and_swap(&flags[v], false, true)) {
           while (parents[v] != parents[parents[v]]) {
             parents[v] = parents[parents[v]];
             pathlen++;
@@ -157,8 +170,8 @@ struct SVAlgorithm {
       });
 
       // reset flags
-      parallel_for(0, updates.size(), [&] (size_t i) {
-        auto [u, v, utype] = updates[i];
+      parallel_for(0, updates.size(), [&](size_t i) {
+        auto[u, v, utype] = updates[i];
         (void)utype;
         if (flags[u]) {
           flags[u] = false;
@@ -169,29 +182,27 @@ struct SVAlgorithm {
       });
 
       // compress (also performs queries implicitly on last round)
-//      parallel_for(0, updates.size(), [&] (uintE i) {
-//        uintE pathlen = 1;
-//        auto [u, v, utype] = updates[i];
-//        while (parents[u] != parents[parents[u]]) {
-//          parents[u] = parents[parents[u]];
-//          pathlen++;
-//        }
-//        report_pathlen(pathlen);
-//
-//        pathlen = 1;
-//        while (parents[v] != parents[parents[v]]) {
-//          parents[v] = parents[parents[v]];
-//          pathlen++;
-//        }
-//        prev_parents[u] = parents[u];
-//        prev_parents[v] = parents[v];
-//        report_pathlen(pathlen);
-//      });
+      //      parallel_for(0, updates.size(), [&] (uintE i) {
+      //        uintE pathlen = 1;
+      //        auto [u, v, utype] = updates[i];
+      //        while (parents[u] != parents[parents[u]]) {
+      //          parents[u] = parents[parents[u]];
+      //          pathlen++;
+      //        }
+      //        report_pathlen(pathlen);
+      //
+      //        pathlen = 1;
+      //        while (parents[v] != parents[parents[v]]) {
+      //          parents[v] = parents[parents[v]];
+      //          pathlen++;
+      //        }
+      //        prev_parents[u] = parents[u];
+      //        prev_parents[v] = parents[v];
+      //        report_pathlen(pathlen);
+      //      });
     }
   }
-
 };
-
 
 }  // namespace shiloachvishkin_cc
 }  // namespace gbbs

@@ -23,157 +23,172 @@
 
 #pragma once
 
-#include "gbbs/gbbs.h"
-#include "benchmarks/SpanningForest/common.h"
 #include "benchmarks/Connectivity/connectit.h"
+#include "benchmarks/SpanningForest/common.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 namespace labelprop_sf {
 
-  constexpr uint8_t unemitted = 0;
-  constexpr uint8_t need_emit = 1;
-  constexpr uint8_t emitted = 2;
+constexpr uint8_t unemitted = 0;
+constexpr uint8_t need_emit = 1;
+constexpr uint8_t emitted = 2;
 
-  inline bool lp_less(uintE u, uintE v) {
-    if (u == spanning_forest::largest_comp) {
-      return (v != spanning_forest::largest_comp);
-    } else if (v == spanning_forest::largest_comp) {
-      return false;
-    }
-    return u < v;
+inline bool lp_less(uintE u, uintE v) {
+  if (u == spanning_forest::largest_comp) {
+    return (v != spanning_forest::largest_comp);
+  } else if (v == spanning_forest::largest_comp) {
+    return false;
+  }
+  return u < v;
+}
+
+template <class W>
+struct LabelProp_F {
+  sequence<parent>& PrevParents;
+  sequence<parent>& Parents;
+  sequence<uint8_t>& changed;
+  LabelProp_F(sequence<parent>& PrevParents, sequence<parent>& Parents,
+              sequence<uint8_t>& changed)
+      : PrevParents(PrevParents), Parents(Parents), changed(changed) {}
+  inline bool update(const uintE& s, const uintE& d, const W& w) {
+    return updateAtomic(s, d, w);
   }
 
-  template <class W>
-  struct LabelProp_F {
-    sequence<parent>& PrevParents;
-    sequence<parent>& Parents;
-    sequence<uint8_t>& changed;
-    LabelProp_F(sequence<parent>& PrevParents, sequence<parent>& Parents, sequence<uint8_t>& changed) : PrevParents(PrevParents), Parents(Parents), changed(changed) {}
-    inline bool update(const uintE& s, const uintE& d, const W& w) {
-      return updateAtomic(s, d, w);
-    }
-
-    inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-      if (lp_less(PrevParents[s], PrevParents[d])) {
-        gbbs::write_min<uintE>(&Parents[d], PrevParents[s], lp_less);
-        return gbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
-      } else if (lp_less(PrevParents[d], PrevParents[s])) {
-        if (gbbs::write_min<uintE>(&Parents[s], PrevParents[d], lp_less)) {
-          if (changed[s] == unemitted) {
-            gbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
-          }
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
+    if (lp_less(PrevParents[s], PrevParents[d])) {
+      gbbs::write_min<uintE>(&Parents[d], PrevParents[s], lp_less);
+      return gbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
+    } else if (lp_less(PrevParents[d], PrevParents[s])) {
+      if (gbbs::write_min<uintE>(&Parents[s], PrevParents[d], lp_less)) {
+        if (changed[s] == unemitted) {
+          gbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
         }
       }
-      return 0;
     }
-    inline bool cond(const uintE& d) { return true; }
-  };
+    return 0;
+  }
+  inline bool cond(const uintE& d) { return true; }
+};
 
-  template <class W>
-  struct LabelProp_F_2 {
-    sequence<parent>& PrevParents;
-    sequence<parent>& Parents;
-    sequence<edge>& Edges;
-    LabelProp_F_2(sequence<parent>& PrevParents, sequence<parent>& Parents, sequence<edge>& Edges) : PrevParents(PrevParents), Parents(Parents), Edges(Edges) {}
+template <class W>
+struct LabelProp_F_2 {
+  sequence<parent>& PrevParents;
+  sequence<parent>& Parents;
+  sequence<edge>& Edges;
+  LabelProp_F_2(sequence<parent>& PrevParents, sequence<parent>& Parents,
+                sequence<edge>& Edges)
+      : PrevParents(PrevParents), Parents(Parents), Edges(Edges) {}
 
-    inline bool update(const uintE& s, const uintE& d, const W& w) {
-      return updateAtomic(s, d, w);
-    }
+  inline bool update(const uintE& s, const uintE& d, const W& w) {
+    return updateAtomic(s, d, w);
+  }
 
-    inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-      if (lp_less(PrevParents[s], PrevParents[d])) { // were not equal before this round
-        if (Parents[d] == PrevParents[s]) { // ours was the winner
-          auto prev_edge = Edges[d];
-          gbbs::atomic_compare_and_swap(&Edges[d], prev_edge, std::make_pair(s,d));
-        }
-      } else if (lp_less(PrevParents[d], PrevParents[s])) { // were not equal before this round
-        if (Parents[s] == PrevParents[d]) { // ours was the winner
-          auto prev_edge = Edges[s];
-          gbbs::atomic_compare_and_swap(&Edges[s], prev_edge, std::make_pair(s,d));
-        }
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
+    if (lp_less(PrevParents[s],
+                PrevParents[d])) {         // were not equal before this round
+      if (Parents[d] == PrevParents[s]) {  // ours was the winner
+        auto prev_edge = Edges[d];
+        gbbs::atomic_compare_and_swap(&Edges[d], prev_edge,
+                                      std::make_pair(s, d));
       }
-      return 0;
+    } else if (lp_less(PrevParents[d],
+                       PrevParents[s])) {  // were not equal before this round
+      if (Parents[s] == PrevParents[d]) {  // ours was the winner
+        auto prev_edge = Edges[s];
+        gbbs::atomic_compare_and_swap(&Edges[s], prev_edge,
+                                      std::make_pair(s, d));
+      }
     }
-    inline bool cond(const uintE& d) { return true; }
-  };
+    return 0;
+  }
+  inline bool cond(const uintE& d) { return true; }
+};
 
+template <class Graph>
+struct LPAlgorithm {
+  Graph& GA;
+  LPAlgorithm(Graph& GA) : GA(GA) {}
 
-  template <class Graph>
-  struct LPAlgorithm {
-    Graph& GA;
-    LPAlgorithm(Graph& GA) : GA(GA) {}
+  void initialize(sequence<parent>& P, sequence<edge>& E) {}
 
-    void initialize(sequence<parent>& P, sequence<edge>& E) {}
+  template <SamplingOption sampling_option>
+  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges,
+                               uintE frequent_comp = UINT_E_MAX) {
+    using W = typename Graph::weight_type;
+    size_t n = GA.n;
 
-    template <SamplingOption sampling_option>
-    void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
-      using W = typename Graph::weight_type;
-      size_t n = GA.n;
-
-      auto vs = vertexSubset(n);
-      sequence<bool> all;
-      if constexpr (sampling_option == no_sampling) {
+    auto vs = vertexSubset(n);
+    sequence<bool> all;
+    if
+      constexpr(sampling_option == no_sampling) {
         all = sequence<bool>(n, true);
-      } else { /* frequent_comp provided */
-        all = sequence<bool>(n, [&] (size_t i) -> bool {
-          return Parents[i] != frequent_comp;
-        });
       }
-      vs = vertexSubset(n, std::move(all));
-      std::cout << "### initial vs = " << vs.size() << " frequent_comp = " << frequent_comp << std::endl;
-
-      auto PrevParents = Parents;
-
-      size_t rounds = 0;
-      auto changed = sequence<uint8_t>(n, (uint8_t)0);
-      size_t vertices_processed = 0;
-      while (!vs.isEmpty()) {
-        std::cout << "### vs size = " << vs.size() << std::endl;
-        vertices_processed += vs.size();
-
-        auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(PrevParents, Parents, changed), -1, dense_forward);
-
-        edgeMap(GA, vs, LabelProp_F_2<W>(PrevParents, Parents, Edges), -1, dense_forward | no_output);
-
-        vs.toSparse();
-        auto this_vs = parlay::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
-          return vs.vtx(i);
-        });
-        auto new_vtxs = parlay::filter(this_vs, [&] (uintE v) {
-          return changed[v] == need_emit; /* emit those that need emitting */
-        });
-        std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;
-        add_to_vsubset(next_vs, new_vtxs.begin(), new_vtxs.size());
-
-        vs = std::move(next_vs);
-        vertexMap(vs, [&] (const uintE& u) {
-          PrevParents[u] = Parents[u];
-          changed[u] = unemitted;
-        });
-        rounds++;
-      }
-      std::cout << "# LabelProp: ran " << rounds << " many rounds." << std::endl;
-      std::cout << "# processed " << vertices_processed << " many vertices" << std::endl;
+    else { /* frequent_comp provided */
+      all = sequence<bool>(
+          n, [&](size_t i) -> bool { return Parents[i] != frequent_comp; });
     }
-  };
+    vs = vertexSubset(n, std::move(all));
+    std::cout << "### initial vs = " << vs.size()
+              << " frequent_comp = " << frequent_comp << std::endl;
 
-  template <bool use_permutation, class Graph>
-  inline sequence<edge> SpanningForest(Graph& G) {
-    size_t n = G.n;
-    sequence<parent> Parents;
-    sequence<edge> Edges(n, empty_edge);
-    if constexpr (use_permutation) {
-      Parents = parlay::random_permutation<uintE>(n);
-    } else {
-      Parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
+    auto PrevParents = Parents;
+
+    size_t rounds = 0;
+    auto changed = sequence<uint8_t>(n, (uint8_t)0);
+    size_t vertices_processed = 0;
+    while (!vs.isEmpty()) {
+      std::cout << "### vs size = " << vs.size() << std::endl;
+      vertices_processed += vs.size();
+
+      auto next_vs =
+          edgeMap(GA, vs, LabelProp_F<W>(PrevParents, Parents, changed), -1,
+                  dense_forward);
+
+      edgeMap(GA, vs, LabelProp_F_2<W>(PrevParents, Parents, Edges), -1,
+              dense_forward | no_output);
+
+      vs.toSparse();
+      auto this_vs = parlay::delayed_seq<uintE>(
+          vs.size(), [&](size_t i) { return vs.vtx(i); });
+      auto new_vtxs = parlay::filter(this_vs, [&](uintE v) {
+        return changed[v] == need_emit; /* emit those that need emitting */
+      });
+      std::cout << "### num acquired through need_emitted = " << new_vtxs.size()
+                << std::endl;
+      add_to_vsubset(next_vs, new_vtxs.begin(), new_vtxs.size());
+
+      vs = std::move(next_vs);
+      vertexMap(vs, [&](const uintE& u) {
+        PrevParents[u] = Parents[u];
+        changed[u] = unemitted;
+      });
+      rounds++;
     }
-    auto alg = LPAlgorithm<Graph>(G);
-    alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
-
-    return parlay::filter(make_slice(Edges), [&] (const edge& e) {
-      return e != empty_edge;
-    });
+    std::cout << "# LabelProp: ran " << rounds << " many rounds." << std::endl;
+    std::cout << "# processed " << vertices_processed << " many vertices"
+              << std::endl;
   }
+};
+
+template <bool use_permutation, class Graph>
+inline sequence<edge> SpanningForest(Graph& G) {
+  size_t n = G.n;
+  sequence<parent> Parents;
+  sequence<edge> Edges(n, empty_edge);
+  if
+    constexpr(use_permutation) {
+      Parents = parlay::random_permutation<uintE>(n);
+    }
+  else {
+    Parents = sequence<parent>::from_function(n, [&](size_t i) { return i; });
+  }
+  auto alg = LPAlgorithm<Graph>(G);
+  alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
+
+  return parlay::filter(make_slice(Edges),
+                        [&](const edge& e) { return e != empty_edge; });
+}
 
 }  // namespace labelprop_sf
 }  // namespace gbbs

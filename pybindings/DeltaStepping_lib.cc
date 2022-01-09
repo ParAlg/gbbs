@@ -30,42 +30,73 @@
 namespace gbbs {
 namespace compiled {
 
-sequence<uintE> DeltaStepping(symmetric_unweighted_graph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<uintE> DeltaStepping(symmetric_uint32_graph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<float> DeltaStepping(symmetric_float_graph& G, uintE src, float delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<double> DeltaStepping(symmetric_double_graph& G, uintE src, double delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
+sequence<uintE> DeltaStepping(symmetric_unweighted_graph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<uintE> DeltaStepping(symmetric_uint32_graph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<float> DeltaStepping(symmetric_float_graph& G, uintE src,
+                              float delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<double> DeltaStepping(symmetric_double_graph& G, uintE src,
+                               double delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
 
-sequence<uintE> DeltaStepping(symmetric_unweighted_cgraph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<uintE> DeltaStepping(symmetric_uint32_cgraph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<float> DeltaStepping(symmetric_float_cgraph& G, uintE src, float delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<double> DeltaStepping(symmetric_double_cgraph& G, uintE src, double delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
+sequence<uintE> DeltaStepping(symmetric_unweighted_cgraph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<uintE> DeltaStepping(symmetric_uint32_cgraph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<float> DeltaStepping(symmetric_float_cgraph& G, uintE src,
+                              float delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<double> DeltaStepping(symmetric_double_cgraph& G, uintE src,
+                               double delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
 
-sequence<uintE> DeltaStepping(asymmetric_unweighted_graph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<uintE> DeltaStepping(asymmetric_uint32_graph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<float> DeltaStepping(asymmetric_float_graph& G, uintE src, float delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<double> DeltaStepping(asymmetric_double_graph& G, uintE src, double delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
+sequence<uintE> DeltaStepping(asymmetric_unweighted_graph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<uintE> DeltaStepping(asymmetric_uint32_graph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<float> DeltaStepping(asymmetric_float_graph& G, uintE src,
+                              float delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<double> DeltaStepping(asymmetric_double_graph& G, uintE src,
+                               double delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
 
-sequence<uintE> DeltaStepping(asymmetric_unweighted_cgraph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<uintE> DeltaStepping(asymmetric_uint32_cgraph& G, uintE src, uintE delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<float> DeltaStepping(asymmetric_float_cgraph& G, uintE src, float delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
-sequence<double> DeltaStepping(asymmetric_double_cgraph& G, uintE src, double delta) {
-  return gbbs::DeltaStepping(G, src, delta); }
+sequence<uintE> DeltaStepping(asymmetric_unweighted_cgraph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<uintE> DeltaStepping(asymmetric_uint32_cgraph& G, uintE src,
+                              uintE delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<float> DeltaStepping(asymmetric_float_cgraph& G, uintE src,
+                              float delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
+sequence<double> DeltaStepping(asymmetric_double_cgraph& G, uintE src,
+                               double delta) {
+  return gbbs::DeltaStepping(G, src, delta);
+}
 
 }  // namespace compiled
 }  // namespace gbbs
-

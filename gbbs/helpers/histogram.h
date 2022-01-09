@@ -31,9 +31,9 @@
 #include <tuple>
 
 #include "gbbs/bridge.h"
-#include "gbbs/macros.h"
 #include "gbbs/helpers/counting_sort_no_transpose.h"
 #include "gbbs/helpers/sequential_ht.h"
+#include "gbbs/macros.h"
 
 namespace gbbs {
 
@@ -175,11 +175,11 @@ inline sequence<O> histogram_medium(A& get_key, size_t n, Apply& apply_f,
   if (num_buckets <= 256) {
     std::tie(elms, counts, num_blocks, m) =
         gbbs::_count_sort<uint8_t, size_t, K>(get_key, gb, n,
-                                                 (uintE)num_buckets);
+                                              (uintE)num_buckets);
   } else {
     std::tie(elms, counts, num_blocks, m) =
         gbbs::_count_sort<uint16_t, size_t, K>(get_key, gb, n,
-                                                  (uintE)num_buckets);
+                                               (uintE)num_buckets);
   }
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
@@ -356,11 +356,11 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
   if (num_total_buckets <= 256) {
     std::tie(elms, counts, num_blocks, m) =
         gbbs::_count_sort<uint8_t, size_t, K>(get_key, gb, n,
-                                                 (uintE)num_total_buckets);
+                                              (uintE)num_total_buckets);
   } else {
     std::tie(elms, counts, num_blocks, m) =
         gbbs::_count_sort<uint16_t, size_t, K>(get_key, gb, n,
-                                                  (uintE)num_total_buckets);
+                                               (uintE)num_total_buckets);
   }
 
   size_t block_size = ((n - 1) / num_blocks) + 1;
@@ -616,8 +616,8 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
     return parlay::hash32(get_key[i] & low_mask) & bucket_mask;
   };
 
-  auto p = gbbs::_count_sort<int16_t, size_t, E>(get_elm, gb, n,
-                                                    (uintE)num_buckets);
+  auto p =
+      gbbs::_count_sort<int16_t, size_t, E>(get_elm, gb, n, (uintE)num_buckets);
 
   auto& elms = std::get<0>(p);  // count-sort'd
   // laid out as num_buckets (row), blocks (col)

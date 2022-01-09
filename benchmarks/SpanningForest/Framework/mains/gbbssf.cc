@@ -21,11 +21,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
-#include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
-#include "benchmarks/SpanningForest/common.h"
 #include "benchmarks/SpanningForest/check.h"
+#include "benchmarks/SpanningForest/common.h"
 
 #include "bench_utils.h"
 
@@ -42,10 +42,10 @@ double t_gbbs_sf(Graph& G, commandLine P, sequence<edge>& correct) {
 }
 
 template <class Graph>
-void gbbssf_nosample(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
+void gbbssf_nosample(Graph& G, int rounds, commandLine& P,
+                     sequence<edge>& correct) {
   run_multiple(G, rounds, correct, "gbbs_sf", P, t_gbbs_sf<Graph>);
 }
-
 }
 
 template <class Graph>
@@ -58,9 +58,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
     correct = bfs_sf::SpanningForestDet(G);
   }
   run_tests(G, rounds, P, correct, connectit::gbbssf_nosample<Graph>,
-    {
-      connectit::gbbssf_nosample<Graph>
-    });
+            {connectit::gbbssf_nosample<Graph>});
   return 1.0;
 }
 }  // namespace gbbs

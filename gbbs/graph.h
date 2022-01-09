@@ -117,12 +117,22 @@ struct symmetric_graph {
 
   // ======================= Constructors and fields  ========================
   symmetric_graph()
-      : v_data(nullptr), e0(nullptr), vertex_weights(nullptr), n(0), m(0), deletion_fn([]() {}) {}
+      : v_data(nullptr),
+        e0(nullptr),
+        vertex_weights(nullptr),
+        n(0),
+        m(0),
+        deletion_fn([]() {}) {}
 
   symmetric_graph(vertex_data* v_data, size_t n, size_t m,
                   std::function<void()> _deletion_fn, edge_type* _e0,
                   vertex_weight_type* _vertex_weights = nullptr)
-      : v_data(v_data), e0(_e0), vertex_weights(_vertex_weights), n(n), m(m), deletion_fn(_deletion_fn) {}
+      : v_data(v_data),
+        e0(_e0),
+        vertex_weights(_vertex_weights),
+        n(n),
+        m(m),
+        deletion_fn(_deletion_fn) {}
 
   // Move constructor
   symmetric_graph(symmetric_graph&& other) noexcept {
@@ -548,11 +558,20 @@ struct asymmetric_ptr_graph {
   vertex get_vertex(size_t i) { return vertices[i]; }
 
   asymmetric_ptr_graph()
-      : n(0), m(0), vertices(nullptr), deletion_fn([]() {}), vertex_weights(nullptr) {}
+      : n(0),
+        m(0),
+        vertices(nullptr),
+        deletion_fn([]() {}),
+        vertex_weights(nullptr) {}
 
   asymmetric_ptr_graph(size_t n, size_t m, vertex* _vertices,
-                       std::function<void()> _deletion_fn, vertex_weight_type* _vertex_weights = nullptr)
-      : n(n), m(m), vertices(_vertices), deletion_fn(_deletion_fn), vertex_weights(_vertex_weights) {}
+                       std::function<void()> _deletion_fn,
+                       vertex_weight_type* _vertex_weights = nullptr)
+      : n(n),
+        m(m),
+        vertices(_vertices),
+        deletion_fn(_deletion_fn),
+        vertex_weights(_vertex_weights) {}
 
   // Move constructor
   asymmetric_ptr_graph(asymmetric_ptr_graph&& other) noexcept {
@@ -601,7 +620,7 @@ struct asymmetric_ptr_graph {
 
     parallel_for(0, n, [&](size_t i) {
       size_t out_offset = out_offsets[i];
-      if (out_offsets[i+1] != out_offset) {
+      if (out_offsets[i + 1] != out_offset) {
         auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
                          size_t ind) {
           outE[out_offset + ind] = std::make_tuple(v, wgh);
@@ -613,7 +632,7 @@ struct asymmetric_ptr_graph {
       }
 
       size_t in_offset = in_offsets[i];
-      if (in_offsets[i+1] != in_offset) {
+      if (in_offsets[i + 1] != in_offset) {
         auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
                          size_t ind) {
           inE[in_offset + ind] = std::make_tuple(v, wgh);

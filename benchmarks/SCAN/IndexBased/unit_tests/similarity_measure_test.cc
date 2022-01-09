@@ -26,17 +26,15 @@ namespace {
 
 // Googletest-like equality matcher for `scan::EdgeSimilarity` where the
 // tolerance on the `similarity` field is a parameter.
-auto EdgeSimilarityApproxEq(
-    const uintE expected_source,
-    const uintE expected_neighbor,
-    const float expected_similarity,
-    const float similarity_max_absolute_error) {
+auto EdgeSimilarityApproxEq(const uintE expected_source,
+                            const uintE expected_neighbor,
+                            const float expected_similarity,
+                            const float similarity_max_absolute_error) {
   return AllOf(
-    Field(&scan::EdgeSimilarity::source, Eq(expected_source)),
-    Field(&scan::EdgeSimilarity::neighbor, Eq(expected_neighbor)),
-    Field(
-      &scan::EdgeSimilarity::similarity,
-      FloatNear(expected_similarity, similarity_max_absolute_error)));
+      Field(&scan::EdgeSimilarity::source, Eq(expected_source)),
+      Field(&scan::EdgeSimilarity::neighbor, Eq(expected_neighbor)),
+      Field(&scan::EdgeSimilarity::similarity,
+            FloatNear(expected_similarity, similarity_max_absolute_error)));
 }
 
 // Returns a small graph.
@@ -59,13 +57,7 @@ auto EdgeSimilarityApproxEq(
 auto MakeBasicGraph() {
   constexpr size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {1, 2},
-    {1, 3},
-    {2, 3},
-    {2, 4},
-    {2, 5},
-    {3, 4},
+      {0, 1}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {2, 5}, {3, 4},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   return graph;
@@ -78,23 +70,22 @@ TEST(CosineSimilarity, AllEdges) {
   const s::CosineSimilarity similarity_measure{};
   // Check `CosineSimilarity::AllEdges` output.
   const sequence<s::EdgeSimilarity> similarities{
-    similarity_measure.AllEdges(&graph)};
+      similarity_measure.AllEdges(&graph)};
   EXPECT_THAT(similarities,
-      UnorderedElementsAre(
-        EdgeSimilarityEq(0, 1, 2.0 / sqrt(8)),
-        EdgeSimilarityEq(1, 0, 2.0 / sqrt(8)),
-        EdgeSimilarityEq(1, 2, 3.0 / sqrt(20)),
-        EdgeSimilarityEq(2, 1, 3.0 / sqrt(20)),
-        EdgeSimilarityEq(1, 3, 3.0 / sqrt(16)),
-        EdgeSimilarityEq(3, 1, 3.0 / sqrt(16)),
-        EdgeSimilarityEq(2, 3, 4.0 / sqrt(20)),
-        EdgeSimilarityEq(3, 2, 4.0 / sqrt(20)),
-        EdgeSimilarityEq(2, 4, 3.0 / sqrt(15)),
-        EdgeSimilarityEq(4, 2, 3.0 / sqrt(15)),
-        EdgeSimilarityEq(2, 5, 2.0 / sqrt(10)),
-        EdgeSimilarityEq(5, 2, 2.0 / sqrt(10)),
-        EdgeSimilarityEq(3, 4, 3.0 / sqrt(12)),
-        EdgeSimilarityEq(4, 3, 3.0 / sqrt(12))));
+              UnorderedElementsAre(EdgeSimilarityEq(0, 1, 2.0 / sqrt(8)),
+                                   EdgeSimilarityEq(1, 0, 2.0 / sqrt(8)),
+                                   EdgeSimilarityEq(1, 2, 3.0 / sqrt(20)),
+                                   EdgeSimilarityEq(2, 1, 3.0 / sqrt(20)),
+                                   EdgeSimilarityEq(1, 3, 3.0 / sqrt(16)),
+                                   EdgeSimilarityEq(3, 1, 3.0 / sqrt(16)),
+                                   EdgeSimilarityEq(2, 3, 4.0 / sqrt(20)),
+                                   EdgeSimilarityEq(3, 2, 4.0 / sqrt(20)),
+                                   EdgeSimilarityEq(2, 4, 3.0 / sqrt(15)),
+                                   EdgeSimilarityEq(4, 2, 3.0 / sqrt(15)),
+                                   EdgeSimilarityEq(2, 5, 2.0 / sqrt(10)),
+                                   EdgeSimilarityEq(5, 2, 2.0 / sqrt(10)),
+                                   EdgeSimilarityEq(3, 4, 3.0 / sqrt(12)),
+                                   EdgeSimilarityEq(4, 3, 3.0 / sqrt(12))));
 
   // Also check that `ApproxCosine::AllEdges` with its threshold tuned so that
   // it always outputs exact similarities also gives the same output.
@@ -102,8 +93,8 @@ TEST(CosineSimilarity, AllEdges) {
   constexpr size_t kRandomSeed{0};
   constexpr size_t kDegreeThreshold{std::numeric_limits<size_t>::max()};
   const sequence<s::EdgeSimilarity> approx_similarities{
-    si::ApproxCosineEdgeSimilarities(
-        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
+      si::ApproxCosineEdgeSimilarities(&graph, kNumSamples, kDegreeThreshold,
+                                       kRandomSeed)};
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
 }
 
@@ -117,48 +108,41 @@ TEST(ApproxCosineSimilarity, AllEdges) {
   constexpr size_t kRandomSeed{0};
   constexpr size_t kDegreeThreshold{0};  // Approximate all similarities
   const sequence<s::EdgeSimilarity> similarities{
-    si::ApproxCosineEdgeSimilarities(
-        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
+      si::ApproxCosineEdgeSimilarities(&graph, kNumSamples, kDegreeThreshold,
+                                       kRandomSeed)};
   constexpr float kTolerance{0.1};
   EXPECT_THAT(similarities,
-      UnorderedElementsAre(
-        EdgeSimilarityApproxEq(0, 1, 2.0 / sqrt(8), kTolerance),
-        EdgeSimilarityApproxEq(1, 0, 2.0 / sqrt(8), kTolerance),
-        EdgeSimilarityApproxEq(1, 2, 3.0 / sqrt(20), kTolerance),
-        EdgeSimilarityApproxEq(2, 1, 3.0 / sqrt(20), kTolerance),
-        EdgeSimilarityApproxEq(1, 3, 3.0 / sqrt(16), kTolerance),
-        EdgeSimilarityApproxEq(3, 1, 3.0 / sqrt(16), kTolerance),
-        EdgeSimilarityApproxEq(2, 3, 4.0 / sqrt(20), kTolerance),
-        EdgeSimilarityApproxEq(3, 2, 4.0 / sqrt(20), kTolerance),
-        EdgeSimilarityApproxEq(2, 4, 3.0 / sqrt(15), kTolerance),
-        EdgeSimilarityApproxEq(4, 2, 3.0 / sqrt(15), kTolerance),
-        EdgeSimilarityApproxEq(2, 5, 2.0 / sqrt(10), kTolerance),
-        EdgeSimilarityApproxEq(5, 2, 2.0 / sqrt(10), kTolerance),
-        EdgeSimilarityApproxEq(3, 4, 3.0 / sqrt(12), kTolerance),
-        EdgeSimilarityApproxEq(4, 3, 3.0 / sqrt(12), kTolerance)));
+              UnorderedElementsAre(
+                  EdgeSimilarityApproxEq(0, 1, 2.0 / sqrt(8), kTolerance),
+                  EdgeSimilarityApproxEq(1, 0, 2.0 / sqrt(8), kTolerance),
+                  EdgeSimilarityApproxEq(1, 2, 3.0 / sqrt(20), kTolerance),
+                  EdgeSimilarityApproxEq(2, 1, 3.0 / sqrt(20), kTolerance),
+                  EdgeSimilarityApproxEq(1, 3, 3.0 / sqrt(16), kTolerance),
+                  EdgeSimilarityApproxEq(3, 1, 3.0 / sqrt(16), kTolerance),
+                  EdgeSimilarityApproxEq(2, 3, 4.0 / sqrt(20), kTolerance),
+                  EdgeSimilarityApproxEq(3, 2, 4.0 / sqrt(20), kTolerance),
+                  EdgeSimilarityApproxEq(2, 4, 3.0 / sqrt(15), kTolerance),
+                  EdgeSimilarityApproxEq(4, 2, 3.0 / sqrt(15), kTolerance),
+                  EdgeSimilarityApproxEq(2, 5, 2.0 / sqrt(10), kTolerance),
+                  EdgeSimilarityApproxEq(5, 2, 2.0 / sqrt(10), kTolerance),
+                  EdgeSimilarityApproxEq(3, 4, 3.0 / sqrt(12), kTolerance),
+                  EdgeSimilarityApproxEq(4, 3, 3.0 / sqrt(12), kTolerance)));
 }
 
 TEST(JaccardSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
   constexpr s::JaccardSimilarity similarity_measure{};
   const sequence<s::EdgeSimilarity> similarities{
-    similarity_measure.AllEdges(&graph)};
+      similarity_measure.AllEdges(&graph)};
   EXPECT_THAT(similarities,
-      UnorderedElementsAre(
-        EdgeSimilarityEq(0, 1, 0.5),
-        EdgeSimilarityEq(1, 0, 0.5),
-        EdgeSimilarityEq(1, 2, 0.5),
-        EdgeSimilarityEq(2, 1, 0.5),
-        EdgeSimilarityEq(1, 3, 0.6),
-        EdgeSimilarityEq(3, 1, 0.6),
-        EdgeSimilarityEq(2, 3, 0.8),
-        EdgeSimilarityEq(3, 2, 0.8),
-        EdgeSimilarityEq(2, 4, 0.6),
-        EdgeSimilarityEq(4, 2, 0.6),
-        EdgeSimilarityEq(2, 5, 0.4),
-        EdgeSimilarityEq(5, 2, 0.4),
-        EdgeSimilarityEq(3, 4, 0.75),
-        EdgeSimilarityEq(4, 3, 0.75)));
+              UnorderedElementsAre(
+                  EdgeSimilarityEq(0, 1, 0.5), EdgeSimilarityEq(1, 0, 0.5),
+                  EdgeSimilarityEq(1, 2, 0.5), EdgeSimilarityEq(2, 1, 0.5),
+                  EdgeSimilarityEq(1, 3, 0.6), EdgeSimilarityEq(3, 1, 0.6),
+                  EdgeSimilarityEq(2, 3, 0.8), EdgeSimilarityEq(3, 2, 0.8),
+                  EdgeSimilarityEq(2, 4, 0.6), EdgeSimilarityEq(4, 2, 0.6),
+                  EdgeSimilarityEq(2, 5, 0.4), EdgeSimilarityEq(5, 2, 0.4),
+                  EdgeSimilarityEq(3, 4, 0.75), EdgeSimilarityEq(4, 3, 0.75)));
 
   // Also check that `ApproxJaccard::AllEdges` with its threshold tuned so that
   // it always outputs exact similarities also gives the same output.
@@ -166,8 +150,8 @@ TEST(JaccardSimilarity, AllEdges) {
   constexpr size_t kRandomSeed{0};
   constexpr size_t kDegreeThreshold{std::numeric_limits<size_t>::max()};
   const sequence<s::EdgeSimilarity> approx_similarities{
-    si::ApproxJaccardEdgeSimilarities(
-        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
+      si::ApproxJaccardEdgeSimilarities(&graph, kNumSamples, kDegreeThreshold,
+                                        kRandomSeed)};
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
 }
 

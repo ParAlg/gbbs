@@ -37,7 +37,8 @@ struct Visit_F {
   sequence<uintE>& dists;
   Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
 
-  inline std::optional<uintE> update(const uintE& s, const uintE& d, const intE& w) {
+  inline std::optional<uintE> update(const uintE& s, const uintE& d,
+                                     const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
@@ -51,13 +52,14 @@ struct Visit_F {
   }
 
   inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
-                                   const intE& w) {
+                                           const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT;
     uintE n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
-          gbbs::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&(dists[d]), oval,
+                                        n_dist)) {  // First visitor
         return std::optional<uintE>(oval);
       }
       gbbs::write_min(&(dists[d]), n_dist);
@@ -71,9 +73,8 @@ struct Visit_F {
 }  // namespace wbfs
 
 template <class Graph>
-inline sequence<uintE> wBFS(Graph& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
+inline sequence<uintE> wBFS(Graph& G, uintE src, size_t num_buckets = 128,
+                            bool largemem = false, bool no_blocked = false) {
   using W = typename Graph::weight_type;
   timer t;
   t.start();
@@ -82,7 +83,8 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   init.start();
   size_t n = G.n;
 
-  auto dists = sequence<uintE>::from_function(n, [&](size_t i) { return INT_E_MAX; });
+  auto dists =
+      sequence<uintE>::from_function(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
   auto get_bkt = [&](const uintE& dist) -> uintE {
@@ -117,8 +119,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
     auto em_f = wrap_with_default<W, intE>(wbfs::Visit_F(dists), (intE)1);
-    auto res =
-        edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
+    auto res = edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -134,7 +135,9 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   }
   bt.next("bucket time");
   emt.next("edge map time");
-  auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
+  auto dist_f = [&](size_t i) {
+    return (dists[i] == INT_E_MAX) ? 0 : dists[i];
+  };
   auto dist_im = parlay::delayed_seq<size_t>(n, dist_f);
   std::cout << "max dist = " << parlay::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "gbbs/gbbs.h"
-#include "benchmarks/SpanningForest/common.h"
 #include "benchmarks/Connectivity/connectit.h"
+#include "benchmarks/SpanningForest/common.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 namespace shiloachvishkin_sf {
@@ -38,7 +38,8 @@ struct SVAlgorithm {
   void initialize(sequence<parent>& P, sequence<edge>& E) {}
 
   template <SamplingOption sampling_option>
-  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
+  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges,
+                               parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -48,54 +49,60 @@ struct SVAlgorithm {
     /* generate candidates based on frequent_comp (if using sampling) */
     size_t candidates_size = n;
     sequence<uintE> unhooked;
-    if constexpr (sampling_option != no_sampling) {
-      auto all_vertices = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
-      unhooked = parlay::filter(all_vertices, [&] (uintE v) {
-        return Parents[v] != frequent_comp;
-      });
-      candidates_size = unhooked.size();
-    }
-
-    auto candidates = parlay::delayed_seq<uintE>(candidates_size, [&] (size_t i) {
-      if constexpr (sampling_option == no_sampling) {
-        return i;
-      } else {
-        return unhooked[i];
+    if
+      constexpr(sampling_option != no_sampling) {
+        auto all_vertices =
+            parlay::delayed_seq<uintE>(n, [&](size_t i) { return i; });
+        unhooked = parlay::filter(
+            all_vertices, [&](uintE v) { return Parents[v] != frequent_comp; });
+        candidates_size = unhooked.size();
       }
-    });
+
+    auto candidates =
+        parlay::delayed_seq<uintE>(candidates_size, [&](size_t i) {
+          if
+            constexpr(sampling_option == no_sampling) { return i; }
+          else {
+            return unhooked[i];
+          }
+        });
 
     std::cout << "## Frequent comp = " << frequent_comp << std::endl;
-    std::cout << "## Starting loop: candidates.size = " << candidates_size << std::endl;
+    std::cout << "## Starting loop: candidates.size = " << candidates_size
+              << std::endl;
     auto PrevParents = Parents;
     while (changed) {
       changed = false;
       rounds++;
-      parallel_for(0, candidates.size(), 1, [&] (uintE i) {
+      parallel_for(0, candidates.size(), 1, [&](uintE i) {
         uintE u = candidates[i];
-        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = PrevParents[u];
           parent p_v = PrevParents[v];
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == PrevParents[h]) {
             gbbs::write_min<parent>(&Parents[h], l, std::less<parent>());
-            if (!changed) { changed = true; }
+            if (!changed) {
+              changed = true;
+            }
           }
         };
         GA.get_vertex(u).out_neighbors().map(map_f);
 
       });
 
-      parallel_for(0, candidates.size(), 1, [&] (uintE i) {
+      parallel_for(0, candidates.size(), 1, [&](uintE i) {
         uintE u = candidates[i];
-        auto map_f_2 = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        auto map_f_2 = [&](const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = PrevParents[u];
           parent p_v = PrevParents[v];
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == PrevParents[h]) {
             if (Parents[h] == l) {
-              gbbs::atomic_compare_and_swap(&Edges[h], empty_edge, std::make_pair(u, v));
+              gbbs::atomic_compare_and_swap(&Edges[h], empty_edge,
+                                            std::make_pair(u, v));
             }
           }
         };
@@ -103,7 +110,7 @@ struct SVAlgorithm {
       });
 
       // compress
-      parallel_for(0, n, [&] (uintE u) {
+      parallel_for(0, n, [&](uintE u) {
         uintE pathlen = 1;
         while (Parents[u] != Parents[Parents[u]]) {
           Parents[u] = Parents[Parents[u]];
@@ -119,15 +126,14 @@ struct SVAlgorithm {
 template <class Graph>
 inline sequence<edge> SpanningForest(Graph& G) {
   size_t n = G.n;
-  auto Parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
+  auto Parents =
+      sequence<parent>::from_function(n, [&](size_t i) { return i; });
   auto Edges = sequence<edge>(n, empty_edge);
 
   auto alg = SVAlgorithm<Graph>(G);
   alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
 
-  return parlay::filter(Edges, [&] (const edge& e) {
-    return e != empty_edge;
-  });
+  return parlay::filter(Edges, [&](const edge& e) { return e != empty_edge; });
 }
 
 }  // namespace shiloachvishkin_sf

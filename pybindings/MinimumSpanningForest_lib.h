@@ -5,12 +5,14 @@
 namespace gbbs {
 namespace compiled {
 
-using symmetric_unweighted_graph = symmetric_graph<symmetric_vertex, gbbs::empty>;
+using symmetric_unweighted_graph =
+    symmetric_graph<symmetric_vertex, gbbs::empty>;
 using symmetric_uint32_graph = symmetric_graph<symmetric_vertex, uint32_t>;
 using symmetric_float_graph = symmetric_graph<symmetric_vertex, float>;
 using symmetric_double_graph = symmetric_graph<symmetric_vertex, double>;
 
-using symmetric_unweighted_cgraph = symmetric_graph<csv_bytepd_amortized, gbbs::empty>;
+using symmetric_unweighted_cgraph =
+    symmetric_graph<csv_bytepd_amortized, gbbs::empty>;
 using symmetric_uint32_cgraph = symmetric_graph<csv_bytepd_amortized, uint32_t>;
 using symmetric_float_cgraph = symmetric_graph<csv_bytepd_amortized, float>;
 using symmetric_double_cgraph = symmetric_graph<csv_bytepd_amortized, double>;

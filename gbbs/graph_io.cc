@@ -126,8 +126,8 @@ symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
 }
 
 asymmetric_graph<asymmetric_vertex, gbbs::empty>
-read_unweighted_asymmetric_graph(const char* fname, bool mmap,
-                                 char* bytes, size_t bytes_size) {
+read_unweighted_asymmetric_graph(const char* fname, bool mmap, char* bytes,
+                                 size_t bytes_size) {
   size_t n, m;
   uintT* offsets;
   uintE* edges;
@@ -156,7 +156,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap,
 
   auto temp_seq = gbbs::make_slice(temp, m);
   parlay::integer_sort_inplace(temp_seq,
-                                [&](const intPair& p) { return p.first; });
+                               [&](const intPair& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
   uintE* inEdges = gbbs::new_array_no_init<uintE>(m);
@@ -212,8 +212,8 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
     uintE* out_edges = (uintE*)(mmap_file + skip);
     skip += m * sizeof(uintE);
 
-    uintT* in_offsets = (uintT*)(mmap_file + skip + 3*sizeof(long));
-    skip += 3*sizeof(long) + (n+1) * sizeof(uintT);
+    uintT* in_offsets = (uintT*)(mmap_file + skip + 3 * sizeof(long));
+    skip += 3 * sizeof(long) + (n + 1) * sizeof(uintT);
     uintE* in_edges = (uintE*)(mmap_file + skip);
 
     auto v_out_data = gbbs::new_array_no_init<vertex_data>(n);
@@ -229,13 +229,13 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, bool binary,
     });
 
     return asymmetric_graph<asymmetric_vertex, gbbs::empty>(
-      v_out_data, v_in_data, n, m,
-      [=]() {
-        gbbs::free_array(v_out_data, n);
-        gbbs::free_array(v_in_data, n);
-      },
-      (std::tuple<uintE, gbbs::empty>*)out_edges,
-      (std::tuple<uintE, gbbs::empty>*)in_edges);
+        v_out_data, v_in_data, n, m,
+        [=]() {
+          gbbs::free_array(v_out_data, n);
+          gbbs::free_array(v_in_data, n);
+        },
+        (std::tuple<uintE, gbbs::empty>*)out_edges,
+        (std::tuple<uintE, gbbs::empty>*)in_edges);
   }
 }
 

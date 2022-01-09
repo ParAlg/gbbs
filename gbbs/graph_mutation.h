@@ -60,7 +60,7 @@ filter_graph(Graph& G, P& pred) {
       auto n_im_f = [&](size_t j) { return nghs[j]; };
       auto n_im = parlay::delayed_seq<edge>(d, n_im_f);
       parlay::filter_out(n_im, gbbs::make_slice(dir_nghs, d), pred_c,
-                          parlay::no_flag);
+                         parlay::no_flag);
     }
   });
 
@@ -129,8 +129,7 @@ inline auto filter_graph(Graph& G, P& pred) {
       };
 
       auto iter = G.get_vertex(i).out_neighbors().get_iter();
-      auto f_it =
-          gbbs::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
+      auto f_it = gbbs::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(
           edges + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
@@ -228,7 +227,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred,
                            std::get<2>(l) + std::get<2>(r));
   };
   parlay::scan_inplace(make_slice(vtx_offs),
-                        parlay::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
+                       parlay::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
@@ -301,7 +300,7 @@ edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p,
                            std::get<1>(l) + std::get<1>(r));
   };
   parlay::scan_inplace(make_slice(offs),
-                        parlay::make_monoid(scan_f, std::make_tuple(0, 0)));
+                       parlay::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   std::cout << "# tmp space allocated = " << total_space << "\n";
@@ -357,7 +356,7 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
                            std::get<1>(l) + std::get<1>(r));
   };
   parlay::scan_inplace(make_slice(vtx_offs),
-                        parlay::make_monoid(scan_f, std::make_tuple(0, 0)));
+                       parlay::make_monoid(scan_f, std::make_tuple(0, 0)));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);

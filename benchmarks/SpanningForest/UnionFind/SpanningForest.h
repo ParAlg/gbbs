@@ -23,79 +23,90 @@
 
 #pragma once
 
+#include "benchmarks/SpanningForest/common.h"
 #include "gbbs/bridge.h"
 #include "gbbs/gbbs.h"
 #include "union_find_rules.h"
-#include "benchmarks/SpanningForest/common.h"
 
-#include <iostream>
 #include <limits.h>
-#include <vector>
-#include <mutex>
-#include <atomic>
 #include <algorithm>
+#include <atomic>
+#include <iostream>
+#include <mutex>
+#include <random>
 #include <unordered_map>
 #include <vector>
-#include <random>
-
+#include <vector>
 
 namespace gbbs {
 namespace union_find_sf {
 
-/* ================================== CSR templates ================================== */
+/* ================================== CSR templates
+ * ================================== */
 
 template <class Find, class Unite, class G>
 struct UFAlgorithm {
   G& GA;
   Unite& unite;
   Find& find;
-  UFAlgorithm(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
+  UFAlgorithm(G& GA, Unite& unite, Find& find)
+      : GA(GA), unite(unite), find(find) {}
 
   void initialize(sequence<parent>& Parents, sequence<edge>& Edges) {}
 
   template <SamplingOption sampling_option>
-  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
+  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges,
+                               uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
     constexpr bool provides_frequent_comp = sampling_option != no_sampling;
     size_t n = GA.n;
     sequence<parent> clusters;
 
     uintE granularity;
-    if constexpr (provides_frequent_comp) {
-      clusters = Parents;
-      granularity = 512;
-    } else {
+    if
+      constexpr(provides_frequent_comp) {
+        clusters = Parents;
+        granularity = 512;
+      }
+    else {
       granularity = 1;
     }
 
-    timer ut; ut.start();
-    parallel_for(0, n, [&] (size_t i) {
-      auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-        if constexpr (provides_frequent_comp) {
-            unite(u, v, Parents, Edges);
-        } else {
-          if (v < u) {
-            unite(u, v, Parents, Edges);
-          }
-        }
-      };
-      if constexpr (provides_frequent_comp) {
-        if (clusters[i] != frequent_comp) {
-          GA.get_vertex(i).out_neighbors().map(map_f);
-        }
-      } else {
-        GA.get_vertex(i).out_neighbors().map(map_f);
-      }
-    }, granularity);
-    ut.stop(); ut.next("union time");
+    timer ut;
+    ut.start();
+    parallel_for(0, n,
+                 [&](size_t i) {
+                   auto map_f = [&](uintE u, uintE v, const W& wgh) {
+                     if
+                       constexpr(provides_frequent_comp) {
+                         unite(u, v, Parents, Edges);
+                       }
+                     else {
+                       if (v < u) {
+                         unite(u, v, Parents, Edges);
+                       }
+                     }
+                   };
+                   if
+                     constexpr(provides_frequent_comp) {
+                       if (clusters[i] != frequent_comp) {
+                         GA.get_vertex(i).out_neighbors().map(map_f);
+                       }
+                     }
+                   else {
+                     GA.get_vertex(i).out_neighbors().map(map_f);
+                   }
+                 },
+                 granularity);
+    ut.stop();
+    ut.next("union time");
 
-    timer ft; ft.start();
-    parallel_for(0, n, [&] (size_t i) {
-      Parents[i] = find(i,Parents);
-    });
-    ft.stop(); debug(ft.next("find time"););
+    timer ft;
+    ft.start();
+    parallel_for(0, n, [&](size_t i) { Parents[i] = find(i, Parents); });
+    ft.stop();
+    debug(ft.next("find time"););
   }
-
 };
 
 }  // namespace union_find_sf

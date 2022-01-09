@@ -46,7 +46,8 @@ double SetCover_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   auto cover = SetCover(G, num_buckets);
   cover.del();
   double tt = t.stop();

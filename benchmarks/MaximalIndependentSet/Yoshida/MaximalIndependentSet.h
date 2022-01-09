@@ -23,23 +23,18 @@
 
 #pragma once
 
-#include "reorder.h"
 #include "gbbs/gbbs.h"
+#include "reorder.h"
 
 namespace gbbs {
-enum mis_status {
-  in,
-  out,
-  unknown
-};
+enum mis_status { in, out, unknown };
 
-size_t get_vertex_pri(uintE v) {
-  return parlay::hash64(v);
-}
+size_t get_vertex_pri(uintE v) { return parlay::hash64(v); }
 
 /* returns pair of (in_matching, query_work) */
 template <class Graph>
-std::pair<mis_status, size_t> mis_query(uintE u, Graph& G, size_t work_so_far, size_t query_cutoff) {
+std::pair<mis_status, size_t> mis_query(uintE u, Graph& G, size_t work_so_far,
+                                        size_t query_cutoff) {
   auto vtx_u = G.get_vertex(u);
   uintE deg_u = vtx_u.out_degree();
   auto nghs_u = (uintE*)vtx_u.neighbors;
@@ -70,7 +65,7 @@ std::pair<mis_status, size_t> mis_query(uintE u, Graph& G, size_t work_so_far, s
     }
 
     /* recursively check ngh */
-    auto [status, rec_work] = mis_query(ngh, G, work, query_cutoff);
+    auto[status, rec_work] = mis_query(ngh, G, work, query_cutoff);
     work = rec_work;
     if (status == in) { /* neighboring edge in mm */
       return std::make_pair(out, work);
@@ -86,7 +81,8 @@ std::pair<mis_status, size_t> mis_query(uintE u, Graph& G, size_t work_so_far, s
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <class Graph>
-auto MaximalIndependentSet(Graph& G, size_t query_cutoff=std::numeric_limits<size_t>::max()) {
+auto MaximalIndependentSet(
+    Graph& G, size_t query_cutoff = std::numeric_limits<size_t>::max()) {
   using W = typename Graph::weight_type;
 
   size_t n = G.n;
@@ -97,17 +93,19 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff=std::numeric_limits<siz
   auto mis = sequence<bool>(n, false);
   auto answered = sequence<bool>(n, false);
   auto total_work = sequence<size_t>(n, (size_t)0);
-  parallel_for(0, n, [&] (size_t i) {
-    auto [status, work] = mis_query(i, RG, 0, query_cutoff);
+  parallel_for(0, n, [&](size_t i) {
+    auto[status, work] = mis_query(i, RG, 0, query_cutoff);
     mis[i] = (status == in);
     total_work[i] = work;
     answered[i] = (status != unknown);
     gbbs::write_max(&max_query_length, work, std::less<size_t>());
   });
   size_t tot_work = parlay::reduce(make_slice(total_work));
-  auto answered_seq = parlay::delayed_seq<size_t>(n, [&] (size_t i) { return static_cast<size_t>(answered[i]); });
+  auto answered_seq = parlay::delayed_seq<size_t>(
+      n, [&](size_t i) { return static_cast<size_t>(answered[i]); });
   size_t num_answered = parlay::reduce(answered_seq);
-  double fraction_covered = static_cast<double>(num_answered) / static_cast<double>(n);
+  double fraction_covered =
+      static_cast<double>(num_answered) / static_cast<double>(n);
   std::cout << "# Max query length = " << max_query_length << std::endl;
   std::cout << "# Total work = " << tot_work << std::endl;
   std::cout << "# Fraction covered = " << fraction_covered << std::endl;
@@ -115,18 +113,18 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff=std::numeric_limits<siz
 
   // Verify that the set is independent and maximal (if no cutoff)
   if (query_cutoff == std::numeric_limits<size_t>::max()) {
-    parallel_for(0, n, [&] (size_t i) {
-      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    parallel_for(0, n, [&](size_t i) {
+      auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
         return (size_t)(mis[v]);
       };
       auto mon = parlay::addm<size_t>();
       size_t nghs_ct = G.get_vertex(i).out_neighbors().reduce(map_f, mon);
-      if (mis[i]) { // if in, ensure no neighbors are in
+      if (mis[i]) {  // if in, ensure no neighbors are in
         assert(nghs_ct == 0);
         if (nghs_ct != 0) {
           exit(-1);
         }
-      } else { // if out, ensure some neighbor is in
+      } else {  // if out, ensure some neighbor is in
         assert(nghs_ct > 0);
         if (nghs_ct == 0) {
           exit(-1);

@@ -33,10 +33,11 @@ struct BF_F {
   BF_F(Distance* _SP, intE* _Visited) : SP(_SP), Visited(_Visited) {}
   inline bool update(const uintE& s, const uintE& d, const W& edgeLen) {
     Distance newDist;
-    if constexpr (std::is_same<W, gbbs::empty>()) {
-      newDist = SP[s] + 1;
-    } else {
-      newDist = SP[s] + edgeLen; }
+    if
+      constexpr(std::is_same<W, gbbs::empty>()) { newDist = SP[s] + 1; }
+    else {
+      newDist = SP[s] + edgeLen;
+    }
     if (SP[d] > newDist) {
       SP[d] = newDist;
       if (Visited[d] == 0) {
@@ -46,14 +47,15 @@ struct BF_F {
     }
     return 0;
   }
-  inline bool updateAtomic(const uintE& s, const uintE& d,
-                           const W& edgeLen) {
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& edgeLen) {
     Distance newDist;
-    if constexpr (std::is_same<W, gbbs::empty>()) {
-      newDist = SP[s] + 1;
-    } else {
-      newDist = SP[s] + edgeLen; }
-    return (gbbs::write_min(&SP[d], newDist) && gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
+    if
+      constexpr(std::is_same<W, gbbs::empty>()) { newDist = SP[s] + 1; }
+    else {
+      newDist = SP[s] + edgeLen;
+    }
+    return (gbbs::write_min(&SP[d], newDist) &&
+            gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
@@ -71,7 +73,9 @@ struct BF_Vertex_F {
 template <class Graph>
 auto BellmanFord(Graph& G, uintE start) {
   using W = typename Graph::weight_type;
-  using Distance = typename std::conditional<std::is_same<W, gbbs::empty>::value, uintE, W>::type;
+  using Distance =
+      typename std::conditional<std::is_same<W, gbbs::empty>::value, uintE,
+                                W>::type;
 
   size_t n = G.n;
   auto Visited = sequence<int>(n, 0);
@@ -94,7 +98,9 @@ auto BellmanFord(Graph& G, uintE start) {
     Frontier = std::move(output);
     round++;
   }
-  auto dist_im_f = [&](size_t i) { return (SP[i] == (std::numeric_limits<Distance>::max())) ? 0 : SP[i]; };
+  auto dist_im_f = [&](size_t i) {
+    return (SP[i] == (std::numeric_limits<Distance>::max())) ? 0 : SP[i];
+  };
   auto dist_im = parlay::delayed_seq<Distance>(n, dist_im_f);
   std::cout << "max dist = " << parlay::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";

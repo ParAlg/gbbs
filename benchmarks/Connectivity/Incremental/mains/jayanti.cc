@@ -29,28 +29,39 @@
 
 namespace gbbs {
 namespace connectit {
-  template <class Graph, bool provides_initial_graph>
-  void jayanti_find_twotrysplit(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_jayanti_alg<Graph, find_twotrysplit, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void jayanti_find_simple(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_jayanti_alg<Graph, find_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
-  }
-} // namespace connectit
+template <class Graph, bool provides_initial_graph>
+void jayanti_find_twotrysplit(Graph& G, size_t n,
+                              sequence<incremental_update>& updates,
+                              size_t batch_size, size_t insert_to_query,
+                              size_t rounds, commandLine P) {
+  run_multiple_jayanti_alg<Graph, find_twotrysplit, provides_initial_graph>(
+      G, n, updates, batch_size, insert_to_query, rounds, P);
+}
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-  run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
+void jayanti_find_simple(Graph& G, size_t n,
+                         sequence<incremental_update>& updates,
+                         size_t batch_size, size_t insert_to_query,
+                         size_t rounds, commandLine P) {
+  run_multiple_jayanti_alg<Graph, find_simple, provides_initial_graph>(
+      G, n, updates, batch_size, insert_to_query, rounds, P);
+}
+}  // namespace connectit
+
+template <class Graph, bool provides_initial_graph>
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates,
+                   size_t batch_size, size_t insert_to_query, size_t rounds,
+                   commandLine P) {
+  run_tests<Graph, provides_initial_graph>(
+      G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::jayanti_find_twotrysplit<Graph, provides_initial_graph>,
       {
-        connectit::jayanti_find_twotrysplit<Graph, provides_initial_graph>,
-//        connectit::jayanti_find_simple<Graph, provides_initial_graph>
+          connectit::jayanti_find_twotrysplit<Graph, provides_initial_graph>,
+          //        connectit::jayanti_find_simple<Graph,
+          //        provides_initial_graph>
       });
 }
 }  // namespace gbbs
-
 
 #include "empty_starting_graph.h"
 #include "subsample_starting_graph.h"

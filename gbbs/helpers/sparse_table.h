@@ -55,7 +55,10 @@ class sparse_table {
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
   sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult = -1)
-      : empty(_empty), empty_key(std::get<0>(empty)), table(make_slice((T*)nullptr, (T*)nullptr)), key_hash(_key_hash) {
+      : empty(_empty),
+        empty_key(std::get<0>(empty)),
+        table(make_slice((T*)nullptr, (T*)nullptr)),
+        key_hash(_key_hash) {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;
     m = (size_t)1 << parlay::log2_up((size_t)(space_mult * _m) + 1);
@@ -97,7 +100,8 @@ class sparse_table {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key,
+                                          k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return true;
         }
@@ -116,7 +120,8 @@ class sparse_table {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key,
+                                          k)) {
           //          std::get<1>(table[h]) = std::get<1>(kv);
           f(&std::get<1>(table[h]), kv);
           return true;
@@ -156,7 +161,8 @@ class sparse_table {
     size_t n_probes = 0;
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key, k)) {
+        if (gbbs::atomic_compare_and_swap(&std::get<0>(table[h]), empty_key,
+                                          k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return true;
         }

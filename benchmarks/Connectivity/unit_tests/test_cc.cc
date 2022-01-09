@@ -2,11 +2,11 @@
 
 #include <unordered_set>
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
@@ -29,28 +29,15 @@ TEST(WorkEfficientCC, BasicUsage) {
   //                      5 -- 6
   constexpr uintE kNumVertices{7};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {2, 3},
-    {3, 4},
-    {3, 5},
-    {4, 5},
-    {5, 6},
+      {0, 1}, {2, 3}, {3, 4}, {3, 5}, {4, 5}, {5, 6},
   };
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const sequence<uintE> ccResult{workefficient_cc::CC(graph)};
   uintE class_one = ccResult[0];
   uintE class_two = ccResult[2];
-  EXPECT_THAT(
-      ccResult,
-      ElementsAre(
-        class_one,
-        class_one,
-        class_two,
-        class_two,
-        class_two,
-        class_two,
-        class_two));
+  EXPECT_THAT(ccResult, ElementsAre(class_one, class_one, class_two, class_two,
+                                    class_two, class_two, class_two));
   EXPECT_NE(class_one, class_two);
 }
 
