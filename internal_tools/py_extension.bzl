@@ -45,7 +45,7 @@ def py_extension(
         linkshared = True,
         linkstatic = True,
         # Ensure that the init function is exported. Required for gold.
-        linkopts = ['-Wl,--export-dynamic-symbol=PyInit_{}'.format(name)],
+        linkopts = ["-Wl,--export-dynamic-symbol=PyInit_{}".format(name)],
         visibility = ["//visibility:private"],
         deps = [cc_library_name],
     )
