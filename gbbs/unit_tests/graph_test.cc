@@ -1,4 +1,7 @@
 #include "gbbs/graph.h"
+#include "parlay/primitives.h"
+
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace gbbs {
@@ -26,7 +29,26 @@ sym_ptr_graph_from_edges(sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
   G.deletion_fn = [=]() {};
   return {std::move(GP), vertices};
 }
+
+// Constructs and returns the following test graph with edge weights:
+//     2     3
+//  0 --- 1 --- 2
+static inline gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, int>
+ThreeNodeSymPtrGraphFromEdges() {
+  using edge = std::tuple<uintE, uintE, int>;
+  const uintE n = 3;
+  sequence<edge> edges(4);
+  edges[0] = std::make_tuple(0, 1, 2);
+  edges[1] = std::make_tuple(1, 0, 2);
+  edges[2] = std::make_tuple(1, 2, 3);
+  edges[3] = std::make_tuple(2, 1, 3);
+  auto P = sym_ptr_graph_from_edges(edges, n);
+  auto& graph = P.first;
+  gbbs::free_array(P.second, graph.n);
+  return graph;
 }
+
+}  // namespace
 
 TEST(TestSymGraphFromEdges, TestBrokenPath) {
   using edge = std::tuple<uintE, uintE, int>;
@@ -120,6 +142,43 @@ TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
   gbbs::free_array(P.second, graph.n);
   std::cout << "Exiting SymPtrGraph" << std::endl;
+}
+
+TEST(TestSymPtrGraphFromEdges, EdgeSequenceConstructionWorks) {
+  // Graph diagram:
+  //     2     3
+  //  0 --- 1 --- 2
+  auto graph = ThreeNodeSymPtrGraphFromEdges();
+  auto edges = graph.edges();
+  EXPECT_EQ(edges[0], std::make_tuple(0, 1, 2));
+  EXPECT_EQ(edges[1], std::make_tuple(1, 0, 2));
+  EXPECT_EQ(edges[2], std::make_tuple(1, 2, 3));
+  EXPECT_EQ(edges[3], std::make_tuple(2, 1, 3));
+}
+
+TEST(TestSymPtrGraphFromEdges, MapEdgesWorks) {
+  // Graph diagram:
+  //     2     3
+  //  0 --- 1 --- 2
+  auto graph = ThreeNodeSymPtrGraphFromEdges();
+  // NOTE: graph.mapEdges() does not return anything so we are testing it by
+  // disabling parallelism and sum the edge weights into a single variable for
+  // testing purposes.
+  int sum = 0;
+  auto map_fn = [&](uintE x, uintE y, int w) { sum += w; };
+  graph.mapEdges(map_fn, /*parallel_inner_map=*/false);
+  EXPECT_EQ(sum, /* 2 + 2 + 3 + 3 = */ 10);
+}
+
+TEST(TestSymPtrGraphFromEdges, ReduceEdgesWorks) {
+  // Graph diagram:
+  //     2     3
+  //  0 --- 1 --- 2
+  auto graph = ThreeNodeSymPtrGraphFromEdges();
+  auto map_fn = [](uintE x, uintE y, int w) -> int { return w; };
+  auto reduce_fn = parlay::make_monoid([](int a, int b) { return a + b; }, 0);
+  auto result = graph.reduceEdges(map_fn, reduce_fn);
+  EXPECT_EQ(result, /* 2 + 2 + 3 + 3 = */ 10);
 }
 
 TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {

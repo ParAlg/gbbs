@@ -240,7 +240,7 @@ struct symmetric_ptr_graph {
 
   sequence<std::tuple<uintE, uintE, W>> edges() {
     using g_edge = std::tuple<uintE, uintE, W>;
-    auto degs = sequence<size_t>(
+    auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
     size_t sum_degs = parlay::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
@@ -252,7 +252,7 @@ struct symmetric_ptr_graph {
                                     const W& wgh) {
                      edges[k++] = std::make_tuple(u, v, wgh);
                    };
-                   get_vertex(i).out_neighbors().map(i, map_f, false);
+                   get_vertex(i).out_neighbors().map(map_f, false);
                  },
                  1);
     return edges;
@@ -262,7 +262,7 @@ struct symmetric_ptr_graph {
   void mapEdges(F f, bool parallel_inner_map = true) {
     parallel_for(0, n,
                  [&](size_t i) {
-                   get_vertex(i).out_neighbors().map(i, f, parallel_inner_map);
+                   get_vertex(i).out_neighbors().map(f, parallel_inner_map);
                  },
                  1);
   }
@@ -271,7 +271,7 @@ struct symmetric_ptr_graph {
   typename R::T reduceEdges(M map_f, R reduce_f) {
     using T = typename R::T;
     auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
-      return get_vertex(i).out_neighbors().reduce(i, map_f, reduce_f);
+      return get_vertex(i).out_neighbors().reduce(map_f, reduce_f);
     });
     return parlay::reduce(D, reduce_f);
   }

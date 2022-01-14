@@ -22,6 +22,7 @@ gbbs_cc_test(
     deps = [
         "//gbbs:graph",
         "@googletest//:gtest_main",
+        "@parlaylib//parlay:primitives",
     ],
 )
 
