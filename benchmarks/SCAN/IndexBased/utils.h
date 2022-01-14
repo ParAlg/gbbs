@@ -103,7 +103,7 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
     const Seq& seq, Key_fn&& get_key, Value_fn&& get_value, Monoid&& reduce_fn,
     size_t num_keys) {
   using Value = typename std::remove_reference_t<Monoid>::T;
-  if (seq.size() == 0) {
+  if (seq.empty()) {
     return sequence<Value>(num_keys, reduce_fn.identity);
   }
   sequence<size_t> bucketed_indices = sequence<size_t>::from_function(
