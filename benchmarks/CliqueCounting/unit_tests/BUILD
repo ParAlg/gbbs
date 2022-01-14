@@ -1,6 +1,6 @@
 licenses(["notice"])
 
-load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
+# load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
 
 # TODO(jeshi,laxmand): fix clique tests
 # gbbs_cc_test(
