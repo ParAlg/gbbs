@@ -29,39 +29,39 @@
 namespace gbbs {
 namespace connectit {
 
-  template <class Graph, bool provides_initial_graph>
-  bool run_multiple_shiloach_vishkin(
-      Graph& G,
-      size_t n,
-      pbbs::sequence<incremental_update>& updates,
-      size_t batch_size,
-      size_t insert_to_query,
-      size_t rounds,
-      commandLine& P) {
-    auto test = [&] (Graph& graph, commandLine& params) {
-      auto alg = shiloachvishkin_cc::SVAlgorithm<Graph>(graph);
-      bool check = params.getOptionValue("-check");
-      return run_abstract_alg<
-        Graph, decltype(alg), provides_initial_graph,
-        /* reorder_batch = */false>(graph, n, updates, batch_size, insert_to_query, check, alg);
-    };
+template <class Graph, bool provides_initial_graph>
+bool run_multiple_shiloach_vishkin(Graph& G, size_t n,
+                                   sequence<incremental_update>& updates,
+                                   size_t batch_size, size_t insert_to_query,
+                                   size_t rounds, commandLine& P) {
+  auto test = [&](Graph& graph, commandLine& params) {
+    auto alg = shiloachvishkin_cc::SVAlgorithm<Graph>(graph);
+    bool check = params.getOptionValue("-check");
+    return run_abstract_alg<Graph, decltype(alg), provides_initial_graph,
+                            /* reorder_batch = */ false>(
+        graph, n, updates, batch_size, insert_to_query, check, alg);
+  };
 
-    auto name = "shiloach_vishkin";
-    return run_multiple(G, rounds, name, P, test);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void shiloach_vishkin(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_shiloach_vishkin<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-} // namespace connectit
+  auto name = "shiloach_vishkin";
+  return run_multiple(G, rounds, name, P, test);
+}
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-  run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
+void shiloach_vishkin(Graph& G, size_t n, sequence<incremental_update>& updates,
+                      size_t batch_size, size_t insert_to_query, size_t rounds,
+                      commandLine P) {
+  run_multiple_shiloach_vishkin<Graph, provides_initial_graph>(
+      G, n, updates, batch_size, insert_to_query, rounds, P);
+}
+}  // namespace connectit
+
+template <class Graph, bool provides_initial_graph>
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates,
+                   size_t batch_size, size_t insert_to_query, size_t rounds,
+                   commandLine P) {
+  run_tests<Graph, provides_initial_graph>(
+      G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::shiloach_vishkin<Graph, provides_initial_graph>,
-      {
-        connectit::shiloach_vishkin<Graph, provides_initial_graph>
-      });
+      {connectit::shiloach_vishkin<Graph, provides_initial_graph>});
 }
 }  // namespace gbbs

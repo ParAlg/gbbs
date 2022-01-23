@@ -7,12 +7,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Clique files
 #include "benchmarks/CliqueCounting/intersect.h"
@@ -51,8 +48,8 @@ namespace multitable_nosearch {
   template <class Y, class H, class C>
   struct MTable {
     using MTableY = MTable<Y, H, C>;
-    using NextMTable = pbbslib::sparse_table<uintE, MTableY*, std::hash<uintE>>;
-    using EndTable = pbbslib::sparse_table<Y, C, H>;
+    using NextMTable = gbbs::sparse_table<uintE, MTableY*, std::hash<uintE>>;
+    using EndTable = gbbs::sparse_table<Y, C, H>;
     NextMTable mtable;
     EndTable end_table;
     uintE lvl;
@@ -138,7 +135,7 @@ namespace multitable_nosearch {
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
-              tbl->total_size = 1 + ((size_t)1 << pbbslib::log2_up((size_t)(1.1 * tbl->total_size) + 1));
+              tbl->total_size = 1 + ((size_t)1 << parlay::log2_up((size_t)(1.1 * tbl->total_size) + 1));
               table_sizes[i] = tbl->total_size;
             }
           });
@@ -481,7 +478,7 @@ namespace multitable_nosearch {
         auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
         auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
         parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-          if (DG.get_vertex(i).getOutDegree() != 0) {
+          if (DG.get_vertex(i).out_degree() != 0) {
             auto next_space = mtable.next(i, 0, r-1);
             if (next_space == nullptr) next_space = &mtable;
             induced->setup(DG, r-1, i);
@@ -494,7 +491,7 @@ namespace multitable_nosearch {
         //std::cout << "End MHash Count" << std::endl; fflush(stdout);
 
         long total = mtable.set_table_sizes();
-        space = pbbslib::new_array_no_init<X>(total);
+        space = gbbs::new_array_no_init<X>(total);
         mtable.set_end_table_rec(space);
 
         if (output_size) {

@@ -2,11 +2,9 @@
 
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
+#include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/utilities.h"
-#include "benchmarks/SCAN/IndexBased/utils.h"
 
 namespace gbbs {
 namespace indexed_scan {
@@ -27,16 +25,14 @@ class Index {
   //   similarity_measure: similarity measure from `similarity_measure.h`
   //     Determines how to compute the similarity between two adjacency
   //     vertices. The traditional choice for SCAN is `scan::CosineSimilarity`.
-  template <
-    template <typename> class VertexTemplate,
-    typename Weight,
-    class SimilarityMeasure = scan::CosineSimilarity>
+  template <template <typename> class VertexTemplate, typename Weight,
+            class SimilarityMeasure = scan::CosineSimilarity>
   explicit Index(
       symmetric_graph<VertexTemplate, Weight>* graph,
       const SimilarityMeasure& similarity_measure = scan::CosineSimilarity{})
-    : num_vertices_{graph->n}
-    , neighbor_order_{graph, similarity_measure}
-    , core_order_{neighbor_order_} {}
+      : num_vertices_{graph->n},
+        neighbor_order_{graph, similarity_measure},
+        core_order_{neighbor_order_} {}
 
   Index();
 
@@ -67,10 +63,8 @@ class Index {
   //   is `kUnclustered` if vertex i does not belong to any cluster. The cluster
   //   IDs will be in the range `[0, graph->n)` but will not necessarily be
   //   contiguous.
-  Clustering Cluster(
-      uint64_t mu,
-      float epsilon,
-      bool get_deterministic_result = false) const;
+  Clustering Cluster(uint64_t mu, float epsilon,
+                     bool get_deterministic_result = false) const;
 
   // Computes clusterings for several epsilon values.
   // Instead of returning all the clusterings, which may be memory intensive,
@@ -80,11 +74,9 @@ class Index {
   // arbitrary.
   //
   // TODO(tomtseng) change std::function argument to a templated argument
-  void Cluster(
-      uint64_t mu,
-      const pbbs::sequence<float>& epsilons,
-      const std::function<void(Clustering, size_t)> f,
-      bool get_deterministic_result = false) const;
+  void Cluster(uint64_t mu, const sequence<float>& epsilons,
+               const std::function<void(Clustering&&, size_t)> f,
+               bool get_deterministic_result = false) const;
 
  private:
   size_t num_vertices_;

@@ -37,7 +37,8 @@ struct Visit_F {
   sequence<uintE>& dists;
   Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
 
-  inline std::optional<uintE> update(const uintE& s, const uintE& d, const intE& w) {
+  inline std::optional<uintE> update(const uintE& s, const uintE& d,
+                                     const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
@@ -51,16 +52,17 @@ struct Visit_F {
   }
 
   inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
-                                   const intE& w) {
+                                           const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT;
     uintE n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
-          pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
+          gbbs::atomic_compare_and_swap(&(dists[d]), oval,
+                                        n_dist)) {  // First visitor
         return std::optional<uintE>(oval);
       }
-      pbbslib::write_min(&(dists[d]), n_dist);
+      gbbs::write_min(&(dists[d]), n_dist);
     }
     return std::nullopt;
   }
@@ -71,11 +73,9 @@ struct Visit_F {
 }  // namespace wbfs
 
 template <class Graph>
-inline sequence<uintE> wBFS(Graph& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
+inline sequence<uintE> wBFS(Graph& G, uintE src, size_t num_buckets = 128,
+                            bool largemem = false, bool no_blocked = false) {
   using W = typename Graph::weight_type;
-  auto before_state = get_pcm_state();
   timer t;
   t.start();
 
@@ -83,13 +83,14 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   init.start();
   size_t n = G.n;
 
-  auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });
+  auto dists =
+      sequence<uintE>::from_function(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
   auto get_bkt = [&](const uintE& dist) -> uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : dist;
   };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> uintE {
+  auto get_ring = parlay::delayed_seq<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
   });
@@ -105,7 +106,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   };
 
   init.stop();
-  init.reportTotal("init time");
+  init.next("init time");
   timer bt, emt;
   auto bkt = b.next_bucket();
   size_t rd = 0;
@@ -113,13 +114,12 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   if (!largemem) fl |= no_dense;
   if (!no_blocked) fl |= sparse_blocked;
   while (bkt.id != b.null_bkt) {
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     emt.start();
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
     auto em_f = wrap_with_default<W, intE>(wbfs::Visit_F(dists), (intE)1);
-    auto res =
-        edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
+    auto res = edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -129,22 +129,18 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.del();
-    active.del();
     bkt = b.next_bucket();
     bt.stop();
     rd++;
   }
-  bt.reportTotal("bucket time");
-  emt.reportTotal("edge map time");
-  auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
+  bt.next("bucket time");
+  emt.next("edge map time");
+  auto dist_f = [&](size_t i) {
+    return (dists[i] == INT_E_MAX) ? 0 : dists[i];
+  };
+  auto dist_im = parlay::delayed_seq<size_t>(n, dist_f);
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
-
-  double time_per_iter = t.stop();
-  auto after_state = get_pcm_state();
-  print_pcm_stats(before_state, after_state, 1, time_per_iter);
 
   return dists;
 }

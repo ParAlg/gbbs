@@ -1,24 +1,23 @@
+licenses(["notice"])
+
 cc_library(
-  name = "MinimumSpanningForest",
-  hdrs = ["MinimumSpanningForest.h"],
-  deps = [
+    name = "MinimumSpanningForest",
+    hdrs = ["MinimumSpanningForest.h"],
+    deps = [
+        "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/UnionFind:union_find_rules",
-  "//gbbs:gbbs",
-  "//gbbs:union_find",
-  "//gbbs/pbbslib:sparse_table",
-  "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:binary_search",
-  "//pbbslib:random",
-  "//pbbslib:sample_sort",
-  ]
+        "//gbbs",
+        "//gbbs/helpers:dyn_arr",
+        "//gbbs/helpers:sparse_table",
+    ],
 )
 
 cc_binary(
-  name = "MinimumSpanningForest_main",
-  srcs = ["MinimumSpanningForest.cc"],
-  deps = [":MinimumSpanningForest"]
+    name = "MinimumSpanningForest_main",
+    srcs = ["MinimumSpanningForest.cc"],
+    deps = [":MinimumSpanningForest"],
 )
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )

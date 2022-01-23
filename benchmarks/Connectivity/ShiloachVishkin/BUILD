@@ -1,12 +1,14 @@
+licenses(["notice"])
+
 cc_library(
-  name = "Connectivity",
-  hdrs = ["Connectivity.h"],
-  deps = [
-  "//gbbs:gbbs",
-  "//benchmarks/Connectivity:common",
-  ]
+    name = "Connectivity",
+    hdrs = ["Connectivity.h"],
+    deps = [
+        "//benchmarks/Connectivity:common",
+        "//gbbs",
+    ],
 )
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )

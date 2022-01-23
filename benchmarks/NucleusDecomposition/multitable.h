@@ -7,12 +7,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Clique files
 #include "benchmarks/CliqueCounting/intersect.h"
@@ -37,8 +34,8 @@ namespace multitable {
   template <class Y, class H, class C>
   struct MTable {
     using MTableY = MTable<Y, H, C>;
-    using NextMTable = pbbslib::sparse_table<uintE, MTableY*, std::hash<uintE>>;
-    using EndTable = pbbslib::sparse_table<Y, C, H>;
+    using NextMTable = gbbs::sparse_table<uintE, MTableY*, std::hash<uintE>>;
+    using EndTable = gbbs::sparse_table<Y, C, H>;
     NextMTable mtable;
     EndTable end_table;
     uintE lvl;
@@ -135,7 +132,7 @@ namespace multitable {
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
-              tbl->total_size = (size_t)1 << pbbslib::log2_up((size_t)(1.1 * tbl->total_size) + 1);
+              tbl->total_size = (size_t)1 << parlay::log2_up((size_t)(1.1 * tbl->total_size) + 1);
               table_sizes[i] = tbl->total_size;
             }
           });
@@ -300,7 +297,7 @@ namespace multitable {
     template <class S>
     long get_top_index(S index) {
       // This gives the first i such that top_table_sizes[i] >= index
-      auto idx = pbbslib::binary_search(table_sizes.slice(), C{index}, std::less<C>());
+      auto idx = parlay::binary_search(table_sizes.slice(), C{index}, std::less<C>());
       if (idx >= table_sizes.size()) return table_sizes.size() - 1;
       if (table_sizes[idx] == index) {
         while(idx < table_sizes.size() && table_sizes[idx] == index) {
@@ -504,7 +501,7 @@ namespace multitable {
               next_space = &mtable;
             }
             auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-              next_space->allocate(DG.get_vertex(i).getOutDegree(), r-2, r-1, i);
+              next_space->allocate(DG.get_vertex(i).out_degree(), r-2, r-1, i);
               auto next_next_space = next_space->next(ngh, r-2, r-1);
               bool next_next_valid_space = true;
               if (next_next_space == nullptr) {
@@ -516,7 +513,7 @@ namespace multitable {
                 next_next_space->set_table_sizes();
               }
             };
-            DG.get_vertex(i).mapOutNgh(i, map_f, true);
+            DG.get_vertex(i).out_neighbors().map(map_f, true);
             if (valid_space) {
               next_space->set_table_sizes();
             }
@@ -526,7 +523,7 @@ namespace multitable {
         auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
         auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
         parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-          if (DG.get_vertex(i).getOutDegree() != 0) {
+          if (DG.get_vertex(i).out_degree() != 0) {
             auto next_space = mtable.next(i, 0, r-1);
             if (next_space == nullptr) next_space = &mtable;
             induced->setup(DG, r-1, i);
@@ -542,7 +539,7 @@ namespace multitable {
 
         long total = mtable.set_table_sizes();
         if (contiguous_space) {
-          space = pbbslib::new_array_no_init<X>(total);
+          space = gbbs::new_array_no_init<X>(total);
           mtable.set_end_table_rec(space);
         } else {
           mtable.set_end_table_rec();

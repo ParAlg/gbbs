@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_binary(
     name = "jayanti_starting",
     srcs = ["jayanti.cc"],
@@ -184,8 +186,8 @@ cc_library(
     name = "bench_utils",
     hdrs = ["bench_utils.h"],
     deps = [
-        "//benchmarks/Connectivity/Framework:framework",
-        "//benchmarks/Connectivity/Framework/mains:check",
+        "//benchmarks/Connectivity/ConnectIt:framework",
+        "//benchmarks/Connectivity/ConnectIt/mains:check",
         "//gbbs",
     ],
 )
@@ -194,7 +196,6 @@ cc_library(
     name = "empty_starting_graph",
     hdrs = ["empty_starting_graph.h"],
     deps = [
-        "//pbbslib/strings:string_basics",
     ],
 )
 
@@ -207,7 +208,7 @@ cc_library(
     name = "subsample_starting_graph",
     hdrs = ["subsample_starting_graph.h"],
     deps = [
-      "//gbbs"
+        "//gbbs",
     ],
 )
 
@@ -216,5 +217,5 @@ cc_library(
     hdrs = ["uf_utils.h"],
     deps = [
         "//benchmarks/Connectivity:common",
-    ]
+    ],
 )

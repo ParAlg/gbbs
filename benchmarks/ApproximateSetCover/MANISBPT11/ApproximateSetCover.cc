@@ -46,17 +46,13 @@ double SetCover_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   auto cover = SetCover(G, num_buckets);
   cover.del();
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
-
-  // Set-cover mutates the underlying graph (unless it is copied, which
-  // we don't do to prevent memory issues), so we make sure the algorithm is run
-  // exactly once.
-  exit(0);
   return tt;
 }
 

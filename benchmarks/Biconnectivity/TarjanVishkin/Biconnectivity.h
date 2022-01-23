@@ -26,10 +26,7 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "pbbslib/random.h"
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/strings/string_basics.h"
+#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
 namespace bc {
@@ -55,8 +52,8 @@ struct AugF {
     return false;
   }
   bool updateAtomic(const uintE& s, const uintE& d) {
-    pbbslib::write_add(&sizes[d], sizes[s]);
-    intE new_value = pbbslib::fetch_and_add(&cts[d], -1) - 1;
+    gbbs::write_add(&sizes[d], sizes[s]);
+    intE new_value = gbbs::fetch_and_add(&cts[d], -1) - 1;
     return (new_value == 0);
   }
   bool cond(const uintE& d) { return true; }
@@ -84,40 +81,42 @@ struct MinMaxF {
     labels lab_s = MM[s];
     uintE low = std::get<0>(lab_s), high = std::get<1>(lab_s);
     if (low < std::get<0>(MM[d])) {
-      pbbslib::write_min(&std::get<0>(MM[d]), low);
+      gbbs::write_min(&std::get<0>(MM[d]), low);
     }
     if (high > std::get<1>(MM[d])) {
-      pbbslib::write_max(&std::get<1>(MM[d]), high);
+      gbbs::write_max(&std::get<1>(MM[d]), high);
     }
-    intE new_value = pbbslib::fetch_and_add(&cts[d], -1) - 1;
+    intE new_value = gbbs::fetch_and_add(&cts[d], -1) - 1;
     return (new_value == 0);
   }
   bool cond(const uintE& d) { return true; }
 };
 
 template <template <typename W> class vertex, class W, class Seq>
-inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<vertex, W>& GA,
-                                                           uintE* Parents,
-                                                           Seq& Sources) {
+inline std::tuple<parlay::sequence<labels>, parlay::sequence<uintE>,
+                  parlay::sequence<uintE>>
+preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
+                Seq& Sources) {
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
-  auto out_edges = sequence<edge>(
+  auto out_edges = sequence<edge>::from_function(
       n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE p_i = Parents[i];
     if (p_i != i) {
       out_edges[i] = std::make_tuple(p_i, i);
     }
   });
 
-  auto edges = pbbslib::filter(
+  auto edges = parlay::filter(
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
-  pbbslib::sample_sort_inplace(edges.slice(), sort_tup, true);
+  parlay::sample_sort_inplace(make_slice(edges), sort_tup);
 
-  auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
-  par_for(0, edges.size(), [&] (size_t i) {
+  auto starts = sequence<uintE>::from_function(
+      n + 1, [](size_t i) { return UINT_E_MAX; });
+  parallel_for(0, edges.size(), [&](size_t i) {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
       starts[std::get<0>(edges[i])] = i;
     }
@@ -132,9 +131,9 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     }
   }
   seq.stop();
-  debug(seq.reportTotal("seq time"););
+  debug(seq.next("seq time"););
 
-  auto nghs = sequence<uintE>(
+  auto nghs = sequence<uintE>::from_function(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
   edges.clear();
 
@@ -143,9 +142,9 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   // Create directed BFS tree
 
-  auto v_out = pbbslib::new_array_no_init<vertex_data>(n);
-  auto v_in = pbbslib::new_array_no_init<vertex_data>(n);
-  par_for(0, n, [&] (size_t i) {
+  auto v_out = parlay::sequence<vertex_data>::uninitialized(n);
+  auto v_in = parlay::sequence<vertex_data>::uninitialized(n);
+  parallel_for(0, n, [&](size_t i) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
     v_out[i].offset = out_off;
@@ -160,50 +159,50 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       v_in[i].offset = i;
     }
   });
-  auto Tree = asymmetric_graph<asymmetric_vertex, pbbslib::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, pbbs::empty>*)nghs.begin(), (std::tuple<uintE, pbbs::empty>*)Parents);
+  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(
+      v_out.begin(), v_in.begin(), n, nghs.size(), []() {},
+      (std::tuple<uintE, gbbs::empty>*)nghs.begin(),
+      (std::tuple<uintE, gbbs::empty>*)Parents.begin());
 
   // 1. Leaffix for Augmented Sizes
-  auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
-  auto cts =
-      sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).getOutDegree(); });
-  auto leaf_im = pbbslib::make_sequence<bool>(n, [&](size_t i) {
+  auto aug_sizes = parlay::sequence<uintE>::uninitialized(n);
+  parallel_for(0, n, [&](size_t i) { aug_sizes[i] = 1; });
+  auto cts = sequence<intE>::from_function(
+      n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
+  auto leaf_im = parlay::delayed_seq<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
     size_t deg = s_n - s_i;
     return (Parents[i] != i) && deg == 0;
   });
-  auto leafs = pbbslib::pack_index<uintE>(leaf_im);
+  auto leafs = parlay::pack_index<uintE>(leaf_im);
 
-  auto vs = vertexSubset(n, leafs.size(), leafs.begin());
+  auto leafs_copy = leafs;
+  auto vs = vertexSubset(n, std::move(leafs_copy));
   size_t rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
-    auto output = edgeMap(
-        Tree, vs, wrap_em_f<pbbslib::empty>(AugF(aug_sizes.begin(), cts.begin())),
-        -1, in_edges | sparse_blocked | fine_parallel);
-    if (rds > 1) {
-      vs.del();  // don't delete leafs.
-    }
-    vs = output;
-    output.toSparse();
+    vs = edgeMap(Tree, vs,
+                 wrap_em_f<gbbs::empty>(AugF(aug_sizes.begin(), cts.begin())),
+                 -1, in_edges | sparse_blocked | fine_parallel);
+    vs.toSparse();
   }
   augs.stop();
-  debug(augs.reportTotal("aug size time"););
+  debug(augs.next("aug size time"););
 
   // Optional: Prefix sum over sources with aug-size (if we want distinct
   // preorder #s)
 
   // Use copy constructor
   sequence<uintE> s_copy(Sources);
-  size_t sources_size = Sources.size();
 
   timer pren;
   pren.start();
-  auto PN = sequence<uintE>(n);
-  vs = vertexSubset(n, sources_size, s_copy.to_array());
-  par_for(0, Sources.size(), [&] (size_t i) {
+  auto PN = parlay::sequence<uintE>::uninitialized(n);
+  vs = vertexSubset(n, std::move(s_copy));
+  parallel_for(0, Sources.size(), [&](size_t i) {
     uintE v = vs.vtx(i);
     PN[v] = 0;
   });
@@ -212,55 +211,56 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
-    auto offsets = sequence<uintE>(vs.size(), [&](size_t i) {
+    auto offsets = sequence<uintE>::from_function(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
-      return Tree.get_vertex(v).getOutDegree();
+      return Tree.get_vertex(v).out_degree();
     });
-    auto tot = pbbslib::scan_add_inplace(offsets);
-    auto next_vs = sequence<uintE>(tot);
-    par_for(0, vs.size(), 1, [&] (size_t i) {
+    auto tot = parlay::scan_inplace(offsets);
+    auto next_vs = sequence<uintE>::uninitialized(tot);
+    parallel_for(0, vs.size(), 1, [&](size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
-      uintE deg_v = Tree.get_vertex(v).getOutDegree();
+      uintE deg_v = Tree.get_vertex(v).out_degree();
       uintE preorder_number = PN[v] + 1;
+
+      auto neighbors = Tree.get_vertex(v).out_neighbors();
 
       // should be tuned
       if (deg_v < 4000) {
         // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
         for (size_t j = 0; j < deg_v; j++) {
-          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
+          uintE ngh = neighbors.get_neighbor(j);
           PN[ngh] = preorder_number;
           preorder_number += aug_sizes[ngh];
           next_vs[off + j] = ngh;
         }
       } else {
-        auto A = sequence<uintE>(deg_v);
-        par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
+        auto A = sequence<uintE>::uninitialized(deg_v);
+        parallel_for(0, deg_v, [&](size_t j) {
+          uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
         });
-        pbbslib::scan_add_inplace(A);
-        par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
+        parlay::scan_inplace(A);
+        parallel_for(0, deg_v, [&](size_t j) {
+          uintE ngh = neighbors.get_neighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
           next_vs[off + j] = ngh;
         });
       }
     });
-    vs.del();
-    size_t next_vs_size = next_vs.size();
-    vs = vertexSubset(n, next_vs_size, next_vs.to_array());
+    vs = vertexSubset(n, std::move(next_vs));
   }
   pren.stop();
-  debug(pren.reportTotal("preorder number from sizes time"););
+  debug(pren.next("preorder number from sizes time"););
 
   timer map_e;
   map_e.start();
   // Map all edges and update labels.
-  auto MM = sequence<labels>(n, [&](size_t i) {
+  auto MM = parlay::sequence<labels>::uninitialized(n);
+  parallel_for(0, n, [&](size_t i) {
     uintE pn_i = PN[i];
-    return std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
+    MM[i] = std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
   });
   // Note that we have to exclude tree edges: it's all edges spliced in with
   // the exception of tree edges.
@@ -272,50 +272,46 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       uintE p_u = PN[u];
       uintE p_v = PN[v];
       if (p_u < std::get<0>(MM[v])) {
-        pbbslib::write_min(&std::get<0>(MM[v]), p_u);
+        gbbs::write_min(&std::get<0>(MM[v]), p_u);
       } else if (p_u > std::get<1>(MM[v])) {
-        pbbslib::write_max(&std::get<1>(MM[v]), p_u);
+        gbbs::write_max(&std::get<1>(MM[v]), p_u);
       }
       if (p_v < std::get<0>(MM[u])) {
-        pbbslib::write_min(&std::get<0>(MM[u]), p_v);
+        gbbs::write_min(&std::get<0>(MM[u]), p_v);
       } else if (p_v > std::get<1>(MM[u])) {
-        pbbslib::write_max(&std::get<1>(MM[u]), p_v);
+        gbbs::write_max(&std::get<1>(MM[u]), p_v);
       }
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); });
+  parallel_for(0, n, 1,
+               [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   map_e.stop();
-  debug(map_e.reportTotal("map edges time"););
+  debug(map_e.next("map edges time"););
 
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { cts[i] = Tree.get_vertex(i).getOutDegree(); });
+  parallel_for(0, n, kDefaultGranularity,
+               [&](size_t i) { cts[i] = Tree.get_vertex(i).out_degree(); });
 
-  size_t leafs_size = leafs.size();
-  vs = vertexSubset(n, leafs_size, leafs.to_array());
+  vs = vertexSubset(n, std::move(leafs));
   rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
-    auto output = edgeMap(
-        Tree, vs, wrap_em_f<pbbslib::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
-        in_edges | sparse_blocked | fine_parallel);
-    vs.del();
-    vs = output;
+    vs = edgeMap(Tree, vs,
+                 wrap_em_f<gbbs::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
+                 in_edges | sparse_blocked | fine_parallel);
   }
   // Delete tree
-  pbbslib::free_array(v_out);
-  pbbslib::free_array(v_in);
   nghs.clear();
   leaff.stop();
-  debug(leaff.reportTotal("leaffix to update min max time"););
+  debug(leaff.next("leaffix to update min max time"););
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
-  return std::make_tuple(MM.to_array(), PN.to_array(), aug_sizes.to_array());
+  return std::make_tuple(std::move(MM), std::move(PN), std::move(aug_sizes));
 }
 
 // Deterministic version
@@ -327,36 +323,35 @@ struct BC_BFS_F {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {  // Atomic version of Update
-    return pbbslib::CAS(&Parents[d], UINT_E_MAX, s);
+    return gbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, s);
   }
   // Cond function checks if vertex has been visited yet
   inline bool cond(uintE d) { return (Parents[d] == UINT_E_MAX); }
 };
 
 template <template <typename W> class vertex, class W, class VS>
-inline uintE* multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
+inline sequence<uintE> multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
-  auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto Parents =
+      sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  par_for(0, frontier.size(), 2000, [&] (size_t i) {
+  parallel_for(0, frontier.size(), 2000, [&](size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
   });
   while (!frontier.isEmpty()) {
-    vertexSubset output =
-        edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())), -1,
-                sparse_blocked);
-    frontier.del();
-    frontier = output;
+    frontier = edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())),
+                       -1, sparse_blocked);
   }
-  return Parents.to_array();
+  return Parents;
 }
 
 // Deterministic version
 struct DET_BFS_F {
   bool* visited;
   uintE* Parents;
-  DET_BFS_F(bool* visited, uintE* _Parents) : visited(visited), Parents(_Parents) {}
+  DET_BFS_F(bool* visited, uintE* _Parents)
+      : visited(visited), Parents(_Parents) {}
   inline bool update(uintE s, uintE d) {  // Update
     if (s < Parents[d]) {
       Parents[d] = s;
@@ -364,19 +359,19 @@ struct DET_BFS_F {
     return false;
   }
   inline bool updateAtomic(uintE s, uintE d) {  // Atomic version of Update
-    pbbslib::write_min(&Parents[d], s);
+    gbbs::write_min(&Parents[d], s);
     return false;
   }
   // Cond function checks if vertex has been visited yet
   inline bool cond(uintE d) { return !visited[d]; }
 };
 
-
 // Deterministic version
 struct DET_BFS_F_2 {
   bool* visited;
   uintE* Parents;
-  DET_BFS_F_2(bool* visited, uintE* _Parents) : visited(visited), Parents(_Parents) {}
+  DET_BFS_F_2(bool* visited, uintE* _Parents)
+      : visited(visited), Parents(_Parents) {}
   inline bool update(uintE s, uintE d) {  // Update
     if (Parents[d] == s) {
       visited[d] = true;
@@ -396,54 +391,54 @@ struct DET_BFS_F_2 {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-uintE* deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
+sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA,
+                                        VS& frontier) {
   size_t n = GA.n;
-  auto visited = sequence<bool>(n, [] (size_t i) { return false; });
-  auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto visited =
+      sequence<bool>::from_function(n, [](size_t i) { return false; });
+  auto Parents =
+      sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  par_for(0, frontier.size(), [&] (size_t i) {
+  parallel_for(0, frontier.size(), [&](size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
     visited[v] = true;
   });
   while (!frontier.isEmpty()) {
-    edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F(visited.begin(), Parents.begin())), -1,
+    edgeMap(GA, frontier,
+            wrap_em_f<W>(DET_BFS_F(visited.begin(), Parents.begin())), -1,
+            sparse_blocked);
+    frontier =
+        edgeMap(GA, frontier,
+                wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
                 sparse_blocked);
-    vertexSubset output =
-        edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
-                sparse_blocked);
-
-    frontier.del();
-    frontier = output;
   }
-  return Parents.to_array();
+  return Parents;
 }
-
 
 template <class Seq>
 inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
-  par_for(0, n, [&] (size_t i) {
+  auto flags = sequence<uintE>::from_function(
+      n + 1, [&](size_t i) { return UINT_E_MAX; });
+  parallel_for(0, n, [&](size_t i) {
     uintE label = labels[i];
-    pbbslib::write_min(&flags[label], (uintE)i);
+    gbbs::write_min(&flags[label], (uintE)i);
   });
   // Get min from each component
-  return pbbslib::filter(flags, [](uintE v) { return v != UINT_E_MAX; });
+  return parlay::filter(flags, [](uintE v) { return v != UINT_E_MAX; });
 }
 
 template <template <class W> class vertex, class W>
-inline std::tuple<uintE*, uintE*> critical_connectivity(
-    symmetric_graph<vertex, W>& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
-    uintE* aug_sizes_A, char* out_f) {
+inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
+    symmetric_graph<vertex, W>& GA, sequence<uintE>&& Parents,
+    sequence<labels>&& MM, sequence<uintE>&& PN, sequence<uintE>&& aug_sizes,
+    char* out_f) {
   timer ccc;
   ccc.start();
   size_t n = GA.n;
-  auto MM = pbbslib::make_sequence<labels>(MM_A, n);
-  auto PN = pbbslib::make_sequence<uintE>(PN_A, n);
-  auto aug_sizes = pbbslib::make_sequence<uintE>(aug_sizes_A, n);
 
-  par_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, [&](size_t i) {
     uintE pi = Parents[i];
     if (pi != i) {
       labels clab = MM[i];
@@ -473,52 +468,52 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   timer ccpred;
   ccpred.start();
   // 1. Pack out all critical edges
-  auto active = pbbslib::new_array_no_init<bool>(n);
-  par_for(0, n, [&] (size_t i) { active[i] = true; });
-//  auto vs_active = vertexSubset(n, n, active);
-  auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
+  auto pack_predicate = [&](const uintE& src, const uintE& ngh,
+                            const W& wgh) -> int {
     return !not_critical_edge(src, ngh);
   };
-  timer ft; ft.start();
+  timer ft;
+  ft.start();
   filterEdges(GA, pack_predicate);
-//  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
-  ft.stop(); debug(ft.reportTotal("filter edges time"););
-//  vs_active.del();
+  ft.stop();
+  debug(ft.next("filter edges time"););
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
   auto cc = workefficient_cc::CC(GA, 0.2, true);
   ccpred.stop();
-  debug(ccpred.reportTotal("cc pred time"););
+  debug(ccpred.next("cc pred time"););
 
-//  //Note that counting components here will count initially isolated vertices
-//  //as distinct components.
-//   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
-//   par_for(0, n, [&] (size_t i) {
-//     if (!flags[cc[i]]) {
-//       flags[cc[i]] = 1;
-//     }
-//   });
-//   flags[n] = 0;
-//   pbbslib::scan_add_inplace(flags.slice());
-//   size_t n_cc = flags[n];
-//   std::cout << "num biconnected components, including isolated vertices = "
-//   << flags[n] << "\n";
+  //  //Note that counting components here will count initially isolated
+  //  vertices
+  //  //as distinct components.
+  //   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
+  //   parallel_for(0, n, [&] (size_t i) {
+  //     if (!flags[cc[i]]) {
+  //       flags[cc[i]] = 1;
+  //     }
+  //   });
+  //   flags[n] = 0;
+  //   parlay::scan_inplace(make_slice(flags));
+  //   size_t n_cc = flags[n];
+  //   std::cout << "num biconnected components, including isolated vertices = "
+  //   << flags[n] << "\n";
 
   if (out_f) {
     std::cout << "Writing labels to file: " << out_f << "\n";
-//    std::ofstream out(out_f, std::ofstream::out);
-//    if (!out.is_open()) {
-//      std::cout << "Unable to open file " << out_f << "\n";
-//      exit(0);
-//    }
+    //    std::ofstream out(out_f, std::ofstream::out);
+    //    if (!out.is_open()) {
+    //      std::cout << "Unable to open file " << out_f << "\n";
+    //      exit(0);
+    //    }
 
-    auto tups = sequence<std::pair<uintE, uintE>>(n);
-    par_for(0, n, [&] (size_t i) {
-        tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
+    auto tups = sequence<std::pair<uintE, uintE>>::uninitialized(n);
+    parallel_for(0, n, [&](size_t i) {
+      tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]);
+    });
 
-    auto C = pbbslib::sequence_to_string(tups);
-    pbbs::char_seq_to_file(C, out_f);
+    auto C = parlay::sequence_to_string(tups);
+    parlay::chars_to_file(C, out_f);
     // benchIO::writeArrayToStream(out, tups.begin(), n);
     // for (size_t i = 0; i < n; i++) {
     //   out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
@@ -526,54 +521,52 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     // out.close();
   }
   debug(std::cout << "Bicc done"
-            << "\n";);
-  pbbslib::free_array(MM_A);
-  pbbslib::free_array(PN_A);
-  pbbslib::free_array(aug_sizes_A);
+                  << "\n";);
   ccc.stop();
-  debug(ccc.reportTotal("critical conn time"););
-  return std::make_tuple(Parents, cc.to_array());
+  debug(ccc.next("critical conn time"););
+  return std::make_tuple(std::move(Parents), std::move(cc));
 }
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
 template <template <class W> class vertex, class W>
-inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
-                                                 char* out_f = 0) {
+auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   size_t n = GA.n;
 
   timer fcc;
   fcc.start();
   sequence<uintE> Components = workefficient_cc::CC(GA, 0.2, false);
   fcc.stop();
-  debug(fcc.reportTotal("first cc"););
+  debug(fcc.next("first cc"););
 
   timer sc;
   sc.start();
   auto Sources = cc_sources(Components);
   Components.clear();
 
-//  auto Sources_copy = Sources.copy(Sources);
-  auto Sources_copy = Sources; // Use copy constructor
-  auto Centers = vertexSubset(n, Sources_copy.size(), Sources.to_array());
-//  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
+  //  auto Sources_copy = Sources.copy(Sources);
+  auto Sources_copy = Sources;  // Use copy constructor
+  auto Centers = vertexSubset(n, std::move(Sources));
+  //  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for
+  //  debugging
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();
-  debug(sc.reportTotal("sc, multibfs time"););
+  debug(sc.next("sc, multibfs time"););
 
   // Returns ((min, max), preorder#, and augmented sizes) of each subtree.
   timer pn;
   pn.start();
 
-  labels* min_max;
-  uintE* preorder_num;
-  uintE* aug_sizes;
+  parlay::sequence<labels> min_max;
+  parlay::sequence<uintE> preorder_num;
+  parlay::sequence<uintE> aug_sizes;
   std::tie(min_max, preorder_num, aug_sizes) =
       preorder_number(GA, Parents, Sources_copy);
   pn.stop();
-  debug(pn.reportTotal("preorder time"););
+  debug(pn.next("preorder time"););
 
-  return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
+  return critical_connectivity(GA, std::move(Parents), std::move(min_max),
+                               std::move(preorder_num), std::move(aug_sizes),
                                out_f);
 }
 

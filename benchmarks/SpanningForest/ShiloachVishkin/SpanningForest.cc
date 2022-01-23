@@ -33,14 +33,15 @@
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
 #include "SpanningForest.h"
-#include "gbbs/gbbs.h"
-#include "benchmarks/SpanningForest/check.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
+#include "benchmarks/SpanningForest/check.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
-  std::cout << "### Application: SpanningForest (Shiloach-Vishkin)" << std::endl;
+  std::cout << "### Application: SpanningForest (Shiloach-Vishkin)"
+            << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;

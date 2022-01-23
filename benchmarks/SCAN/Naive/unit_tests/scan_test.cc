@@ -5,18 +5,17 @@
 #include <string>
 #include <unordered_map>
 
+#include "gbbs/helpers/undirected_edge.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "gbbs/graph_test_utils.h"
-#include "gbbs/undirected_edge.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace gt = graph_test;
 namespace n = naive_scan;
 
 // Like naive_scan::Clustering, but uses `std::vector` instead of
-// `pbbs::sequence` for convenience.
+// `sequence` for convenience.
 using ClusteringArray = std::vector<std::vector<uintE>>;
 
 namespace {
@@ -45,9 +44,8 @@ std::string ClusteringToString(const Clustering& clustering) {
 }
 
 // Checks that `actual_clustering` has the expected clusters.
-void CheckClustering(
-    const n::Clustering& actual_clustering,
-    const ClusteringArray& expected_clustering) {
+void CheckClustering(const n::Clustering& actual_clustering,
+                     const ClusteringArray& expected_clustering) {
   ASSERT_EQ(actual_clustering.size(), expected_clustering.size());
   // <cluster IDs in actual_clustering -> cluster IDs in expected_clustering>
   // map
@@ -121,13 +119,7 @@ TEST(Cluster, BasicUsage) {
   //             .87
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {1, 2},
-    {1, 3},
-    {2, 3},
-    {2, 4},
-    {2, 5},
-    {3, 4},
+      {0, 1}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {2, 5}, {3, 4},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
@@ -136,8 +128,8 @@ TEST(Cluster, BasicUsage) {
     constexpr float kEpsilon{0.5};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering(
-      kNumVertices, std::vector<uintE>{0});
+    const ClusteringArray kExpectedClustering(kNumVertices,
+                                              std::vector<uintE>{0});
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -145,8 +137,7 @@ TEST(Cluster, BasicUsage) {
     constexpr float kEpsilon{0.7};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {0}, {0}, {0}, {0}, {0}, {}};
+    const ClusteringArray kExpectedClustering{{0}, {0}, {0}, {0}, {0}, {}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -154,8 +145,7 @@ TEST(Cluster, BasicUsage) {
     constexpr float kEpsilon{0.73};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {}, {0}, {0}, {0}, {0}, {}};
+    const ClusteringArray kExpectedClustering{{}, {0}, {0}, {0}, {0}, {}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -163,8 +153,7 @@ TEST(Cluster, BasicUsage) {
     constexpr float kEpsilon{0.88};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {}, {}, {0}, {0}, {}, {}};
+    const ClusteringArray kExpectedClustering{{}, {}, {0}, {0}, {}, {}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -172,8 +161,8 @@ TEST(Cluster, BasicUsage) {
     constexpr float kEpsilon{0.95};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering(
-        kNumVertices, std::vector<uintE>{});
+    const ClusteringArray kExpectedClustering(kNumVertices,
+                                              std::vector<uintE>{});
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -181,8 +170,7 @@ TEST(Cluster, BasicUsage) {
     constexpr float kEpsilon{0.7};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {}, {0}, {0}, {0}, {0}, {}};
+    const ClusteringArray kExpectedClustering{{}, {0}, {0}, {0}, {0}, {}};
     CheckClustering(clustering, kExpectedClustering);
   }
 }
@@ -193,9 +181,7 @@ TEST(Cluster, DisconnectedGraph) {
   //     0 -- 1    2    3 -- 4 -- 5
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {3, 4},
-    {4, 5},
+      {0, 1}, {3, 4}, {4, 5},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
@@ -204,8 +190,7 @@ TEST(Cluster, DisconnectedGraph) {
     constexpr float kEpsilon{0.95};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {0}, {0}, {}, {}, {}, {}};
+    const ClusteringArray kExpectedClustering{{0}, {0}, {}, {}, {}, {}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -213,8 +198,7 @@ TEST(Cluster, DisconnectedGraph) {
     constexpr float kEpsilon{0.8};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {0}, {0}, {}, {1}, {1}, {1}};
+    const ClusteringArray kExpectedClustering{{0}, {0}, {}, {1}, {1}, {1}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -222,8 +206,7 @@ TEST(Cluster, DisconnectedGraph) {
     constexpr float kEpsilon{0.8};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {}, {}, {}, {0}, {0}, {0}};
+    const ClusteringArray kExpectedClustering{{}, {}, {}, {0}, {0}, {0}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -231,8 +214,8 @@ TEST(Cluster, DisconnectedGraph) {
     constexpr float kEpsilon{0.8};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering(
-      kNumVertices, std::vector<uintE>{});
+    const ClusteringArray kExpectedClustering(kNumVertices,
+                                              std::vector<uintE>{});
     CheckClustering(clustering, kExpectedClustering);
   }
 }
@@ -246,16 +229,8 @@ TEST(Cluster, TwoClusterGraph) {
   //   .71    .75    .58   .58    .75   .71
   const size_t kNumVertices{9};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {1, 2},
-    {1, 3},
-    {2, 3},
-    {3, 4},
-    {4, 5},
-    {5, 6},
-    {5, 7},
-    {6, 7},
-    {7, 8},
+      {0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4},
+      {4, 5}, {5, 6}, {5, 7}, {6, 7}, {7, 8},
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
@@ -264,8 +239,8 @@ TEST(Cluster, TwoClusterGraph) {
     constexpr float kEpsilon{0.73};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {}, {0}, {0}, {0}, {}, {1}, {1}, {1}, {}};
+    const ClusteringArray kExpectedClustering{{},  {0}, {0}, {0}, {},
+                                              {1}, {1}, {1}, {}};
     CheckClustering(clustering, kExpectedClustering);
   }
   {
@@ -273,8 +248,8 @@ TEST(Cluster, TwoClusterGraph) {
     constexpr float kEpsilon{0.5};
     const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-    const ClusteringArray kExpectedClustering{
-      {0}, {0}, {0}, {0}, {0, 1}, {1}, {1}, {1}, {1}};
+    const ClusteringArray kExpectedClustering{{0}, {0}, {0}, {0}, {0, 1},
+                                              {1}, {1}, {1}, {1}};
     CheckClustering(clustering, kExpectedClustering);
   }
 }

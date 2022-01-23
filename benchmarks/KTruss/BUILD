@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
     name = "KTruss",
     hdrs = [
@@ -6,14 +8,12 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//gbbs",
         "//gbbs:bridge",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs:gbbs",
-        "//gbbs/pbbslib:dyn_arr",
-        "//gbbs/pbbslib:sparse_table",
-        "//pbbslib:sample_sort",
-        "//pbbslib:utilities",
+        "//gbbs/helpers:dyn_arr",
+        "//gbbs/helpers:sparse_table",
     ],
 )
 

@@ -50,15 +50,18 @@ double SpanningForest_runner(Graph& G, commandLine P) {
 
   auto pack = P.getOption("-pack");
   assert(P.getOption("-s"));
-  assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
+  assert(!pack);  // discouraged for now. Using the optimized contraction method
+                  // is faster.
   timer t;
   t.start();
-  auto edges = workefficient_sf::SpanningForest(G, beta, pack, P.getOptionValue("-permute"));
+  auto edges = workefficient_sf::SpanningForest(G, beta, pack,
+                                                P.getOptionValue("-permute"));
   std::cout << "n = " << G.n << " #edges = " << edges.size() << std::endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
-  std::cout << "vtx 0 has degree: " << G.get_vertex(0).getOutDegree() << std::endl;
+  std::cout << "vtx 0 has degree: " << G.get_vertex(0).out_degree()
+            << std::endl;
 
   if (P.getOptionValue("-check")) {
     auto bfs_edges = bfs_sf::SpanningForestDet(G);

@@ -25,12 +25,19 @@
 #include "gbbs/gbbs.h"
 
 namespace gbbs {
+
+template <class W, class Distance>
 struct BF_F {
-  intE* SP;
+  Distance* SP;
   intE* Visited;
-  BF_F(intE* _SP, intE* _Visited) : SP(_SP), Visited(_Visited) {}
-  inline bool update(const uintE& s, const uintE& d, const intE& edgeLen) {
-    intE newDist = SP[s] + edgeLen;
+  BF_F(Distance* _SP, intE* _Visited) : SP(_SP), Visited(_Visited) {}
+  inline bool update(const uintE& s, const uintE& d, const W& edgeLen) {
+    Distance newDist;
+    if
+      constexpr(std::is_same<W, gbbs::empty>()) { newDist = SP[s] + 1; }
+    else {
+      newDist = SP[s] + edgeLen;
+    }
     if (SP[d] > newDist) {
       SP[d] = newDist;
       if (Visited[d] == 0) {
@@ -40,10 +47,15 @@ struct BF_F {
     }
     return 0;
   }
-  inline bool updateAtomic(const uintE& s, const uintE& d,
-                           const intE& edgeLen) {
-    intE newDist = SP[s] + edgeLen;
-    return (pbbslib::write_min(&SP[d], newDist) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& edgeLen) {
+    Distance newDist;
+    if
+      constexpr(std::is_same<W, gbbs::empty>()) { newDist = SP[s] + 1; }
+    else {
+      newDist = SP[s] + edgeLen;
+    }
+    return (gbbs::write_min(&SP[d], newDist) &&
+            gbbs::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
@@ -59,11 +71,15 @@ struct BF_Vertex_F {
 };
 
 template <class Graph>
-inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
+auto BellmanFord(Graph& G, uintE start) {
   using W = typename Graph::weight_type;
+  using Distance =
+      typename std::conditional<std::is_same<W, gbbs::empty>::value, uintE,
+                                W>::type;
+
   size_t n = G.n;
   auto Visited = sequence<int>(n, 0);
-  auto SP = sequence<intE>(n, INT_MAX / 2);
+  auto SP = sequence<Distance>(n, std::numeric_limits<Distance>::max());
   SP[start] = 0;
 
   vertexSubset Frontier(n, start);
@@ -71,24 +87,24 @@ inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { SP[i] = -(INT_E_MAX / 2); });
+      std::cout << " Found negative weight cycle." << std::endl;
       break;
     }
-    auto em_f =
-        wrap_with_default<W, intE>(BF_F(SP.begin(), Visited.begin()), (intE)1);
+    auto em_f = BF_F<W, Distance>(SP.begin(), Visited.begin());
     auto output =
         edgeMap(G, Frontier, em_f, G.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
-    Frontier.del();
-    Frontier = output;
+    Frontier = std::move(output);
     round++;
   }
-  auto dist_im_f = [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; };
-  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
+  auto dist_im_f = [&](size_t i) {
+    return (SP[i] == (std::numeric_limits<Distance>::max())) ? 0 : SP[i];
+  };
+  auto dist_im = parlay::delayed_seq<Distance>(n, dist_im_f);
+  std::cout << "max dist = " << parlay::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;
 }
+
 }  // namespace gbbs

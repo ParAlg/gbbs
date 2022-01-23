@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
     name = "common",
     hdrs = [
@@ -7,5 +9,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+        "//gbbs:graph",
     ],
 )

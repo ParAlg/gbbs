@@ -1,0 +1,84 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-18.04
+    # Skip subsequent steps if commit message has "ci-skip" in it.
+    if: "!contains(github.event.head_commit.message, 'ci-skip')"
+
+    steps:
+      - name: Checkout source tree
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Setup bazelisk
+        uses: ./.github/actions/setup-bazelisk
+
+      - name: Build
+        run: bazel build --sandbox_debug --verbose_failures ...
+
+      - name: Test
+        run: bazel test --sandbox_debug --verbose_failures --test_output=streamed ...
+
+      - name: Caching workaround
+        run: |
+          sudo chmod -R a+rwx .
+          sudo chmod -R a+rwx ~/.cache
+
+
+#      - name: Cache Bazel artifacts
+#        uses: actions/cache@v2
+#        with:
+#          path: ~/.cache/bazel
+#          # See https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows
+#          key: ${{ runner.os }}-build-direct-${{ github.sha }}
+#          restore-keys: |
+#            ${{ runner.os }}-build-direct-
+
+#      - name: GCC version
+#        run: |
+#          echo gcc version
+#          gcc --version
+
+#      - name: GCC install
+#        run: |
+#          sudo apt-get install -y software-properties-common
+#          sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+#          sudo apt update
+#          sudo apt install g++-7 -y
+#          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
+#                         --slave /usr/bin/g++ g++ /usr/bin/g++-7
+#          sudo update-alternatives --config gcc
+#          gcc --version
+#          g++ --version
+#      - name: Bazel version
+#        run: |
+#          echo bazel version
+#          bazel --version
+#       # Caches and restores the bazel build directory.
+#       - name: Cache bazel build results
+#         uses: actions/cache@v2.0.0
+#         env:
+#           cache-name: bazel-cache
+#         with:
+#           path: ~/.cache/bazel
+#           key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.ref }}
+#           restore-keys: |
+#             ${{ runner.os }}-${{ env.cache-name }}-master

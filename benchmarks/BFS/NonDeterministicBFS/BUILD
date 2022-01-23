@@ -1,15 +1,17 @@
+licenses(["notice"])
+
 cc_library(
-  name = "BFS",
-  hdrs = ["BFS.h"],
-  deps = ["//gbbs:gbbs"]
+    name = "BFS",
+    hdrs = ["BFS.h"],
+    deps = ["//gbbs"],
 )
 
 cc_binary(
-  name = "BFS_main",
-  srcs = ["BFS.cc"],
-  deps = [":BFS"]
+    name = "BFS_main",
+    srcs = ["BFS.cc"],
+    deps = [":BFS"],
 )
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )

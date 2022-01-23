@@ -30,70 +30,119 @@
 namespace gbbs {
 namespace connectit {
 
-  /* find_atomic_split */
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_atomic_split_split_atomic_one(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_atomic_split_halve_atomic_one(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_atomic_split_splice_atomic(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  /* find_atomic_halve */
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_atomic_halve_split_atomic_one(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_atomic_halve_halve_atomic_one(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_atomic_halve_splice_atomic(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  /* find_naive */
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_naive_split_atomic_one(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_naive_halve_atomic_one(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-  template <class Graph, bool provides_initial_graph>
-  void unite_rem_cas_find_naive_splice_atomic(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-  }
-
-} // namespace connectit
+/* find_atomic_split */
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_atomic_split_split_atomic_one(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, split_atomic_one,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-  run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
-      connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph, provides_initial_graph>,
+void unite_rem_cas_find_atomic_split_halve_atomic_one(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, halve_atomic_one,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_atomic_split_splice_atomic(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, splice_atomic,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+/* find_atomic_halve */
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_atomic_halve_split_atomic_one(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, split_atomic_one,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_atomic_halve_halve_atomic_one(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, halve_atomic_one,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_atomic_halve_splice_atomic(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, splice_atomic,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+/* find_naive */
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_naive_split_atomic_one(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, split_atomic_one,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_naive_halve_atomic_one(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, halve_atomic_one,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+template <class Graph, bool provides_initial_graph>
+void unite_rem_cas_find_naive_splice_atomic(
+    Graph& G, size_t n, sequence<incremental_update>& updates,
+    size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_atomic,
+                      provides_initial_graph>(G, n, updates, batch_size,
+                                              insert_to_query, rounds, P);
+}
+
+}  // namespace connectit
+
+template <class Graph, bool provides_initial_graph>
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates,
+                   size_t batch_size, size_t insert_to_query, size_t rounds,
+                   commandLine P) {
+  run_tests<Graph, provides_initial_graph>(
+      G, n, updates, batch_size, insert_to_query, rounds, P,
+      connectit::unite_rem_cas_find_atomic_split_split_atomic_one<
+          Graph, provides_initial_graph>,
       {
-//        connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_atomic_split_halve_atomic_one<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_atomic_split_splice_atomic<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_atomic_halve_split_atomic_one<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_atomic_halve_halve_atomic_one<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_atomic_halve_splice_atomic<Graph, provides_initial_graph>,
-        connectit::unite_rem_cas_find_naive_split_atomic_one<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_naive_halve_atomic_one<Graph, provides_initial_graph>,
-//        connectit::unite_rem_cas_find_naive_splice_atomic<Graph, provides_initial_graph>
+          //        connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph,
+          //        provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_atomic_split_halve_atomic_one<Graph,
+          //        provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_atomic_split_splice_atomic<Graph,
+          //        provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_atomic_halve_split_atomic_one<Graph,
+          //        provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_atomic_halve_halve_atomic_one<Graph,
+          //        provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_atomic_halve_splice_atomic<Graph,
+          //        provides_initial_graph>,
+          connectit::unite_rem_cas_find_naive_split_atomic_one<
+              Graph, provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_naive_halve_atomic_one<Graph,
+          //        provides_initial_graph>,
+          //        connectit::unite_rem_cas_find_naive_splice_atomic<Graph,
+          //        provides_initial_graph>
       });
 }
 }  // namespace gbbs

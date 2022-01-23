@@ -2,14 +2,14 @@
 
 #include <vector>
 
+#include "gbbs/unit_tests/graph_test_utils.h"
 #include "gtest/gtest.h"
-#include "gbbs/graph_test_utils.h"
 
 namespace gbbs {
 
 namespace gi = gbbs_io;
 namespace gt = graph_test;
-using NoWeight = pbbs::empty;
+using NoWeight = gbbs::empty;
 
 TEST(EdgeListToAsymmetricGraph, NoEdges) {
   const std::vector<gi::Edge<NoWeight>> kEdges{};
@@ -25,8 +25,7 @@ TEST(EdgeListToAsymmetricGraph, DuplicateEdges) {
   // Graph diagram:
   // 0 --> 1
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {0, 1},
-    {0, 1},
+      {0, 1}, {0, 1},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 2);
@@ -36,12 +35,12 @@ TEST(EdgeListToAsymmetricGraph, DuplicateEdges) {
     auto vertex{graph.get_vertex(0)};
     const std::vector<uintE> kExpectedOutNeighbors{1};
     gt::CheckUnweightedOutNeighbors(vertex, kExpectedOutNeighbors);
-    EXPECT_EQ(vertex.getInDegree(), 0);
+    EXPECT_EQ(vertex.in_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(1)};
     const std::vector<uintE> kExpectedInNeighbors{0};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
     gt::CheckUnweightedInNeighbors(vertex, kExpectedInNeighbors);
   }
 }
@@ -53,7 +52,7 @@ TEST(EdgeListToAsymmetricGraph, SkipFirstVertex) {
   // Graph diagram:
   // 1 --> 2
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {1, 2},
+      {1, 2},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 3);
@@ -61,19 +60,19 @@ TEST(EdgeListToAsymmetricGraph, SkipFirstVertex) {
 
   {
     auto vertex{graph.get_vertex(0)};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
-    EXPECT_EQ(vertex.getInDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
+    EXPECT_EQ(vertex.in_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(1)};
     const std::vector<uintE> kExpectedOutNeighbors{2};
     gt::CheckUnweightedOutNeighbors(vertex, kExpectedOutNeighbors);
-    EXPECT_EQ(vertex.getInDegree(), 0);
+    EXPECT_EQ(vertex.in_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(2)};
     const std::vector<uintE> kExpectedInNeighbors{1};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
     gt::CheckUnweightedInNeighbors(vertex, kExpectedInNeighbors);
   }
 }
@@ -90,13 +89,7 @@ TEST(EdgeListToAsymmetricGraph, OutOfOrderEdges) {
   // 2 <-> 5
 
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {3, 6},
-    {0, 2},
-    {5, 0},
-    {5, 1},
-    {2, 5},
-    {0, 1},
-    {5, 2},
+      {3, 6}, {0, 2}, {5, 0}, {5, 1}, {2, 5}, {0, 1}, {5, 2},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 7);
@@ -167,9 +160,7 @@ TEST(EdgeListToSymmetricGraph, DuplicateEdges) {
   // Graph diagram:
   // 0 --- 1
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {0, 1},
-    {1, 0},
-    {0, 1},
+      {0, 1}, {1, 0}, {0, 1},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 2);
@@ -194,7 +185,7 @@ TEST(EdgeListToSymmetricGraph, SkipFirstVertex) {
   // Graph diagram:
   // 1 --- 2
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {1, 2},
+      {1, 2},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 3);
@@ -202,7 +193,7 @@ TEST(EdgeListToSymmetricGraph, SkipFirstVertex) {
 
   {
     auto vertex{graph.get_vertex(0)};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(1)};
@@ -228,11 +219,7 @@ TEST(EdgeListToSymmetricGraph, OutOfOrderEdges) {
   // 2     5
 
   const std::vector<gi::Edge<NoWeight>> kEdges{
-    {1, 5},
-    {0, 5},
-    {6, 3},
-    {2, 0},
-    {1, 0},
+      {1, 5}, {0, 5}, {6, 3}, {2, 0}, {1, 0},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 7);

@@ -1,10 +1,9 @@
 #include "barabasi_albert.h"
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/strings/string_basics.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 namespace gbbs {
 
@@ -23,12 +22,12 @@ int BuildBarabasiAlbert(int argc, char* argv[]) {
 
   auto updates = barabasi_albert::generate_updates(n, edges_per_vertex);
 
-  auto C = pbbslib::sequence_to_string(updates);
+  auto C = parlay::sequence_to_string(updates);
 
   size_t nn = C.size();
-  std::ofstream file (out_f.c_str(), std::ios::out | std::ios::binary);
+  std::ofstream file(out_f.c_str(), std::ios::out | std::ios::binary);
   if (!file.is_open()) {
-    std::cout << "Unable to open file for writing: " << out_f  << std::endl;
+    std::cout << "Unable to open file for writing: " << out_f << std::endl;
     return -1;
   }
 

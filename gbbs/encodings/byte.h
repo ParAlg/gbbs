@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <cassert>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -41,10 +41,10 @@ namespace byte {
 inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
 
 // Read an empty weight (noop)
-template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
+template <class W, typename std::enable_if<std::is_same<W, gbbs::empty>::value,
                                            int>::type = 0>
-inline pbbslib::empty eatWeight(uchar*& start) {
-  return pbbslib::empty();
+inline gbbs::empty eatWeight(uchar*& start) {
+  return gbbs::empty();
 }
 
 // Read an integer weight. Weights can be negative, so read using signed VarInt8
@@ -114,9 +114,6 @@ inline uintE eatEdge(uchar*& start) {
   return edgeRead;
 }
 
-
-
-
 template <class W, class T>
 inline void decode(T t, uchar* edgeStart, const uintE& source,
                    const uintT& degree) {
@@ -158,9 +155,11 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
   assert(false);  // Unimplemented
 }
 
-template <class W, class E, class M, class Monoid>
-inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    M& m, Monoid& reduce, const bool par = true) {
+template <class W, class M, class Monoid>
+inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
+                                     const uintT& degree, M& m, Monoid& reduce,
+                                     const bool par = true) {
+  using E = typename Monoid::T;
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
     W wgh = eatWeight<W>(edge_start);
@@ -178,10 +177,9 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
 /*
   Compresses the first edge, writing target-source and a sign bit.
 */
-long compressFirstEdge(uchar* start, long offset, long source,
-                              long target);
+long compressFirstEdge(uchar* start, long offset, long source, long target);
 
-template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
+template <class W, typename std::enable_if<std::is_same<W, gbbs::empty>::value,
                                            int>::type = 0>
 inline long compressWeight(uchar* start, long offset, W weight) {
   return offset;
@@ -218,7 +216,6 @@ inline long compressEdge(uchar* start, long curOffset, uintE diff) {
   }
   return curOffset;
 }
-
 
 template <class W, class P>
 inline size_t pack(P& pred, uchar* edge_start, const uintE& source,

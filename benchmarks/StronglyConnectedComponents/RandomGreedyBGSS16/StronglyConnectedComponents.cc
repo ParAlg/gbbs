@@ -22,7 +22,8 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./StronglyConnectedComponents -beta 1.5 -rounds 2 -s -m twitter_J
+// numactl -i all ./StronglyConnectedComponents -beta 1.5 -rounds 2 -s -m
+// twitter_J
 // flags:
 //   optional:
 //     -m : indicate that the graph should be mmap'd
@@ -38,7 +39,9 @@ namespace gbbs {
 template <class Graph>
 double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
-  std::cout << "### Application: StronglyConnectedComponents (Strongly Connected Components)" << std::endl;
+  std::cout << "### Application: StronglyConnectedComponents (Strongly "
+               "Connected Components)"
+            << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
@@ -46,7 +49,10 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -beta = " << beta << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  assert(!P.getOption("-s"));
+  if (P.getOption("-s")) {
+    std::cout << "SCC should be run on a directed graph;" << std::endl;
+    exit(0);
+  }
   timer scc_t;
   scc_t.start();
   auto labels = StronglyConnectedComponents(G, beta);

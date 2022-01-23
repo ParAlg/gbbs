@@ -33,8 +33,8 @@
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
 #include "SpanningForest.h"
-#include "gbbs/gbbs.h"
 #include "benchmarks/SpanningForest/check.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 template <class Graph>

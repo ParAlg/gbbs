@@ -12,77 +12,83 @@ namespace gbbs {
  * that the predicate does not have to be symmetric, i.e. f(u,v) is
  * not necesssarily equal to f(v,u), but we only represent the out-edges of this
  * (possibly) directed graph. */
-template <template <class W> class vertex, class W, class Graph, typename P,
+template <
+    template <class W> class vertex, class W, class Graph, typename P,
     typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
-inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::edge_type*> filter_graph(Graph& G, P& pred) {
+inline std::tuple<size_t, size_t, vertex_data*,
+                  typename symmetric_vertex<W>::edge_type*>
+filter_graph(Graph& G, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = G.num_vertices();
   auto outOffsets = sequence<uintT>(n + 1);
 
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, 1, [&](size_t i) {
     w_vertex u = G.get_vertex(i);
+    auto u_out_nghs = u.out_neighbors();
     auto out_f = [&](uintE j) {
-      return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
+      return static_cast<int>(
+          pred(i, u_out_nghs.get_neighbor(j), u_out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_sequence<int>(u.getOutDegree(), out_f);
+    auto out_im = parlay::delayed_seq<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
-      outOffsets[i] = pbbslib::reduce_add(out_im);
+      outOffsets[i] = parlay::reduce(out_im);
     else
       outOffsets[i] = 0;
-  }, 1);
+  });
 
   outOffsets[n] = 0;
-  uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
+  uintT outEdgeCount = parlay::scan_inplace(outOffsets);
 
   // assert(G.m / 2 == outEdgeCount);
 
   using edge = std::tuple<uintE, W>;
 
-  auto out_edges = sequence<edge>(outEdgeCount);
+  auto out_edges = gbbs::new_array_no_init<edge>(outEdgeCount);
 
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, 1, [&](size_t i) {
     w_vertex u = G.get_vertex(i);
     size_t out_offset = outOffsets[i];
-    uintE d = u.getOutDegree();
+    uintE d = u.out_degree();
     if (d > 0) {
-      edge* nghs = u.getOutNeighbors();
-      edge* dir_nghs = out_edges.begin() + out_offset;
+      edge* nghs = u.neighbors;
+      edge* dir_nghs = out_edges + out_offset;
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
-      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
+      auto n_im = parlay::delayed_seq<edge>(d, n_im_f);
+      parlay::filter_out(n_im, gbbs::make_slice(dir_nghs, d), pred_c,
+                         parlay::no_flag);
     }
-  }, 1);
+  });
 
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
-  parallel_for(0, n, [&] (size_t i) {
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&](size_t i) {
     out_vdata[i].offset = outOffsets[i];
-    out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];
+    out_vdata[i].degree = outOffsets[i + 1] - outOffsets[i];
   });
   outOffsets.clear();
 
-  auto out_edge_arr = out_edges.to_array();
-  return std::make_tuple(G.num_vertices(), outEdgeCount, out_vdata, out_edge_arr);
+  return std::make_tuple(G.num_vertices(), outEdgeCount, out_vdata, out_edges);
 }
 
 // byte version
-template <template <class W> class vertex, class W, class Graph, typename P,
-          typename std::enable_if<
-              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
-              int>::type = 0>
+template <
+    template <class W> class vertex, class W, class Graph, typename P,
+    typename std::enable_if<
+        std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, int>::type = 0>
 inline auto filter_graph(Graph& G, P& pred) {
   size_t n = G.num_vertices();
 
-  debug(std::cout << "# Filtering" << "\n");
+  debug(std::cout << "# Filtering"
+                  << "\n");
 
   // 1. Calculate total size
   auto degrees = sequence<uintE>(n);
   auto byte_offsets = sequence<uintT>(n + 1);
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, 1, [&](size_t i) {
     size_t total_bytes = 0;
     uintE last_ngh = 0;
     size_t deg = 0;
@@ -103,29 +109,29 @@ inline auto filter_graph(Graph& G, P& pred) {
       }
       return false;
     };
-    G.get_vertex(i).mapOutNgh(i, f, false);
+    G.get_vertex(i).out_neighbors().map(f, false);
 
     degrees[i] = deg;
     byte_offsets[i] = total_bytes;
-  }, 1);
+  });
   byte_offsets[n] = 0;
-  size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
+  size_t last_offset = parlay::scan_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
-  auto edges = sequence<uchar>(last_offset);
+  size_t edges_size = last_offset;
+  auto edges = gbbs::new_array_no_init<uchar>(edges_size);
 
-  parallel_for(0, n, [&] (size_t i) {
+  parallel_for(0, n, 1, [&](size_t i) {
     uintE new_deg = degrees[i];
     if (new_deg > 0) {
       auto app_pred = [&](std::tuple<uintE, W> val) {
         return pred(i, std::get<0>(val), std::get<1>(val));
       };
 
-      auto iter = G.get_vertex(i).getOutIter(i);
-      auto f_it =
-          pbbslib::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
+      auto iter = G.get_vertex(i).out_neighbors().get_iter();
+      auto f_it = gbbs::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(
-          edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
+          edges + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
         std::cout << "# degree is: " << new_deg << " nbytes should be: "
                   << (byte_offsets[i + 1] - byte_offsets[i])
@@ -133,31 +139,30 @@ inline auto filter_graph(Graph& G, P& pred) {
         assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
       }
     }
-  }, 1);
+  });
 
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
-  parallel_for(0, n, [&] (size_t i) {
+  auto out_vdata = gbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&](size_t i) {
     out_vdata[i].offset = byte_offsets[i];
     out_vdata[i].degree = degrees[i];
   });
   byte_offsets.clear();
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
-  auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
-  uintT total_deg = pbbslib::reduce_add(deg_map);
-  size_t newM = edges.size();
-  auto edge_arr = edges.to_array();
+  auto deg_map = parlay::delayed_seq<size_t>(n, deg_f);
+  uintT total_deg = parlay::reduce(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
-  return std::make_tuple(G.num_vertices(), newM, out_vdata, edge_arr);
+  return std::make_tuple(G.num_vertices(), edges_size, out_vdata, edges);
 }
 
 template <
     template <class W> class vertex, class W, class Graph, typename P,
-    typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
-                            int>::type = 0>
+    typename std::enable_if<
+        std::is_same<vertex<W>, asymmetric_vertex<W>>::value, int>::type = 0>
 inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
-  std::cout << "# Filter graph not implemented for directed graphs" << std::endl;
-  assert(false); // Not implemented for directed graphs
+  std::cout << "# Filter graph not implemented for directed graphs"
+            << std::endl;
+  assert(false);  // Not implemented for directed graphs
   return G;
 }
 
@@ -166,7 +171,8 @@ template <
     typename std::enable_if<
         std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
 inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
-  std::cout << "# Filter graph not implemented for directed graphs" << std::endl;
+  std::cout << "# Filter graph not implemented for directed graphs"
+            << std::endl;
   assert(false);  // Not implemented for directed graphs
   return G;
 }
@@ -178,10 +184,10 @@ inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
 template <class Graph, class P>
-inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const flags fl = 0) {
+edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred,
+                                                     const flags fl = 0) {
   using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
-  using T = std::tuple<uintT, uintT>;
   size_t n = G.num_vertices();
   auto vtx_offs = sequence<std::tuple<size_t, size_t, size_t>>(n + 1);
 
@@ -193,22 +199,26 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
     return std::make_tuple<uintT, uintT>(pr == 1, pr == 2);
   };
   auto red_f = [](const std::tuple<uintT, uintT>& l,
-                  const std::tuple<uintT, uintT>& r) __attribute__((always_inline)) {
+                  const std::tuple<uintT, uintT>& r)
+      __attribute__((always_inline)) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  auto red_monoid = pbbslib::make_monoid(red_f, id);
-  pbbs::timer reduce_t; reduce_t.start();
-  parallel_for(0, n, [&] (size_t i) {
-    auto res = G.get_vertex(i).template reduceOutNgh<T>(i, map_f, red_monoid);
+  auto red_monoid = parlay::make_monoid(red_f, id);
+  timer reduce_t;
+  reduce_t.start();
+  parallel_for(0, n, 1, [&](size_t i) {
+    auto res = G.get_vertex(i).out_neighbors().reduce(map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
-      vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res),
-                                    G.get_vertex(i).calculateOutTemporarySpace());
+      vtx_offs[i] = std::make_tuple(
+          std::get<0>(res), std::get<1>(res),
+          G.get_vertex(i).out_neighbors().calculateTemporarySpace());
     } else {
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res), 0);
     }
-  }, 1);
-  reduce_t.stop(); reduce_t.reportTotal("reduce time");
+  });
+  reduce_t.stop();
+  reduce_t.next("reduce time");
   vtx_offs[n] = std::make_tuple(0, 0, 0);
   auto scan_f = [](const std::tuple<uintT, uintT, uintT>& l,
                    const std::tuple<uintT, uintT, uintT>& r) {
@@ -216,15 +226,16 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
                            std::get<1>(l) + std::get<1>(r),
                            std::get<2>(l) + std::get<2>(r));
   };
-  pbbslib::scan_inplace(vtx_offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
+  parlay::scan_inplace(make_slice(vtx_offs),
+                       parlay::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
   size_t output_size = std::get<1>(vtx_offs[n]);
   std::cout << "# tmp space to allocate = " << total_space
             << " output size = " << output_size << "\n";
-  auto arr = sequence<edge>(output_size);
-  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
+  auto arr = sequence<edge>::uninitialized(output_size);
+  auto tmp = sequence<std::tuple<uintE, W>>::uninitialized(total_space);
 
   auto pred_two = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return pred(src, ngh, wgh) == 2;
@@ -236,8 +247,8 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
   };
 
   // 2. pack and write out
-  parallel_for(0, n, [&] (size_t i) {
-    size_t deg = G.get_vertex(i).getOutDegree();
+  parallel_for(0, n, 1, [&](size_t i) {
+    size_t deg = G.get_vertex(i).out_degree();
     size_t off = std::get<1>(vtx_offs[i]);
     size_t n_one = std::get<0>(vtx_offs[i + 1]) - std::get<0>(vtx_offs[i]);
     size_t n_two = std::get<1>(vtx_offs[i + 1]) - off;
@@ -249,7 +260,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
       };
       // Filter out edges where pred == 2.
       if (n_two > 0 && !(fl & no_output)) {
-        G.get_vertex(i).filterOutNgh(i, pred_two, out_f, tmp_v);
+        G.get_vertex(i).out_neighbors().filter(pred_two, out_f, tmp_v);
       }
       // Pack out non-zero edges. This method updates the degree in G.
       if (n_to_pack < deg) {
@@ -258,27 +269,28 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
         G.zeroVertexDegree(i);
       }
     }
-  }, 1);
-  auto degree_imap = pbbslib::make_sequence<size_t>(n,
-      [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
+  });
+  auto degree_imap = parlay::delayed_seq<size_t>(
+      n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 
-  G.m = pbbslib::reduce_add(degree_imap);
+  G.m = parlay::reduce(degree_imap);
   std::cout << "# G.m is now = " << G.m << "\n";
 
-  auto arr_size = arr.size();
-  return edge_array<W>(arr.to_array(), n, n, arr_size);
+  return edge_array<W>(std::move(arr), n);
 }
 
 // Used by MaximalMatching.
 template <class Graph, class P>
-inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, flags fl = 0) {
+edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p,
+                                                         flags fl = 0) {
   using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
   auto offs = sequence<std::tuple<uintT, uintT>>(n + 1);
-  parallel_for(0, n, [&] (size_t i) {
-    offs[i] = std::make_tuple(G.get_vertex(i).countOutNgh(i, p),
-                              G.get_vertex(i).calculateOutTemporarySpace());
+  parallel_for(0, n, [&](size_t i) {
+    offs[i] = std::make_tuple(
+        G.get_vertex(i).out_neighbors().count(p),
+        G.get_vertex(i).out_neighbors().calculateTemporarySpace());
   });
   //  std::cout << "fall e" << "\n";
   offs[n] = std::make_tuple(0, 0);
@@ -287,7 +299,8 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
+  parlay::scan_inplace(make_slice(offs),
+                       parlay::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   std::cout << "# tmp space allocated = " << total_space << "\n";
@@ -295,21 +308,20 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
   size_t total_edges = std::get<0>(offs[n]);
   auto arr = sequence<edge>(total_edges);
 
-  parallel_for(0, n, [&](size_t i) {
+  parallel_for(0, n, 1, [&](size_t i) {
     size_t off = std::get<0>(offs[i]);
-    if (G.get_vertex(i).getOutDegree() > 0) {
+    if (G.get_vertex(i).out_degree() > 0) {
       std::tuple<uintE, W>* tmp_v = tmp.begin() + std::get<1>(offs[i]);
       auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
         arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
       };
-      G.get_vertex(i).filterOutNgh(i, p, out_f, tmp_v);
+      G.get_vertex(i).out_neighbors().filter(p, out_f, tmp_v);
       G.zeroVertexDegree(i);
     }
-  }, 1);
+  });
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
-  auto arr_size = arr.size();
-  return edge_array<W>(arr.to_array(), n, n, arr_size);
+  return edge_array<W>(std::move(arr), n);
 }
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
@@ -327,11 +339,12 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
     return pred(src, ngh, wgh);
   };
   auto red_f = [](size_t l, size_t r) { return l + r; };
-  auto red_monoid = pbbslib::make_monoid(red_f, id);
-  parallel_for(0, n, [&] (size_t i) {
-    uintE ct = G.get_vertex(i).template reduceOutNgh<uintE>(i, map_f, red_monoid);
+  auto red_monoid = parlay::make_monoid(red_f, id);
+  parallel_for(0, n, [&](size_t i) {
+    uintE ct = G.get_vertex(i).out_neighbors().reduce(map_f, red_monoid);
     if (ct > 0) {
-      vtx_offs[i] = std::make_tuple(ct, G.get_vertex(i).calculateOutTemporarySpace());
+      vtx_offs[i] = std::make_tuple(
+          ct, G.get_vertex(i).out_neighbors().calculateTemporarySpace());
     } else {
       vtx_offs[i] = std::make_tuple(0, 0);
     }
@@ -342,7 +355,8 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(vtx_offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
+  parlay::scan_inplace(make_slice(vtx_offs),
+                       parlay::make_monoid(scan_f, std::make_tuple(0, 0)));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);
@@ -352,7 +366,7 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
 
   // 2. Filter edges into output arr.
   {
-    parallel_for(0, n, [&](size_t i) {
+    parallel_for(0, n, 1, [&](size_t i) {
       size_t off = std::get<0>(vtx_offs[i]);
       size_t n_to_pack = std::get<0>(vtx_offs[i + 1]) - off;
       if (n_to_pack > 0) {
@@ -361,15 +375,12 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
           output_arr[off + j] =
               std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
         };
-        G.get_vertex(i).filterOutNgh(i, pred, out_f, tmp_v);
+        G.get_vertex(i).out_neighbors().filter(pred, out_f, tmp_v);
       }
-    }, 1);
+    });
   }
-  auto output_arr_size = output_arr.size();
-  return edge_array<W>(output_arr.to_array(), n, n, output_arr_size);
+  return edge_array<W>(std::move(output_arr), n);
 }
-
-
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
@@ -378,25 +389,23 @@ inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
   using W = typename Graph::weight_type;
   size_t n = G.num_vertices();
   auto space = sequence<uintT>(n);
-  parallel_for(0, n, [&] (size_t i) {
-    space[i] = G.get_vertex(i).calculateOutTemporarySpace();
+  parallel_for(0, n, [&](size_t i) {
+    space[i] = G.get_vertex(i).out_neighbors().calculateTemporarySpace();
   });
-  size_t total_space = pbbslib::scan_add_inplace(space);
+  size_t total_space = parlay::scan_inplace(space);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
 
   auto for_inner = [&](size_t i) {
     std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
     G.packNeighbors(i, p, (uint8_t*)tmp_v);
   };
-  paralle_for(0, n, [&] (size_t i) { for_inner(i); }, 1);
+  parallel_for(0, n, 1, [&](size_t i) { for_inner(i); });
 }
-
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
 template <class Graph, class P>
-inline vertexSubsetData<uintE> packEdges(Graph& G,
-                                         vertexSubset& vs, P& p,
+inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
 
@@ -406,48 +415,52 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  auto space = sequence<uintT>(m+1);
-  parallel_for(0, m, [&] (size_t i) {
+  auto space = sequence<uintT>(m + 1);
+  parallel_for(0, m, [&](size_t i) {
     uintE v = vs.vtx(i);
-    space[i] = G.get_vertex(v).calculateOutTemporarySpaceBytes();
+    space[i] = G.get_vertex(v).out_neighbors().calculateTemporarySpaceBytes();
   });
   space[m] = 0;
-  size_t total_space = pbbslib::scan_add_inplace(space);
+  size_t total_space = parlay::scan_inplace(space);
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
-    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
+    tmp = gbbs::new_array_no_init<uint8_t>(total_space);
+    debug(std::cout << "Allocated " << total_space << " temporary space."
+                    << std::endl;);
   }
-  S* outV;
   if (should_output(fl)) {
-    outV = pbbslib::new_array_no_init<S>(vs.size());
-    parallel_for(0, m, [&](size_t i) {
+    auto outV = sequence<S>::uninitialized(vs.size());
+    parallel_for(0, m, 1, [&](size_t i) {
       uintE v = vs.vtx(i);
       uint8_t* tmp_v = nullptr;
-      if (space[i+1] > space[i]) {
+      if (space[i + 1] > space[i]) {
         tmp_v = tmp + space[i];
       }
       uintE new_degree = G.packNeighbors(v, p, tmp_v);
       outV[i] = std::make_tuple(v, new_degree);
-    }, 1);
-    if (tmp) { pbbs::free_array(tmp); }
-    return vertexSubsetData<uintE>(n, m, outV);
+    });
+    if (tmp) {
+      gbbs::free_array(tmp, total_space);
+    }
+    return vertexSubsetData<uintE>(n, std::move(outV));
   } else {
-    parallel_for(0, m, [&](size_t i) {
+    parallel_for(0, m, 1, [&](size_t i) {
       uintE v = vs.vtx(i);
       uint8_t* tmp_v = nullptr;
-      if (space[i+1] > space[i]) {
+      if (space[i + 1] > space[i]) {
         tmp_v = tmp + space[i];
       }
       G.packNeighbors(v, p, tmp_v);
-    }, 1);
-    if (tmp) { pbbs::free_array(tmp); }
+    });
+    if (tmp) {
+      gbbs::free_array(tmp, total_space);
+    }
     return vertexSubsetData<uintE>(n);
   }
 }
 
 template <class Graph, class P>
-inline vertexSubsetData<uintE> edgeMapFilter(Graph& G,
-                                             vertexSubset& vs, P& p,
+inline vertexSubsetData<uintE> edgeMapFilter(Graph& G, vertexSubset& vs, P& p,
                                              const flags& fl = 0) {
   vs.toSparse();
   if (fl & pack_edges) {
@@ -459,25 +472,19 @@ inline vertexSubsetData<uintE> edgeMapFilter(Graph& G,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  S* outV;
   if (should_output(fl)) {
-    outV = pbbslib::new_array_no_init<S>(vs.size());
-  }
-  if (should_output(fl)) {
-    parallel_for(0, m, [&] (size_t i) {
+    auto outV = sequence<S>(vs.size());
+    parallel_for(0, m, 1, [&](size_t i) {
       uintE v = vs.vtx(i);
-      size_t ct = G.get_vertex(v).countOutNgh(v, p);
+      size_t ct = G.get_vertex(v).out_neighbors().count(p);
       outV[i] = std::make_tuple(v, ct);
-    }, 1);
+    });
+    return vertexSubsetData<uintE>(n, std::move(outV));
   } else {
-    parallel_for(0, m, [&] (size_t i) {
+    parallel_for(0, m, 1, [&](size_t i) {
       uintE v = vs.vtx(i);
-      G.get_vertex(v).countOutNgh(v, p);
-    }, 1);
-  }
-  if (should_output(fl)) {
-    return vertexSubsetData<uintE>(n, m, outV);
-  } else {
+      G.get_vertex(v).out_neighbors().count(p);
+    });
     return vertexSubsetData<uintE>(n);
   }
 }

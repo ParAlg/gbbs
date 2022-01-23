@@ -1,7 +1,7 @@
 # This is from Bazel's former travis setup, to avoid blowing up the RAM usage.
 startup --host_jvm_args=-Xmx2500m
 startup --host_jvm_args=-Xms2500m
-test --ram_utilization_factor=10
+# test --ram_utilization_factor=10 # comment-out for github actions.
 
 # This is so we understand failures better
 build --verbose_failures
@@ -19,16 +19,20 @@ test --test_strategy=standalone
 
 
 # By default build in C++17 mode using the Homegrown scheduler for parallelism.
+#build --repo_env=CC=clang++-12
+build --repo_env=CC=g++
 build --cxxopt=-std=c++17
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
 build --cxxopt=-DLONG        # use 8 byte vertex identifiers
 build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compressed graphs
 build --cxxopt=-DUSEMALLOC
+build --cxxopt=-DPARLAY_USE_STD_ALLOC
 build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
 build --cxxopt=-fvisibility=hidden
 build --cxxopt=-fvisibility-inlines-hidden
+build --cxxopt=-fsized-deallocation  # https://github.com/pybind/pybind11/issues/1604 (for clang)
 build -c opt
 
 # C++ warning flags.
@@ -39,7 +43,7 @@ build --cxxopt=-Wno-unused-parameter
 build --cxxopt=-Wpointer-arith
 # Turning on -Wshadow rather than just -Wshadow=local would be nice, but the
 # codebase currently contains lots of instances of global shadowing.
-build --cxxopt=-Wshadow=local
+#build --cxxopt=-Wshadow=local
 build --cxxopt=-Wvla
 build --cxxopt=-Wno-unused-variable
 build --cxxopt=-Wno-sign-compare
@@ -47,6 +51,7 @@ build --cxxopt=-Wno-narrowing
 
 # Build without parallelism.
 build:serial --cxxopt=-UHOMEGROWN
+build:serial --cxxopt=-DPARLAY_SEQUENTIAL
 
 # Build using CilkPlus for parallelism.
 build:cilk --cxxopt=-UHOMEGROWN
@@ -71,9 +76,3 @@ build:asan --cxxopt=-g
 build:asan --cxxopt=-fno-omit-frame-pointer
 build:asan --cxxopt=-Wno-macro-redefined
 build:asan --linkopt=-fsanitize=address
-
-# Build with NVRAM support.
-build:sage --cxxopt=-DSAGE
-build:sage --cxxopt=-lnuma
-build:sage --cxxopt=-lpmem
-build:sage --define use_numa=true

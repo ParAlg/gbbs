@@ -2,11 +2,11 @@
 
 #include <unordered_set>
 
+#include "gbbs/graph.h"
+#include "gbbs/macros.h"
+#include "gbbs/unit_tests/graph_test_utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "gbbs/graph.h"
-#include "gbbs/graph_test_utils.h"
-#include "gbbs/macros.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
@@ -19,7 +19,7 @@ TEST(NondeterministicBFS, EdgelessGraph) {
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   constexpr uintE source_vertex{1};
-  const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+  const sequence<uintE> bfsResult{BFS(graph, source_vertex)};
   EXPECT_THAT(bfsResult, ElementsAre(UINT_E_MAX, source_vertex, UINT_E_MAX));
 }
 
@@ -30,42 +30,23 @@ TEST(NondeterministicBFS, BasicUsage) {
   //                      5 -- 6
   constexpr uintE kNumVertices{7};
   const std::unordered_set<UndirectedEdge> kEdges{
-    {0, 1},
-    {2, 3},
-    {3, 4},
-    {3, 5},
-    {4, 5},
-    {5, 6},
+      {0, 1}, {2, 3}, {3, 4}, {3, 5}, {4, 5}, {5, 6},
   };
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   {
     constexpr uintE source_vertex{1};
-    const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
-    EXPECT_THAT(
-        bfsResult,
-        ElementsAre(
-          source_vertex,
-          source_vertex,
-          UINT_E_MAX,
-          UINT_E_MAX,
-          UINT_E_MAX,
-          UINT_E_MAX,
-          UINT_E_MAX));
+    const sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+    EXPECT_THAT(bfsResult,
+                ElementsAre(source_vertex, source_vertex, UINT_E_MAX,
+                            UINT_E_MAX, UINT_E_MAX, UINT_E_MAX, UINT_E_MAX));
   }
   {
     constexpr uintE source_vertex{2};
-    const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
-    EXPECT_THAT(
-        bfsResult,
-        ElementsAre(
-          UINT_E_MAX,
-          UINT_E_MAX,
-          source_vertex,
-          source_vertex,
-          AnyOf(3, 5),
-          AnyOf(3, 4),
-          5));
+    const sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+    EXPECT_THAT(bfsResult,
+                ElementsAre(UINT_E_MAX, UINT_E_MAX, source_vertex,
+                            source_vertex, AnyOf(3, 5), AnyOf(3, 4), 5));
   }
 }
 

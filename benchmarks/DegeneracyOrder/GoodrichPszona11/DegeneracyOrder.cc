@@ -15,7 +15,8 @@ double DegeneracyOrder_runner(Graph& G, commandLine P) {
   assert(P.getOption("-s"));
 
   // runs the fetch-and-add based implementation if set.
-  timer t; t.start();
+  timer t;
+  t.start();
   auto order = goodrichpszona_degen::DegeneracyOrder(G, eps);
   double tt = t.stop();
 

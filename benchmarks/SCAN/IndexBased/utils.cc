@@ -22,8 +22,8 @@ std::string ClusteringToString(const Clustering& clustering) {
   str << "{";
   for (size_t i = 0; i < clustering.size(); i++) {
     str << ' ' << i << ':';
-    str << (clustering[i] == kUnclustered
-            ? "n/a" : std::to_string(clustering[i]));
+    str << (clustering[i] == kUnclustered ? "n/a"
+                                          : std::to_string(clustering[i]));
   }
   str << " }";
   return str.str();
@@ -31,15 +31,15 @@ std::string ClusteringToString(const Clustering& clustering) {
 
 size_t CompactClustering(Clustering* clustering) {
   const size_t num_vertices{clustering->size()};
-  pbbs::sequence<uintE> cluster_relabel_map(num_vertices, 0U);
-  par_for(0, num_vertices, [&](const size_t i) {
+  sequence<uintE> cluster_relabel_map(num_vertices, 0U);
+  parallel_for(0, num_vertices, [&](const size_t i) {
     const uintE cluster_id{(*clustering)[i]};
     if (cluster_id != kUnclustered && cluster_relabel_map[cluster_id] == 0) {
       cluster_relabel_map[cluster_id] = 1;
     }
   });
-  const size_t num_clusters{pbbslib::scan_add_inplace(cluster_relabel_map)};
-  par_for(0, num_vertices, [&](const size_t i) {
+  const size_t num_clusters{parlay::scan_inplace(cluster_relabel_map)};
+  parallel_for(0, num_vertices, [&](const size_t i) {
     const uintE cluster_id{(*clustering)[i]};
     if (cluster_id != kUnclustered) {
       (*clustering)[i] = cluster_relabel_map[cluster_id];

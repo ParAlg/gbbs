@@ -1,22 +1,22 @@
+licenses(["notice"])
+
 cc_library(
-  name = "DegeneracyOrder",
-  hdrs = ["DegeneracyOrder.h"],
-  deps = [
-  "//gbbs:bucket",
-  "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:integer_sort",
-  "//pbbslib:kth_smallest",
-  "//pbbslib:random",
-  ]
+    name = "DegeneracyOrder",
+    hdrs = ["DegeneracyOrder.h"],
+    deps = [
+        "//gbbs",
+        "//gbbs:bucket",
+        "//gbbs:edge_map_reduce",
+        "//gbbs/helpers:dyn_arr",
+    ],
 )
 
 cc_binary(
-  name = "DegeneracyOrder_main",
-  srcs = ["DegeneracyOrder.cc"],
-  deps = [":DegeneracyOrder"]
+    name = "DegeneracyOrder_main",
+    srcs = ["DegeneracyOrder.cc"],
+    deps = [":DegeneracyOrder"],
 )
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )

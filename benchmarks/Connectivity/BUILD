@@ -1,19 +1,21 @@
+licenses(["notice"])
+
 cc_library(
-  name = "common",
-  hdrs = [
-  "common.h",
-  "connectit.h",
-  ],
-  srcs = [
-  "common.cc",
-  "connectit.cc",
-  ],
-  deps = [
-  "//gbbs/pbbslib:atomic_counter",
-  "//pbbslib:assert",
-  ],
+    name = "common",
+    srcs = [
+        "common.cc",
+        "connectit.cc",
+    ],
+    hdrs = [
+        "common.h",
+        "connectit.h",
+    ],
+    deps = [
+        "//gbbs/helpers:assert",
+        "//gbbs/helpers:atomic_counter",
+    ],
 )
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )

@@ -34,7 +34,6 @@
 #include "MaximalMatching.h"
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/strings/string_basics.h"
 
 #include <fstream>
 #include <iostream>
@@ -54,21 +53,28 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
-    auto S = gbbs_io::readStringFromFile(in_f);
-    auto Words = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-    size_t ms = atol(Words[0]);
+    auto S = parlay::chars_from_file(in_f);
+    sequence<slice<char>> Words = parlay::map_tokens(
+        parlay::make_slice(S), [](auto x) { return parlay::make_slice(x); });
+    size_t ms = parlay::chars_to_int_t<unsigned long>(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
-    par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    parallel_for(0, ms, kDefaultGranularity, [&](size_t i) {
       matching[i] =
-          std::make_tuple(atol(Words[1 + 2 * i]), atol(Words[2 * (i + 1)]));
+          std::make_tuple(parlay::chars_to_int_t<uintE>(Words[1 + 2 * i]),
+                          parlay::chars_to_int_t<uintE>(Words[2 + 2 * i]));
     });
     verify_matching(G, matching);
     exit(0);
   }
-  timer t; t.start();
+  timer t;
+  t.start();
   auto matching = MaximalMatching(G);
   double tt = t.stop();
+  // for (size_t i=0; i<std::min((size_t)100, matching.size()); i++) {
+  //  std::cout << std::get<0>(matching[i]) << " " << std::get<1>(matching[i])
+  //  << std::endl;
+  //}
 
   std::cout << "### Running Time: " << tt << std::endl;
 
@@ -87,10 +93,7 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
     }
     out.close();
   }
-  // Maximal-matching mutates the underlying graph (unless it is copied, which
-  // we don't do to prevent memory issues), so we make sure the algorithm is run
-  // exactly once.
-  exit(0);
+  return tt;
 }
 
 }  // namespace gbbs

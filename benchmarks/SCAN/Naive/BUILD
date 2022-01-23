@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
     name = "scan",
     srcs = [
@@ -12,11 +14,8 @@ cc_library(
         "//gbbs",
         "//gbbs:graph",
         "//gbbs:macros",
-        "//gbbs:undirected_edge",
         "//gbbs:vertex_subset",
-        "//gbbs/pbbslib:sparse_table",
-        "//pbbslib:seq",
-        "//pbbslib:stlalgs",
-        "//pbbslib:utilities",
+        "//gbbs/helpers:sparse_table",
+        "//gbbs/helpers:undirected_edge",
     ],
 )

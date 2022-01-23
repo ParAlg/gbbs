@@ -39,8 +39,7 @@
 // -s -m com-orkut.ungraph.txt_SJ
 
 #include "Biconnectivity.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/strings/string_basics.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 namespace gbbs {
 
@@ -48,12 +47,14 @@ template <template <typename W> class vertex, class W>
 void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
-  auto S = pbbs::char_seq_from_file(s);
-  auto tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  auto S = parlay::chars_from_file(s);
+  sequence<slice<char>> tokens = parlay::map_tokens(
+      parlay::make_slice(S), [](auto x) { return parlay::make_slice(x); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
     labels[i] =
-        std::make_tuple(atol(tokens[2 * i]), atol(tokens[2 * i + 1]));
+        std::make_tuple(parlay::chars_to_int_t<uintE>(tokens[2 * i]),
+                        parlay::chars_to_int_t<uintE>(tokens[2 * i + 1]));
   });
 
   auto bits = sequence<uintE>(n, (uintE)0);
@@ -77,8 +78,8 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
   };
 
   size_t mask = (1 << 12) - 1;
-  auto empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
-  auto ST = pbbslib::sparse_additive_map<uintE, uintE>(n, empty);
+  auto empty = std::make_tuple(UINT_E_MAX, 0);
+  auto ST = gbbs::sparse_additive_map<uintE, uintE>(n, empty);
 
   auto map_bc_label = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     auto label = bicc_label(src, ngh);
@@ -86,7 +87,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
       bits[label] = 1;
     }
     size_t key = (static_cast<size_t>(src) << 32) + static_cast<size_t>(ngh);
-    if ((pbbslib::hash64(key) & mask) == 0) {
+    if ((parlay::hash64(key) & mask) == 0) {
       ST.insert(std::make_tuple(label, 1));
     }
     if (component_id != UINT_E_MAX) {
@@ -95,8 +96,9 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
       }
     }
   };
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { GA.get_vertex(i).mapOutNgh(i, map_bc_label); });
+  parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
+    GA.get_vertex(i).out_neighbors().map(map_bc_label);
+  });
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();
@@ -104,15 +106,15 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                        const std::tuple<uintE, uintE>& r) {
       return std::get<1>(l) > std::get<1>(r);
     };
-    pbbslib::sample_sort_inplace(ET.slice(), cmp_snd, true);
+    parlay::sample_sort_inplace(make_slice(ET), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }
   } else {
     // reduce flags
     auto flags_f = [&](size_t i) { return (size_t)flags[i]; };
-    auto flags_imap = pbbslib::make_sequence<size_t>(n, flags_f);
-    std::cout << "Largest component size = " << pbbslib::reduce_add(flags_imap)
+    auto flags_imap = parlay::delayed_seq<size_t>(n, flags_f);
+    std::cout << "Largest component size = " << parlay::reduce(flags_imap)
               << "\n";
   }
 
@@ -125,7 +127,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
   // Note that this is the number of biconnected components excluding isolated
   // vertices (the definition maps edges -> components, so isolated vertices
   // don't contribute to any meaningful components).
-  uintE total_biccs = pbbslib::scan_add_inplace(bits);
+  uintE total_biccs = parlay::scan_inplace(bits);
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 
@@ -142,17 +144,17 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   auto in_f = P.getOptionValue("-if");
   auto out_f = P.getOptionValue("-of");
   assert(P.getOptionValue("-s"));
+  double tt = 0;
   if (in_f) {
     BiconnectivityStats(GA, in_f);
   } else {
-    timer t; t.start();
+    timer t;
+    t.start();
     Biconnectivity(GA, out_f);
-    double tt = t.stop();
+    tt = t.stop();
     std::cout << "### Running Time: " << tt << std::endl;
   }
-  // Note that Biconnectivity mutates the graph, so we only run the algorithm
-  // once.
-  exit(0);
+  return tt;
 }
 
 }  // namespace gbbs

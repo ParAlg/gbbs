@@ -25,8 +25,8 @@
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
 
 namespace gbbs {
 namespace spanner {
@@ -37,34 +37,37 @@ using edge = std::pair<uintE, uintE>;
 struct cluster_and_parent {
   uintE cluster;
   uintE parent;
-  cluster_and_parent(uintE _cluster, uintE _parent) : cluster(_cluster), parent(_parent) { }
+  cluster_and_parent(uintE _cluster, uintE _parent)
+      : cluster(_cluster), parent(_parent) {}
 };
 
 template <class Graph, class C>
-pbbs::sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters) {
+sequence<edge> fetch_intercluster_te(Graph& G, C& clusters,
+                                     size_t num_clusters) {
   using W = typename Graph::weight_type;
-  debug(cout << "Running fetch edges te" << std::endl;);
+  debug(std::cout << "Running fetch edges te" << std::endl;);
   using K = edge;
   using V = edge;
   using KV = std::tuple<K, V>;
 
   size_t n = G.n;
 
-  debug(cout << "num_clusters = " << num_clusters << std::endl;);
+  debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
   timer count_t;
   count_t.start();
-  auto deg_map = pbbs::sequence<uintE>(n + 1);
+  auto deg_map = sequence<uintE>(n + 1);
   auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
     uintE c_src = clusters[src];
     uintE c_ngh = clusters[ngh];
     return c_src < c_ngh;
   };
-  par_for(0, n, 1, [&] (size_t i)
-                  { deg_map[i] = G.get_vertex(i).countOutNgh(i, pred); });
+  parallel_for(0, n, 1, [&](size_t i) {
+    deg_map[i] = G.get_vertex(i).out_neighbors().count(pred);
+  });
   deg_map[n] = 0;
-  pbbslib::scan_add_inplace(deg_map);
+  parlay::scan_inplace(deg_map);
   count_t.stop();
-  debug(count_t.reportTotal("count time"););
+  debug(count_t.next("count time"););
 
   timer ins_t;
   ins_t.start();
@@ -74,43 +77,42 @@ pbbs::sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clu
     size_t l = std::min(t.first, t.second);
     size_t r = std::max(t.first, t.second);
     size_t key = (l << 32) + r;
-    return pbbslib::hash64_2(key);
+    return parlay::hash64_2(key);
   };
-  auto edge_table = pbbslib::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
-  debug(cout << "sizeof table = " << edge_table.m << std::endl;);
+  auto edge_table = gbbs::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+  debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
   deg_map.clear();
 
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
     uintE c_src = clusters[src];
     uintE c_ngh = clusters[ngh];
     if (c_src < c_ngh) {
-      edge_table.insert(
-          std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)));
+      edge_table.insert(std::make_tuple(std::make_pair(c_src, c_ngh),
+                                        std::make_pair(src, ngh)));
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).mapOutNgh(i, map_f); });
+  parallel_for(0, n, 1,
+               [&](size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
   auto edge_pairs = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
-  debug(ins_t.reportTotal("ins time"););
-  debug(cout << "edges.size = " << edge_pairs.size() << endl);
+  debug(ins_t.next("ins time"););
+  debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
-  auto edges = pbbs::sequence<edge>(edge_pairs.size(), [&] (size_t i) {
-    return std::get<1>(edge_pairs[i]);
-  });
+  auto edges = sequence<edge>::from_function(
+      edge_pairs.size(), [&](size_t i) { return std::get<1>(edge_pairs[i]); });
   return edges;
 }
 
 template <class Graph, class C>
-pbbs::sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
+sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
   using K = edge;
   using V = edge;
   using KV = std::tuple<K, V>;
   using W = typename Graph::weight_type;
 
   size_t n = G.n;
-  debug(cout << "num_clusters = " << num_clusters << std::endl;);
-  size_t estimated_edges = num_clusters*5;
+  debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
+  size_t estimated_edges = num_clusters * 5;
 
   timer ins_t;
   ins_t.start();
@@ -120,73 +122,76 @@ pbbs::sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_cluste
     size_t l = std::min(t.first, t.second);
     size_t r = std::max(t.first, t.second);
     size_t key = (l << 32) + r;
-    return pbbslib::hash64_2(key);
+    return parlay::hash64_2(key);
   };
 
-  auto edge_table = pbbslib::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
-  debug(cout << "sizeof table = " << edge_table.m << std::endl;);
+  auto edge_table =
+      gbbs::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
+  debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
 
   bool abort = false;
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
     uintE c_src = clusters[src];
     uintE c_ngh = clusters[ngh];
     if (c_src < c_ngh) {
-      edge_table.insert_check(
-          std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)), &abort);
+      edge_table.insert_check(std::make_tuple(std::make_pair(c_src, c_ngh),
+                                              std::make_pair(src, ngh)),
+                              &abort);
     }
   };
-  parallel_for(0, n, [&] (size_t i) { G.get_vertex(i).mapOutNgh(i, map_f); }, 1);
+  parallel_for(
+      0, n, [&](size_t i) { G.get_vertex(i).out_neighbors().map(map_f); }, 1);
   if (abort) {
-    debug(cout << "calling fetch_intercluster_te" << std::endl;);
+    debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
     return fetch_intercluster_te(G, clusters, num_clusters);
   }
   auto edge_pairs = edge_table.entries();
-  edge_table.del();
   ins_t.stop();
-  debug(ins_t.reportTotal("ins time"););
-  debug(cout << "edges.size = " << edge_pairs.size() << endl);
+  debug(ins_t.next("ins time"););
+  debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
-  auto edges = pbbs::sequence<edge>(edge_pairs.size(), [&] (size_t i) {
-    return std::get<1>(edge_pairs[i]);
-  });
+  auto edges = sequence<edge>::from_function(
+      edge_pairs.size(), [&](size_t i) { return std::get<1>(edge_pairs[i]); });
   return edges;
 }
 
 template <class Graph>
-pbbs::sequence<edge> tree_and_intercluster_edges(Graph& G,
-    pbbs::sequence<cluster_and_parent>& cluster_and_parents) {
+sequence<edge> tree_and_intercluster_edges(
+    Graph& G, sequence<cluster_and_parent>& cluster_and_parents) {
   size_t n = G.n;
-  auto edge_list = pbbslib::dyn_arr<edge>(2*n);
+  auto edge_list = gbbs::dyn_arr<edge>(2 * n);
 
   // Compute and add in tree edges.
-  auto tree_edges_with_loops = pbbs::delayed_seq<edge>(n, [&] (size_t i) {
-      return std::make_pair(i, cluster_and_parents[i].parent); });
-  auto tree_edges = pbbs::filter(tree_edges_with_loops, [&] (const edge& e) {
+  auto tree_edges_with_loops = parlay::delayed_seq<edge>(n, [&](size_t i) {
+    return std::make_pair(i, cluster_and_parents[i].parent);
+  });
+  auto tree_edges = parlay::filter(tree_edges_with_loops, [&](const edge& e) {
     return e.first != e.second;
   });
   edge_list.copyIn(tree_edges, tree_edges.size());
 
   // Compute inter-cluster using hashing.
-  auto clusters = pbbs::delayed_seq<uintE>(n, [&] (size_t i) {
-    return cluster_and_parents[i].cluster;
-  });
-  pbbs::sequence<bool> flags(n, false);
-  parallel_for(0, n, [&] (size_t i) {
+  auto clusters = parlay::delayed_seq<uintE>(
+      n, [&](size_t i) { return cluster_and_parents[i].cluster; });
+  sequence<bool> flags(n, false);
+  parallel_for(0, n, [&](size_t i) {
     uintE cluster = clusters[i];
     if (!flags[cluster]) {
       flags[cluster] = true;
     }
   });
-  auto cluster_size_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
-    return static_cast<size_t>(flags[i]);
-  });
-  size_t num_clusters = pbbs::reduce(cluster_size_seq, pbbs::addm<size_t>());
+  auto cluster_size_seq = parlay::delayed_seq<size_t>(
+      n, [&](size_t i) { return static_cast<size_t>(flags[i]); });
+  size_t num_clusters =
+      parlay::reduce(cluster_size_seq, parlay::addm<size_t>());
 
   auto intercluster = fetch_intercluster(G, clusters, num_clusters);
-  debug(cout << "num_intercluster edges = " << intercluster.size() << std::endl;);
+  debug(std::cout << "num_intercluster edges = " << intercluster.size()
+                  << std::endl;);
   edge_list.copyIn(intercluster, intercluster.size());
   size_t edge_list_size = edge_list.size;
-  return pbbs::sequence<edge>(edge_list.A, edge_list_size);
+  return sequence<edge>::from_function(
+      edge_list_size, [&](size_t i) { return edge_list.A[i]; });
 }
 
 template <class W>
@@ -202,7 +207,8 @@ struct LDD_Parents_F {
   }
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (pbbslib::atomic_compare_and_swap(&clusters[d].cluster, UINT_E_MAX, clusters[s].cluster)) {
+    if (gbbs::atomic_compare_and_swap(&clusters[d].cluster, UINT_E_MAX,
+                                      clusters[s].cluster)) {
       clusters[d].parent = s;
       return true;
     }
@@ -213,16 +219,18 @@ struct LDD_Parents_F {
 };
 
 template <class Graph>
-inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool permute = true) {
+inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta,
+                                                bool permute = true) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
 
-  pbbs::sequence<uintE> vertex_perm;
+  sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbslib::random_permutation<uintE>(n);
+    vertex_perm = parlay::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
-  auto clusters = pbbs::sequence<cluster_and_parent>(n, cluster_and_parent(UINT_E_MAX, UINT_E_MAX));
+  auto clusters = sequence<cluster_and_parent>(
+      n, cluster_and_parent(UINT_E_MAX, UINT_E_MAX));
 
   size_t round = 0, num_visited = 0;
   vertexSubset frontier(n);  // Initially empty
@@ -239,15 +247,14 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, boo
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = pbbslib::make_sequence<uintE>(num_to_add, candidates_f);
+      auto candidates = parlay::delayed_seq<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return clusters[v].cluster == UINT_E_MAX; };
-      auto new_centers = pbbslib::filter(candidates, pred);
+      auto new_centers = parlay::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold,
-        [&] (size_t i) {
-            uintE v = new_centers[i];
-            clusters[new_centers[i]] = cluster_and_parent(v, v);
-        });
+      parallel_for(0, new_centers.size(), kDefaultGranularity, [&](size_t i) {
+        uintE v = new_centers[i];
+        clusters[new_centers[i]] = cluster_and_parent(v, v);
+      });
       num_added += num_to_add;
     }
 
@@ -257,8 +264,7 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, boo
     auto ldd_f = LDD_Parents_F<W>(clusters.begin());
     vertexSubset next_frontier =
         edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
-    frontier.del();
-    frontier = next_frontier;
+    frontier = std::move(next_frontier);
 
     round++;
   }
@@ -266,27 +272,27 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, boo
 }
 
 template <class Graph>
-inline pbbs::sequence<edge> Spanner_impl(Graph& G, double beta) {
+inline sequence<edge> Spanner_impl(Graph& G, double beta) {
   bool permute = true;
   timer ldd_t;
   ldd_t.start();
   auto clusters_and_parents = LDD_parents(G, beta, permute);
   ldd_t.stop();
-  debug(ldd_t.reportTotal("ldd time"););
+  debug(ldd_t.next("ldd time"););
 
   timer build_el_t;
   build_el_t.start();
   auto spanner_edges = tree_and_intercluster_edges(G, clusters_and_parents);
   build_el_t.stop();
-  debug(build_el_t.reportTotal("build spanner edges time"););
+  debug(build_el_t.next("build spanner edges time"););
 
   // return spanner as an edge-list.
-  debug(cout << "Spanner size = " << spanner_edges.size() << std::endl;);
+  debug(std::cout << "Spanner size = " << spanner_edges.size() << std::endl;);
   return spanner_edges;
 }
 
 template <class Graph>
-inline pbbs::sequence<edge> Spanner(Graph& G, double beta) {
+inline sequence<edge> Spanner(Graph& G, double beta) {
   return Spanner_impl(G, beta);
 }
 

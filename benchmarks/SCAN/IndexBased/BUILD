@@ -1,3 +1,5 @@
+licenses(["notice"])
+
 cc_library(
     name = "scan",
     srcs = [
@@ -16,12 +18,7 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
-        "//gbbs/pbbslib:sparse_table",
-        "//pbbslib:binary_search",
-        "//pbbslib:get_time",
-        "//pbbslib:sample_sort",
-        "//pbbslib:seq",
-        "//pbbslib:utilities",
+        "//gbbs/helpers:sparse_table",
     ],
 )
 
@@ -39,14 +36,9 @@ cc_library(
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
         "//gbbs:bridge",
         "//gbbs:graph_mutation",
+        "//gbbs:macros",
         "//gbbs:vertex",
-        "//pbbslib:assert",
-        "//pbbslib:binary_search",
-        "//pbbslib:monoid",
-        "//pbbslib:random",
-        "//pbbslib:seq",
-        "//pbbslib:sequence_ops",
-        "//pbbslib:utilities",
+        "//gbbs/helpers:assert",
     ],
 )
 
@@ -63,9 +55,6 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
-        "//pbbslib:integer_sort",
-        "//pbbslib:monoid",
-        "//pbbslib:seq",
     ],
 )
 

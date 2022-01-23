@@ -22,14 +22,15 @@
 // SOFTWARE.
 
 #include "SpanningForest.h"
-#include "gbbs/gbbs.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
+#include "gbbs/gbbs.h"
 
 namespace gbbs {
 template <class Graph>
 double SF_runner(Graph& G, commandLine P) {
-  std::cout << "### Application: SpanningForest (LabelPropagation-based)" << std::endl;
+  std::cout << "### Application: SpanningForest (LabelPropagation-based)"
+            << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
@@ -38,7 +39,7 @@ double SF_runner(Graph& G, commandLine P) {
 
   timer t;
   t.start();
-  pbbs::sequence<edge> edges;
+  sequence<edge> edges;
   if (P.getOptionValue("-permute")) {
     edges = labelprop_sf::SpanningForest</*use_permutation=*/true>(G);
   } else {

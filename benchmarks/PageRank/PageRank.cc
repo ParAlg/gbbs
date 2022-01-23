@@ -42,19 +42,21 @@ double PageRank_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001) << std::endl;
+  std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001)
+            << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   double eps = P.getOptionDoubleValue("-eps", 0.000001);
   double local_eps = P.getOptionDoubleValue("-leps", 0.01);
   size_t iters = P.getOptionLongValue("-iters", 100);
   if (P.getOptionValue("-em")) {
-    PageRank_edgeMap(G, eps, iters);
+    auto ret = PageRank_edgeMap(G, eps, iters);
   } else if (P.getOptionValue("-delta")) {
-    delta::PageRankDelta(G, eps, local_eps, iters);
+    auto ret = delta::PageRankDelta(G, eps, local_eps, iters);
   } else {
-    PageRank(G, eps, iters);
+    auto ret = PageRank(G, eps, iters);
   }
   double tt = t.stop();
 

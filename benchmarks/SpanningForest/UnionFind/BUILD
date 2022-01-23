@@ -1,35 +1,24 @@
+licenses(["notice"])
+
 cc_library(
-  name = "union_find_rules",
-  hdrs = ["union_find_rules.h"],
-  deps = [
-  ":jayanti",
-  "//gbbs:bridge",
-  "//pbbslib:seq",
-  "//benchmarks/Connectivity:common",
-  ]
+    name = "union_find_rules",
+    hdrs = ["union_find_rules.h"],
+    deps = [
+        ":jayanti",
+        "//benchmarks/Connectivity:common",
+        "//gbbs:bridge",
+    ],
 )
 
 cc_library(
-  name = "jayanti",
-  hdrs = ["jayanti.h"],
-  deps = [
-  "//gbbs:gbbs",
-  "//pbbslib:seq",
-  "//benchmarks/Connectivity:common",
-  ]
-)
-
-cc_library(
-  name = "Connectivity",
-  hdrs = ["Connectivity.h"],
-  deps = [
-  ":union_find_rules",
-  "//gbbs:bridge",
-  "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table"
-  ]
+    name = "jayanti",
+    hdrs = ["jayanti.h"],
+    deps = [
+        "//benchmarks/SpanningForest:common",
+        "//gbbs",
+    ],
 )
 
 package(
-  default_visibility = ["//visibility:public"],
+    default_visibility = ["//visibility:public"],
 )

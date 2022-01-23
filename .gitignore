@@ -1,15 +1,23 @@
 *~
 *.swo
 *.swp
+*.txt
 
 *.a
 *.o
 *.dSYM
 *.DS_Store
+*.gdb_history
 
 experimental
 cplib.sh
+gbbs.pyc
 
 /bazel-*
 .pytype
 .ycm_extra_conf.py
+__pycache__
+
+# Leftover files from switching from website branch to code branch
+.docusaurus/
+node_modules/

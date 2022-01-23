@@ -7,12 +7,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Clique files
 #include "benchmarks/CliqueCounting/intersect.h"
@@ -31,7 +28,7 @@ namespace onetable {
   template <class Y, class H, class C>
   class OnelevelHash {
     public:
-      using T = pbbslib::sparse_table<Y, C, H>;
+      using T = gbbs::sparse_table<Y, C, H>;
       T table;
       int rr;
       int shift_factor;
@@ -52,7 +49,7 @@ namespace onetable {
         //std::cout << "### Pre count: " << tt_pre << std::endl;
 
         //std::cout << "Start table" << std::endl;
-        table = pbbslib::sparse_table<Y, C, H>(
+        table = gbbs::sparse_table<Y, C, H>(
           pre_count,
           std::make_tuple(std::numeric_limits<Y>::max(), C{0}), H{});
         
@@ -62,7 +59,7 @@ namespace onetable {
 
       void insert(sequence<uintE>& base2, int r, int k) {
         auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
-          pbbs::fetch_and_add(ct, (C)1);
+          gbbs::fetch_and_add(ct, (C)1);
         };
 
         // Sort base

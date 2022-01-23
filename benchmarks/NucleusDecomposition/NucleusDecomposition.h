@@ -30,12 +30,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -239,7 +236,7 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (table_type == 1) num_levels = 1;
   else if (table_type == 2 || table_type == 5) num_levels = 2;
 
-  int num_bits_in_n = 1 + pbbslib::log2_up(DG.n + 1); //32
+  int num_bits_in_n = 1 + parlay::log2_up(DG.n + 1); //32
   int num_bytes_needed = round_up<int>(((std::max(static_cast<int>(1), 
     static_cast<int>(r - (num_levels - 1))) * num_bits_in_n) + 1), 8);
   int shift_factor = num_bits_in_n; //32

@@ -6,7 +6,7 @@ This implementation of SCAN is a parallel version of the index-based SCAN
 algorithm introduced in "Efficient structural graph clustering: an index-based
 approach" by Wen et al.
 
-To invoke the implementation, see the `Index` class in `scan.h.`
+To invoke the implementation, see the `Index` class in `scan.h`.
 
 ## Additional notes
 

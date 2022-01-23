@@ -22,7 +22,8 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./SSBetweennessCentrality -src 10012 -s -m -rounds 3 twitter_SJ
+// numactl -i all ./SSBetweennessCentrality -src 10012 -s -m -rounds 3
+// twitter_SJ
 // flags:
 //   required:
 //     -src: the source to compute centrality contributions from
@@ -47,21 +48,22 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer t; t.start();
+  timer t;
+  t.start();
   if (P.getOptionValue("-fa")) {
     auto scores = bc::SSBetweennessCentrality_EM(G, src);
-    for (size_t i=0; i<100; i++) {
+    for (size_t i = 0; i < 100; i++) {
       std::cout << scores[i] << std::endl;
     }
   } else if (P.getOptionValue("-ligra")) {
     auto scores = bc::SSBetweennessCentrality(G, src);
-    for (size_t i=0; i<100; i++) {
+    for (size_t i = 0; i < 100; i++) {
       std::cout << scores[i] << std::endl;
     }
   } else {
-    /* no contention --- reduceNgh technique */
+    /* Default: no contention --- reduceNgh technique */
     auto scores = bc_bfs::SSBetweennessCentrality_BFS(G, src);
-    for (size_t i=0; i<100; i++) {
+    for (size_t i = 0; i < 100; i++) {
       std::cout << scores[i] << std::endl;
     }
   }

@@ -21,8 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
+#include "benchmarks/SpanningForest/Framework/framework.h"
 #include "benchmarks/SpanningForest/common.h"
 
 #include "bench_utils.h"
@@ -31,32 +31,32 @@
 namespace gbbs {
 namespace connectit {
 template <class Graph>
-void jayanti_find_twotrysplit(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
-    run_multiple_jayanti_alg<Graph, sample_bfs, find_twotrysplit>(G, rounds, correct,  P);
+void jayanti_find_twotrysplit(Graph& G, int rounds, commandLine& P,
+                              sequence<edge>& correct) {
+  run_multiple_jayanti_alg<Graph, sample_bfs, find_twotrysplit>(G, rounds,
+                                                                correct, P);
 }
 
 template <class Graph>
-void jayanti_find_simple(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
-    run_multiple_jayanti_alg<Graph, sample_bfs, find_simple>(G, rounds, correct,  P);
+void jayanti_find_simple(Graph& G, int rounds, commandLine& P,
+                         sequence<edge>& correct) {
+  run_multiple_jayanti_alg<Graph, sample_bfs, find_simple>(G, rounds, correct,
+                                                           P);
 }
-
 }
-
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<edge>();
+  auto correct = sequence<edge>();
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }
   run_tests(G, rounds, P, correct, connectit::jayanti_find_simple<Graph>,
-    {
-      connectit::jayanti_find_simple<Graph>,
-      connectit::jayanti_find_twotrysplit<Graph>
-    });
+            {connectit::jayanti_find_simple<Graph>,
+             connectit::jayanti_find_twotrysplit<Graph>});
   return 1.0;
 }
 }  // namespace gbbs

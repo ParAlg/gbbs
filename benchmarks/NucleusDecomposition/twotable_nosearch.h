@@ -7,12 +7,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Clique files
 #include "benchmarks/CliqueCounting/intersect.h"
@@ -30,7 +27,7 @@ namespace twotable_nosearch {
 
   template <class Y, class H, class C>
   struct EndTable {
-    pbbslib::sparse_table<Y, C, H> table;
+    gbbs::sparse_table<Y, C, H> table;
     uintE vtx;
     //MidTable* up_table;
   };
@@ -38,7 +35,7 @@ namespace twotable_nosearch {
   template <class Y, class H, class C>
   struct MidTable {
     using EndTableY = EndTable<Y, H, C>;
-    pbbslib::sparse_table<uintE, EndTableY*, std::hash<uintE>> table;
+    gbbs::sparse_table<uintE, EndTableY*, std::hash<uintE>> table;
     sequence<EndTableY*> arr;
   };
 
@@ -70,7 +67,7 @@ namespace twotable_nosearch {
   template <class Y, class H, class C>
   class TwolevelHash {
     public:
-      using T = pbbslib::sparse_table<Y, C, H>;
+      using T = gbbs::sparse_table<Y, C, H>;
       using X = std::tuple<Y, C>;
       using EndTableY = EndTable<Y, H, C>;
       using MidTableY = MidTable<Y, H, C>;
@@ -91,30 +88,30 @@ namespace twotable_nosearch {
         //top_table.up_table = nullptr;
         // How many vert in top level?
         // For each vert in top level, how many pairs of vert finish it?
-        auto tmp_table = pbbslib::sparse_additive_map<uintE, C>(
+        auto tmp_table = gbbs::sparse_additive_map<uintE, C>(
           DG.n, std::make_tuple(UINT_E_MAX, C{0}));
         auto base_f = [&](sequence<uintE>& base){
-          auto min_vert = relabel ? base[0] : pbbslib::reduce_min(base);
+          auto min_vert = relabel ? base[0] : parlay::reduce_min(base);
           auto tmp = std::make_tuple<uintE, C>(static_cast<uintE>(min_vert), C{1});
           tmp_table.insert(tmp);
         };
         if (r == 2) {
           parallel_for(0, DG.n, [&](std::size_t i){
-            if (DG.get_vertex(i).getOutDegree() != 0) {
+            if (DG.get_vertex(i).out_degree() != 0) {
               auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
                 auto base = sequence<uintE>(r);
                 base[0] = i;
                 base[1] = ngh;
                 base_f(base);
               };
-              DG.get_vertex(i).mapOutNgh(i, map_f, false);
+              DG.get_vertex(i).out_neighbors().map(map_f, false);
             }
           });
         } else {
           auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
           auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
           parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-            if (DG.get_vertex(i).getOutDegree() != 0) {
+            if (DG.get_vertex(i).out_degree() != 0) {
               induced->setup(DG, r-1, i);
               auto base = sequence<uintE>(r);
               base[0] = i;
@@ -124,13 +121,13 @@ namespace twotable_nosearch {
         }
         auto top_table_sizes2 = tmp_table.entries();
         // sort by key
-        pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, C>& u, const std::tuple<uintE, long>&  v) {
+        parlay::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, C>& u, const std::tuple<uintE, long>&  v) {
           return std::get<0>(u) < std::get<0>(v);
         });
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
-          auto m = 1 + ((size_t)1 << pbbslib::log2_up((size_t)(1.1 * std::get<1>(top_table_sizes2[i])) + 1));
+          auto m = 1 + ((size_t)1 << parlay::log2_up((size_t)(1.1 * std::get<1>(top_table_sizes2[i])) + 1));
           actual_sizes[i] = m;
         });
         actual_sizes[top_table_sizes2.size()] = 0;
@@ -140,7 +137,7 @@ namespace twotable_nosearch {
         //}, std::make_tuple(UINT_E_MAX, 0));
         long total_top_table_sizes2 = scan_inplace(actual_sizes.slice(), pbbs::addm<long>());
         // Allocate space for the second level tables
-        space = pbbslib::new_array_no_init<X>(total_top_table_sizes2);
+        space = gbbs::new_array_no_init<X>(total_top_table_sizes2);
         tmp_table.del();
   
         //*** for arr
@@ -165,7 +162,7 @@ namespace twotable_nosearch {
           max_val |= one << (max_bit - 1);
 
           end_table->vtx = vtx;
-          end_table->table = pbbslib::sparse_table<Y, C, H>(
+          end_table->table = gbbs::sparse_table<Y, C, H>(
             size - 1, 
             std::make_tuple<Y, C>(static_cast<Y>(max_val), static_cast<C>(0)),
             H{},
@@ -278,7 +275,7 @@ namespace twotable_nosearch {
 
       size_t get_top_index(std::size_t index) {
         // This gives the first i such that top_table_sizes[i] >= index
-        auto idx = pbbslib::binary_search(top_table_sizes, C{index}, std::less<C>());
+        auto idx = parlay::binary_search(top_table_sizes, C{index}, std::less<C>());
         if (idx >= top_table_sizes.size()) return top_table_sizes.size() - 1;
         if (top_table_sizes[idx] == index) {
           while(idx < top_table_sizes.size() && top_table_sizes[idx] == index) {

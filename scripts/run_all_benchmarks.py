@@ -74,6 +74,7 @@ UNWEIGHTED_GRAPH_BENCHMARKS = [
     "//benchmarks/Connectivity/Incremental/mains:unite_rem_lock_starting",
     "//benchmarks/Connectivity/Incremental/mains:unite_starting",
     "//benchmarks/Connectivity/LabelPropagation:Connectivity_main",
+    "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity_main",
     "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity_main",
     "//benchmarks/CycleCounting/Kowalik5Cycle:FiveCycle_main",
     "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder_main",
@@ -102,6 +103,7 @@ WEIGHTED_GRAPH_BENCHMARKS = [
     "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord_main",
     "//benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main",
     "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest_main",
+    "//benchmarks/MinimumSpanningForest/Kruskal:MinimumSpanningForest_main",
     "//benchmarks/MinimumSpanningForest/PBBSMST:MinimumSpanningForest_main",
     "//benchmarks/PositiveWeightSSSP/DeltaStepping:DeltaStepping_main",
     "//benchmarks/SSWidestPath/JulienneDBS17:SSWidestPath_main",
@@ -110,9 +112,10 @@ WEIGHTED_GRAPH_BENCHMARKS = [
 # The script will not invoke these binaries. Shell-style globbing is allowed in
 # this list.
 IGNORED_BINARIES = [
-    # These files take input in a format that's different than that of other
-    # benchmarks.
+    # These incremental connectivity binaries take input in a format that's
+    # different than that of other benchmarks.
     "//benchmarks/Connectivity/Incremental/mains:*_no_starting",
+    "//benchmarks/SCAN/IndexBased/experiments:*",
 ]
 
 
