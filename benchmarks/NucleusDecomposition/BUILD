@@ -12,12 +12,9 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//gbbs/pbbslib:sparse_table",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
+  "//gbbs/helpers:sparse_table",
   ]
 )
 
@@ -34,11 +31,8 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
   ":commontable",
   ]
 )
@@ -56,11 +50,8 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
   ":commontable",
   ]
 )
@@ -78,11 +69,8 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
   ":commontable",
   ]
 )
@@ -100,11 +88,8 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
   ":commontable",
   ]
 )
@@ -122,11 +107,8 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
   ":commontable",
   ]
 )
@@ -144,11 +126,8 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_additive_map",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore",

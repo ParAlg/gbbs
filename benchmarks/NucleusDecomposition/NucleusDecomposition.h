@@ -294,7 +294,7 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
    
 
   //table.del();
-  DG.del();
+  //DG.del();
 
   //return count;
 }

@@ -117,7 +117,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
         auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
-          pbbs::fetch_and_add(ct, (C)1);
+          gbbs::fetch_and_add(ct, (C)1);
         };
         unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 

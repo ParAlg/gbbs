@@ -131,7 +131,7 @@ namespace multitable_nosearch {
     long set_table_sizes() {
       if (lvl != max_lvl) {
         if (lvl + 1 == max_lvl) {
-          table_sizes = sequence<C>(mtable.m, [](std::size_t i){ return 0; });
+          table_sizes = sequence<C>::from_function(mtable.m, [](std::size_t i){ return 0; });
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
@@ -139,14 +139,14 @@ namespace multitable_nosearch {
               table_sizes[i] = tbl->total_size;
             }
           });
-          total_size = scan_inplace(table_sizes.slice(), pbbs::addm<C>());
+          total_size = parlay::scan_inplace(make_slice(table_sizes));
           return total_size;
         }
-        table_sizes = sequence<C>(mtable.m, [&](std::size_t i) -> C{
+        table_sizes = sequence<C>::from_function(mtable.m, [&](std::size_t i) -> C{
           if (is_uint_e_max(std::get<0>(mtable.table[i]))) return C{0};
           return std::get<1>(mtable.table[i])->total_size;
         });
-        total_size = scan_inplace(table_sizes.slice(), pbbs::addm<C>());
+        total_size = parlay::scan_inplace(make_slice(table_sizes));
         return total_size;
       }
       //else if (set_table_size_flag == false) {
@@ -200,7 +200,7 @@ namespace multitable_nosearch {
       if (lvl == max_lvl) {
         assert(end_table.m > 0);
         auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
-          pbbs::fetch_and_add(ct, (C)1);
+          gbbs::fetch_and_add(ct, (C)1);
         };
         Y key = 0;
         unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
@@ -515,7 +515,7 @@ namespace multitable_nosearch {
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
         auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
-          pbbs::fetch_and_add(ct, (C)1);
+          gbbs::fetch_and_add(ct, (C)1);
         };
         unsigned __int128 mask = (1ULL << (nd_global_shift_factor)) - 1;
 

@@ -80,7 +80,7 @@ namespace twotable {
                 base[1] = ngh;
                 base_f(base);
               };
-              DG.get_vertex(i).mapOutNgh(i, map_f, false);
+              DG.get_vertex(i).out_neighbors().map(map_f, false);
             }
           });
         } else {
@@ -98,7 +98,7 @@ namespace twotable {
 
         auto top_table_sizes2 = tmp_table.entries();
         // sort by key
-        parlay::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, C>& u, const std::tuple<uintE, C>&  v) {
+        parlay::sample_sort_inplace (make_slice(top_table_sizes2), [&](const std::tuple<uintE, C>& u, const std::tuple<uintE, C>&  v) {
           return std::get<0>(u) < std::get<0>(v);
         });
 
@@ -113,13 +113,13 @@ namespace twotable {
         //auto add_tuple_monoid = pbbs::make_monoid([](std::tuple<uintE, long> a, std::tuple<uintE, long> b){
         //  return std::make_tuple(std::get<0>(b), std::get<1>(a) + std::get<1>(b));
         //}, std::make_tuple(UINT_E_MAX, 0));
-        long total_top_table_sizes2 = scan_inplace(actual_sizes.slice(), pbbs::addm<long>());
+        long total_top_table_sizes2 = parlay::scan_inplace(make_slice(actual_sizes));
         // Allocate space for the second level tables
         if (contiguous_space) space = gbbs::new_array_no_init<X>(total_top_table_sizes2);
         tmp_table.del();
   
         //*** for arr
-        top_table.arr = sequence<EndTableY*>(DG.n, [](std::size_t i){return nullptr;});
+        top_table.arr = sequence<EndTableY*>::from_function(DG.n, [](std::size_t i){return nullptr;});
         top_table_sizes = sequence<C>(DG.n + 1, C{0});
         /*top_table.table = pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>>(
           top_table_sizes2.size(),
@@ -150,7 +150,7 @@ namespace twotable {
           top_table.arr[vtx] = end_table;
           top_table_sizes[vtx] = end_table->table.m;
         });
-        total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
+        total = parlay::scan_inplace(make_slice(top_table_sizes));
         /*for (std::size_t i = 1; i < top_table_sizes.size(); i++) {
           assert(top_table_sizes[i - 1] <= top_table_sizes[i]);
           EndTable* end_table = std::get<1>(top_table.table.table[i - 1]);
@@ -170,7 +170,7 @@ namespace twotable {
 
       void insert_twothree(uintE v1, uintE v2, uintE v3, int r, int k) {
         auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
-          pbbs::fetch_and_add(ct, (C)1);
+          gbbs::fetch_and_add(ct, (C)1);
         };
         EndTableY* end_table12 = top_table.arr[std::min(v1, v2)];
         (end_table12->table).insert_f(std::make_tuple(Y{std::max(v1, v2)}, (C) 1), add_f);
@@ -184,7 +184,7 @@ namespace twotable {
   
       void insert(sequence<uintE>& base2, int r, int k) {
         auto add_f = [&] (C* ct, const std::tuple<Y, C>& tup) {
-          pbbs::fetch_and_add(ct, (C)1);
+          gbbs::fetch_and_add(ct, (C)1);
         };
         // Sort base
         uintE base[10];

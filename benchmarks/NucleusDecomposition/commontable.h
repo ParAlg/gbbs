@@ -7,12 +7,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Clique files
 #include "benchmarks/CliqueCounting/intersect.h"
@@ -31,19 +28,19 @@ namespace gbbs {
       size_t l = t >> 64;
       unsigned __int128 mask = l << 64;
       size_t r = t & (~mask);
-      return pbbs::hash_combine(pbbslib::hash64_2(l), pbbslib::hash64_2(r));
+      return gbbs::hash_combine(parlay::hash64_2(l), parlay::hash64_2(r));
     }
   };
 
   struct nhash64 {
     inline size_t operator () (unsigned long long t) const {
-      return pbbslib::hash64_2(t);
+      return parlay::hash64_2(t);
     }
   };
 
   struct nhash32 {
     inline size_t operator () (unsigned int t) const {
-      return pbbslib::hash32(t);
+      return parlay::hash32(t);
     }
   };
 
@@ -85,8 +82,8 @@ namespace gbbs {
   size_t get_max_deg3(Graph& DG) {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
-      size_t deg = DG.get_vertex(i).getOutDegree();
-      pbbs::write_min(&max_deg, deg, std::greater<size_t>());
+      size_t deg = DG.get_vertex(i).out_degree();
+      gbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
   }

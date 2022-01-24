@@ -7,12 +7,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
-#include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/helpers/dyn_arr.h"
+#include "gbbs/helpers/sparse_table.h"
+#include "gbbs/helpers/sparse_additive_map.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -41,13 +38,13 @@ namespace gbbs {
   template<class Obj>
   class ThreadLocalObj {
     public:
-      pbbs::sequence<unsigned int> table_mark;
-      pbbs::sequence<Obj*> table_obj;
+      sequence<unsigned int> table_mark;
+      sequence<Obj*> table_obj;
       int nw;
       ThreadLocalObj(){
         nw = num_workers() * 1.5;
-        table_mark = pbbs::sequence<unsigned int>(nw, [](std::size_t i) {return 0;});
-        table_obj = pbbs::sequence<Obj*>(nw, [](std::size_t i){return nullptr;});
+        table_mark = sequence<unsigned int>::from_function(nw, [](std::size_t i) {return 0;});
+        table_obj = sequence<Obj*>::from_function(nw, [](std::size_t i){return nullptr;});
       }
 
       Obj* init_idx(unsigned int idx) {
@@ -59,16 +56,16 @@ namespace gbbs {
 
       void unreserve(unsigned int idx) {
         while(true) {
-         if (pbbslib::CAS(&(table_mark[idx]), (unsigned int) 1, (unsigned int) 0)) { return; }
+         if (gbbs::atomic_compare_and_swap(&(table_mark[idx]), (unsigned int) 1, (unsigned int) 0)) { return; }
         }
       }
 
       std::pair<unsigned int, Obj*> reserve(){
         auto wid = worker_id();
-        auto idx = pbbs::hash32(wid) % nw;
+        auto idx = parlay::hash32(wid) % nw;
         while(true) {
           if (table_mark[idx] == 0) {
-            if (pbbslib::CAS(&(table_mark[idx]), (unsigned int) 0, (unsigned int) 1)) {
+            if (gbbs::atomic_compare_and_swap(&(table_mark[idx]), (unsigned int) 0, (unsigned int) 1)) {
               return std::make_pair(idx, init_idx(idx));
             }
           }
@@ -179,7 +176,7 @@ namespace gbbs {
     //timer t2; t2.start();
 
     if (k == 2) {
-      auto counts = sequence<size_t>(DG.n, [&](size_t i){ return 0; });
+      auto counts = sequence<size_t>::from_function(DG.n, [&](size_t i){ return 0; });
       auto base_f = [&](uintE v1, uintE v2, uintE v3) {
         table->insert_twothree(v1, v2, v3, r, k);
       };
@@ -197,7 +194,7 @@ namespace gbbs {
     //for(size_t i =0; i < DG.n; i++) {
     //  HybridSpace_lw* induced = new HybridSpace_lw();
     //  init_induced(induced);
-        if (DG.get_vertex(i).getOutDegree() != 0) {
+        if (DG.get_vertex(i).out_degree() != 0) {
           induced->setup(DG, k, i);
           auto base = sequence<uintE>(k + 1);
           base[0] = i;
@@ -207,7 +204,7 @@ namespace gbbs {
     }, 1, false);
     //double tt2 = t2.stop();
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 unsigned nChoosek( unsigned n, unsigned k )
@@ -236,7 +233,7 @@ class list_buffer {
     size_t efficient = 1;
 
     // for hash
-    using STable = pbbslib::sparse_table<uintE, uintE, std::hash<uintE>>;
+    using STable = gbbs::sparse_table<uintE, uintE, std::hash<uintE>>;
     STable source_table;
     size_t use_size;
     STable use_table;
@@ -247,7 +244,7 @@ class list_buffer {
     sequence<size_t> dyn_list_starts;
     sequence<size_t> nexts;
     sequence<char> dyn_list_init;
-    pbbslib::dyn_arr<bool> dyn_to_pack;
+    gbbs::dyn_arr<bool> dyn_to_pack;
     size_t init_size;
     size_t next_dyn_list;
 
@@ -264,7 +261,7 @@ class list_buffer {
         buffer = 1024;
         int buffer2 = 1024;
         list = sequence<uintE>(s + buffer2 * num_workers2);
-        starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
+        starts = sequence<size_t>::from_function(num_workers2, [&](size_t i){return i * buffer2;});
         std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * list.size() << std::endl;
         next = num_workers2 * buffer2;
         to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
@@ -275,7 +272,7 @@ class list_buffer {
       } else if (efficient == 2) {
         // fix for hash table version -- efficient = 2
         ss = s;
-        source_table = pbbslib::make_sparse_table<uintE, uintE>(std::min(size_t{1 << 20}, s), std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
+        source_table = gbbs::make_sparse_table<uintE, uintE>(std::min(size_t{1 << 20}, s), std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
         std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
         use_size = s;
       } else if (efficient == 4) {
@@ -286,18 +283,18 @@ class list_buffer {
         int buffer2 = 1024;
         int multiplier = 10000;
         init_size = (1 + (s / multiplier) / buffer2) * buffer2  + buffer2 * num_workers2;
-        dyn_lists = sequence<ListType>(multiplier, [](size_t i){return ListType();});
-        dyn_list_init = sequence<char>(multiplier, [](size_t i){return false;});
+        dyn_lists = sequence<ListType>::from_function(multiplier, [](size_t i){return ListType();});
+        dyn_list_init = sequence<char>::from_function(multiplier, [](size_t i){return false;});
         dyn_lists[0] = ListType(init_size);
         dyn_list_init[0] = true;
         next_dyn_list = 0;
         //dyn_list = dyn_arr<uintE>(init_size);
-        dyn_list_starts = sequence<size_t>(num_workers2, [&](size_t i){return 0;});
-        starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
+        dyn_list_starts = sequence<size_t>::from_function(num_workers2, [&](size_t i){return 0;});
+        starts = sequence<size_t>::from_function(num_workers2, [&](size_t i){return i * buffer2;});
         std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * init_size << std::endl;
-        nexts = sequence<size_t>(multiplier, [](size_t i){return 0;});
+        nexts = sequence<size_t>::from_function(multiplier, [](size_t i){return 0;});
         nexts[0] = num_workers2 * buffer2;
-        dyn_to_pack = pbbslib::dyn_arr<bool>(init_size);
+        dyn_to_pack = gbbs::dyn_arr<bool>(init_size);
         dyn_to_pack.copyInF([](size_t i){return true;}, init_size);
       } else if (efficient == 5) {
         // easier dynamically sized list buffer
@@ -306,7 +303,7 @@ class list_buffer {
         buffer = 1024;
         int buffer2 = 1024;
         ddyn_lists = std::vector<std::vector<uintE>>(num_workers2, std::vector<uintE>(100, 0));
-        starts = sequence<size_t>(num_workers2 + 1, [&](size_t i){return 0;});
+        starts = sequence<size_t>::from_function(num_workers2 + 1, [&](size_t i){return 0;});
       }
     }
 
@@ -314,10 +311,10 @@ class list_buffer {
       if (efficient == 2) {
         use_size = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
         if (use_size > ss) use_size = std::min(size_t{1 << 20}, ss);
-        size_t space_required  = (size_t)1 << pbbslib::log2_up((size_t)(use_size*1.1));
+        size_t space_required  = (size_t)1 << parlay::log2_up((size_t)(use_size*1.1));
         source_table.resize_no_copy(space_required);
-        use_table = pbbslib::make_sparse_table<uintE, uintE>(
-          source_table.table, space_required,
+        use_table = gbbs::make_sparse_table<uintE, uintE>(
+          source_table.backing.data(), space_required,
           std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
           std::hash<uintE>(), false /* do not clear */);
         // (size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
@@ -334,11 +331,11 @@ class list_buffer {
         list[starts[worker]] = index;
         starts[worker]++;
         if (starts[worker] % buffer == 0) {
-          size_t use_next = pbbs::fetch_and_add(&next, buffer);
+          size_t use_next = gbbs::fetch_and_add(&next, buffer);
           starts[worker] = use_next;
         }
       } else if (efficient == 0) {
-        size_t use_next = pbbs::fetch_and_add(&next, 1);
+        size_t use_next = gbbs::fetch_and_add(&next, 1);
         list[use_next] = index;
       } else if (efficient == 2){
         use_table.insert(std::make_tuple(index, uintE{1}));
@@ -353,18 +350,18 @@ class list_buffer {
         dyn_lists[dyn_list_starts[worker]][starts[worker]] = index;
         starts[worker]++;
         if (starts[worker] % buffer == 0) {
-          size_t use_next = pbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
+          size_t use_next = gbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
           while (use_next >= init_size) {
             //while (nexts[dyn_list_starts[worker]] >= init_size) {
             dyn_list_starts[worker]++;
             //}
-            use_next = pbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
+            use_next = gbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
           }
           starts[worker] = use_next;
           // But now we need to make sure that dyn_lists[dyn_list_starts[worker]] actually has space....
           // TODO check this is ok esp for contention maybe take a lock instead
           while(dyn_lists[dyn_list_starts[worker]].size() == 0) {
-            if (pbbslib::CAS(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
+            if (gbbs::atomic_compare_and_swap(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
               dyn_lists[dyn_list_starts[worker]] = ListType(init_size); 
               break;
             }
@@ -383,12 +380,12 @@ class list_buffer {
       if (efficient == 2) return use_table.size();
       if (efficient == 5) {
         starts[num_workers2] = 0;
-        size_t total = pbbslib::scan_add_inplace(starts.slice());
+        size_t total = parlay::scan_inplace(make_slice(starts));
         return total;
       }
       if (efficient == 4){
-        auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
-        auto max_size = pbbslib::reduce_max(sizes);
+        auto sizes = sequence<size_t>::from_function(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
+        auto max_size = parlay::reduce_max(sizes);
         return max_size;
       }
       return 0;
@@ -474,7 +471,7 @@ class list_buffer {
         return entries.size();
       } else if (efficient == 5) {
         starts[num_workers2] = 0;
-        size_t total = pbbslib::scan_add_inplace(starts.slice());
+        size_t total = parlay::scan_inplace(make_slice(starts));
         parallel_for(0, num_workers2, [&](size_t worker){
           parallel_for(starts[worker], starts[worker + 1], [&](size_t j){
             size_t i = j - starts[worker];
@@ -487,8 +484,8 @@ class list_buffer {
         //fflush(stdout);
         // First ensure that dyn_to_pack is the right size
         // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
-        auto sizes = sequence<size_t>(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
-        auto max_size = pbbslib::reduce_max(sizes);
+        auto sizes = sequence<size_t>::from_function(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
+        auto max_size = parlay::reduce_max(sizes);
         auto absolute_max = 1 + 10000 * ((1 + (ss / 10000) / 1024) * 1024  + 1024* num_workers());
         assert(max_size <= absolute_max);
         if (max_size > dyn_to_pack.size) dyn_to_pack.copyInF([](size_t i){return true;}, max_size - dyn_to_pack.size);
@@ -539,7 +536,7 @@ class list_buffer {
       } else if (efficient == 0) {
         next = 0;
       } else if (efficient == 2){
-        use_table.clear();
+        use_table.clear_table();
       } else if(efficient == 5) {
         parallel_for (0, num_workers2, [&] (size_t j) {
           starts[j] = 0;
@@ -562,20 +559,35 @@ bool is_edge(Graph& DG, uintE v, uintE u) {
   auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
     if (vv == u) is = true;
     };
-    DG.get_vertex(v).mapOutNgh(v, map_f, false);
+    DG.get_vertex(v).out_neighbors().map(map_f, false);
     return is;
 }
 
-template <class Graph>
+/*template <
+    template <class W> class vertex, class W, 
+    typename std::enable_if<
+        std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, int>::type = 0>
+void intersectionPND(
+    symmetric_graph<vertex, W>& GA, uintE v, uintE u, std::vector<uintE>& intersection) {  // -> decltype(GA)
+    std::cout << "IntersectionPND not implemented for directed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+    }
+
+template <
+    template <class W> class vertex, class W, 
+    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
+                            int>::type = 0>
+void intersectionPND(symmetric_graph<vertex, W>& G, */
+template<class Graph>
 void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersection){
   auto vert_v = G.get_vertex(v);
   auto vert_u = G.get_vertex(u);
   uintE idx_v = 0;
   uintE idx_u = 0;
-  auto iter_v = vert_v.getOutIter(v);
-  auto iter_u = vert_u.getOutIter(u);
-  auto deg_v = vert_v.getOutDegree();
-  auto deg_u = vert_u.getOutDegree();
+  auto iter_v = vert_v.out_neighbors().get_iter();
+  auto iter_u = vert_u.out_neighbors().get_iter();
+  auto deg_v = vert_v.out_degree();
+  auto deg_u = vert_u.out_degree();
   while(idx_v < deg_v && idx_u < deg_u) {
     uintE v_nbhr = std::get<0>(iter_v.cur());
     uintE u_nbhr = std::get<0>(iter_u.cur());
@@ -596,7 +608,23 @@ void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersectio
   }
 }
 
-template <class Graph>
+/*
+template <
+    template <class W> class vertex, class W, 
+    typename std::enable_if<
+        std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, int>::type = 0>
+void intersectionPND(
+    symmetric_graph<vertex, W>& GA, uintE v, uintE u, uintE w, std::vector<uintE>& intersection) {  // -> decltype(GA)
+    std::cout << "IntersectionPND not implemented for directed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+    }
+
+template <
+    template <class W> class vertex, class W, 
+    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
+                            int>::type = 0>
+void intersectionPND(symmetric_graph<vertex, W>& G, */
+template<class Graph>
 void intersectionPND(Graph& G, uintE v, uintE u, uintE w, std::vector<uintE>& intersection){
   auto vert_v = G.get_vertex(v);
   auto vert_u = G.get_vertex(u);
@@ -604,12 +632,12 @@ void intersectionPND(Graph& G, uintE v, uintE u, uintE w, std::vector<uintE>& in
   uintE idx_v = 0;
   uintE idx_u = 0;
   uintE idx_w = 0;
-  auto iter_v = vert_v.getOutIter(v);
-  auto iter_u = vert_u.getOutIter(u);
-  auto iter_w = vert_w.getOutIter(w);
-  auto deg_v = vert_v.getOutDegree();
-  auto deg_u = vert_u.getOutDegree();
-  auto deg_w = vert_w.getOutDegree();
+  auto iter_v = vert_v.out_neighbors().get_iter();
+  auto iter_u = vert_u.out_neighbors().get_iter();
+  auto iter_w = vert_w.out_neighbors().get_iter();
+  auto deg_v = vert_v.out_degree();
+  auto deg_u = vert_u.out_degree();
+  auto deg_w = vert_w.out_degree();
   while(idx_v < deg_v && idx_u < deg_u && idx_w < deg_w) {
     uintE v_nbhr = std::get<0>(iter_v.cur());
     uintE u_nbhr = std::get<0>(iter_u.cur());
@@ -637,8 +665,55 @@ void intersectionPND(Graph& G, uintE v, uintE u, uintE w, std::vector<uintE>& in
     }
   }
 }
+/*
+template <
+    template <class W> class vertex, class W, class T,
+    typename std::enable_if<
+        std::is_same<vertex<W>, asymmetric_vertex<W>>::value, int>::type = 0>
+inline size_t CountCliquesNucPND(asymmetric_graph<vertex, W>& G, size_t k, size_t r, size_t max_deg, T* table){
+  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+  return 0;
+}
 
-template <class Graph, class T>
+template <
+    template <class W> class vertex, class W, class T,
+    typename std::enable_if<
+        std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
+inline size_t CountCliquesNucPND(asymmetric_graph<vertex, W>& G, size_t k, size_t r, size_t max_deg, T* table){
+  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+  return 0;
+}
+
+template <
+    template <class W> class vertex, class W, class T,
+    typename std::enable_if<
+        std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, int>::type = 0>
+inline size_t CountCliquesNucPND(
+    symmetric_graph<vertex, W>& GA, size_t k, size_t r, size_t max_deg, T* table) {  // -> decltype(GA)
+    std::cout << "CountCliquesNucPND not implemented for compressed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+  return 0;
+    }
+
+    template <
+    template <class W> class vertex, class W, class T,
+    typename std::enable_if<
+        std::is_same<vertex<W>, csv_byte<W>>::value, int>::type = 0>
+inline size_t CountCliquesNucPND(
+    symmetric_graph<vertex, W>& GA, size_t k, size_t r, size_t max_deg, T* table) {  // -> decltype(GA)
+    std::cout << "CountCliquesNucPND not implemented for compressed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+  return 0;
+    }
+
+template <
+    template <class W> class vertex, class W, class T,
+    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
+                            int>::type = 0>
+  inline size_t CountCliquesNucPND( symmetric_graph<vertex, W>& DG, */
+  template<class Graph, class T>
   inline size_t CountCliquesNucPND(Graph& DG, size_t k, size_t r, size_t max_deg, T* table) {
     k--; r--;
 
@@ -650,8 +725,8 @@ template <class Graph, class T>
       };
       parallel_for(0, DG.n, [&](size_t i) {
         auto vert_i = DG.get_vertex(i);
-        auto iter_i = vert_i.getOutIter(i);
-        for (std::size_t j = 0; j < vert_i.getOutDegree(); j++) {
+        auto iter_i = vert_i.out_neighbors().get_iter();
+        for (std::size_t j = 0; j < vert_i.out_degree(); j++) {
           auto x = std::get<0>(iter_i.cur());
           if (iter_i.has_next()) iter_i.next();
           std::vector<uintE> inter;
@@ -662,7 +737,7 @@ template <class Graph, class T>
           }
         }
       });
-      return pbbslib::reduce_add(tots);
+      return parlay::reduce(tots);
     }
     // Now k must be 3 (we'll count 4-cliques)
     assert(k == 3);
@@ -675,8 +750,8 @@ template <class Graph, class T>
       auto base = sequence<uintE>(k + 1);
       base[0] = i;
       auto vert_i = DG.get_vertex(i);
-      auto iter_i = vert_i.getOutIter(i);
-      for (std::size_t j = 0; j < vert_i.getOutDegree(); j++) {
+      auto iter_i = vert_i.out_neighbors().get_iter();
+      for (std::size_t j = 0; j < vert_i.out_degree(); j++) {
         auto x = std::get<0>(iter_i.cur());
         if (iter_i.has_next()) iter_i.next();
         base[1] = x;
@@ -697,7 +772,7 @@ template <class Graph, class T>
       }
     });
 
-    return pbbslib::reduce_add(tots);
+    return parlay::reduce(tots);
   }
 
 // This should only be used for (2, 3) and (3, 4) nucleus decomposition
@@ -723,7 +798,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
     auto update_d = [&](uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-      double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+      double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
       }
@@ -734,7 +809,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
         cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
           [&](std::size_t index, double val){
-          double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
         }, r, k);
       };
@@ -756,7 +831,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
         cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
           [&](std::size_t index, double val){
-          double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
         }, r, k);
       };
@@ -822,7 +897,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
   auto update_d = [&](uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-      double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+      double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
       }
@@ -842,7 +917,7 @@ t1.start();
       auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
         cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
           [&](std::size_t index, double val){
-          double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
         }, r, k);
       };
@@ -857,8 +932,8 @@ t1.start();
           uintE v3 = relabel ? rank[intersect_w] : intersect_w;
           update_d_twothree(std::get<0>(v1v2), std::get<1>(v1v2), v3);
         };
-        
-        G.get_vertex(u).intersect_f_par(&v_v, u, v, process_f);
+        auto their_neighbors = v_v.out_neighbors();
+        G.get_vertex(u).out_neighbors().intersect_f_par(&their_neighbors, process_f);
 
       });
     } else if (k == 3 && r == 2) { // (3, 4))
@@ -866,7 +941,7 @@ t1.start();
         //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
         cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
           [&](std::size_t index, double val){
-          double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
         }, r, k);
       };
@@ -896,21 +971,21 @@ t1.start();
           assert(labels[actual_ngh] == 0);
           labels[actual_ngh] = 1;
         };
-        G.get_vertex(u).mapOutNgh(u, map_label_f, false);
+        G.get_vertex(u).out_neighbors().map(map_label_f, false);
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
         auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           assert(labels[actual_ngh] <= 1);
           if (labels[actual_ngh] > 0) labels[actual_ngh]++;
         };
-        G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
+        G.get_vertex(v).out_neighbors().map(map_label_inner_f, false);
         v = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
         auto map_label_inner_f2 = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           assert(labels[actual_ngh] <= 2);
           if (labels[actual_ngh] > 0) labels[actual_ngh]++;
         };
-        G.get_vertex(v).mapOutNgh(v, map_label_inner_f2, false);
+        G.get_vertex(v).out_neighbors().map(map_label_inner_f2, false);
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
@@ -920,7 +995,7 @@ t1.start();
           }
           labels[actual_ngh] = 0;
         };
-        G.get_vertex(u).mapOutNgh(u, map_update_f, false);
+        G.get_vertex(u).out_neighbors().map(map_update_f, false);
         //thread_local_is.unreserve(is_pair.first);
       },1, true);
     } else { // This is not (2, 3)
@@ -951,11 +1026,11 @@ t1.start();
         cliques->extract_clique(x, base, G, k);
         // Sequentially find min deg and swap with 0
         uintE u = relabel ? inverse_rank[base[0]] : base[0];
-        auto min_deg = G.get_vertex(u).getOutDegree();
+        auto min_deg = G.get_vertex(u).out_degree();
         size_t u_idx = 0;
         for (size_t j = k; j > 1; j--) {
           uintE v = relabel ? inverse_rank[base[j]] : base[j];
-          auto v_deg = G.get_vertex(v).getOutDegree();
+          auto v_deg = G.get_vertex(v).out_degree();
           if (v_deg < min_deg) {
             u_idx = j;
             min_deg = v_deg;
@@ -972,14 +1047,14 @@ t1.start();
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           labels[actual_ngh] = 1;
         };
-        G.get_vertex(u).mapOutNgh(u, map_label_f, false);
+        G.get_vertex(u).out_neighbors().map(map_label_f, false);
         for (size_t j = k; j > 1; j--) {
           uintE v = relabel ? inverse_rank[base[j]] : base[j];
           auto map_label_inner_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
             uintE actual_ngh = relabel ? rank[ngh] : ngh;
             if (labels[actual_ngh] > 0) labels[actual_ngh]++;
           };
-          G.get_vertex(v).mapOutNgh(v, map_label_inner_f, false);
+          G.get_vertex(v).out_neighbors().map(map_label_inner_f, false);
         }
         // Any vtx with labels[vtx] = k - 1 is in the intersection
         auto map_update_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -990,7 +1065,7 @@ t1.start();
           }
           labels[actual_ngh] = 0;
         };
-        G.get_vertex(u).mapOutNgh(u, map_update_f, false);
+        G.get_vertex(u).out_neighbors().map(map_update_f, false);
         //thread_local_is.unreserve(is_pair.first);
       },1, true);
     }
@@ -1069,7 +1144,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
   size_t num_entries = cliques->return_total();
   std::cout << "num entries: " << num_entries << std::endl;
-  auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
+  auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
   });
 
@@ -1220,12 +1295,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   
   }
 
-  t_extract.reportTotal("### Peel Extract time: ");
-  t_count.reportTotal("### Peel Count time: ");
-  t_update.reportTotal("### Peel Update time: ");
+  t_extract.next("### Peel Extract time: ");
+  t_count.next("### Peel Count time: ");
+  t_update.next("### Peel Update time: ");
   //t_compress.reportTotal("### Compress time: ");
-  t_x.reportTotal("Inner counting: ");
-  t_update_d.reportTotal("Update d time: ");
+  t_x.next("Inner counting: ");
+  t_update_d.next("Update d time: ");
 
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
@@ -1235,7 +1310,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   std::cout << "clique core: " << max_bkt << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
-  b.del();
+  //b.del();
   free(still_active);
 
   return D;
@@ -1265,7 +1340,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
   size_t num_entries = cliques->return_total();
   std::cout << "num entries: " << num_entries << std::endl;
-  auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
+  auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
   });
 
@@ -1411,12 +1486,12 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   
   }
 
-  t_extract.reportTotal("### Peel Extract time: ");
-  t_count.reportTotal("### Peel Count time: ");
-  t_update.reportTotal("### Peel Update time: ");
+  t_extract.next("### Peel Extract time: ");
+  t_count.next("### Peel Count time: ");
+  t_update.next("### Peel Update time: ");
   //t_compress.reportTotal("### Compress time: ");
-  t_x.reportTotal("Inner counting: ");
-  t_update_d.reportTotal("Update d time: ");
+  t_x.next("Inner counting: ");
+  t_update_d.next("Update d time: ");
 
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
@@ -1426,7 +1501,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   std::cout << "clique core: " << max_bkt << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
-  b.del();
+  //b.del();
   free(still_active);
 
   return D;
@@ -1455,10 +1530,10 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
   size_t num_entries = cliques->return_total();
   size_t num_entries2 = cliques2->return_total();
 
-  auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
+  auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
   });
-  auto D2 = sequence<bucket_t>(num_entries2, [&](size_t i) -> bucket_t { 
+  auto D2 = sequence<bucket_t>::from_function(num_entries2, [&](size_t i) -> bucket_t { 
     return cliques2->get_count(i);
   });
 
@@ -1667,7 +1742,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       // Check that vtx exists in cliques2
       sequence<uintE> base(k + 1);
       // Vertices will be in inclusive k, ..., k - r + 1, 0
-      cliques->extract_clique(vtx, base.s, G, k);
+      cliques->extract_clique(vtx, base.data(), G, k);
       sequence<uintE> actual_base(r + 1);
       for (size_t j = 0; j <= r; j++) {
         auto base_idx = k - j;
@@ -1676,12 +1751,12 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       }
 
       // Check that extracting a clique from cliques and turning it back to an index works
-      auto check_vtx = cliques->extract_indices_check(actual_base.s, r);
+      auto check_vtx = cliques->extract_indices_check(actual_base.data(), r);
       assert(check_vtx == vtx);
 
-      auto vtx2 = cliques2->extract_indices_check(actual_base.s, r);
+      auto vtx2 = cliques2->extract_indices_check(actual_base.data(), r);
       sequence<uintE> base2(k + 1);
-      cliques2->extract_clique(vtx2, base2.s, G, k);
+      cliques2->extract_clique(vtx2, base2.data(), G, k);
       sequence<uintE> actual_base2(r + 1);
       for (size_t j = 0; j <= r; j++) {
         auto base_idx = k - j;
@@ -1690,7 +1765,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       }
 
       // Check that extracting a clique from cliques2 and turning it back to an index works
-      auto check_vtx2 = cliques2->extract_indices_check(actual_base2.s, r);
+      auto check_vtx2 = cliques2->extract_indices_check(actual_base2.data(), r);
       assert(check_vtx2 == vtx2);
 
       // Check that the clique counts match up
@@ -1712,10 +1787,10 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       assert(cliques->get_count(vtx) == cliques2->get_count(vtx2));
 
       // Check that cliques and cliques2 are thinking about the same clique
-      pbbslib::sample_sort_inplace (actual_base.slice(), [&](const uintE& u, const uintE&  v) {
+      parlay::sample_sort_inplace (make_slice(actual_base), [&](const uintE& u, const uintE&  v) {
           return u < v;
       });
-      pbbslib::sample_sort_inplace (actual_base2.slice(), [&](const uintE& u, const uintE&  v) {
+      parlay::sample_sort_inplace (make_slice(actual_base2), [&](const uintE& u, const uintE&  v) {
           return u < v;
       });
       for (size_t j = 0; j < r + 1; j++) {
@@ -1755,10 +1830,10 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
     rounds++;
   }
 
-  t_extract.reportTotal("### Peel Extract time: ");
-  t_count.reportTotal("### Peel Count time: ");
-  t_update.reportTotal("### Peel Update time: ");
-  t_x.reportTotal("Inner counting: ");
+  t_extract.next("### Peel Extract time: ");
+  t_count.next("### Peel Count time: ");
+  t_update.next("### Peel Update time: ");
+  t_x.next("Inner counting: ");
 
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
@@ -1767,7 +1842,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "clique core: " << max_bkt << std::endl;
 
-  b.del();
+  //b.del();
   free(still_active);
 
   return D;

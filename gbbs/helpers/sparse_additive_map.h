@@ -50,7 +50,7 @@ class sparse_additive_map {
 
   void del() {
     if (alloc) {
-      gbbs::free_array(table);
+      gbbs::free_array(table, m);
       alloc = false;
     }
   }
