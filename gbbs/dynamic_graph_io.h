@@ -99,7 +99,7 @@ std::vector<DynamicEdge<weight_type>> read_dynamic_edge_list(const char* filenam
 //     <+/-> <edge 3 first endpoint> <edge 3 second endpoint>
 //     ...
 //     <+/-> <edge m first endpoint> <edge m second endpoint>
-std::vector<DynamicEdge<pbbslib::empty>>
+std::vector<DynamicEdge<gbbs::empty>>
 read_dynamic_edge_list(const char* filename) {
   std::ifstream file{filename};
   if (!file.is_open()) {
@@ -108,7 +108,7 @@ read_dynamic_edge_list(const char* filename) {
   }
   gbbs_io::internal::skip_ifstream_comments(&file);
 
-  std::vector<DynamicEdge<pbbslib::empty>> edge_list;
+  std::vector<DynamicEdge<gbbs::empty>> edge_list;
   char insert;
   uintE from;
   uintE to;
@@ -148,27 +148,35 @@ parlay::sequence<A> GetBoundaryIndices(
     else
       mark_keys[i] = i;
   });
-  mark_keys[num_keys] = num_keys; 
+  mark_keys[num_keys] = num_keys;
   return filter(mark_keys, [&null_key](A x) -> bool { return x != null_key; });
 }
 
 template <class weight_type>
-std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size) {
+std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size, size_t index = 0) {
   // For every delete, find the closest insert (to the left) that matches it and remove
   // One way to do this would be to sort the edges with their index, and do a binary search for each delete;
   // invalidate those, and then filter
   using D = DynamicEdge<weight_type>;
   using E = gbbs_io::Edge<weight_type>;
-  auto dynamic_edges_seq = parlay::delayed_seq<D>(std::min(dynamic_edges_size, dynamic_edges.edges.size()), [&](size_t i){ return dynamic_edges.edges[i]; });
+  auto dynamic_edges_seq = parlay::delayed_seq<D>(std::min(dynamic_edges_size + 1, dynamic_edges.edges.size()), [&](size_t i){
+          if (i == dynamic_edges_size) {
+            if (index > 0) {
+                return dynamic_edges.edges[index];
+            } else
+                return dynamic_edges.edges[dynamic_edges_size - 1];
+         } else
+            return dynamic_edges.edges[i];
+  });
   //auto flag_seq = parlay::delayed_seq<bool>(dynamic_edges.edges.size(), [&](size_t i){ return !dynamic_edges.edges[i].insert; });
   // Order all inserts before all deletes
   //auto split_dynamic_edges = parlay::internal::split_two(dynamic_edges_seq, flag_seq);
   // Sort with all insertions placed before deletions
-  auto sorted_dynamic_edges = parlay::internal::sample_sort(parlay::make_slice(dynamic_edges_seq), 
+  auto sorted_dynamic_edges = parlay::internal::sample_sort(parlay::make_slice(dynamic_edges_seq),
     [](const D& a, const D& b){
         return (a.from < b.from) || (a.from == b.from && a.to < b.to) || (a.from == b.from && a.to == b.to && a.insert < b.insert);
       }, true);
-  
+
   auto filtered_mark_ids = GetBoundaryIndices<uintE>(
     sorted_dynamic_edges.size(), [&](std::size_t i, std::size_t j) {
       return sorted_dynamic_edges[i].from == sorted_dynamic_edges[j].from && sorted_dynamic_edges[i].to == sorted_dynamic_edges[j].to;
@@ -185,7 +193,7 @@ std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDyna
       edges[i] = E{edge.from, edge.to, edge.weight};
     }
   });
-  
+
   // We must do a filter out
   std::vector<E> filtered_edges(num_filtered_mark_ids);
   size_t filtered_edges_size = parlay::internal::filter_out(parlay::make_slice(edges), parlay::make_slice(filtered_edges),
@@ -195,9 +203,9 @@ std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDyna
 }
 
 template <class weight_type>
-symmetric_graph<symmetric_vertex, weight_type> dynamic_edge_list_to_symmetric_graph(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size) {
+symmetric_graph<symmetric_vertex, weight_type> dynamic_edge_list_to_symmetric_graph(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size, size_t index = 0) {
   if (dynamic_edges_size == 0 || dynamic_edges.max_vertex == 0) return symmetric_graph<symmetric_vertex, weight_type>();
-  auto edge_list = dynamic_edge_list_to_edge_list(dynamic_edges, dynamic_edges_size);
+  auto edge_list = dynamic_edge_list_to_edge_list(dynamic_edges, dynamic_edges_size, index);
   return gbbs_io::edge_list_to_symmetric_graph(edge_list);
 }
 
