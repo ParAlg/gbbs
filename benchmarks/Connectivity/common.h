@@ -12,9 +12,6 @@ using incremental_update = std::tuple<uintE, uintE, UpdateType>;
 
 constexpr uintE largest_comp = UINT_E_MAX;
 
-extern gbbs::atomic_max_counter<uintE> max_pathlen;
-extern gbbs::atomic_sum_counter<size_t> total_pathlen;
-
 void report_pathlen(uintE pathlen);
 
 template <class Seq>

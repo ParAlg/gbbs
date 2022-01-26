@@ -2,14 +2,7 @@
 
 namespace gbbs {
 
-gbbs::atomic_max_counter<uintE> max_pathlen;
-gbbs::atomic_sum_counter<size_t> total_pathlen;
-
 void report_pathlen(uintE pathlen) {
-#ifdef REPORT_PATH_LENGTHS
-  max_pathlen.update_value(pathlen);
-  total_pathlen.update_value(pathlen);
-#endif
 }
 
 sequence<std::tuple<uintE, uintE, UpdateType>> annotate_updates_insert(
