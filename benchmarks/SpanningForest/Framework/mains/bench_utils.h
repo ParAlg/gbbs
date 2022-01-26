@@ -38,10 +38,6 @@ std::vector<double> repeat(Graph& G, size_t rounds, sequence<edge>& correct,
                            F test, commandLine& P) {
   std::vector<double> R;
   for (size_t i = 0; i < rounds; i++) {
-#ifdef REPORT_PATH_LENGTHS
-    max_pathlen.reset();
-    total_pathlen.reset();
-#endif
     auto t = test(G, P, correct);
     std::cout << "### t = " << t << std::endl;
     R.push_back(t);
@@ -60,11 +56,7 @@ void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint,
   std::cout << "  \"medt\" : " << std::setprecision(5) << medt << ","
             << std::endl;
   std::cout << "  \"mint\" : " << mint << "," << std::endl;
-  std::cout << "  \"maxt\" : " << maxt << "," << std::endl;
-  std::cout << "  \"max_path_len\" : "
-            << std::to_string(max_pathlen.get_value()) << "," << std::endl;
-  std::cout << "  \"total_path_len\" : "
-            << std::to_string(total_pathlen.get_value()) << std::endl;
+  std::cout << "  \"maxt\" : " << maxt << std::endl;
   std::cout << "}" << std::endl;
 }
 

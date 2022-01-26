@@ -42,10 +42,6 @@ auto repeat(Graph& G, size_t rounds, F test, commandLine& P) {
   size_t cc_before, cc_after;
   for (size_t i = 0; i < rounds; i++) {
     double tot, avg, thp;
-#ifdef REPORT_PATH_LENGTHS
-    max_pathlen.reset();
-    total_pathlen.reset();
-#endif
     std::tie(tot, avg, thp, cc_before, cc_after) = test(G, P);
     total.push_back(tot);
     average_batch.push_back(avg);
@@ -82,11 +78,7 @@ inline void print_cpu_stats(std::string& name, size_t rounds, size_t cc_before,
   std::cout << "  \"max_batch_time\" : " << max_batch << "," << std::endl;
   std::cout << "  \"med_throughput\" : " << med_throughput << "," << std::endl;
   std::cout << "  \"min_throughput\" : " << min_throughput << "," << std::endl;
-  std::cout << "  \"max_throughput\" : " << max_throughput << "," << std::endl;
-  std::cout << "  \"max_path_len\" : "
-            << std::to_string(max_pathlen.get_value()) << "," << std::endl;
-  std::cout << "  \"total_path_len\" : "
-            << std::to_string(total_pathlen.get_value()) << std::endl;
+  std::cout << "  \"max_throughput\" : " << max_throughput << std::endl;
   std::cout << "}" << std::endl;
 }
 

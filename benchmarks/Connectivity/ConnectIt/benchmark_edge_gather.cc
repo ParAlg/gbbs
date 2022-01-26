@@ -16,10 +16,6 @@ void print_result(commandLine& P, std::string method, size_t rounds,
             << "\"" << method << "\"," << std::endl;
   std::cout << "  \"rounds\" : " << rounds << "," << std::endl;
   std::cout << "  \"time\" : " << time << "," << std::endl;
-  std::cout << "  \"max_path_len\" : "
-            << std::to_string(max_pathlen.get_value()) << "," << std::endl;
-  std::cout << "  \"total_path_len\" : "
-            << std::to_string(total_pathlen.get_value()) << std::endl;
   std::cout << "}" << std::endl;
 }
 
