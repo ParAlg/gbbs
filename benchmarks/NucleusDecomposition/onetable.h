@@ -162,7 +162,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),update);
       }
 
-      void update_count_atomic(std::size_t index, C update) {
+      C update_count_atomic(std::size_t index, C update) {
         if (get_count(index) < update) {
           std::cout << "i: " << index << ", count: " << get_count(index) << ", update: " << update << std::endl;
           fflush(stdout);
