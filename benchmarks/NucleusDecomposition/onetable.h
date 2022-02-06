@@ -163,8 +163,8 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       }
 
       void update_count_atomic(std::size_t index, C update) {
-        if (get_count(i) < update) {
-          std::cout << "i: " << i << ", count: " << get_count(i) << ", update: " << update << std::endl;
+        if (get_count(index) < update) {
+          std::cout << "i: " << i << ", count: " << get_count(index) << ", update: " << update << std::endl;
           fflush(stdout);
           exit(0);
         }

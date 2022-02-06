@@ -11,6 +11,8 @@
 #include "gbbs/helpers/sparse_table.h"
 #include "gbbs/helpers/sparse_additive_map.h"
 
+namespace gbbs {
+
 unsigned nChoosek( unsigned n, unsigned k )
 {
     if (k > n) return 0;
@@ -538,3 +540,5 @@ class list_count_buffer {
       }
     }
 };
+
+} // namespace gbbs
