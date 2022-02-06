@@ -293,6 +293,21 @@ namespace twotable {
         return val;
       }
 
+      C update_count_atomic(std::size_t index, C update){
+        if (contiguous_space) {
+          gbbs::write_add(&std::get<1>(space[index]), -1 * update);
+          return std::get<1>(space[index]);
+        }
+        size_t top_index = get_top_index(index);
+        //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        //***for arr
+        EndTableY* end_table = top_table.arr[top_index];
+        size_t bottom_index = index - top_table_sizes[top_index];
+        gbbs::write_add(&std::get<1>((end_table->table).table[bottom_index]), -1 * update);
+        auto val = std::get<1>((end_table->table).table[bottom_index]);
+        return val;
+      }
+
       void clear_count(std::size_t index) {
         if (contiguous_space) {
           space[index] = std::make_tuple(std::get<0>(space[index]), 0);

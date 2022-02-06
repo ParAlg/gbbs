@@ -558,6 +558,11 @@ namespace multitable_nosearch {
         return val;
       }
 
+      C update_count_atomic(std::size_t index, C update){
+        gbbs::write_add(&std::get<1>(space[index]), -1 * update);
+        return std::get<1>(space[index]);
+      }
+
       void clear_count(std::size_t index) {
         space[index] = std::make_tuple(std::get<0>(space[index]), 0);
       }

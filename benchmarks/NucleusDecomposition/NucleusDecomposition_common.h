@@ -32,6 +32,7 @@
 #include "onetable.h"
 #include "commontable.h"
 #include "multitable_nosearch.h"
+#include "list_buffer.h"
 
 namespace gbbs {
 
@@ -207,350 +208,7 @@ namespace gbbs {
     return parlay::reduce(tots);
   }
 
-unsigned nChoosek( unsigned n, unsigned k )
-{
-    if (k > n) return 0;
-    if (k * 2 > n) k = n-k;
-    if (k == 0) return 1;
 
-    int result = n;
-    for( int i = 2; i <= k; ++i ) {
-        result *= (n-i+1);
-        result /= i;
-    }
-    return result;
-}
-
-class list_buffer {
-  public:
-    int buffer;
-    sequence<uintE> list;
-    sequence<size_t> starts;
-    sequence<bool> to_pack;
-    size_t next;
-    size_t num_workers2;
-    size_t ss;
-    size_t efficient = 1;
-
-    // for hash
-    using STable = gbbs::sparse_table<uintE, uintE, std::hash<uintE>>;
-    STable source_table;
-    size_t use_size;
-    STable use_table;
-
-    // for dynamic
-    using ListType = sequence<uintE>;
-    sequence<ListType> dyn_lists;
-    sequence<size_t> dyn_list_starts;
-    sequence<size_t> nexts;
-    sequence<char> dyn_list_init;
-    gbbs::dyn_arr<bool> dyn_to_pack;
-    size_t init_size;
-    size_t next_dyn_list;
-
-    // for easier dynamic?
-    std::vector<std::vector<uintE>> ddyn_lists;
-
-// option to have a thread local vector that's resizable per thread to hold
-// the new r cliques; you need to get your thread id
-    list_buffer(size_t s, size_t _efficient = 1){
-      efficient = _efficient;
-      if (efficient == 1) {
-        ss = s;
-        num_workers2 = num_workers();
-        buffer = 1024;
-        int buffer2 = 1024;
-        list = sequence<uintE>(s + buffer2 * num_workers2);
-        starts = sequence<size_t>::from_function(num_workers2, [&](size_t i){return i * buffer2;});
-        std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * list.size() << std::endl;
-        next = num_workers2 * buffer2;
-        to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
-      } else if (efficient == 0) {
-        list = sequence<uintE>(s, static_cast<uintE>(UINT_E_MAX));
-        std::cout << "list size: " << sizeof(uintE) * list.size() << std::endl;
-        next = 0;
-      } else if (efficient == 2) {
-        // fix for hash table version -- efficient = 2
-        ss = s;
-        source_table = gbbs::make_sparse_table<uintE, uintE>(std::min(size_t{1 << 20}, s), std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
-        std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
-        use_size = s;
-      } else if (efficient == 4) {
-        // version of list buffer that's dynamically sized
-        ss = s;
-        num_workers2 = num_workers();
-        buffer = 1024;
-        int buffer2 = 1024;
-        int multiplier = 10000;
-        init_size = (1 + (s / multiplier) / buffer2) * buffer2  + buffer2 * num_workers2;
-        dyn_lists = sequence<ListType>::from_function(multiplier, [](size_t i){return ListType();});
-        dyn_list_init = sequence<char>::from_function(multiplier, [](size_t i){return false;});
-        dyn_lists[0] = ListType(init_size);
-        dyn_list_init[0] = true;
-        next_dyn_list = 0;
-        //dyn_list = dyn_arr<uintE>(init_size);
-        dyn_list_starts = sequence<size_t>::from_function(num_workers2, [&](size_t i){return 0;});
-        starts = sequence<size_t>::from_function(num_workers2, [&](size_t i){return i * buffer2;});
-        std::cout << "list size: " << sizeof(size_t) * num_workers2 + sizeof(uintE) * init_size << std::endl;
-        nexts = sequence<size_t>::from_function(multiplier, [](size_t i){return 0;});
-        nexts[0] = num_workers2 * buffer2;
-        dyn_to_pack = gbbs::dyn_arr<bool>(init_size);
-        dyn_to_pack.copyInF([](size_t i){return true;}, init_size);
-      } else if (efficient == 5) {
-        // easier dynamically sized list buffer
-        ss = s;
-        num_workers2 = num_workers();
-        buffer = 1024;
-        int buffer2 = 1024;
-        ddyn_lists = std::vector<std::vector<uintE>>(num_workers2, std::vector<uintE>(100, 0));
-        starts = sequence<size_t>::from_function(num_workers2 + 1, [&](size_t i){return 0;});
-      }
-    }
-
-    void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
-      if (efficient == 2) {
-        use_size = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
-        if (use_size > ss) use_size = std::min(size_t{1 << 20}, ss);
-        size_t space_required  = (size_t)1 << parlay::log2_up((size_t)(use_size*1.1));
-        source_table.resize_no_copy(space_required);
-        use_table = gbbs::make_sparse_table<uintE, uintE>(
-          source_table.backing.data(), space_required,
-          std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
-          std::hash<uintE>(), false /* do not clear */);
-        // (size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
-        /*use_table = STable(space_required,
-          std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
-          std::hash<uintE>(),
-          source_table.table, false);*/
-      }
-    }
-
-    void add(size_t index) {
-      if (efficient == 1) {
-        size_t worker = worker_id();
-        list[starts[worker]] = index;
-        starts[worker]++;
-        if (starts[worker] % buffer == 0) {
-          size_t use_next = gbbs::fetch_and_add(&next, buffer);
-          starts[worker] = use_next;
-        }
-      } else if (efficient == 0) {
-        size_t use_next = gbbs::fetch_and_add(&next, 1);
-        list[use_next] = index;
-      } else if (efficient == 2){
-        use_table.insert(std::make_tuple(index, uintE{1}));
-      } else if (efficient == 5) {
-        size_t worker = worker_id();
-        if (ddyn_lists[worker].size() < starts[worker] + 1)
-          ddyn_lists[worker].resize(2 * (starts[worker] + 1));
-        ddyn_lists[worker][starts[worker]] = index;
-        starts[worker]++;
-      } else if (efficient == 4) {
-        size_t worker = worker_id();
-        dyn_lists[dyn_list_starts[worker]][starts[worker]] = index;
-        starts[worker]++;
-        if (starts[worker] % buffer == 0) {
-          size_t use_next = gbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
-          while (use_next >= init_size) {
-            //while (nexts[dyn_list_starts[worker]] >= init_size) {
-            dyn_list_starts[worker]++;
-            //}
-            use_next = gbbs::fetch_and_add(&(nexts[dyn_list_starts[worker]]), buffer);
-          }
-          starts[worker] = use_next;
-          // But now we need to make sure that dyn_lists[dyn_list_starts[worker]] actually has space....
-          // TODO check this is ok esp for contention maybe take a lock instead
-          while(dyn_lists[dyn_list_starts[worker]].size() == 0) {
-            if (gbbs::atomic_compare_and_swap(&dyn_list_init[dyn_list_starts[worker]], static_cast<char>(false), static_cast<char>(true))) {
-              dyn_lists[dyn_list_starts[worker]] = ListType(init_size); 
-              break;
-            }
-          }
-          // now need to make sure that dyn_list has space for the buffer we've just claimed
-          // this needs to take a lock around dyn_list to work? or use another array to maintain
-          // dyn_lists....
-          //dyn_list.resize(use_next + buffer);
-        }
-      }
-    }
-
-    size_t num_entries() {
-      if (efficient == 1) return next;
-      if (efficient == 0) return next;
-      if (efficient == 2) return use_table.size();
-      if (efficient == 5) {
-        starts[num_workers2] = 0;
-        size_t total = parlay::scan_inplace(make_slice(starts));
-        return total;
-      }
-      if (efficient == 4){
-        auto sizes = sequence<size_t>::from_function(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
-        auto max_size = parlay::reduce_max(sizes);
-        return max_size;
-      }
-      return 0;
-    }
-
-    void void_v(size_t i, uintE actual_v) {
-      if (efficient == 5) {
-        // ***TODO this should be a binary search
-        for (size_t worker = 0; worker < num_workers2; worker++) {
-          auto beginning = starts[worker];
-          auto ending = starts[worker + 1];
-          if (i >= beginning && i < ending) {
-            size_t idx = i - beginning;
-            ddyn_lists[worker][idx] = UINT_E_MAX;
-            return;
-          }
-        }
-      } else if (efficient == 0) {
-        list[i] = UINT_E_MAX;
-      }
-      else {
-        std::cout << "unsupported" << std::endl; fflush(stdout);
-        exit(0);
-      }
-    }
-    uintE get_v(size_t i) {
-      if (efficient == 5) {
-        // ***TODO this should be a binary search
-        for (size_t worker = 0; worker < num_workers2; worker++) {
-          auto beginning = starts[worker];
-          auto ending = starts[worker + 1];
-          if (i >= beginning && i < ending) {
-            size_t idx = i - beginning;
-            return ddyn_lists[worker][idx];
-          }
-        }
-      } else if (efficient == 0) {
-        return list[i];
-      }
-      else {
-        std::cout << "unsupported" << std::endl; fflush(stdout);
-        exit(0);
-      }
-      std::cout << "error" << std::endl; fflush(stdout);
-      return 0;
-    }
-
-    template <class I>
-    size_t filter(I& update_changed, sequence<double>& per_processor_counts) {
-      if (efficient == 1) {
-      parallel_for(0, num_workers2, [&](size_t worker) {
-        size_t divide = starts[worker] / buffer;
-        for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
-          to_pack[j] = false;
-        }
-      });
-      // Pack out 0 to next of list into pack
-      parallel_for(0, next, [&] (size_t i) {
-        if (to_pack[i])
-          update_changed(per_processor_counts, i, list[i]);
-        else
-          update_changed(per_processor_counts, i, UINT_E_MAX);
-      });
-      parallel_for(0, num_workers2, [&](size_t worker) {
-        size_t divide = starts[worker] / buffer;
-        for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
-          to_pack[j] = true;
-        }
-      });
-      return next;
-      } else if (efficient == 0) {
-        parallel_for(0, next, [&](size_t worker) {
-          //assert(list[worker] != UINT_E_MAX);
-          assert(per_processor_counts[list[worker]] != 0);
-          update_changed(per_processor_counts, worker, list[worker]);
-        });
-        return next;
-      } else if (efficient == 2){
-        auto entries = use_table.entries();
-        parallel_for(0, entries.size(), [&](size_t i) {
-          update_changed(per_processor_counts, i, std::get<0>(entries[i]));
-        });
-        return entries.size();
-      } else if (efficient == 5) {
-        starts[num_workers2] = 0;
-        size_t total = parlay::scan_inplace(make_slice(starts));
-        parallel_for(0, num_workers2, [&](size_t worker){
-          parallel_for(starts[worker], starts[worker + 1], [&](size_t j){
-            size_t i = j - starts[worker];
-            update_changed(per_processor_counts, j, ddyn_lists[worker][i]);
-          });
-        });
-        return total;
-      }else if (efficient == 4) {
-        //std::cout << "FILTER" << std::endl;
-        //fflush(stdout);
-        // First ensure that dyn_to_pack is the right size
-        // To do this, we need the max of dyn_list_starts[worker] * init_size + starts[worker] for 0 to num_workers2
-        auto sizes = sequence<size_t>::from_function(num_workers2, [&](size_t i){return dyn_list_starts[i] * init_size + starts[i];});
-        auto max_size = parlay::reduce_max(sizes);
-        auto absolute_max = 1 + 10000 * ((1 + (ss / 10000) / 1024) * 1024  + 1024* num_workers());
-        assert(max_size <= absolute_max);
-        if (max_size > dyn_to_pack.size) dyn_to_pack.copyInF([](size_t i){return true;}, max_size - dyn_to_pack.size);
-        assert(dyn_to_pack.size >= max_size);
-        parallel_for(0, num_workers2, [&](size_t worker) {
-          size_t divide = starts[worker] / buffer;
-          size_t offset = dyn_list_starts[worker] * init_size;
-          for (size_t j = offset + starts[worker]; j < offset + (divide + 1) * buffer; j++) {
-            if (j < dyn_to_pack.size) dyn_to_pack.A[j] = false;
-            //assert(dyn_lists[dyn_list_starts[worker]][j - offset] == UINT_E_MAX);
-          }
-        });
-        // Pack out 0 to next of list into pack
-        parallel_for(0, max_size, [&] (size_t i) {
-          if (dyn_to_pack.A[i]) {
-            auto val = dyn_lists[i / init_size][i % init_size];
-            //assert(val != UINT_E_MAX);
-            update_changed(per_processor_counts, i, val);
-          } else {
-            //auto val = dyn_lists[i / init_size][i % init_size];
-            //assert(val == UINT_E_MAX);
-            update_changed(per_processor_counts, i, UINT_E_MAX);
-          }
-        });
-        parallel_for(0, num_workers2, [&](size_t worker) {
-          size_t divide = starts[worker] / buffer;
-          size_t offset = dyn_list_starts[worker] * init_size;
-          for (size_t j = offset + starts[worker]; j < offset + (divide + 1) * buffer; j++) {
-            if (j < dyn_to_pack.size) dyn_to_pack.A[j] = true;
-          }
-        });
-        //std::cout << "END FILTER" << std::endl;
-        //fflush(stdout);
-        return max_size;
-      }
-      return 0;
-    }
-
-    void reset() {
-      if (efficient == 1) {
-      parallel_for (0, num_workers2, [&] (size_t j) {
-        starts[j] = j * buffer;
-      });
-      /*parallel_for (0, ss + buffer * num_workers2, [&] (size_t j) {
-        list[j] = UINT_E_MAX;
-      });*/
-      next = num_workers2 * buffer;
-      } else if (efficient == 0) {
-        next = 0;
-      } else if (efficient == 2){
-        use_table.clear_table();
-      } else if(efficient == 5) {
-        parallel_for (0, num_workers2, [&] (size_t j) {
-          starts[j] = 0;
-        });
-      }else if (efficient == 4) {
-        parallel_for (0, num_workers2, [&] (size_t j) {
-          starts[j] = j * buffer;
-          dyn_list_starts[j] = 0;
-        });
-        parallel_for(0, nexts.size(), [](size_t j){return 0;});
-        nexts[0] = num_workers2 * buffer;
-      }
-    }
-};
 
 template <class Graph>
 bool is_edge(Graph& DG, uintE v, uintE u) {
@@ -783,7 +441,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I& update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d) {
+  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d,
+  bool use_ppc = true) {
     using W = typename Graph::weight_type;
     // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {
@@ -791,28 +450,40 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     still_active[index] = 1;
     }, 2048);
     auto is_active = [&](size_t index) {
-    return still_active[index] == 1;
+    return still_active[index] == 1 || still_active[index] == 4;
   };
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
   };
     auto update_d = [&](uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-      double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
-      if (ct == 0 && val != 0) {
-        count_idxs.add(index);
+      if (use_ppc) {
+        double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
+        if (ct == 0 && val != 0) {
+          count_idxs.add(index);
+        }
+      } else {
+        cliques->update_count_atomic(index, val);
+        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+          count_idxs.add(index);
       }
     }, r, k);
   };
   t1.start();
   if (k == 2 && r == 1) { // This is (2, 3)
-  auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
-        cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
-          [&](std::size_t index, double val){
+    auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
+    cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
+      [&](std::size_t index, double val){
+        if (use_ppc) {
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
-        }, r, k);
-      };
+        } else {
+          cliques->update_count_atomic(index, val);
+          if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+            count_idxs.add(index);
+        }
+      }, r, k);
+    };
 
       parallel_for(0, active_size, [&](size_t i){
         auto x = get_active(i);
@@ -831,8 +502,14 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
         cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
           [&](std::size_t index, double val){
+            if (use_ppc) {
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
+            } else {
+        cliques->update_count_atomic(index, val);
+        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+          count_idxs.add(index);
+            }
         }, r, k);
       };
 
@@ -878,7 +555,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I& update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d) {
+  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d,
+  bool use_ppc = true) {
   
   using W = typename Graph::weight_type;
 
@@ -889,7 +567,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     }, 2048);
 
   auto is_active = [&](size_t index) {
-    return still_active[index] == 1;
+    return still_active[index] == 1  || still_active[index] == 4;
   };
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
@@ -897,9 +575,15 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
   auto update_d = [&](uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
+      if (use_ppc) {
       double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
+      }
+      } else {
+        cliques->update_count_atomic(index, val);
+        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+          count_idxs.add(index);
       }
     }, r, k);
   };
@@ -917,8 +601,14 @@ t1.start();
       auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
         cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
           [&](std::size_t index, double val){
-          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
+            if (use_ppc) {
+              double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
+            } else {
+              cliques->update_count_atomic(index, val);
+        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+          count_idxs.add(index);
+            }
         }, r, k);
       };
 
@@ -941,8 +631,14 @@ t1.start();
         //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
         cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
           [&](std::size_t index, double val){
+            if (use_ppc) {
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
+            } else {
+              cliques->update_count_atomic(index, val);
+        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+          count_idxs.add(index);
+            }
         }, r, k);
       };
 
@@ -1352,7 +1048,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
   std::cout << "created 3 " << std::endl; fflush(stdout);
 
-  auto per_processor_counts = sequence<double>(num_entries , static_cast<double>(0));
+  auto per_processor_counts = sequence<double>(0);
   std::cout << "created 4 " << std::endl; fflush(stdout);
   
   list_buffer count_idxs(num_entries, efficient);
@@ -1419,12 +1115,12 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       filter_size = cliqueUpdatePND(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
-      t_update_d);
+      t_update_d, false);
     } else {
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
-      t_update_d);
+      t_update_d, false);
     }
       t_count.stop();
 
@@ -1438,11 +1134,12 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     
     parallel_for(0, num_count_idxs, [&](size_t i){
       auto v = count_idxs.get_v(i);
+      
         if (v == UINT_E_MAX) {
           //v = num_entries + 1;
           count_idxs.void_v(i, v);
           D_filter[i] = num_entries + 1;
-        } else if (per_processor_counts[v] == 0) {
+        } else if (cliques->get_count(v) == 0) {
           //v = num_entries + 1;
           count_idxs.void_v(i, v);
           D_filter[i] = num_entries + 1;
@@ -1450,8 +1147,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
         else {
           bucket_t deg = D[v];
           //assert(deg > cur_bkt);
-          auto val = cliques->get_count(v) - std::round(per_processor_counts[v]);
-          cliques->set_count(v, val);
+          auto val = cliques->get_count(v);
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
             D[v] = new_deg;
@@ -1461,12 +1157,15 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
             count_idxs.void_v(i, v);
             D_filter[i] = num_entries + 1; //std::make_tuple(num_entries + 1, 0);
           }
-           per_processor_counts[v] = 0;
+        }
+
+        if (v != UINT_E_MAX) {
+          gbbs::CAS(&(still_active[v]), 3, 0);
+          gbbs::CAS(&(still_active[v]), 4, 1);
         }
     });
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
       auto v = count_idxs.get_v(i);
-       
       if (v != UINT_E_MAX) {
         if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
         assert(v < D.size());

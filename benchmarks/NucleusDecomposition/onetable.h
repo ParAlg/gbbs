@@ -162,6 +162,16 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),update);
       }
 
+      void update_count_atomic(std::size_t index, C update) {
+        if (get_count(i) < update) {
+          std::cout << "i: " << i << ", count: " << get_count(i) << ", update: " << update << std::endl;
+          fflush(stdout);
+          exit(0);
+        }
+        gbbs::write_add(&std::get<1>(table.table[index]), -1 * update);
+        return std::get<1>(table.table[index]);
+      }
+
       Y extract_indices_check(uintE* base2, int r) {
         // Size of base2 should be r + 1
         uintE base[10];

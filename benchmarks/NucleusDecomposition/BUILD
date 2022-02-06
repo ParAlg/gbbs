@@ -114,6 +114,18 @@ cc_library(
 )
 
 cc_library(
+  name = "list_buffer",
+  hdrs = ["list_buffer.h"],
+  deps = [
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
+  ]
+)
+
+cc_library(
   name = "NucleusDecomposition_common",
   hdrs = ["NucleusDecomposition_common.h"],
   deps = [
@@ -139,6 +151,7 @@ cc_library(
   ":multitable",
   ":multitable_nosearch",
   ":commontable",
+  ":list_buffer",
   ]
 )
 

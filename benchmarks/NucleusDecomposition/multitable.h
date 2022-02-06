@@ -628,6 +628,20 @@ namespace multitable {
         return val;
       }
 
+      C update_count_atomic(std::size_t index, C update){
+        if (contiguous_space) {
+          gbbs::write_add(&std::get<1>(space[index]), -1 * update);
+          return std::get<1>(space[index]);
+        }
+        C val = 0;
+        auto func = [&](std::tuple<Y, C>* loc){
+          gbbs::write_add(&std::get<1>(*loc), -1 * update);
+          val = std::get<1>(*loc);
+        };
+        mtable.find_table_loc(index, func);
+        return val;
+      }
+
       void clear_count(std::size_t index) {
         if (contiguous_space) {
           space[index] = std::make_tuple(std::get<0>(space[index]), 0);
