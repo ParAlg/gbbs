@@ -1124,7 +1124,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     }
       t_count.stop();
 
-      std::cout << "FLAG 1" << std::endl; fflush(stdout);
+      //std::cout << "FLAG 1" << std::endl; fflush(stdout);
 
   // Perform update_changed on each vertex with changed clique counts
   //std::size_t num_count_idxs = 0;
@@ -1162,7 +1162,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
           gbbs::CAS(&(still_active[v]), char{4}, char{1});
         }
     });
-    std::cout << "FLAG 2" << std::endl; fflush(stdout);
+    //std::cout << "FLAG 2" << std::endl; fflush(stdout);
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
       auto v = count_idxs.get_v(i);
       if (v != UINT_E_MAX) {
@@ -1177,9 +1177,9 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
     
     b.update_buckets(apply_f, num_count_idxs);
-    std::cout << "FLAG 3" << std::endl; fflush(stdout);
+    //std::cout << "FLAG 3" << std::endl; fflush(stdout);
     count_idxs.reset();
-    std::cout << "FLAG 4" << std::endl; fflush(stdout);
+    //std::cout << "FLAG 4" << std::endl; fflush(stdout);
     t_update.stop();
 
     rounds++;
