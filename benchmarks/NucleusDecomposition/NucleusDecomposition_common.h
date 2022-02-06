@@ -531,7 +531,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   t1.stop();
 
  std::size_t num_count_idxs = 0;
-if (do_update_changed) {
+if (do_update_changed && use_ppc) {
 t_update_d.start();
   // Perform update_changed on each vertex with changed clique counts
  
@@ -803,7 +803,7 @@ t1.start();
 t1.stop();
 
   std::size_t num_count_idxs = 0;
-if (do_update_changed) {
+if (do_update_changed && use_ppc) {
 t_update_d.start();
   // Perform update_changed on each vertex with changed clique counts
 
@@ -1141,11 +1141,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
           //v = num_entries + 1;
           count_idxs.void_v(i, v);
           D_filter[i] = num_entries + 1;
-        } else if (cliques->get_count(v) == 0) {
-          //v = num_entries + 1;
-          count_idxs.void_v(i, v);
-          D_filter[i] = num_entries + 1;
-        }
+        } 
         else {
           bucket_t deg = D[v];
           //assert(deg > cur_bkt);
