@@ -1168,9 +1168,9 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       if (v != UINT_E_MAX) {
         if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
         assert(v < D.size());
-      bucket_t bucket = D_filter[v];
+      bucket_t bucket = D_filter[i];
       assert(bucket != num_entries + 1);
-        if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
+        if (still_active[v] != 2 && still_active[v] != 1 && still_active[v] != 4) return wrap(v, bucket);
       }
       return std::nullopt;
     };
