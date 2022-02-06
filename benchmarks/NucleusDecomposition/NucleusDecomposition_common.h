@@ -464,7 +464,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         }
       } else {
         cliques->update_count_atomic(index, val);
-        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
       }
     }, r, k);
@@ -479,7 +479,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           if (ct == 0 && val != 0) count_idxs.add(index);
         } else {
           cliques->update_count_atomic(index, val);
-          if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+          if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
             count_idxs.add(index);
         }
       }, r, k);
@@ -507,7 +507,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
         cliques->update_count_atomic(index, val);
-        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
             }
         }, r, k);
@@ -582,7 +582,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
       }
       } else {
         cliques->update_count_atomic(index, val);
-        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
       }
     }, r, k);
@@ -606,7 +606,7 @@ t1.start();
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
               cliques->update_count_atomic(index, val);
-        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
             }
         }, r, k);
@@ -636,7 +636,7 @@ t1.start();
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
               cliques->update_count_atomic(index, val);
-        if (gbbs::CAS(&(still_active[index]), 0, 3) || gbbs::CAS(&(still_active[index]), 1, 4))
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
             }
         }, r, k);
@@ -1160,8 +1160,8 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
         }
 
         if (v != UINT_E_MAX) {
-          gbbs::CAS(&(still_active[v]), 3, 0);
-          gbbs::CAS(&(still_active[v]), 4, 1);
+          gbbs::CAS(&(still_active[v]), char{3}, char{0});
+          gbbs::CAS(&(still_active[v]), char{4}, char{1});
         }
     });
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
