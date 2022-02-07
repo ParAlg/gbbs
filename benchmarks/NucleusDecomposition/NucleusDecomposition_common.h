@@ -455,22 +455,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
   };
-    auto update_d = [&](unsigned __int128 x, uintE* base){
-    cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-      if (use_ppc) {
-        double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
-        if (ct == 0 && val != 0) {
-          count_idxs.add(index);
-        }
-      } else {
-        if (!is_inactive(index)) {
-        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
-        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
-          count_idxs.add(index);
-        }
-      }
-    }, r, k, x);
-  };
+
   t1.start();
   if (k == 2 && r == 1) { // This is (2, 3)
     auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
