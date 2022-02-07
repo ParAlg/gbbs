@@ -526,7 +526,7 @@ namespace twotable_nosearch {
 
         if (num_active == 1 && xxx != std::numeric_limits<Y>::max()){
           if (xxx != min_active) {
-            std::cout << "only one active so xxx should be min: " << xxx << ", active: " << min_active << std::endl;
+            std::cout << "only one active so xxx should be min" << std::endl;
             fflush(stdout); exit(0);
           }
         }
