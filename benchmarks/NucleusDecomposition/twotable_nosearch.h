@@ -463,7 +463,9 @@ namespace twotable_nosearch {
       template<class HH, class HG, class I>
       void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
         if (xxx != std::numeric_limits<Y>::max()) {
-          if (!is_active(xxx)) {std::cout << "xxx should be active" << std::endl; fflush(stdout); exit(0);}
+          if (!is_active(xxx)) {
+            std::cout << "xxx should be active" << std::endl; fflush(stdout); exit(0);
+          }
         }
         // Sort base
         uintE base[10];
@@ -475,8 +477,9 @@ namespace twotable_nosearch {
 
         std::vector<size_t> indices;
         size_t num_active = 0;
-        unsigned __int128 min_active = std::numeric_limits<unsigned __int128>::max();
+        Y min_active = std::numeric_limits<Y>::max();
         bool use_func = true;
+        bool one_should_be_xxx = false;
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -510,13 +513,26 @@ namespace twotable_nosearch {
           if (is_active(prefix + index)) {
             num_active++;
             if (prefix + index < min_active) min_active = prefix + index;
+            if (prefix + index == xxx) one_should_be_xxx = true;
           }
           if (is_inactive(prefix + index)) return;
           //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
+        if (xxx != std::numeric_limits<Y>::max() && !one_should_be_xxx) {
+          std::cout << "one is not xxx" << std::endl; fflush(stdout);
+          exit(0);
+        }
+
+        if (num_active == 1 && xxx != std::numeric_limits<Y>::max()){
+          if (xxx != min_active) {
+            std::cout << "only one active so xxx should be min" << std::endl;
+            fflush(stdout); exit(0);
+          }
+        }
+
         //assert(num_active != 0);
-        if (use_func && xxx == std::numeric_limits<Y>::max()){// && matches_base == min_active) {
+        if (use_func && (xxx == std::numeric_limits<Y>::max() || num_active == 1)){// && matches_base == min_active) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);
