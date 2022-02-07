@@ -222,9 +222,11 @@ struct HybridSpace_lw {
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled
     // from 0 to degree of i)
     nn = DG.get_vertex(i).out_degree();
-    parallel_for(0, nn, [&](size_t j) { induced_degs[j] = 0; });
+    for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
+    //parallel_for(0, nn, [&](size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
-    parallel_for(0, nn, [&](size_t j) { induced[j] = j; });
+    for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
+   //parallel_for(0, nn, [&](size_t j) { induced[j] = j; });
 
     size_t j = 0;
     auto map_f = [&](const uintE& src, const uintE& v, const W& wgh) {
@@ -274,8 +276,12 @@ struct HybridSpace_lw {
     DG.get_vertex(i).out_neighbors().map(map_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = gbbs::make_slice(induced_degs, nn);
-    num_edges = parlay::reduce(deg_seq);
+    //auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    //num_edges = parlay::reduce(deg_seq);
+    num_edges = 0;
+    for (std::size_t j = 0; j < nn; j++) {
+      num_edges += induced_degs[j];
+    }
   }
 
   // Perform first level recursion, using linear space to intersect
@@ -286,9 +292,11 @@ struct HybridSpace_lw {
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled
     // from 0 to degree of i)
     nn = DG.get_vertex(i).out_degree();
-    parallel_for(0, nn, [&](size_t j) { induced_degs[j] = 0; });
+    for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
+    //parallel_for(0, nn, [&](size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
-    parallel_for(0, nn, [&](size_t j) { induced[j] = j; });
+    for (std::size_t j = 0; j < nn; j++) {induced[j] = j;}
+    //parallel_for(0, nn, [&](size_t j) { induced[j] = j; });
 
     size_t o = 0;
     auto map_label_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
@@ -355,8 +363,12 @@ struct HybridSpace_lw {
     DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = gbbs::make_slice(induced_degs, nn);
-    num_edges = parlay::reduce(deg_seq);
+    //auto deg_seq = gbbs::make_slice(induced_degs, nn);
+    //num_edges = parlay::reduce(deg_seq);
+    num_edges = 0;
+    for (std::size_t j = 0; j < nn; j++) {
+      num_edges += induced_degs[j];
+    }
   }
 
   template <class Graph, class F>

@@ -43,21 +43,6 @@ namespace twotable_nosearch {
   bool is_max_val(Y max_val) {
     std::size_t max_bit = sizeof(Y) * 8;
     Y check_bit = (max_val >> (max_bit - 1)) & 1U;
-
-  unsigned r = 0;
-  while(max_val >>= 1) {
-    r++;
-  }
-  if (r == max_bit - 1) {
-    if (check_bit == 0) {
-      std::cout << "MISMATCH.." << r << std::endl; fflush(stdout);
-      exit(0);
-    }
-  } else if (r != max_bit - 1 && check_bit != 0) {
-    std::cout << "MISMATCH: " << r << " maxbit: " << max_bit - 1 << std::endl; fflush(stdout);
-      exit(0);
-  }
-
     return (check_bit != 0);
   }
 
@@ -172,6 +157,7 @@ namespace twotable_nosearch {
           EndTableY* end_table = new EndTableY();
 
           Y max_val = static_cast<Y>(vtx); 
+          assert((max_val >> (max_bit - 1)) & 1U == 0U);
           std::size_t max_bit = sizeof(Y) * 8;
           Y one = 1;
           max_val |= (one << (max_bit - 1));
