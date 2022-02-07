@@ -587,7 +587,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 t1.start();
   // Clique count updates
   //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
-  if (k - r == 1) {
+  if (k - r == 1 && ((k == 2 && r == 1) || (k == 3 && r == 2))) {
     // For each vert from 0 to active_size, intersect + place the intersection
     // in base[1], and then call update_d
     if (k == 2 && r == 1) { // This is (2, 3)
