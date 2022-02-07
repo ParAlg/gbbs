@@ -495,7 +495,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
-              if (!is_inactive(index)) {
+              if (!is_inactive(index) && !is_active(index)) {
         cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
@@ -572,7 +572,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         count_idxs.add(index);
       }
       } else {
-        if (!is_inactive(index)) {
+        if (!is_inactive(index) && !is_active(index)) {
         cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
@@ -598,7 +598,7 @@ t1.start();
               double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
-              if (!is_inactive(index)) {
+              if (!is_inactive(index) && !is_active(index)) {
               cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
@@ -630,7 +630,7 @@ t1.start();
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
-              if (!is_inactive(index)) {
+              if (!is_inactive(index) && !is_active(index)) {
               cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
@@ -788,7 +788,7 @@ t1.start();
         count_idxs.add(index);
       }
       } else {
-        if (!is_inactive(index)) {
+        if (!is_inactive(index) && !is_active(index)) {
         cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
