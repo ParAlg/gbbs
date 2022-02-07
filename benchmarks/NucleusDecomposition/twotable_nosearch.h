@@ -70,7 +70,7 @@ namespace twotable_nosearch {
       Y one = 1;
       Y check_bit = (max_val >> (max_bit - 1)) & 1U;
       if (check_bit != 0) {
-        max_val ^= (1UL << (max_bit - 1));
+        max_val ^= (unsigned__int128{1} << (max_bit - 1));
         //max_val &= ~(1UL << (max_bit - 1));
         return static_cast<uintE>(max_val);
       }
@@ -174,7 +174,7 @@ namespace twotable_nosearch {
           Y max_val = static_cast<Y>(vtx); 
           std::size_t max_bit = sizeof(Y) * 8;
           Y one = 1;
-          max_val |= (1UL << (max_bit - 1));
+          max_val |= (unsigned__int128{1} << (max_bit - 1));
 
           end_table->vtx = vtx;
           end_table->table = gbbs::sparse_table<Y, C, H>(
