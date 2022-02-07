@@ -455,7 +455,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
   };
-    auto update_d = [&](uintE* base){
+    auto update_d = [&](unsigned __int128 x, uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       if (use_ppc) {
         double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
@@ -469,7 +469,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           count_idxs.add(index);
         }
       }
-    }, r, k);
+    }, r, k, x);
   };
   t1.start();
   if (k == 2 && r == 1) { // This is (2, 3)
@@ -579,7 +579,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     return still_active[index] == 2;
   };
 
-  auto update_d = [&](uintE* base){
+  auto update_d = [&](unsigned __int128 x, uintE* base){
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       if (use_ppc) {
       double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
@@ -593,7 +593,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           count_idxs.add(index);
         }
       }
-    }, r, k);
+    }, r, k, x);
   };
 
   // Set up space for clique counting
@@ -769,7 +769,7 @@ t1.start();
           uintE actual_ngh = relabel ? rank[ngh] : ngh;
           if (labels[actual_ngh] == k) {
             base[1] = actual_ngh;
-            update_d(base);
+            update_d(x, base);
           }
           labels[actual_ngh] = 0;
         };
@@ -794,6 +794,25 @@ t1.start();
     init_induced(induced);
 
     auto x = get_active(i);
+
+      auto update_d_bind = [&](uintE* base){
+    cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
+      if (use_ppc) {
+      double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
+      if (ct == 0 && val != 0) {
+        count_idxs.add(index);
+      }
+      } else {
+        if (!is_inactive(index)) {
+        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
+          count_idxs.add(index);
+        }
+      }
+    }, r, k, x);
+  };
+
+
     //auto base = sequence<uintE>(k + 1);
     uintE base[10];
     cliques->extract_clique(x, base, G, k);
@@ -806,7 +825,7 @@ t1.start();
       auto g_vert_map = [&](uintE vert){return vert;};
       induced->setup_nucleus(G, DG, k, base, r, g_vert_map, g_vert_map);
     }
-    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d_bind, base);
     //thread_local_is.unreserve(is_pair.first);
   //  finish_induced(induced);
   }, 1, true); //granularity

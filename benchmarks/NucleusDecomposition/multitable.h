@@ -677,7 +677,7 @@ namespace multitable {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
         uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {

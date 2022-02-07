@@ -461,7 +461,7 @@ namespace twotable_nosearch {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -473,8 +473,6 @@ namespace twotable_nosearch {
         std::vector<size_t> indices;
         size_t num_active = 0;
         unsigned __int128 min_active = std::numeric_limits<unsigned __int128>::max();
-        unsigned __int128 matches_base = 0;
-        bool first_time = true;
         bool use_func = true;
 
         std::string bitmask(r+1, 1); // K leading 1's
@@ -505,15 +503,6 @@ namespace twotable_nosearch {
           auto prefix = top_table_sizes[vtx];
           auto index = (end_table->table).find_index(key);
 
-          if (first_time) {
-            first_time = false;
-            matches_base = prefix + index;
-            if (!is_active(prefix + index)) {
-              //std::cout << "something is wrong" << std::endl; fflush(stdout);
-              //exit(0);
-            }
-          }
-
           indices.push_back(prefix + index);
           if (is_active(prefix + index)) {
             num_active++;
@@ -524,11 +513,17 @@ namespace twotable_nosearch {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
         //assert(num_active != 0);
-        if (use_func){// && matches_base == min_active) {
+        if (use_func && xxx == std::numeric_limits<Y>::max()){// && matches_base == min_active) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);
               //func(indices[i], 1);
+          }
+        } else if (use_func && xxx == min_active) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active(indices[i]) && !is_inactive(indices[i]))
+              //func(indices[i], 1.0 / (double) num_active);
+              func(indices[i], 1);
           }
         }
       }

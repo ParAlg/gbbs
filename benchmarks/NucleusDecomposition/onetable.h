@@ -194,7 +194,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
         // Sort base
         // Sort base
         uintE base[10];
