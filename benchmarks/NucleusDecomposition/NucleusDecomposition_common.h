@@ -464,7 +464,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         }
       } else {
         if (!is_inactive(index)) {
-        cliques->update_count_atomic(index, val);
+        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
         }
@@ -481,7 +481,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           if (ct == 0 && val != 0) count_idxs.add(index);
         } else {
           if (!is_inactive(index)) {
-          cliques->update_count_atomic(index, val);
+          cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
           if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
             count_idxs.add(index);
           }
@@ -511,7 +511,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
               if (!is_inactive(index)) {
-        cliques->update_count_atomic(index, val);
+        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
               }
@@ -588,7 +588,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
       }
       } else {
         if (!is_inactive(index)) {
-        cliques->update_count_atomic(index, val);
+        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
         }
@@ -614,7 +614,7 @@ t1.start();
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
               if (!is_inactive(index)) {
-              cliques->update_count_atomic(index, val);
+              cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
               }
@@ -646,7 +646,7 @@ t1.start();
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
               if (!is_inactive(index)) {
-              cliques->update_count_atomic(index, val);
+              cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
               }

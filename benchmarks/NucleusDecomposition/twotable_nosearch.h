@@ -471,6 +471,9 @@ namespace twotable_nosearch {
 
         std::vector<size_t> indices;
         size_t num_active = 0;
+        gbbs::uintE min_active = UINT_E_MAX;
+        gbbs::uintE matches_base = 0;
+        bool first_time = true;
         bool use_func = true;
 
         std::string bitmask(r+1, 1); // K leading 1's
@@ -501,17 +504,26 @@ namespace twotable_nosearch {
           auto prefix = top_table_sizes[vtx];
           auto index = (end_table->table).find_index(key);
 
+          if (first_time) {
+            first_time = false;
+            matches_base = prefix + index;
+          }
+
           indices.push_back(prefix + index);
-          if (is_active(prefix + index)) num_active++;
+          if (is_active(prefix + index)) {
+            //num_active++;
+            if (prefix + index < min_active) min_active = prefix + index;
+          }
           if (is_inactive(prefix + index)) return;
           //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
         assert(num_active != 0);
-        if (use_func) {
+        if (use_func && matches_base == min_active) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
-              func(indices[i], 1.0 / (double) num_active);
+              //func(indices[i], 1.0 / (double) num_active);
+              func(indices[i], 1);
           }
         }
       }
