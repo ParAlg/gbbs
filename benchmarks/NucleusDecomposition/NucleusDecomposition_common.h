@@ -463,9 +463,11 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           count_idxs.add(index);
         }
       } else {
+        if (!is_inactive(index)) {
         cliques->update_count_atomic(index, val);
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
+        }
       }
     }, r, k);
   };
@@ -478,9 +480,11 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
         } else {
+          if (!is_inactive(index)) {
           cliques->update_count_atomic(index, val);
           if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
             count_idxs.add(index);
+          }
         }
       }, r, k);
     };
@@ -506,9 +510,11 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
+              if (!is_inactive(index)) {
         cliques->update_count_atomic(index, val);
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
+              }
             }
         }, r, k);
       };
@@ -581,9 +587,11 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         count_idxs.add(index);
       }
       } else {
+        if (!is_inactive(index)) {
         cliques->update_count_atomic(index, val);
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
+        }
       }
     }, r, k);
   };
@@ -605,9 +613,11 @@ t1.start();
               double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
+              if (!is_inactive(index)) {
               cliques->update_count_atomic(index, val);
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
+              }
             }
         }, r, k);
       };
@@ -635,9 +645,11 @@ t1.start();
           double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
           if (ct == 0 && val != 0) count_idxs.add(index);
             } else {
+              if (!is_inactive(index)) {
               cliques->update_count_atomic(index, val);
         if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
           count_idxs.add(index);
+              }
             }
         }, r, k);
       };
