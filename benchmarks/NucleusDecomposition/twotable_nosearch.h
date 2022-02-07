@@ -42,8 +42,22 @@ namespace twotable_nosearch {
   template<class Y>
   bool is_max_val(Y max_val) {
     std::size_t max_bit = sizeof(Y) * 8;
-    Y one = 1;
     Y check_bit = (max_val >> (max_bit - 1)) & 1U;
+
+  unsigned r = 0;
+  while(max_val >>= 1) {
+    r++;
+  }
+  if (r == max_bit - 1) {
+    if (check_bit == 0) {
+      std::cout << "MISMATCH.." << r << std::endl; fflush(stdout);
+      exit(0);
+    }
+  } else if (r != max_bit - 1 && check_bit != 0) {
+    std::cout << "MISMATCH: " << r << " maxbit: " << max_bit - 1 << std::endl; fflush(stdout);
+      exit(0);
+  }
+
     return (check_bit != 0);
   }
 
@@ -56,7 +70,8 @@ namespace twotable_nosearch {
       Y one = 1;
       Y check_bit = (max_val >> (max_bit - 1)) & 1U;
       if (check_bit != 0) {
-        max_val &= ~(one << (max_bit - 1));
+        max_val ^= (1UL << (max_bit - 1));
+        //max_val &= ~(1UL << (max_bit - 1));
         return static_cast<uintE>(max_val);
       }
       index++;
@@ -159,7 +174,7 @@ namespace twotable_nosearch {
           Y max_val = static_cast<Y>(vtx); 
           std::size_t max_bit = sizeof(Y) * 8;
           Y one = 1;
-          max_val |= one << (max_bit - 1);
+          max_val |= (1UL << (max_bit - 1));
 
           end_table->vtx = vtx;
           end_table->table = gbbs::sparse_table<Y, C, H>(
@@ -288,12 +303,12 @@ namespace twotable_nosearch {
       }
 
       C get_count(std::size_t index) {
-        if (is_max_val(std::get<0>(space[index]))) return 0;
+        if (is_max_val<Y>(std::get<0>(space[index]))) return 0;
         return std::get<1>(space[index]);
       }
 
       C update_count(std::size_t index, C update){
-        if (is_max_val(std::get<0>(space[index]))) return 0;
+        if (is_max_val<Y>(std::get<0>(space[index]))) return 0;
         if (get_count(index) < update) {
           std::cout << "i: " << index << ", count: " << get_count(index) << ", update twotablenosearch: " << update << std::endl;
           fflush(stdout);
@@ -307,7 +322,7 @@ namespace twotable_nosearch {
       }
 
       C update_count_atomic(std::size_t index, C update){
-        if (is_max_val(std::get<0>(space[index]))) return 0;
+        if (is_max_val<Y>(std::get<0>(space[index]))) return 0;
         if (get_count(index) < update) {
           std::cout << "i: " << index << ", count: " << get_count(index) << ", update twotablenosearch: " << update << std::endl;
           fflush(stdout);
@@ -471,8 +486,8 @@ namespace twotable_nosearch {
 
         std::vector<size_t> indices;
         size_t num_active = 0;
-        gbbs::uintE min_active = UINT_E_MAX;
-        gbbs::uintE matches_base = 0;
+        unsigned __int128 min_active = std::numeric_limits<unsigned __int128>::max();
+        unsigned __int128 matches_base = 0;
         bool first_time = true;
         bool use_func = true;
 
@@ -518,7 +533,7 @@ namespace twotable_nosearch {
           //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
-        assert(num_active != 0);
+        //assert(num_active != 0);
         if (use_func && matches_base == min_active) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
