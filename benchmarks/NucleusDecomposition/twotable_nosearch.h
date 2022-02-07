@@ -509,8 +509,8 @@ namespace twotable_nosearch {
             first_time = false;
             matches_base = prefix + index;
             if (!is_active(prefix + index)) {
-              std::cout << "something is wrong" << std::endl; fflush(stdout);
-              exit(0);
+              //std::cout << "something is wrong" << std::endl; fflush(stdout);
+              //exit(0);
             }
           }
 
