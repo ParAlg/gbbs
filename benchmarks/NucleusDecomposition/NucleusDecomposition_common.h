@@ -718,9 +718,6 @@ t1.start();
         uintE base[10];
         cliques->extract_clique(x, base, G, k);
 
-auto check = cliques->extract_indices_check(base, r);
-if (check != x) { std::cout << "conversion err" << std::endl; fflush(stdout); exit(0);}
-
         // Sequentially find min deg and swap with 0
         uintE u = relabel ? inverse_rank[base[0]] : base[0];
         auto min_deg = G.get_vertex(u).out_degree();

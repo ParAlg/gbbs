@@ -514,6 +514,10 @@ namespace twotable_nosearch {
             num_active++;
             if (prefix + index < min_active) min_active = prefix + index;
             if (prefix + index == xxx) one_should_be_xxx = true;
+            if (prefix + index > std::numeric_limits<Y>::max()) {
+              std::cout << "greater than max??" << std::endl; fflush(stdout);
+              exit(0);
+            }
           }
           if (is_inactive(prefix + index)) return;
           //func(prefix + index);
