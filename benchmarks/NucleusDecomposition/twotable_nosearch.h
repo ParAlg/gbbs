@@ -293,8 +293,9 @@ namespace twotable_nosearch {
       }
 
       C update_count(std::size_t index, C update){
+        if (is_max_val(std::get<0>(space[index]))) return 0;
         if (get_count(index) < update) {
-          std::cout << "i: " << index << ", count: " << get_count(index) << ", update: " << update << std::endl;
+          std::cout << "i: " << index << ", count: " << get_count(index) << ", update twotablenosearch: " << update << std::endl;
           fflush(stdout);
           exit(0);
         }
@@ -308,7 +309,7 @@ namespace twotable_nosearch {
       C update_count_atomic(std::size_t index, C update){
         if (is_max_val(std::get<0>(space[index]))) return 0;
         if (get_count(index) < update) {
-          std::cout << "i: " << index << ", count: " << get_count(index) << ", update: " << update << std::endl;
+          std::cout << "i: " << index << ", count: " << get_count(index) << ", update twotablenosearch: " << update << std::endl;
           fflush(stdout);
           exit(0);
         }
