@@ -508,11 +508,15 @@ namespace twotable_nosearch {
           if (first_time) {
             first_time = false;
             matches_base = prefix + index;
+            if (!is_active(prefix + index)) {
+              std::cout << "something is wrong" << std::endl; fflush(stdout);
+              exit(0);
+            }
           }
 
           indices.push_back(prefix + index);
           if (is_active(prefix + index)) {
-            //num_active++;
+            num_active++;
             if (prefix + index < min_active) min_active = prefix + index;
           }
           if (is_inactive(prefix + index)) return;
@@ -520,11 +524,11 @@ namespace twotable_nosearch {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
         //assert(num_active != 0);
-        if (use_func && matches_base == min_active) {
+        if (use_func){// && matches_base == min_active) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
-              //func(indices[i], 1.0 / (double) num_active);
-              func(indices[i], 1);
+              func(indices[i], 1.0 / (double) num_active);
+              //func(indices[i], 1);
           }
         }
       }
