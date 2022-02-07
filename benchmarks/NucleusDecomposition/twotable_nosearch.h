@@ -462,6 +462,10 @@ namespace twotable_nosearch {
 
       template<class HH, class HG, class I>
       void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
+        if (std::numeric_limits<Y>::max() == 0) {
+          std::cout << "why is this 0" << std::endl; fflush(stdout);
+          exit(0);
+        }
         if (xxx != std::numeric_limits<Y>::max()) {
           if (!is_active(xxx)) {
             std::cout << "xxx should be active" << std::endl; fflush(stdout); exit(0);
