@@ -936,7 +936,15 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         else {
           bucket_t deg = D[v];
           assert(deg > cur_bkt);
-          auto val = cliques->get_count(v) - std::round(ppc[v]);
+          auto clique_count = cliques->get_count(v);
+          if (std::round(ppc[v]) > clique_count){
+            std::cout << "PPC: " << std::round(ppc[v]) << ", count: " << clique_count << ", v: " << v << std::endl;
+            fflush(stdout);
+            exit(0);
+          }
+          assert(std::round(ppc[v]) <= clique_count);
+          
+          auto val = clique_count - std::round(ppc[v]);
           cliques->set_count(v, val);
           if (deg > cur_bkt) {
             bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
