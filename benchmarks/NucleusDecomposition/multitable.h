@@ -695,7 +695,7 @@ namespace multitable {
           indices.push_back(idx);
           if (is_active(idx)) {
             num_active++;
-            if (index < min_active) min_active = index;
+            if (idx < min_active) min_active = idx;
           }
           if (is_inactive(idx)) use_func = false;
         };
