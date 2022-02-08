@@ -171,8 +171,19 @@ namespace gbbs {
   }
   };
 
+  int BinomialCoefficient(const int n, const int k) {
+  std::vector<int> aSolutions(k);
+  aSolutions[0] = n - k + 1;
+
+  for (int i = 1; i < k; ++i) {
+    aSolutions[i] = aSolutions[i - 1] * (n - k + 1 + i) / (i + 1);
+  }
+
+  return aSolutions[k - 1];
+}
+
   template <class Graph, class T>
-  inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table) {
+  inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table, bool tmp_verify = true) {
     k--; r--;
     //timer t2; t2.start();
 
@@ -205,7 +216,36 @@ namespace gbbs {
     }, 1, false);
     //double tt2 = t2.stop();
 
-    return parlay::reduce(tots);
+    auto total_count = parlay::reduce(tots);
+
+    if (tmp_verify && k != 2) {
+      uint64_t verify_total = 0;
+      auto tmp_base_f = [&](sequence<uintE>& base){
+        auto idx = extract_indices_check(base.data(), r);
+        auto count = table->get_count(idx);
+        gbbs::fetch_and_add(&verify_total, count);
+      };
+
+      auto verify_init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r, DG.n, true, true); };
+      auto verify_finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+      parallel_for_alloc<HybridSpace_lw>(verify_init_induced, verify_finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+        if (DG.get_vertex(i).out_degree() != 0) {
+          induced->setup(DG, r, i);
+          auto base = sequence<uintE>(r + 1);
+          base[0] = i;
+          NKCliqueDir_fast_hybrid_rec(DG, 1, r, induced, base_f, base);
+        }
+      }, 1, false);
+      verify_total = verify_total / BinomialCoefficient(k+1, r+1);
+      if (verify_total != total_count){
+        std::cout << "verify: " << verify_total << std::endl;
+        std::cout << "total count: " << total_count << std::endl;
+        fflush(stdout); exit(0);
+      }
+      assert(verify_total == total_count);
+    }
+
+    return total_count;
   }
 
 
