@@ -221,7 +221,7 @@ namespace gbbs {
     if (tmp_verify && k != 2) {
       uint64_t verify_total = 0;
       auto tmp_base_f = [&](sequence<uintE>& base){
-        auto idx = extract_indices_check(base.data(), r);
+        auto idx = table->extract_indices_check(base.data(), r);
         auto count = table->get_count(idx);
         gbbs::fetch_and_add(&verify_total, count);
       };
