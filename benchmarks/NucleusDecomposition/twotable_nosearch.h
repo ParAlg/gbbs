@@ -461,12 +461,12 @@ namespace twotable_nosearch {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = 0) {
         /*if (std::numeric_limits<Y>::max() == 0) {
           std::cout << "why is this 0" << std::endl; fflush(stdout);
           exit(0);
         }*/
-        if (xxx != std::numeric_limits<Y>::max()) {
+        if (xxx != 0) {
           if (!is_active(xxx)) {
             std::cout << "xxx should be active" << std::endl; fflush(stdout); exit(0);
           }
@@ -481,7 +481,7 @@ namespace twotable_nosearch {
 
         std::vector<size_t> indices;
         size_t num_active = 0;
-        Y min_active = __uint128_t(__int128_t(-1L));
+        __uint128_t min_active = __uint128_t(__int128_t(-1L));
         bool use_func = true;
         bool one_should_be_xxx = false;
 
@@ -518,6 +518,10 @@ namespace twotable_nosearch {
             num_active++;
             if (prefix + index < min_active) min_active = prefix + index;
             if (prefix + index == xxx) one_should_be_xxx = true;
+            if (prefix + index > min_active && min_active == __uint128_t(__int128_t(-1L))){
+              std::cout << "we have a min problem" << std::endl; fflush(stdout);
+              exit(0);
+            }
             /*if (prefix + index > std::numeric_limits<Y>::max()) {
               std::cout << "greater than max??" << std::endl; fflush(stdout);
               exit(0);
@@ -527,12 +531,12 @@ namespace twotable_nosearch {
           //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
-        if (xxx != std::numeric_limits<Y>::max() && !one_should_be_xxx) {
+        if (xxx != 0 && !one_should_be_xxx) {
           std::cout << "one is not xxx" << std::endl; fflush(stdout);
           exit(0);
         }
 
-        if (num_active == 1 && xxx != std::numeric_limits<Y>::max()){
+        if (num_active == 1 && xxx != 0){
           if (xxx != min_active) {
             std::cout << "only one active so xxx should be min" << std::endl;
             fflush(stdout); exit(0);
@@ -540,7 +544,7 @@ namespace twotable_nosearch {
         }
 
         //assert(num_active != 0);
-        if (use_func && (xxx == std::numeric_limits<Y>::max() || num_active == 1)){// && matches_base == min_active) {
+        if (use_func && (xxx == 0 || num_active == 1)){// && matches_base == min_active) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);
