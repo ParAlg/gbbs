@@ -233,7 +233,7 @@ namespace gbbs {
           induced->setup(DG, r, i);
           auto base = sequence<uintE>(r + 1);
           base[0] = i;
-          NKCliqueDir_fast_hybrid_rec(DG, 1, r, induced, base_f, base);
+          NKCliqueDir_fast_hybrid_rec(DG, 1, r, induced, tmp_base_f, base);
         }
       }, 1, false);
       verify_total = verify_total / BinomialCoefficient(k+1, r+1);
