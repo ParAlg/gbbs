@@ -473,7 +473,7 @@ namespace twotable {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = 0) {
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -487,7 +487,7 @@ namespace twotable {
         bool use_func = true;
         unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
 
-        Y min_active = std::numeric_limits<Y>::max();
+        __uint128_t min_active = __uint128_t(__int128_t(-1L));
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -527,7 +527,7 @@ namespace twotable {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
         assert(num_active != 0);
-        if (use_func && (xxx == std::numeric_limits<Y>::max() || num_active == 1)){
+        if (use_func && (xxx == 0 || num_active == 1)){
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);

@@ -677,7 +677,7 @@ namespace multitable {
       }
 
       template<class HH, class HG, class I>
-      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
+      void extract_indices(uintE* base2, HH is_active, HG is_inactive, I func, int r, int k, Y xxx = 0) {
         uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
@@ -689,9 +689,14 @@ namespace multitable {
         size_t num_active = 0;
         bool use_func = true;
 
+        __uint128_t min_active = __uint128_t(__int128_t(-1L));
+
         auto h_func = [&](std::size_t idx){
           indices.push_back(idx);
-          if (is_active(idx)) num_active++;
+          if (is_active(idx)) {
+            num_active++;
+            if (index < min_active) min_active = index;
+          }
           if (is_inactive(idx)) use_func = false;
         };
 
@@ -699,10 +704,15 @@ namespace multitable {
 
         assert(num_active != 0);
 
-        if (use_func) {
+        if (use_func && (xxx == 0 || num_active == 1)) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);
+          }
+        } else if (use_func && xxx == min_active){
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active(indices[i]) && !is_inactive(indices[i]))
+              func(indices[i], 1.0);
           }
         }
       }
