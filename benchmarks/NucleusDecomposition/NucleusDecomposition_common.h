@@ -183,7 +183,7 @@ namespace gbbs {
 }
 
   template <class Graph, class T>
-  inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table, bool tmp_verify = true) {
+  inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table, bool tmp_verify = false) {
     k--; r--;
     //timer t2; t2.start();
 
@@ -1081,7 +1081,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 //*************************************************SPACE EFFICIENT CODE******************
 
 
-template <typename bucket_t, class Graph, class Graph2, class T>
+template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T>
 sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
   bool use_compress,
@@ -1110,7 +1110,8 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
   std::cout << "created 1 " << std::endl; fflush(stdout);
 
-  auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
+  auto b = buckets<sequence<bucket_t>, iden_t, bucket_t>(num_entries, D, increasing, num_buckets);
+  //make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
   std::cout << "created 3 " << std::endl; fflush(stdout);
 
   auto per_processor_counts = sequence<double>(0);
