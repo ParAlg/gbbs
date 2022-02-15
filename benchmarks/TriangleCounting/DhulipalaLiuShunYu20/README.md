@@ -1,3 +1,13 @@
+# Parallel Batch-Dynamic Triangle Counting
+--------
+
+This directory contains code for our experiments presented in the following paper: 
+
+Laxman Dhulipala, Quanquan C. Liu, Julian Shun, Shangdi Yu: Parallel Batch-Dynamic k-Clique Counting. APOCS 2021: 129-143. [arXiv link](https://arxiv.org/abs/2003.13585)
+
+Building
+--------
+
 To build:
 ```
 bazel build //benchmarks/TriangleCounting/DhulipalaLiuShunYu20:DynamicTriangle_main
