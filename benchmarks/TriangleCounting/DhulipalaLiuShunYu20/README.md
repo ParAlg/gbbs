@@ -17,6 +17,27 @@ Using bazel:
 ```
 bazel build //benchmarks/TriangleCounting/DhulipalaLiuShunYu20:DynamicTriangle_main
 ```
+Input Graph Format
+--------
+
+GBBS uses the adjacency graph format based off [Problem Based Benchmark
+suite](http://www.cs.cmu.edu/~pbbs/benchmarks/graphIO.html)
+and [Ligra](https://github.com/jshun/ligra).
+
+For graphs obtained from [SNAP](https://snap.stanford.edu/snap/), you can use the [SNAP converter](https://github.com/ParAlg/gbbs/blob/tri_merge/utils/snap_converter.cc). Simply run the following commands from the [utils](https://github.com/ParAlg/gbbs/blob/tri_merge/utils/) directory:
+
+```
+# Get the graph from SNAP
+wget https://snap.stanford.edu/data/wiki-Vote.txt.gz
+gzip --decompress ${PWD}/wiki-Vote.txt.gz
+
+# Build the converter
+make snap_converter
+
+# Use the converter to convert the desired file
+./snap_converter -s -i <input file> -o <output file>
+```
+
 Running the Code
 --------
 
