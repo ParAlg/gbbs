@@ -8,17 +8,24 @@ Laxman Dhulipala, Quanquan C. Liu, Julian Shun, Shangdi Yu: Parallel Batch-Dynam
 Building
 --------
 
-To build:
+Using make:
+```
+make
+```
+
+Using bazel:
 ```
 bazel build //benchmarks/TriangleCounting/DhulipalaLiuShunYu20:DynamicTriangle_main
 ```
+Running the Code
+--------
 
 Run Orkut:
 ```
 # dlsy insert
 numactl -i all ./Triangle -s -shuffle -w 1 -blocksize 128 -batchsize 1000000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty
 
-# dlsy delelte
+# dlsy delete
 numactl -i all ./Triangle -s -shuffle -w 2 -blocksize 128 -batchsize 10000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty 
 
 # makkar insert
