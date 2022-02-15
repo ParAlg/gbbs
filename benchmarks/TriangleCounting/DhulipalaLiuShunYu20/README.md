@@ -52,7 +52,6 @@ Command for running the experiments:
 
 # makkar insert
 ./Triangle -s -shuffle -makkar -batchsize 100000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty 
-
  ```
  where "/ssd1/graphs/bench_experiments/com-orkut.ungraph.adj" should be replaced with the path to the input graph of choice in adjacency graph format (detailed above).
  
