@@ -37,11 +37,33 @@ make snap_converter
 # Use the converter to convert the desired file
 ./snap_converter -s -i <input file> -o <output file>
 ```
+Note that the above converter can also be used to convert other graphs in edge list format.
 
 Running the Code
 --------
 
-Run Orkut:
+Command for running the experiments:
+```
+# dlsy insert
+./Triangle -s -shuffle -w 1 -blocksize 128 -batchsize 1000000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty
+
+# dlsy delete
+./Triangle -s -shuffle -w 2 -blocksize 128 -batchsize 10000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty 
+
+# makkar insert
+./Triangle -s -shuffle -makkar -batchsize 100000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty 
+
+ ```
+ where "/ssd1/graphs/bench_experiments/com-orkut.ungraph.adj" should be replaced with the path to the input graph of choice in adjacency graph format (detailed above).
+ 
+ Running RMAT:
+ 
+ ```
+ # DLSY DELETE
+./Triangle -s -w 2 -blocksize 128 -batchsize 1000 -n 16384 ../../../inputs/empty  /ssd0/sy/rMatGraph_J_16K_1.6B
+```
+
+On NUMA machines, which can give improved performance:
 ```
 # dlsy insert
 numactl -i all ./Triangle -s -shuffle -w 1 -blocksize 128 -batchsize 1000000 -n 3072627  /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj ../../../inputs/empty
@@ -54,13 +76,13 @@ numactl -i all ./Triangle -s -shuffle -makkar -batchsize 100000 -n 3072627  /ssd
 
  ```
 
- Run RMAT:
+ Running RMAT:
  ```
  # DLSY DELETE
 numactl -i all ./Triangle -s -w 2 -blocksize 128 -batchsize 1000 -n 16384 ../../../inputs/empty  /ssd0/sy/rMatGraph_J_16K_1.6B
 ```
 
-Run Twitter:
+Running Twitter:
 ```
 # dlsy delete
 #numactl -i all ./Triangle -s -shuffle -w 2 -blocksize 128 -batchsize 1000  -n 41652231 /ssd1/graphs/bench_experiments/twitter_sym.adj ../../../inputs/empty 
