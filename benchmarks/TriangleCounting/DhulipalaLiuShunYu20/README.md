@@ -5,6 +5,29 @@ This directory contains code for our experiments presented in the following pape
 
 Laxman Dhulipala, Quanquan C. Liu, Julian Shun, Shangdi Yu: Parallel Batch-Dynamic k-Clique Counting. APOCS 2021: 129-143. [arXiv link](https://arxiv.org/abs/2003.13585)
 
+Bibtex: 
+
+```
+@inproceedings{DBLP:conf/apocs/DhulipalaLSY21,
+  author    = {Laxman Dhulipala and
+               Quanquan C. Liu and
+               Julian Shun and
+               Shangdi Yu},
+  editor    = {Michael Schapira},
+  title     = {Parallel Batch-Dynamic \emph{k}-Clique Counting},
+  booktitle = {2nd Symposium on Algorithmic Principles of Computer Systems, {APOCS}
+               2020, Virtual Conference, January 13, 2021},
+  pages     = {129--143},
+  publisher = {{SIAM}},
+  year      = {2021},
+  url       = {https://doi.org/10.1137/1.9781611976489.10},
+  doi       = {10.1137/1.9781611976489.10},
+  timestamp = {Wed, 17 Mar 2021 13:58:55 +0100},
+  biburl    = {https://dblp.org/rec/conf/apocs/DhulipalaLSY21.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+```
+
 Building
 --------
 
