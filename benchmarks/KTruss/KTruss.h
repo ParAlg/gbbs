@@ -38,8 +38,8 @@ void CountCliquesNucPND(Graph& DG, T apply_func) {
       //auto tots = sequence<size_t>(DG.n, size_t{0});
       parallel_for(0, DG.n, [&](size_t i) {
         auto vert_i = DG.get_vertex(i);
-        auto iter_i = vert_i.getOutIter(i);
-        for (std::size_t j = 0; j < vert_i.getOutDegree(); j++) {
+        auto iter_i = vert_i.out_neighbors().get_iter();
+        for (std::size_t j = 0; j < vert_i.out_degree(); j++) {
           auto x = std::get<0>(iter_i.cur());
           if (iter_i.has_next()) iter_i.next();
           std::vector<uintE> inter;
