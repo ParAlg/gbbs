@@ -43,7 +43,7 @@ void CountCliquesNucPND(Graph& DG, T apply_func) {
           auto x = std::get<0>(iter_i.cur());
           if (iter_i.has_next()) iter_i.next();
           std::vector<uintE> inter;
-          truss_utils::intersectionPND(DG, i, x, inter);
+          truss_utils::truss_intersectionPND(DG, i, x, inter);
           //tots[i] += inter.size();
           for (std::size_t l = 0; l < inter.size(); l++) {
             apply_func(i, x, inter[l]);
