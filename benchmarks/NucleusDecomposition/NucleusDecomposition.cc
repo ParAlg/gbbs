@@ -55,7 +55,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   long num_multi_levels = P.getOptionLongValue("--numberOfMultiLevels", 2);
   auto inverse_index_map_str = P.getOptionValue("--inverseIndexMap", "");
   auto update_agg_str = P.getOptionValue("--updateAggregation", "");
-  bool relabel = P.getOptionValue("--relabel"); // for true, relabel graph
+  bool relabel = P.getOptionValue("--relabel") || P.getOptionValue("-relabel"); // for true, relabel graph
   bool contiguous_space = P.getOptionValue("--contiguousSpace") || P.getOptionValue("-contig"); // for true, contiguous space
   long r_clique_size = P.getOptionLongValue("--rClique", 3); // k as in k-cliques
   long s_clique_size = P.getOptionLongValue("--sClique", 4); // k as in k-cliques
