@@ -466,11 +466,12 @@ namespace twotable_nosearch {
           std::cout << "why is this 0" << std::endl; fflush(stdout);
           exit(0);
         }*/
-        if (xxx != 0) {
+        assert(xxx == 0 || is_active(xxx));
+        /*if (xxx != 0) {
           if (!is_active(xxx)) {
             std::cout << "xxx should be active" << std::endl; fflush(stdout); exit(0);
           }
-        }
+        }*/
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -518,10 +519,11 @@ namespace twotable_nosearch {
             num_active++;
             if (prefix + index < min_active) min_active = prefix + index;
             if (prefix + index == xxx) one_should_be_xxx = true;
-            if (prefix + index > min_active && min_active == __uint128_t(__int128_t(-1L))){
+            assert(prefix + index <= min_active && min_active != __uint128_t(__int128_t(-1L)));
+            /*if (prefix + index > min_active && min_active == __uint128_t(__int128_t(-1L))){
               std::cout << "we have a min problem" << std::endl; fflush(stdout);
               exit(0);
-            }
+            }*/
             /*if (prefix + index > std::numeric_limits<Y>::max()) {
               std::cout << "greater than max??" << std::endl; fflush(stdout);
               exit(0);
@@ -530,18 +532,20 @@ namespace twotable_nosearch {
           if (is_inactive(prefix + index)) return;
           //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
-
-        if (xxx != 0 && !one_should_be_xxx) {
+        
+        assert(xxx == 0 || one_should_be_xxx);
+        /*if (xxx != 0 && !one_should_be_xxx) {
           std::cout << "one is not xxx" << std::endl; fflush(stdout);
           exit(0);
-        }
-
+        }*/
+        assert(num_active != 1 || xxx == 0 || xxx == min_active);
+        /*
         if (num_active == 1 && xxx != 0){
           if (xxx != min_active) {
             std::cout << "only one active so xxx should be min" << std::endl;
             fflush(stdout); exit(0);
           }
-        }
+        }*/
 
         //assert(num_active != 0);
         if (use_func && (xxx == 0 || num_active == 1)){// && matches_base == min_active) {

@@ -219,7 +219,8 @@ cc_binary(
   name = "NucleusDecomposition_main",
   srcs = ["NucleusDecomposition.cc"],
   deps = [
-  ":NucleusDecomposition"
+  ":NucleusDecomposition",
+  "//benchmarks/KTruss:KTruss",
   ]
 )
 
