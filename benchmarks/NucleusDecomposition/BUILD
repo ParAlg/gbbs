@@ -178,8 +178,6 @@ cc_library(
   ":onetable",
   ":twotable",
   ":twotable_nosearch",
-  ":multitable",
-  ":multitable_nosearch",
   ":commontable",
   ":NucleusDecomposition_common",
   ]

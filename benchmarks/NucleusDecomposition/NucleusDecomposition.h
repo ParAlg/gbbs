@@ -49,12 +49,10 @@
 #include "benchmarks/CliqueCounting/induced_split.h"
 #include "benchmarks/CliqueCounting/relabel.h"
 
-#include "multitable.h"
 #include "twotable.h"
 #include "twotable_nosearch.h"
 #include "onetable.h"
 #include "commontable.h"
-#include "multitable_nosearch.h"
 #include "NucleusDecomposition_common.h"
 
 // list buffer is to collate indices of r-cliques with changed s-clique counts while peeling
@@ -141,24 +139,7 @@ inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, l
   //sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
 
-  if (table_type == 3) {
-    t.start();
-    // Num levels matches, e.g., 2 for two level
-    num_levels -= 1;
-    if (!relabel) {
-      auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func, output_size);
-      double tt = t.stop();
-      std::cout << "### Table Running Time: " << tt << std::endl;
-      NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-    } else {
-      auto rank_func = std::less<uintE>();
-      multitable::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func, output_size);
-      double tt = t.stop();
-      std::cout << "### Table Running Time: " << tt << std::endl;
-      NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-    }
-  } else if (table_type == 2) {
+  if (table_type == 2) {
     t.start();
     twotable::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
     double tt = t.stop();
@@ -170,22 +151,6 @@ inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, l
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-  } else if (table_type == 4) {
-    // Num levels matches, e.g., 2 for two level
-    num_levels -= 1;
-    if (!relabel) {
-      auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable_nosearch::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func, output_size);
-      double tt = t.stop();
-      std::cout << "### Table Running Time: " << tt << std::endl;
-      NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-    } else {
-      auto rank_func = std::less<uintE>();
-      multitable_nosearch::MHash<T, H, bucket_t, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func, output_size);
-      double tt = t.stop();
-      std::cout << "### Table Running Time: " << tt << std::endl;
-      NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-    }
   } else if (table_type == 5) {
     t.start();
     twotable_nosearch::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, relabel, shift_factor);
