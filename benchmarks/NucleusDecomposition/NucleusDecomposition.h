@@ -61,30 +61,6 @@
 
 namespace gbbs {
 
-template <class Graph, class DirectedGraph, class Table, class Table2>
-inline void NucleusDecompositionVerificationRunner(Graph& GA, DirectedGraph& DG,
-  size_t r, size_t s, Table& table, Table2& table2,
-  size_t max_deg, sequence<uintE>& rank) {
-
-  //std::cout << "Start count" << std::endl;
-  timer t; t.start();
-  size_t count = CountCliquesNuc(DG, s, r, max_deg, &table);
-  size_t count2 = CountCliquesNuc(DG, s, r, max_deg, &table2);
-  assert(count == count2);
-  double tt = t.stop();
-  //std::cout << "End count" << std::endl;
-
-  std::cout << "### Count Running Time: " << tt << std::endl;
-  std::cout << "### Num " << s << " cliques = " << count << "\n";
-
-  timer t2; t2.start();
-  auto peel = Peel_verify<std::size_t>(GA, DG, r, s, &table, &table2, rank);
-  double tt2 = t2.stop();
-  std::cout << "### Peel Running Time: " << tt2 << std::endl;
-
-  //return peel;
-}
-
 template <class iden_t, class bucket_t, class Graph, class DirectedGraph, class Table>
 inline void NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   size_t r, size_t s, Table& table, 
@@ -120,15 +96,6 @@ template<class T>
 T round_up(T dividend, T divisor)
 {
     return (dividend + (divisor - 1)) / divisor;
-}
-
-template <class T, class H, class Graph, class Graph2>
-inline void runner_verify(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
-  bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor) {
-  nd_global_shift_factor = shift_factor;
-  onetable::OnelevelHash<T, H, uintE> table(r, DG, max_deg, shift_factor);
-  twotable_nosearch::TwolevelHash<T, H, uintE> table2(r, DG, max_deg, relabel, shift_factor);
-  NucleusDecompositionVerificationRunner(GA, DG, r, s, table, table2, max_deg, rank);
 }
 
 template <class bucket_t, class T, class H, class Graph, class Graph2>
@@ -223,12 +190,8 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
       max_deg, rank, shift_factor, efficient, use_compress, output_size);
   } else {
     // unsigned__int128
-    if (!verify)
       runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
         max_deg, rank, shift_factor, efficient, use_compress, output_size);
-    else
-      runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor);
   }
 
 
@@ -246,12 +209,8 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
       max_deg, rank, shift_factor, efficient, use_compress, output_size);
   } else {
     // unsigned__int128
-    if (!verify)
       runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
         max_deg, rank, shift_factor, efficient, use_compress, output_size);
-    else
-      runner_verify<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor);
   }
 
   }

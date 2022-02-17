@@ -38,12 +38,6 @@ class list_buffer {
     size_t ss;
     size_t efficient = 1;
 
-    // for hash
-    using STable = gbbs::sparse_table<uintE, uintE, std::hash<uintE>>;
-    STable source_table;
-    size_t use_size;
-    STable use_table;
-
     // for dynamic
     using ListType = sequence<uintE>;
     sequence<ListType> dyn_lists;
@@ -75,12 +69,6 @@ class list_buffer {
         list = sequence<uintE>(s, static_cast<uintE>(UINT_E_MAX));
         std::cout << "list size: " << sizeof(uintE) * list.size() << std::endl;
         next = 0;
-      } else if (efficient == 2) {
-        // fix for hash table version -- efficient = 2
-        ss = s;
-        source_table = gbbs::make_sparse_table<uintE, uintE>(std::min(size_t{1 << 20}, s), std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0), std::hash<uintE>());
-        std::cout << "list size: " << sizeof(std::tuple<uintE, uintE>) * source_table.m << std::endl;
-        use_size = s;
       } else if (efficient == 4) {
         // version of list buffer that's dynamically sized
         ss = s;
@@ -114,21 +102,6 @@ class list_buffer {
     }
 
     void resize(size_t num_active, size_t k, size_t r, size_t cur_bkt) {
-      if (efficient == 2) {
-        use_size = std::min(use_size, (size_t) (num_active * (nChoosek(k+1, r+1) - 1) * cur_bkt));
-        if (use_size > ss) use_size = std::min(size_t{1 << 20}, ss);
-        size_t space_required  = (size_t)1 << parlay::log2_up((size_t)(use_size*1.1));
-        source_table.resize_no_copy(space_required);
-        use_table = gbbs::make_sparse_table<uintE, uintE>(
-          source_table.backing.data(), space_required,
-          std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
-          std::hash<uintE>(), false /* do not clear */);
-        // (size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
-        /*use_table = STable(space_required,
-          std::make_tuple(std::numeric_limits<uintE>::max(), (uintE)0),
-          std::hash<uintE>(),
-          source_table.table, false);*/
-      }
     }
 
     void add(size_t index) {
@@ -143,8 +116,6 @@ class list_buffer {
       } else if (efficient == 0) {
         size_t use_next = gbbs::fetch_and_add(&next, 1);
         list[use_next] = index;
-      } else if (efficient == 2){
-        use_table.insert(std::make_tuple(index, uintE{1}));
       } else if (efficient == 5) {
         size_t worker = worker_id();
         if (ddyn_lists[worker].size() < starts[worker] + 1)
@@ -183,7 +154,6 @@ class list_buffer {
     size_t num_entries() {
       if (efficient == 1) return next;
       if (efficient == 0) return next;
-      if (efficient == 2) return use_table.size();
       if (efficient == 5) {
         starts[num_workers2] = 0;
         size_t total = parlay::scan_inplace(make_slice(starts));
@@ -269,12 +239,6 @@ class list_buffer {
           update_changed(per_processor_counts, worker, list[worker]);
         });
         return next;
-      } else if (efficient == 2){
-        auto entries = use_table.entries();
-        parallel_for(0, entries.size(), [&](size_t i) {
-          update_changed(per_processor_counts, i, std::get<0>(entries[i]));
-        });
-        return entries.size();
       } else if (efficient == 5) {
         starts[num_workers2] = 0;
         size_t total = parlay::scan_inplace(make_slice(starts));
@@ -341,8 +305,6 @@ class list_buffer {
       next = num_workers2 * buffer;
       } else if (efficient == 0) {
         next = 0;
-      } else if (efficient == 2){
-        use_table.clear_table();
       } else if(efficient == 5) {
         parallel_for (0, num_workers2, [&] (size_t j) {
           starts[j] = 0;
