@@ -417,7 +417,12 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
         decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
         //          decrement_tab.insert(uw_id);
       }
-    };
+      if (trussness_vw > k) {
+        decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
+        //          decrement_tab.insert(vw_id);
+      }
+    }
+  };
     auto v_v = G.get_vertex(v);
     if (!use_pnd) {
       G.get_vertex(u).out_neighbors().intersect_f_par(&v_v, f);
@@ -429,7 +434,6 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
       }
     }
   }
-}
 
 }  // namespace truss_utils
 }  // namespace gbbs
