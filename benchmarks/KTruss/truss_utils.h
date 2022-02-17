@@ -363,10 +363,10 @@ void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersectio
   auto vert_u = G.get_vertex(u);
   uintE idx_v = 0;
   uintE idx_u = 0;
-  auto iter_v = vert_v.getOutIter(v);
-  auto iter_u = vert_u.getOutIter(u);
-  auto deg_v = vert_v.getOutDegree();
-  auto deg_u = vert_u.getOutDegree();
+  auto iter_v = vert_v.out_neighbors().get_iter();
+  auto iter_u = vert_u.out_neighbors().get_iter();
+  auto deg_v = vert_v.out_degree();
+  auto deg_u = vert_u.out_degree();
   while(idx_v < deg_v && idx_u < deg_u) {
     uintE v_nbhr = std::get<0>(iter_v.cur());
     uintE u_nbhr = std::get<0>(iter_u.cur());
@@ -429,6 +429,7 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
       }
     }
   }
+}
 
 }  // namespace truss_utils
 }  // namespace gbbs
