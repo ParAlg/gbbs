@@ -108,7 +108,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
   if (r == 2 && ss == 3 && table_type == 5 && efficient == 2) {
-    ktruss::KTruss_ht(GA, 16, compact);
+    KTruss_ht(GA, 16, compact);
   } else {
     NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify, efficient, use_compress, output_size);
   }
