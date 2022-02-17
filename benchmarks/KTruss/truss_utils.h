@@ -357,6 +357,7 @@ inline bool should_remove(uintE k, trussness_t trussness_uv,
   return true;
 }
 
+/*
   template <class Graph>
 void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersection){
   auto vert_v = G.get_vertex(v);
@@ -385,7 +386,7 @@ void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersectio
       if (iter_u.has_next()) iter_u.next();
     }
   }
-}
+}*/
 
 
 // get_trussness_and_id: (uintE, uintE) -> (trussness, id)
