@@ -69,8 +69,8 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   long table_type = 5;
   long num_levels = 2;
   if (tt_str == "") {
-    long table_type = P.getOptionLongValue("-tt", 0); // 1 = 1 lvl, 2 = 2 lvls, 3 = multi; 4 = multi nosearch, 5 = 2 lvls nosearch
-    long num_levels = P.getOptionLongValue("-nl", 0); // only for multi, # levels
+    table_type = P.getOptionLongValue("-tt", 0); // 1 = 1 lvl, 2 = 2 lvls, 3 = multi; 4 = multi nosearch, 5 = 2 lvls nosearch
+    num_levels = P.getOptionLongValue("-nl", 0); // only for multi, # levels
   } else {
     table_type = strToTableType(tt_str, inverse_index_map_str);
     num_levels = num_multi_levels;
