@@ -423,7 +423,7 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
       }
     }
   };
-    auto v_v = G.get_vertex(v);
+    auto v_v = G.get_vertex(v).out_neighbors();
     if (!use_pnd) {
       G.get_vertex(u).out_neighbors().intersect_f_par(&v_v, f);
     } else {
