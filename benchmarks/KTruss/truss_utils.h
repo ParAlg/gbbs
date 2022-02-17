@@ -290,7 +290,7 @@ void TCDirected(Graph& DG, F f) {
   auto frontier = sequence<bool>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) { frontier[i] = 1; });
   vertexSubset Frontier(n, n, std::move(frontier));
-  emdf(DG, Frontier, countF<F, Graph>(DG, f), no_output);
+  truss_utils::emdf(DG, Frontier, countF<F, Graph>(DG, f), no_output);
 }
 
 template <class Graph>
