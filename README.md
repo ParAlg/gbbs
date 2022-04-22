@@ -98,6 +98,9 @@ environment variables `CILK`, `OPENMP`, or `SERIAL` respectively.)
 
 To build:
 ```sh
+# Load external libraries as submodules. (This only needs to be run once.)
+git submodule update --init
+
 # For Bazel:
 $ bazel build  //...  # compiles all benchmarks
 
@@ -192,9 +195,9 @@ Running code on binary-encoded graphs
 We make use of a binary-graph format in our benchmark. The binary representation
 stores the representation we use for in-memory processing (compressed sparse row)
 directly on disk, which enables applications to avoid string-conversion overheads
-associated with the adjacency graph format described below. We have provided a 
+associated with the adjacency graph format described below. We have provided a
 converter utility which takes as input an uncompressed graph (e.g., in adjacency
-graph format) and outputs this graph in the binary format. The converter can be 
+graph format) and outputs this graph in the binary format. The converter can be
 used as follows:
 
 ```sh
@@ -218,7 +221,7 @@ $ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -b -src 10 ~/gbb
 $ ./BFS -s -b -src 10 ../../../inputs/rMatGraph_J_5_100.binary
 ```
 
-Note that application performance will be affected if the file is not already 
+Note that application performance will be affected if the file is not already
 in the page-cache. We have found that using `-m` when the binary graph is backed
 by SSD or disk results in a slow first-run, followed by fast subsequent runs.
 
