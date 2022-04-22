@@ -1,6 +1,6 @@
 include ../../makefile.variables
 
-INCLUDE_DIRS = -I../../
+INCLUDE_DIRS = -I../../ -I../../external/parlaylib/include/
 
 OBJDIR = ../../bin/benchmarks/Connectivity/
 
