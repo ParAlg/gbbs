@@ -9,6 +9,10 @@ Times from the original experiment runs used in the paper submission are in
 `experiment-results.tar.gz`, which may be opened with the command `tar xvf
 experiment-results.tar.gz`
 
+Installing dependencies:
+* `sudo apt install python3.6-dev python3-pip --yes`
+* `pip3 install sklearn`
+
 To run the experiments:
 * Run `bash download_graphs.bash` to download all the graphs used in the
   experiments.
