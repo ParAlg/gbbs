@@ -9,6 +9,10 @@ Times from the original experiment runs used in the paper submission are in
 `experiment-results.tar.gz`, which may be opened with the command `tar xvf
 experiment-results.tar.gz`
 
+Beware: the experiments measuring the clustering quality are unoptimized and
+slow. The experiments measuring serial running time are also extremely slow,
+e.g., taking dozens of hours for the `cochlea` graph.
+
 Installing dependencies:
 * `sudo apt install python3.6-dev python3-pip --yes`
 * `pip3 install sklearn`
