@@ -199,4 +199,59 @@ inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
   return degeneracy_order;
 }
 
+template <class Graph>
+inline gbbs::dyn_arr<uintE> DegeneracyOrderWithLoad(Graph& G, sequence<uintE> D,size_t num_buckets = 16) {
+  const size_t n = G.n;
+  // auto D = sequence<uintE>::from_function(
+  //     n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
+
+  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0),
+                                  (size_t)G.m / 50);
+  auto b = make_vertex_buckets(n, D, increasing, num_buckets);
+  timer bt;
+
+  auto degeneracy_order = gbbs::dyn_arr<uintE>(n);
+
+  size_t finished = 0, rho = 0, k_max = 0;
+  while (finished != n) {
+    bt.start();
+    auto bkt = b.next_bucket();
+    bt.stop();
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
+    uintE k = bkt.id;
+    finished += active.size();
+    k_max = std::max(k_max, bkt.id);
+
+    auto active_seq = parlay::delayed_seq<uintE>(
+        active.size(), [&](size_t i) { return active.s[i]; });
+    degeneracy_order.copyIn(active_seq, active.size());
+
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const std::optional<std::tuple<uintE, uintE> > {
+          uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+          uintE deg = D[v];
+          if (deg > k) {
+            uintE new_deg = std::max(deg - edgesRemoved, k);
+            D[v] = new_deg;
+            return wrap(v, b.get_bucket(new_deg));
+          }
+          return std::nullopt;
+        };
+
+    vertexSubsetData<uintE> moved =
+        em.template edgeMapCount_sparse<uintE>(active, apply_f);
+    bt.start();
+    if (moved.dense()) {
+      b.update_buckets(moved.get_fn_repr(), n);
+    } else {
+      b.update_buckets(moved.get_fn_repr(), moved.size());
+    }
+
+    bt.stop();
+    rho++;
+  }
+  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  debug(bt.next("bucket time"););
+  return degeneracy_order;
+}
 }  // namespace gbbs
