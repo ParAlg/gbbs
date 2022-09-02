@@ -21,13 +21,21 @@ implementations of the following parallel graph algorithms:
 * Maximal Independent Set
 * Approximate Set Cover
 
+**Clustering Problems**
+* SCAN Graph Clustering
+* Graph-Based Hierarchical Agglomerative Clustering (Graph HAC)
+
 **Eigenvector Problems**
 * PageRank
 
 **Substructure Problems**
 * Triangle Counting
 * Approximate Densest Subgraph
-* k-Core (coreness)
+* k-Core (Coreness)
+* Degeneracy Ordering (Low-Outdegree Orientation)
+* k-Clique Counting
+* 5-Cycle Counting
+* k-Truss
 
 **Shortest Path Problems**
 * Unweighted SSSP (Breadth-First Search)
