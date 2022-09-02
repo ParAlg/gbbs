@@ -7,6 +7,10 @@ This repository contains code for our SPAA paper "Theoretically Efficient
 Parallel Graph Algorithms Can Be Fast and Scalable" (SPAA'18). It includes
 implementations of the following parallel graph algorithms:
 
+**Clustering Problems**
+* SCAN Graph Clustering
+* Graph-Based Hierarchical Agglomerative Clustering (Graph HAC)
+
 **Connectivity Problems**
 * Low-Diameter Decomposition
 * Connectivity
@@ -20,10 +24,6 @@ implementations of the following parallel graph algorithms:
 * Maximal Matching
 * Maximal Independent Set
 * Approximate Set Cover
-
-**Clustering Problems**
-* SCAN Graph Clustering
-* Graph-Based Hierarchical Agglomerative Clustering (Graph HAC)
 
 **Eigenvector Problems**
 * PageRank
