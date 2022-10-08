@@ -251,9 +251,9 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering,
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
   } else if (ordering == "kcore") {
     auto ff = [&](Graph& graph) -> sequence<uintE> {
-      auto dyn_arr = DegeneracyOrder(graph);
+      auto D = DegeneracyOrder(graph);
       auto ret = sequence<uintE>::from_function(
-          graph.n, [&](size_t i) { return dyn_arr[i]; });
+          graph.n, [&](size_t i) { return D[i]; });
       return ret;
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);

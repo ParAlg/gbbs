@@ -6,7 +6,6 @@ cc_library(
     deps = [
         "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
         "//gbbs",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )

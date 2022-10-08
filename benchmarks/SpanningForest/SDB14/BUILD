@@ -6,7 +6,6 @@ cc_library(
     deps = [
         "//gbbs:graph",
         "//gbbs:macros",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )
@@ -18,7 +17,6 @@ cc_library(
         ":contract_sf",
         "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
         "//gbbs",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )

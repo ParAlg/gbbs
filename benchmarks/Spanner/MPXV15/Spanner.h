@@ -25,7 +25,6 @@
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 #include "gbbs/helpers/sparse_table.h"
 
 namespace gbbs {
@@ -159,7 +158,7 @@ template <class Graph>
 sequence<edge> tree_and_intercluster_edges(
     Graph& G, sequence<cluster_and_parent>& cluster_and_parents) {
   size_t n = G.n;
-  auto edge_list = gbbs::dyn_arr<edge>(2 * n);
+  auto edge_list = parlay::sequence<edge>();
 
   // Compute and add in tree edges.
   auto tree_edges_with_loops = parlay::delayed_seq<edge>(n, [&](size_t i) {
@@ -168,7 +167,7 @@ sequence<edge> tree_and_intercluster_edges(
   auto tree_edges = parlay::filter(tree_edges_with_loops, [&](const edge& e) {
     return e.first != e.second;
   });
-  edge_list.copyIn(tree_edges, tree_edges.size());
+  edge_list.append(parlay::make_slice(tree_edges));
 
   // Compute inter-cluster using hashing.
   auto clusters = parlay::delayed_seq<uintE>(
@@ -188,10 +187,8 @@ sequence<edge> tree_and_intercluster_edges(
   auto intercluster = fetch_intercluster(G, clusters, num_clusters);
   debug(std::cout << "num_intercluster edges = " << intercluster.size()
                   << std::endl;);
-  edge_list.copyIn(intercluster, intercluster.size());
-  size_t edge_list_size = edge_list.size;
-  return sequence<edge>::from_function(
-      edge_list_size, [&](size_t i) { return edge_list.A[i]; });
+  edge_list.append(parlay::make_slice(intercluster));
+  return edge_list;
 }
 
 template <class W>

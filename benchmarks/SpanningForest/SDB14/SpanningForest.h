@@ -25,7 +25,6 @@
 
 #include "contract_sf.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 #include "gbbs/helpers/sparse_table.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
@@ -120,7 +119,7 @@ inline std::pair<sequence<uintE>, sequence<uintE>> LDD_edges(
 // edge_mapping: edge -> edge
 using edge = std::pair<uintE, uintE>;
 template <class Graph>
-inline gbbs::dyn_arr<edge> SpanningForest_Impl(
+inline parlay::sequence<edge> SpanningForest_Impl(
     Graph& G, double beta, size_t level,
     std::function<edge(edge)>& edge_mapping, bool pack = false,
     bool permute = false) {
@@ -165,8 +164,8 @@ inline gbbs::dyn_arr<edge> SpanningForest_Impl(
       std::move(GC_and_new_mapping.second);  // sparse_table<edge, edge>
 
   if (GC.m == 0) {
-    auto D = gbbs::dyn_arr<edge>(edges.size());
-    D.copyIn(edges, edges.size());
+    auto D = parlay::sequence<edge>(edges.size());
+    D.append(parlay::make_slice(edges));
     return D;
   }
 
@@ -181,7 +180,7 @@ inline gbbs::dyn_arr<edge> SpanningForest_Impl(
 
   auto rec_edge_arr =
       SpanningForest_Impl(GC, beta, level + 1, new_edge_mapping);
-  rec_edge_arr.copyIn(edges, edges.size());
+  rec_edge_arr.append(edges);
   return rec_edge_arr;
 }
 
@@ -192,9 +191,7 @@ inline sequence<edge> SpanningForest(Graph& G, double beta = 0.2,
                                      bool pack = false, bool permute = false) {
   std::function<edge(edge)> identity_mapping = [&](edge e) { return e; };
   auto sf = SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute);
-  auto output =
-      sequence<edge>::from_function(sf.size, [&](size_t i) { return sf.A[i]; });
-  return output;
+  return sf;
 }
 
 }  // namespace workefficient_sf

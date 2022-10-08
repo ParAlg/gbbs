@@ -494,7 +494,7 @@ inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
       }
     });
     auto old_s = std::move(vs.s);
-    vs.s = all_verts;
+    vs.s = std::move(all_verts);
     vs.m = new_size;
   }
 }
