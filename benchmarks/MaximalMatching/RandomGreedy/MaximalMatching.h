@@ -24,7 +24,6 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 #include "gbbs/helpers/speculative_for.h"
 
 namespace gbbs {
@@ -171,7 +170,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
       sequence<bool>::from_function(n, [&](size_t i) { return false; });
 
   size_t k = ((3 * G.n) / 2);
-  auto matching = gbbs::dyn_arr<edge>(n);
+  auto matching = parlay::sequence<edge>();
 
   size_t round = 0;
   timer gete;
@@ -211,19 +210,18 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     std::cout << "removed: " << total_size << " many edges"
               << "\n";
 
-    matching.copyIn(e_added, e_added.size());
+    matching.append(parlay::make_slice(e_added));
 
     round++;
     r = r.next();
   }
-  std::cout << "matching size = " << matching.size << "\n";
-  auto output = sequence<edge>::from_function(matching.size, [&](size_t i) {
+  std::cout << "matching size = " << matching.size() << "\n";
+  auto output = sequence<edge>::from_function(matching.size(), [&](size_t i) {
     uintE u, v;
     W wgh;
-    std::tie(u, v, wgh) = matching.A[i];
+    std::tie(u, v, wgh) = matching[i];
     return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
   });  // allocated
-  matching.del();
   mt.stop();
   eff.next("eff for time");
   gete.next("get edges time");

@@ -5,7 +5,6 @@ cc_library(
     hdrs = ["MaximalMatching.h"],
     deps = [
         "//gbbs",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
         "//gbbs/helpers:speculative_for",
     ],
