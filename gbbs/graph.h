@@ -55,8 +55,8 @@ struct symmetric_graph {
   using graph = symmetric_graph<vertex_type, W>;
   using vertex_weight_type = double;
 
-  size_t num_vertices() { return n; }
-  size_t num_edges() { return m; }
+  size_t num_vertices() const { return n; }
+  size_t num_edges() const { return m; }
 
   // ======== Graph operators that perform packing ========
   template <class P>
@@ -75,7 +75,7 @@ struct symmetric_graph {
 
   void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
 
-  sequence<std::tuple<uintE, uintE, W>> edges() {
+  sequence<std::tuple<uintE, uintE, W>> edges() const {
     using g_edge = std::tuple<uintE, uintE, W>;
     auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
@@ -96,7 +96,7 @@ struct symmetric_graph {
   }
 
   template <class F>
-  void mapEdges(F f, bool parallel_inner_map = true, size_t granularity = 1) {
+  void mapEdges(F f, bool parallel_inner_map = true, size_t granularity = 1) const {
     parallel_for(0, n,
                  [&](size_t i) {
                    get_vertex(i).out_neighbors().map(f, parallel_inner_map);
@@ -105,7 +105,7 @@ struct symmetric_graph {
   }
 
   template <class M, class R>
-  typename R::T reduceEdges(M map_f, R reduce_f) {
+  typename R::T reduceEdges(M map_f, R reduce_f) const {
     using T = typename R::T;
     auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
       return get_vertex(i).out_neighbors().reduce(map_f, reduce_f);
@@ -187,7 +187,7 @@ struct symmetric_graph {
 
   ~symmetric_graph() { deletion_fn(); }
 
-  vertex get_vertex(uintE i) { return vertex(e0, v_data[i], i); }
+  vertex get_vertex(uintE i) const { return vertex(e0, v_data[i], i); }
 
   // Graph Data
   vertex_data* v_data;
@@ -216,8 +216,8 @@ struct symmetric_ptr_graph {
   using graph = symmetric_ptr_graph<vertex_type, W>;
   using vertex_weight_type = double;
 
-  size_t num_vertices() { return n; }
-  size_t num_edges() { return m; }
+  size_t num_vertices() const { return n; }
+  size_t num_edges() const { return m; }
 
   // ======== Graph operators that perform packing ========
   template <class P>
@@ -236,7 +236,7 @@ struct symmetric_ptr_graph {
 
   void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
 
-  sequence<std::tuple<uintE, uintE, W>> edges() {
+  sequence<std::tuple<uintE, uintE, W>> edges() const {
     using g_edge = std::tuple<uintE, uintE, W>;
     auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
@@ -257,7 +257,7 @@ struct symmetric_ptr_graph {
   }
 
   template <class F>
-  void mapEdges(F f, bool parallel_inner_map = true) {
+  void mapEdges(F f, bool parallel_inner_map = true) const {
     parallel_for(0, n,
                  [&](size_t i) {
                    get_vertex(i).out_neighbors().map(f, parallel_inner_map);
@@ -266,7 +266,7 @@ struct symmetric_ptr_graph {
   }
 
   template <class M, class R>
-  typename R::T reduceEdges(M map_f, R reduce_f) {
+  typename R::T reduceEdges(M map_f, R reduce_f) const {
     using T = typename R::T;
     auto D = parlay::delayed_seq<T>(n, [&](size_t i) {
       return get_vertex(i).out_neighbors().reduce(map_f, reduce_f);
@@ -368,7 +368,7 @@ struct symmetric_ptr_graph {
 
   // Note that observers recieve a handle to a vertex object which is only valid
   // so long as this graph's memory is valid.
-  vertex get_vertex(uintE i) { return vertices[i]; }
+  vertex get_vertex(uintE i) const { return vertices[i]; }
 
   // number of vertices in G
   size_t n;
@@ -426,7 +426,7 @@ struct asymmetric_graph {
   // Pointer to vertex weights
   vertex_weight_type* vertex_weights;
 
-  vertex get_vertex(size_t i) {
+  vertex get_vertex(size_t i) const {
     return vertex(out_edges, v_out_data[i], in_edges, v_in_data[i], i);
   }
 
@@ -523,7 +523,7 @@ struct asymmetric_graph {
   ~asymmetric_graph() { deletion_fn(); }
 
   template <class F>
-  void mapEdges(F f, bool parallel_inner_map = true) {
+  void mapEdges(F f, bool parallel_inner_map = true) const {
     parallel_for(0, n,
                  [&](size_t i) {
                    get_vertex(i).out_neighbors().map(f, parallel_inner_map);
@@ -553,7 +553,7 @@ struct asymmetric_ptr_graph {
   // called to delete the graph
   std::function<void()> deletion_fn;
 
-  vertex get_vertex(size_t i) { return vertices[i]; }
+  vertex get_vertex(size_t i) const { return vertices[i]; }
 
   asymmetric_ptr_graph()
       : n(0),
@@ -661,7 +661,7 @@ struct asymmetric_ptr_graph {
   ~asymmetric_ptr_graph() { deletion_fn(); }
 
   template <class F>
-  void mapEdges(F f, bool parallel_inner_map = true) {
+  void mapEdges(F f, bool parallel_inner_map = true) const {
     parallel_for(0, n,
                  [&](size_t i) {
                    get_vertex(i).out_neighbors().map(f, parallel_inner_map);
