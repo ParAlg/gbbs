@@ -49,7 +49,6 @@ double SetCover_runner(Graph& G, commandLine P) {
   timer t;
   t.start();
   auto cover = SetCover(G, num_buckets);
-  cover.del();
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

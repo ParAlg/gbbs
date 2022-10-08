@@ -63,7 +63,7 @@ struct Visit_Elms {
 // interface.
 
 template <class Graph>
-inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
+inline parlay::sequence<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   using W = typename Graph::weight_type;
   timer it;
   it.start();
@@ -82,7 +82,7 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
 
   timer nbt;
   size_t rounds = 0;
-  gbbs::dyn_arr<uintE> cover = gbbs::dyn_arr<uintE>();
+  parlay::sequence<uintE> cover;
   auto r = parlay::random();
   it.stop();
   it.next("initialization time");
@@ -155,7 +155,11 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
                                   return numWon >= low_threshold;
                                 },
                                 no_dense);
-    cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
+
+//     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
+
+     auto to_copy = parlay::delayed_seq<uintE>(inCover.size(), [&](uintE i) { return inCover.vtx(i); });
+     cover.append(to_copy);
 
     // 4. sets -> elements (Sets that joined the cover mark their neighboring
     // elements as covered. Sets that didn't reset any acquired elements)
@@ -183,7 +187,7 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
       return std::optional<std::tuple<uintE, uintE>>(
           std::make_tuple(v, bucket));
     };
-    debug(std::cout << "cover.size = " << cover.size << "\n");
+    debug(std::cout << "cover.size = " << cover.size() << "\n");
     b.update_buckets(f, active.size());
     rounds++;
     bktt.stop();
@@ -199,7 +203,7 @@ inline gbbs::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   auto elm_cov = parlay::delayed_seq<uintE>(G.n, elm_cov_f);
   size_t elms_cov = parlay::reduce(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
-  std::cout << "|cover|: " << cover.size << "\n";
+  std::cout << "|cover|: " << cover.size() << "\n";
   std::cout << "Rounds: " << rounds << "\n";
   std::cout << "Num_uncovered = " << (G.n - elms_cov) << "\n";
   return cover;
