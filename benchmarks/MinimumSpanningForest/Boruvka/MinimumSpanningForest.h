@@ -25,7 +25,6 @@
 
 #include <cassert>
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
 
@@ -337,7 +336,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
   auto exhausted =
       sequence<bool>::from_function(n, [](size_t i) { return false; });
   auto parents = sequence<uintE>::from_function(n, [](size_t i) { return i; });
-  auto mst_edges = gbbs::dyn_arr<edge>(n);
+  auto mst_edges = parlay::sequence<edge>();
 
   auto min_edges = gbbs::new_array_no_init<vtxid_wgh_pair>(n);
 
@@ -361,7 +360,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
     std::cout << "\n";
     std::cout << "round = " << round << " n_active = " << n_active
               << " GA.m = " << GA.m
-              << " MinimumSpanningForest size = " << mst_edges.size << "\n";
+              << " MinimumSpanningForest size = " << mst_edges.size() << "\n";
 
     // find a prefix of lowest-weight edges.
     size_t split_idx = std::min((3 * n) / 2, (size_t)GA.m);
@@ -403,8 +402,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
     bt.stop();
     debug(bt.next("boruvka time"););
 
-    mst_edges.copyInF([&](size_t i) { return edges_save[edge_ids[i]]; },
-                      edge_ids.size());
+    auto edges_to_add = parlay::delayed_seq<edge>(edge_ids.size(), [&](size_t i) { return edges_save[edge_ids[i]]; });
+    mst_edges.append(edges_to_add);
     edges_save.clear();
     gbbs::free_array(mst, n);
 
@@ -451,17 +450,13 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
 
     r = r.next();
   }
-  std::cout << "#edges in output mst: " << mst_edges.size << "\n";
-  auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = parlay::delayed_seq<size_t>(mst_edges.size, wgh_imap_f);
+  std::cout << "#edges in output mst: " << mst_edges.size() << "\n";
+  auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges[i]); };
+  auto wgh_imap = parlay::delayed_seq<size_t>(mst_edges.size(), wgh_imap_f);
   std::cout << "total weight = " << parlay::reduce(wgh_imap) << "\n";
 
-  auto ret = sequence<edge>::from_function(
-      mst_edges.size, [&](size_t i) { return mst_edges.A[i]; });
-
-  mst_edges.clear();
   gbbs::free_array(min_edges, n);
-  return ret;
+  return mst_edges;
 }
 
 template <

@@ -6,7 +6,6 @@ cc_library(
     deps = [
         "//benchmarks/SpanningForest/SDB14:SpanningForest",
         "//gbbs",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )
