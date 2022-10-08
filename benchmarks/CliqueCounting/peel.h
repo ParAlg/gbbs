@@ -3,7 +3,6 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 #include "gbbs/helpers/sparse_table.h"
 
 #include "induced_hybrid.h"

@@ -7,7 +7,6 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 
 #define INDUCED_STACK_THR 5000
 

@@ -30,7 +30,6 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/helpers/assert.h"
-#include "gbbs/helpers/dyn_arr.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"

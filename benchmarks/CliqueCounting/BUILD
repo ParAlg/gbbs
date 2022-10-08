@@ -7,7 +7,6 @@ cc_library(
         "//gbbs",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs/helpers:dyn_arr",
     ],
 )
 
@@ -53,7 +52,6 @@ cc_library(
         "//gbbs",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )
@@ -86,7 +84,6 @@ cc_library(
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
         "//gbbs/helpers:assert",
-        "//gbbs/helpers:dyn_arr",
     ],
 )
 
