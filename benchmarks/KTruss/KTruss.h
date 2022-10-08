@@ -26,7 +26,6 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 #include "gbbs/helpers/sparse_table.h"
 
 #include "truss_utils.h"
@@ -165,7 +164,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0),
       hash_edge_id);
 
-  auto del_edges = gbbs::dyn_arr<edge_t>(6 * GA.n);
+  auto del_edges = parlay::sequence<edge_t>();
   auto actual_degree = sequence<uintE>::from_function(
       GA.n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
 
@@ -296,26 +295,26 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     decr_tab.clear_table();
     iter++;
 
-    del_edges.copyIn(rem_edges, rem_edges.size());
+    del_edges.append(parlay::make_slice(rem_edges));
 
-    if (del_edges.size > 2 * GA.n) {
+    if (del_edges.size() > 2 * GA.n) {
       ct.start();
       // compact
-      std::cout << "compacting, " << del_edges.size << std::endl;
+      std::cout << "compacting, " << del_edges.size() << std::endl;
       // map over both endpoints, update counts using histogram
       // this is really a uintE seq, but edge_t >= uintE, and this way we can
       // re-use the same histogram structure.
-      auto decr_seq = sequence<edge_t>(2 * del_edges.size);
-      parallel_for(0, del_edges.size, [&](size_t i) {
+      auto decr_seq = sequence<edge_t>(2 * del_edges.size());
+      parallel_for(0, del_edges.size(), [&](size_t i) {
         size_t fst = 2 * i;
         size_t snd = fst + 1;
-        edge_t id = del_edges.A[i];
+        edge_t id = del_edges[i];
         uintE u = trussness_multi.u_for_id(id);
         uintE v = std::get<0>(trussness_multi.big_table[id]);
         decr_seq[fst] = u;
         decr_seq[snd] = v;
       });
-      std::cout << "compacting 1, " << del_edges.size << std::endl;
+      std::cout << "compacting 1, " << del_edges.size() << std::endl;
 
       // returns only those vertices that have enough degree lost to warrant
       // packing them out. Again note that edge_t >= uintE
@@ -328,15 +327,15 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
             // vtx.
             return std::nullopt;
           };
-      std::cout << "compacting 2, " << del_edges.size << std::endl;
+      std::cout << "compacting 2, " << del_edges.size() << std::endl;
 
       em_t.start();
       auto vs = vertexSubset(GA.n, std::move(decr_seq));
-      std::cout << "compacting 3, " << del_edges.size << std::endl;
+      std::cout << "compacting 3, " << del_edges.size() << std::endl;
       auto cond_f = [&](const uintE& u) { return true; };
       nghCount(GA, vs, cond_f, apply_vtx_f, em, no_output);
       em_t.stop();
-      std::cout << "compacting 4, " << del_edges.size << std::endl;
+      std::cout << "compacting 4, " << del_edges.size() << std::endl;
 
       auto all_vertices =
           parlay::delayed_seq<uintE>(GA.n, [&](size_t i) { return i; });
@@ -344,7 +343,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
         return 4 * actual_degree[u] >= GA.get_vertex(u).out_degree();
       });
       auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
-      std::cout << "compacting 5, " << del_edges.size << std::endl;
+      std::cout << "compacting 5, " << del_edges.size() << std::endl;
 
       auto pack_predicate = [&](const uintE& u, const uintE& ngh,
                                 const W& wgh) {
@@ -356,7 +355,6 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       };
       edgeMapFilter(GA, to_pack, pack_predicate, pack_edges | no_output);
 
-      del_edges.size = 0;  // reset dyn_arr
       ct.stop();
       std::cout << "Finished compacting." << std::endl;
     }

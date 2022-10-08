@@ -3,7 +3,6 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 
 #include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"

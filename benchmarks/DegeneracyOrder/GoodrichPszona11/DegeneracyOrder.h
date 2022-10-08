@@ -3,7 +3,6 @@
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
 namespace goodrichpszona_degen {
@@ -25,7 +24,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon = 0.1) {
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                   (size_t)GA.m / 20);
 
-  auto ret = gbbs::dyn_arr<uintE>(n);
+  auto ret = parlay::sequence<uintE>();
 
   parlay::random r;
   timer kt, ft;
@@ -52,7 +51,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon = 0.1) {
     active = parlay::filter(active, gt_threshold);
     ft.stop();
 
-    ret.copyInF([&](size_t i) { return this_round[i]; }, this_round.size());
+    ret.append(parlay::make_slice(this_round));
 
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
@@ -65,10 +64,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon = 0.1) {
     auto this_round_vs = vertexSubset(n, std::move(this_round));
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
-  auto output =
-      sequence<uintE>::from_function(n, [&](size_t i) { return ret.A[i]; });
   debug(kt.next("kth time"); ft.next("filter time"););
-  return output;
+  return ret;
 }
 
 // Goodrich (2+epsilon) approx for degeneracy ordering where epsilon > 0

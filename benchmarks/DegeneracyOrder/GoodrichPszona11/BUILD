@@ -7,7 +7,6 @@ cc_library(
         "//gbbs",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs/helpers:dyn_arr",
     ],
 )
 

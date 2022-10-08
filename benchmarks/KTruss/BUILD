@@ -12,7 +12,6 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )
