@@ -6,7 +6,6 @@ cc_library(
     deps = [
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
         "//gbbs",
-        "//gbbs/helpers:dyn_arr",
     ],
 )
 

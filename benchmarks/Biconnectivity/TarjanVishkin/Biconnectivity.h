@@ -26,7 +26,6 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
 #include "gbbs/gbbs.h"
-#include "gbbs/helpers/dyn_arr.h"
 
 namespace gbbs {
 namespace bc {
