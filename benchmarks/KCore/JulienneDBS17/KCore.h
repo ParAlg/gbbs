@@ -144,7 +144,7 @@ inline sequence<uintE> KCore_FA(Graph& G, size_t num_buckets = 16) {
 }
 
 template <class Graph>
-inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
+inline parlay::sequence<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
   const size_t n = G.n;
   auto D = sequence<uintE>::from_function(
       n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
@@ -154,7 +154,7 @@ inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
-  auto degeneracy_order = gbbs::dyn_arr<uintE>(n);
+  auto degeneracy_order = parlay::sequence<uintE>();
 
   size_t finished = 0, rho = 0, k_max = 0;
   while (finished != n) {
@@ -168,7 +168,7 @@ inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
 
     auto active_seq = parlay::delayed_seq<uintE>(
         active.size(), [&](size_t i) { return active.s[i]; });
-    degeneracy_order.copyIn(active_seq, active.size());
+    degeneracy_order.append(active_seq);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
@@ -200,17 +200,14 @@ inline gbbs::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
 }
 
 template <class Graph>
-inline gbbs::dyn_arr<uintE> DegeneracyOrderWithLoad(Graph& G, sequence<uintE> D,size_t num_buckets = 16) {
+inline parlay::sequence<uintE> DegeneracyOrderWithLoad(Graph& G, sequence<uintE> D,size_t num_buckets = 16) {
   const size_t n = G.n;
-  // auto D = sequence<uintE>::from_function(
-  //     n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
-
   auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0),
                                   (size_t)G.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
-  auto degeneracy_order = gbbs::dyn_arr<uintE>(n);
+  auto degeneracy_order = parlay::sequence<uintE>(n);
 
   size_t finished = 0, rho = 0, k_max = 0;
   while (finished != n) {
@@ -224,7 +221,7 @@ inline gbbs::dyn_arr<uintE> DegeneracyOrderWithLoad(Graph& G, sequence<uintE> D,
 
     auto active_seq = parlay::delayed_seq<uintE>(
         active.size(), [&](size_t i) { return active.s[i]; });
-    degeneracy_order.copyIn(active_seq, active.size());
+    degeneracy_order.append(active_seq);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {

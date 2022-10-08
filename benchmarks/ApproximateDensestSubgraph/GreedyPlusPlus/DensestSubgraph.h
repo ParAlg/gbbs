@@ -58,7 +58,7 @@ double GreedyPlusPlusDensestSubgraph(Graph& GA) {
     auto vtx_to_position = sequence<uintE>(n);
 
     parallel_for(0, n, [&](size_t i) {
-      uintE v = degeneracy_order.A[i];
+      uintE v = degeneracy_order[i];
       vtx_to_position[v] = i;
     });
 
