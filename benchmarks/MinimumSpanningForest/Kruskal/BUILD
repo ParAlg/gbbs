@@ -7,7 +7,6 @@ cc_library(
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/UnionFind:union_find_rules",
         "//gbbs",
-        "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
     ],
 )
