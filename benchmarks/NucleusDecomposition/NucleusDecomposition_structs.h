@@ -81,8 +81,8 @@ class EfficientConnectWhilePeeling {
       uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
       links = sequence<uintE>::from_function(n, [&](size_t s) { return UINT_E_MAX; });
     }
-    template<class X, class F>
-    void link(X a, X b, F& cores);
+    template<class X, class Y, class F>
+    void link(X a, Y b, F& cores);
 
     template<class bucket_t>
     void init(bucket_t cur_bkt);
@@ -92,8 +92,8 @@ class EfficientConnectWhilePeeling {
     size_t n; // table size
 };
 
-template<class X, class F>
-void EfficientConnectWhilePeeling::link(X a, X b, F& cores) {
+template<class X, class Y, class F>
+void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
   if (cores(a) == cores(b)) {
     this->uf.unite(a, b);
   }
@@ -132,8 +132,8 @@ class ConnectWhilePeeling {
       //links = sequence<uintE>::from_function(n, [&](size_t s) { return UINT_E_MAX; });
       //uf_links = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
     }
-    template<class X, class F>
-    void link(X x, X index, F& cores);
+    template<class X, class Y, class F>
+    void link(X x, Y index, F& cores);
 
     template<class bucket_t>
     void init(bucket_t cur_bkt);
@@ -149,8 +149,8 @@ class ConnectWhilePeeling {
     std::vector<uintE> set_core;
 };
 
-template<class X, class F>
-void ConnectWhilePeeling::link(X x, X index, F& cores) {
+template<class X, class Y, class F>
+void ConnectWhilePeeling::link(X x, Y index, F& cores) {
   parallel_for(0, set_uf.size(), [&](size_t idx){
     if (cores(index) >= set_core[idx]) set_uf[idx].unite(x, index);
   });
