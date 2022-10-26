@@ -272,6 +272,10 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     bucket_t core_p = table.is_valid(p) ? cores[p] : 0;
     bucket_t core_q = table.is_valid(q) ? cores[q] : 0;
     if (core_p == core_q) {
+      if (p >= cwp.uf.parents.size()) {
+        std::cout << "P: " << p << ", parents: " << cwp.uf.parents.size() << ", n: " << n << std::endl;
+        fflush(stdout);
+      }
       uintE parent_p = table.is_valid(p) ? cwp.uf.parents[p] : p;
       uintE parent_q = table.is_valid(q) ? cwp.uf.parents[q] : q;
       return parent_p < parent_q;
