@@ -272,10 +272,6 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     bucket_t core_p = table.is_valid(p) ? cores[p] : 0;
     bucket_t core_q = table.is_valid(q) ? cores[q] : 0;
     if (core_p == core_q) {
-      if (p >= parents.size()) {
-        std::cout << "P: " << p << ", parents: " << parents.size() << ", n: " << n << std::endl;
-        fflush(stdout);
-      }
       uintE parent_p = table.is_valid(p) ? parents[p] : p;
       uintE parent_q = table.is_valid(q) ? parents[q] : q;
       return parent_p < parent_q;
@@ -291,6 +287,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   std::cout << "Finish boundary" << std::endl; fflush(stdout);
 
   std::vector<uintE> connectivity_tree(n);
+  parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
   uintE prev_max_parent = n;
   for (size_t i = 0; i < vert_buckets.size()-1; i++) {
     size_t start_index = vert_buckets[i];
@@ -311,6 +308,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   }
   std::cout << "Finish first pass" << std::endl; fflush(stdout);
   connectivity_tree.resize(prev_max_parent);
+  parallel_for(n, prev_max_parent, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
 
   for (size_t i = 0; i < cwp.links.size(); i++) {
     if (!table.is_valid(i)) continue;
