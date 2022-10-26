@@ -153,12 +153,10 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
   EfficientConnectWhilePeeling ecwp;
   ConnectWhilePeeling connect_with_peeling;
   if (use_compress) {
-    if (!efficient_inline_hierarchy)
-    peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+    if (!efficient_inline_hierarchy) peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
     else peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
   } else {
-    if (!efficient_inline_hierarchy)
-    peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+    if (!efficient_inline_hierarchy) peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
     else peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
   }
   double tt2 = t2.stop();
@@ -174,8 +172,7 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
   } else {
     std::cout << "Constructing tree" << std::endl;
     timer t3; t3.start();
-    if (!efficient_inline_hierarchy)
-    connect = construct_nd_connectivity_from_connect(connect_with_peeling, peel, GA, DG, r-1, s-1, table, rank, relabel);
+    if (!efficient_inline_hierarchy) connect = construct_nd_connectivity_from_connect(connect_with_peeling, peel, GA, DG, r-1, s-1, table, rank, relabel);
     else connect = construct_nd_connectivity_from_connect(ecwp, peel, GA, DG, r-1, s-1, table, rank, relabel);
     double tt3 = t3.stop();
     std::cout << "### Connectivity Tree Running Time: " << tt3 << std::endl;
