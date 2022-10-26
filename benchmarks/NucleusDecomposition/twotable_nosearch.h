@@ -157,8 +157,8 @@ namespace twotable_nosearch {
           EndTableY* end_table = new EndTableY();
 
           Y max_val = static_cast<Y>(vtx); 
-          assert((max_val >> (max_bit - 1)) & 1U == 0U);
           std::size_t max_bit = sizeof(Y) * 8;
+          //assert((max_val >> (max_bit - 1)) & 1U == 0U);
           Y one = 1;
           max_val |= (one << (max_bit - 1));
 
@@ -286,6 +286,11 @@ namespace twotable_nosearch {
         }
         if (idx == 0) return idx;
         return idx - 1;
+      }
+
+      bool is_valid(std::size_t index) {
+        if (is_max_val<Y>(std::get<0>(space[index]))) return false;
+        return true;
       }
 
       C get_count(std::size_t index) {
@@ -519,7 +524,8 @@ namespace twotable_nosearch {
             num_active++;
             if (prefix + index < min_active) min_active = prefix + index;
             if (prefix + index == xxx) one_should_be_xxx = true;
-            assert(prefix + index <= min_active && min_active != __uint128_t(__int128_t(-1L)));
+            // assert(prefix + index <= min_active);
+            assert(min_active != __uint128_t(__int128_t(-1L)));
             /*if (prefix + index > min_active && min_active == __uint128_t(__int128_t(-1L))){
               std::cout << "we have a min problem" << std::endl; fflush(stdout);
               exit(0);
@@ -559,6 +565,55 @@ namespace twotable_nosearch {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               //func(indices[i], 1.0 / (double) num_active);
               func(indices[i], 1);
+          }
+        }
+      }
+
+      template<class HG, class I>
+      void extract_indices_conn(uintE* base2, HG is_inactive, I func, int r, int k, Y xxx = 0) {
+        assert(xxx == 0 || is_active(xxx));
+        // Sort base
+        uintE base[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + k + 1,std::less<uintE>());
+
+        std::vector<size_t> indices;
+        bool use_func = true;
+
+        std::string bitmask(r+1, 1); // K leading 1's
+        bitmask.resize(k+1, 0); // N-K trailing 0's
+        unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+        do {
+          bool use_vtx = false;
+          uintE vtx = 0;
+          Y key = 0;
+          for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+            if (bitmask[i]) {
+              if (!use_vtx) {
+                use_vtx = true;
+                vtx = base[i];
+              } else {
+                key = key << shift_factor;
+                key |= (base[i] & mask);
+              }
+            }
+          }
+          // First, find index in top_table
+          // This should populate into a prefix sum of sizes
+          EndTableY* end_table = top_table.arr[vtx];
+          auto prefix = top_table_sizes[vtx];
+          auto index = (end_table->table).find_index(key);
+
+          indices.push_back(prefix + index);
+          //if (is_inactive(prefix + index)) return;
+        } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+        
+        if (use_func) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_inactive(indices[i])) func(indices[i]);
           }
         }
       }

@@ -138,6 +138,10 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       }
 
       std::size_t return_total() {return table.m;}
+      bool is_valid(std::size_t i) {
+        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return false;
+        return true;
+      }
       C get_count(std::size_t i) {
         if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0;
         return std::get<1>((table.table)[i]);
@@ -222,24 +226,6 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           }
           auto index = table.find_index(key);
           assert(index < table.m);
- 
- /*
-sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
-extract_clique(index, base3, k, k);
-int base3_idx = 0;
-for (int i = 0; i < static_cast<int>(k)+1; ++i) {
-  if (bitmask[i]) {
-    if (base[i] != base3[base3_idx]) {
-      std::cout << "base3idx: " << base3_idx << ", base3: " << base3[base3_idx] << std::endl;
-      std::cout << "base: " << base[i] << std::endl;
-      fflush(stdout);
-    }
-    assert(base[i] == base3[base3_idx]);
-    base3_idx++;
-    if (base3_idx == 1) base3_idx = k - rr + 2;
-  }
-}*/
-
 
           indices.push_back(index);
           if (is_active(index)) num_active++;
@@ -255,6 +241,48 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           for (std::size_t i = 0; i < indices.size(); i++) {
             if (!is_active(indices[i]) && !is_inactive(indices[i]))
               func(indices[i], 1.0 / (double) num_active);
+          }
+        }
+      }
+
+      template<class HG, class I>
+      void extract_indices_conn(uintE* base2, HG is_inactive, I func, int r, int k, Y xxx = std::numeric_limits<Y>::max()) {
+        uintE base[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + k + 1,std::less<uintE>());
+
+        std::string bitmask(r+1, 1); // K leading 1's
+        bitmask.resize(k+1, 0); // N-K trailing 0's
+
+        std::vector<size_t> indices;
+        bool use_func = true;
+
+        do {
+          Y key = 0;
+          unsigned __int128 mask = (1ULL << (shift_factor)) - 1;
+          for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+            if (bitmask[i]) {
+              key = key << shift_factor;
+              key |= (base[i] & mask);
+            }
+          }
+          auto index = table.find_index(key);
+          assert(index < table.m);
+
+          indices.push_back(index);
+          if (is_inactive(index)) {
+            use_func = false;
+            return;
+          }
+        } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+
+        if (use_func) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_inactive(indices[i]))
+              func(indices[i]);
           }
         }
       }
