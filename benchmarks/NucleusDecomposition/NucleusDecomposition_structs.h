@@ -120,7 +120,9 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
     if (link_b != UINT_E_MAX) this->link(link_b, a, cores);
   }
   else if (cores(a) < cores(b)) {
-    if (!gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) {
+    if (b != uf.parents[b]) this->link(a, uf.parents[b], cores);
+    else {
+      if (!gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) {
       while (true) {
         gbbs::uintE c = links[b];
         if (cores(c) < cores(a) || (cores(c) == cores(a) && a < c)) {
@@ -135,8 +137,9 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
           break;
         }
       }
-    } else {
-      if (b != uf.parents[b]) this->link(a, uf.parents[b], cores);
+      } else {
+        if (b != uf.parents[b]) this->link(a, uf.parents[b], cores);
+      }
     }
   }
   else {
