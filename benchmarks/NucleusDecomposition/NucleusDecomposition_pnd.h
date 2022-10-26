@@ -183,7 +183,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
   sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d,
   bool use_ppc = true) {
-    using W = typename Graph::weight_type;
+    //using W = typename Graph::weight_type;
 
     // Mark every vertex in the active set
     parallel_for (0, active_size, [&] (size_t j) {

@@ -103,18 +103,18 @@ void EfficientConnectWhilePeeling::link(X a, X b, F& cores) {
         gbbs::uintE c = links[b];
         if (cores(c) < cores(a)) {
           if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), c, a)) {
-            this->link(a, c, is_less_than, is_equal);
+            this->link(a, c, cores);
             break;
           }
         } else {
-          this->link(a, c, is_less_than, is_equal);
+          this->link(a, c, cores);
           break;
         }
       }
     }
   }
   else {
-    this->link(b, a, is_less_than, is_equal);
+    this->link(b, a, cores);
   }
 }
 
@@ -324,7 +324,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
         if (first_current_core != 0 && is_active(l))
         connectivity_tree[prev_parent[l]] = prev_max_parent + connect_with_peeling.uf.parents[l];
         else connectivity_tree[prev_parent[l]] = prev_max_parent + l;
-        /*
+        //
         if (is_active(l)  && first_current_core != 0) {
           auto l_parent = connect_with_peeling.uf.parents[l];
           // If l is not a parent
