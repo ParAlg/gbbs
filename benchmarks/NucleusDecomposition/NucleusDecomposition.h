@@ -129,7 +129,8 @@ template <class iden_t, class bucket_t, class Graph, class DirectedGraph, class 
 inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   size_t r, size_t s, Table& table, 
   size_t max_deg, sequence<uintE>& rank, size_t efficient, bool relabel,
-  bool use_compress, bool inline_hierarchy) {
+  bool use_compress, bool inline_hierarchy, bool efficient_inline_hierarchy) {
+  if (efficient_inline_hierarchy) inline_hierarchy = true;
 
   //std::cout << "Start count" << std::endl;
   timer t; t.start();
@@ -149,11 +150,16 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
 
   timer t2; t2.start();
   sequence<bucket_t> peel;
+  EfficientConnectWhilePeeling ecwp;
   ConnectWhilePeeling connect_with_peeling;
   if (use_compress) {
+    if (!efficient_inline_hierarchy)
     peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+    else peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
   } else {
+    if (!efficient_inline_hierarchy)
     peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+    else peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
   }
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
@@ -168,7 +174,9 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
   } else {
     std::cout << "Constructing tree" << std::endl;
     timer t3; t3.start();
+    if (!efficient_inline_hierarchy)
     connect = construct_nd_connectivity_from_connect(connect_with_peeling, peel, GA, DG, r-1, s-1, table, rank, relabel);
+    else connect = construct_nd_connectivity_from_connect(ecwp, peel, GA, DG, r-1, s-1, table, rank, relabel);
     double tt3 = t3.stop();
     std::cout << "### Connectivity Tree Running Time: " << tt3 << std::endl;
 
@@ -207,7 +215,7 @@ T round_up(T dividend, T divisor)
 template <class bucket_t, class T, class H, class Graph, class Graph2>
 inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
-  size_t efficient, bool use_compress, bool output_size, bool inline_hierarchy) {
+  size_t efficient, bool use_compress, bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy) {
   timer t; 
   //sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
@@ -230,7 +238,7 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
     twotable_nosearch::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
-    return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy);
+    return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy, efficient_inline_hierarchy);
   //} 
   //return count;
 }
@@ -238,7 +246,7 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
 template <class Graph>
 inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, bool verify, size_t efficient, bool use_compress,
-  bool output_size, bool inline_hierarchy) {
+  bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
 
@@ -290,15 +298,15 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     auto peel = runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
     auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   } else {
     // unsigned__int128
       auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   }
 
 
@@ -309,15 +317,15 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     auto peel = runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
     auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   } else {
     // unsigned__int128
     auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   }
 
   }

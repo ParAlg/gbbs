@@ -90,6 +90,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   // Hierarchy options
   bool inline_hierarchy = P.getOptionValue("-inline");
+  bool efficient_inline_hierarchy = P.getOptionValue("-efficient_inline");
 
   // use_compress only runs compress actually for (2, 3)
   // otherwise, it runs space efficient code, but only if using
@@ -114,7 +115,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   //  KTruss_ht(GA, 16, compact);
   //} else {
     NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, 
-      verify, efficient, use_compress, output_size, inline_hierarchy);
+      verify, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy);
   //}
 
   double tt = t.stop();

@@ -36,6 +36,25 @@
 
 namespace gbbs {
 
+template <class A>
+sequence<A> GetBoundaryIndices(
+    std::size_t num_keys,
+    const std::function<bool(std::size_t, std::size_t)>& key_eq_func) {
+  sequence<A> mark_keys(num_keys);
+  auto null_key = std::numeric_limits<A>::max();
+  parlay::parallel_for(0, num_keys, [&](std::size_t i) {
+    if (i != 0 && key_eq_func(i, i - 1))
+      mark_keys[i] = null_key;
+    else
+      mark_keys[i] = i;
+  });
+  sequence<A> filtered_mark_keys(num_keys + 1);
+  size_t filtered_size = parlay::filter_out(mark_keys, filtered_mark_keys, [&null_key](A x) -> bool { return x != null_key; });
+  filtered_mark_keys[filtered_size] = num_keys;
+  filtered_mark_keys.resize(filtered_size + 1);
+  return filtered_mark_keys;
+}
+
   struct IntersectSpace {
   // Label each vertex for fast intersect for first recursive level
   uintE* labels = nullptr;
@@ -96,21 +115,28 @@ template<class X, class Y, class F>
 void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
   if (cores(a) == cores(b)) {
     this->uf.unite(a, b);
+    auto link_a = links[a]; auto link_b = links[b];
+    if (link_a != UINT_E_MAX) this->link(link_a, b, cores);
+    if (link_b != UINT_E_MAX) this->link(link_b, a, cores);
   }
   else if (cores(a) < cores(b)) {
     if (!gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) {
       while (true) {
         gbbs::uintE c = links[b];
-        if (cores(c) < cores(a)) {
+        if (cores(c) < cores(a) || (cores(c) == cores(a) && a < c)) {
           if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), c, a)) {
+            if (b != uf.parents[b]) this->link(a, uf.parents[b], cores);
             this->link(a, c, cores);
             break;
           }
         } else {
+          if (b != uf.parents[b]) this->link(a, uf.parents[b], cores);
           this->link(a, c, cores);
           break;
         }
       }
+    } else {
+      if (b != uf.parents[b]) this->link(a, uf.parents[b], cores);
     }
   }
   else {
@@ -228,6 +254,54 @@ void ConnectWhilePeeling::update_cores(size_t active_core, F get_active, size_t 
 }
 
 */
+
+template <class bucket_t, class Graph, class Graph2, class Table>
+inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnectWhilePeeling& cwp, 
+sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
+size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
+  cwp.uf.finish();
+  auto n = table.return_total();
+
+  // Sort vertices from highest core # to lowest
+  auto get_core = [&](uintE p, uintE q){
+    if (cores[p] == cores[q]) {
+      return cwp.uf.parents[p] < cwp.uf.parents[q];
+    }
+    return cores[p] > cores[q];
+  };
+  auto sorted_vert = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
+  parlay::sample_sort_inplace(make_slice(sorted_vert), get_core);
+
+  auto cores_eq_func = [&](size_t i, size_t j) {return cores[sorted_vert[i]] == cores[sorted_vert[j]];};
+  auto vert_buckets = GetBoundaryIndices<size_t>(n, cores_eq_func);
+
+  std::vector<uintE> connectivity_tree(n);
+  uintE prev_max_parent = n;
+  for (size_t i = 0; i < vert_buckets.size()-1; i++) {
+    size_t start_index = vert_buckets[i];
+    size_t end_index = vert_buckets[i + 1];
+
+    auto first_x = sorted_vert[start_index];
+    auto first_current_core = cores[first_x];
+    auto parent_eq_func = [&](size_t a, size_t b) {return cwp.uf.parents[sorted_vert[start_index + a]] == cwp.uf.parents[sorted_vert[start_index + b]];};
+    auto parent_buckets = GetBoundaryIndices<size_t>(end_index - start_index, parent_eq_func);
+    parallel_for(0, parent_buckets.size() - 1, [&](size_t j){
+      size_t parent_start_index = start_index + parent_buckets[j];
+      size_t parent_end_index = start_index + parent_buckets[j + 1];
+      parallel_for(parent_start_index, parent_end_index, [&](size_t a){
+        connectivity_tree[sorted_vert[a]] = prev_max_parent + j;
+      });
+    });
+    prev_max_parent += parent_buckets.size() - 1;
+  }
+  connectivity_tree.resize(prev_max_parent);
+
+  for (size_t i = 0; i < cwp.links.size(); i++) {
+    if (cwp.links[i] == UINT_E_MAX) continue;
+    connectivity_tree[cwp.uf.parents[i]] = cwp.uf.parents[cwp.links[i]];
+  }
+  return connectivity_tree;
+}
 
 template <class bucket_t, class Graph, class Graph2, class Table>
 inline std::vector<uintE> construct_nd_connectivity_from_connect(ConnectWhilePeeling& connect_with_peeling, 

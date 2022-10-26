@@ -890,20 +890,20 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //auto num_entries_filter = num_entries;
   //if (efficient == 1) num_entries_filter += num_workers() * 1024;
   //else if (efficient == 4) num_entries_filter = 1 + 10000 * ((1 + (num_entries / 10000) / 1024) * 1024  + 1024* num_workers());
-  std::cout << "created 1 " << std::endl; fflush(stdout);
+  //std::cout << "created 1 " << std::endl; fflush(stdout);
 
   auto b = buckets<sequence<bucket_t>, iden_t, bucket_t>(num_entries, D, increasing, num_buckets);
   //make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
-  std::cout << "created 3 " << std::endl; fflush(stdout);
+  //std::cout << "created 3 " << std::endl; fflush(stdout);
 
   auto per_processor_counts = sequence<double>(0);
-  std::cout << "created 4 " << std::endl; fflush(stdout);
+  //std::cout << "created 4 " << std::endl; fflush(stdout);
   
   list_buffer count_idxs(num_entries, efficient);
-  std::cout << "created 5 " << std::endl; fflush(stdout);
+  //std::cout << "created 5 " << std::endl; fflush(stdout);
 
   char* still_active = (char*) calloc(num_entries, sizeof(char));
-  std::cout << "created 6 " << std::endl; fflush(stdout);
+  //std::cout << "created 6 " << std::endl; fflush(stdout);
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
   if (inline_hierarchy) connect_while_peeling = CWP(num_entries);
@@ -953,8 +953,8 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       continue;
     }
 
-    std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
-    std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
+    //std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
+    //std::cout << "Finished: " << finished << ", num_entries: " << num_entries << std::endl;
     iter++;
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
