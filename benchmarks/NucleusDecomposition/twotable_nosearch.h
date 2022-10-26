@@ -571,7 +571,7 @@ namespace twotable_nosearch {
 
       template<class HG, class I>
       void extract_indices_conn(uintE* base2, HG is_inactive, I func, int r, int k, Y xxx = 0) {
-        assert(xxx == 0 || is_active(xxx));
+        //assert(xxx == 0 || is_active(xxx));
         // Sort base
         uintE base[10];
         assert(10 > k);
