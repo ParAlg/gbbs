@@ -646,9 +646,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
-  // For hierarchy
-  if (inline_hierarchy) connect_while_peeling = CWP(num_entries);
-
   /*timer t_compress;
   compress_utils compress_util;
   if (r == 1 && k == 2 && use_compress) {
@@ -905,8 +902,6 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   //std::cout << "created 6 " << std::endl; fflush(stdout);
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
-
-  if (inline_hierarchy) connect_while_peeling = CWP(num_entries);
 
   timer t_extract;
   timer t_count;

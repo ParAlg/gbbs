@@ -152,6 +152,9 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
   sequence<bucket_t> peel;
   EfficientConnectWhilePeeling ecwp;
   ConnectWhilePeeling connect_with_peeling;
+  auto num_entries = table.return_total();
+  if (inline_hierarchy && !efficient_inline_hierarchy) connect_with_peeling = ConnectWhilePeeling(num_entries);
+  else if (efficient_inline_hierarchy) ecwp = EfficientConnectWhilePeeling(num_entries);
   if (use_compress) {
     if (!efficient_inline_hierarchy) peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
     else peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
