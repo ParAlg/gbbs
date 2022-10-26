@@ -263,7 +263,7 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnec
 sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
 size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   std::cout << "Start connectivity tree" << std::endl; fflush(stdout);
-  cwp.uf.finish();
+  auto parents = cwp.uf.finish();
   std::cout << "Finish cwp" << std::endl; fflush(stdout);
   auto n = table.return_total();
 
@@ -272,12 +272,12 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     bucket_t core_p = table.is_valid(p) ? cores[p] : 0;
     bucket_t core_q = table.is_valid(q) ? cores[q] : 0;
     if (core_p == core_q) {
-      if (p >= cwp.uf.parents.size()) {
-        std::cout << "P: " << p << ", parents: " << cwp.uf.parents.size() << ", n: " << n << std::endl;
+      if (p >= parents.size()) {
+        std::cout << "P: " << p << ", parents: " << parents.size() << ", n: " << n << std::endl;
         fflush(stdout);
       }
-      uintE parent_p = table.is_valid(p) ? cwp.uf.parents[p] : p;
-      uintE parent_q = table.is_valid(q) ? cwp.uf.parents[q] : q;
+      uintE parent_p = table.is_valid(p) ? parents[p] : p;
+      uintE parent_q = table.is_valid(q) ? parents[q] : q;
       return parent_p < parent_q;
     }
     return core_p > core_q;
@@ -298,7 +298,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
 
     //auto first_x = sorted_vert[start_index];
     //auto first_current_core = cores[first_x];
-    auto parent_eq_func = [&](size_t a, size_t b) {return cwp.uf.parents[sorted_vert[start_index + a]] == cwp.uf.parents[sorted_vert[start_index + b]];};
+    auto parent_eq_func = [&](size_t a, size_t b) {return parents[sorted_vert[start_index + a]] == parents[sorted_vert[start_index + b]];};
     auto parent_buckets = GetBoundaryIndices<size_t>(end_index - start_index, parent_eq_func);
     parallel_for(0, parent_buckets.size() - 1, [&](size_t j){
       size_t parent_start_index = start_index + parent_buckets[j];
@@ -315,7 +315,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   for (size_t i = 0; i < cwp.links.size(); i++) {
     if (!table.is_valid(i)) continue;
     if (cwp.links[i] == UINT_E_MAX) continue;
-    connectivity_tree[cwp.uf.parents[i]] = cwp.uf.parents[cwp.links[i]];
+    connectivity_tree[parents[i]] = parents[cwp.links[i]];
   }
   std::cout << "Finish second pass" << std::endl; fflush(stdout);
   return connectivity_tree;
