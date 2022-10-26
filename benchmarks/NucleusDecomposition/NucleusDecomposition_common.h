@@ -31,73 +31,12 @@
 #include "onetable.h"
 #include "commontable.h"
 #include "list_buffer.h"
+#include "NucleusDecomposition_pnd.h"
+#include "NucleusDecomposition_structs.h"
+
+#include "benchmarks/Connectivity/SimpleUnionAsync/Connectivity.h"
 
 namespace gbbs {
-
-  template<class Obj>
-  class ThreadLocalObj {
-    public:
-      sequence<unsigned int> table_mark;
-      sequence<Obj*> table_obj;
-      int nw;
-      ThreadLocalObj(){
-        nw = num_workers() * 1.5;
-        table_mark = sequence<unsigned int>::from_function(nw, [](std::size_t i) {return 0;});
-        table_obj = sequence<Obj*>::from_function(nw, [](std::size_t i){return nullptr;});
-      }
-
-      Obj* init_idx(unsigned int idx) {
-        auto obj = table_obj[idx];
-        if (obj != nullptr) return obj;
-        table_obj[idx] = new Obj();
-        return table_obj[idx];
-      }
-
-      void unreserve(unsigned int idx) {
-        while(true) {
-         if (gbbs::atomic_compare_and_swap(&(table_mark[idx]), (unsigned int) 1, (unsigned int) 0)) { return; }
-        }
-      }
-
-      std::pair<unsigned int, Obj*> reserve(){
-        auto wid = worker_id();
-        auto idx = parlay::hash32(wid) % nw;
-        while(true) {
-          if (table_mark[idx] == 0) {
-            if (gbbs::atomic_compare_and_swap(&(table_mark[idx]), (unsigned int) 0, (unsigned int) 1)) {
-              return std::make_pair(idx, init_idx(idx));
-            }
-          }
-          idx++;
-          idx = idx % nw;
-        }
-      }
-  };
-
-  struct IntersectSpace {
-  // Label each vertex for fast intersect for first recursive level
-  uintE* labels = nullptr;
-
-  IntersectSpace () {}
-
-  void alloc(size_t n) {
-    if (labels == nullptr) {
-      labels = (uintE*) calloc(n, sizeof(uintE));
-      assert(labels[0] == 0);
-    }
-  }
-  };
-
-  int BinomialCoefficient(const int n, const int k) {
-  std::vector<int> aSolutions(k);
-  aSolutions[0] = n - k + 1;
-
-  for (int i = 1; i < k; ++i) {
-    aSolutions[i] = aSolutions[i - 1] * (n - k + 1 + i) / (i + 1);
-  }
-
-  return aSolutions[k - 1];
-}
 
   template <class Graph, class T>
   inline size_t CountCliquesNuc(Graph& DG, size_t k, size_t r, size_t max_deg, T* table, bool tmp_verify = false) {
@@ -165,322 +104,23 @@ namespace gbbs {
     return total_count;
   }
 
-
-
-template <class Graph>
-bool is_edge(Graph& DG, uintE v, uintE u) {
-  using W = typename Graph::weight_type;
-  bool is = false;
-  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
-    if (vv == u) is = true;
-    };
-    DG.get_vertex(v).out_neighbors().map(map_f, false);
-    return is;
-}
-
-template<class Graph>
-void intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersection){
-  auto vert_v = G.get_vertex(v);
-  auto vert_u = G.get_vertex(u);
-  uintE idx_v = 0;
-  uintE idx_u = 0;
-  auto iter_v = vert_v.out_neighbors().get_iter();
-  auto iter_u = vert_u.out_neighbors().get_iter();
-  auto deg_v = vert_v.out_degree();
-  auto deg_u = vert_u.out_degree();
-  while(idx_v < deg_v && idx_u < deg_u) {
-    uintE v_nbhr = std::get<0>(iter_v.cur());
-    uintE u_nbhr = std::get<0>(iter_u.cur());
-    if (v_nbhr < u_nbhr) {
-      idx_v++;
-      if (iter_v.has_next()) iter_v.next();
-    }
-    else if (u_nbhr < v_nbhr){
-      idx_u++;
-      if (iter_u.has_next()) iter_u.next();
-    } 
-    else {
-      intersection.push_back(v_nbhr);
-      idx_u++; idx_v++;
-      if (iter_v.has_next()) iter_v.next();
-      if (iter_u.has_next()) iter_u.next();
-    }
-  }
-}
-
-template<class Graph>
-void intersectionPND(Graph& G, uintE v, uintE u, uintE w, std::vector<uintE>& intersection){
-  auto vert_v = G.get_vertex(v);
-  auto vert_u = G.get_vertex(u);
-  auto vert_w = G.get_vertex(w);
-  uintE idx_v = 0;
-  uintE idx_u = 0;
-  uintE idx_w = 0;
-  auto iter_v = vert_v.out_neighbors().get_iter();
-  auto iter_u = vert_u.out_neighbors().get_iter();
-  auto iter_w = vert_w.out_neighbors().get_iter();
-  auto deg_v = vert_v.out_degree();
-  auto deg_u = vert_u.out_degree();
-  auto deg_w = vert_w.out_degree();
-  while(idx_v < deg_v && idx_u < deg_u && idx_w < deg_w) {
-    uintE v_nbhr = std::get<0>(iter_v.cur());
-    uintE u_nbhr = std::get<0>(iter_u.cur());
-    uintE w_nbhr = std::get<0>(iter_w.cur());
-    if (u_nbhr == v_nbhr && u_nbhr == w_nbhr) {
-      intersection.push_back(v_nbhr);
-      idx_u++; idx_v++; idx_w++;
-      if (iter_v.has_next()) iter_v.next();
-      if (iter_u.has_next()) iter_u.next();
-      if (iter_w.has_next()) iter_w.next();
-    } else {
-      auto max_nbhr = std::max(std::max(v_nbhr, u_nbhr), w_nbhr);
-      if (v_nbhr < max_nbhr) {
-        idx_v++;
-        if (iter_v.has_next()) iter_v.next();
-      }
-      if (u_nbhr < max_nbhr) {
-        idx_u++;
-        if (iter_u.has_next()) iter_u.next();
-      }
-      if (w_nbhr < max_nbhr) {
-        idx_w++;
-        if (iter_w.has_next()) iter_w.next();
-      }
-    }
-  }
-}
-/*
-template <
-    template <class W> class vertex, class W, class T,
-    typename std::enable_if<
-        std::is_same<vertex<W>, asymmetric_vertex<W>>::value, int>::type = 0>
-inline size_t CountCliquesNucPND(asymmetric_graph<vertex, W>& G, size_t k, size_t r, size_t max_deg, T* table){
-  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return 0;
-}
-
-template <
-    template <class W> class vertex, class W, class T,
-    typename std::enable_if<
-        std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
-inline size_t CountCliquesNucPND(asymmetric_graph<vertex, W>& G, size_t k, size_t r, size_t max_deg, T* table){
-  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return 0;
-}
-
-template <
-    template <class W> class vertex, class W, class T,
-    typename std::enable_if<
-        std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, int>::type = 0>
-inline size_t CountCliquesNucPND(
-    symmetric_graph<vertex, W>& GA, size_t k, size_t r, size_t max_deg, T* table) {  // -> decltype(GA)
-    std::cout << "CountCliquesNucPND not implemented for compressed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return 0;
-    }
-
-    template <
-    template <class W> class vertex, class W, class T,
-    typename std::enable_if<
-        std::is_same<vertex<W>, csv_byte<W>>::value, int>::type = 0>
-inline size_t CountCliquesNucPND(
-    symmetric_graph<vertex, W>& GA, size_t k, size_t r, size_t max_deg, T* table) {  // -> decltype(GA)
-    std::cout << "CountCliquesNucPND not implemented for compressed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return 0;
-    }
-
-template <
-    template <class W> class vertex, class W, class T,
-    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
-                            int>::type = 0>
-  inline size_t CountCliquesNucPND( symmetric_graph<vertex, W>& DG, */
-  template<class Graph, class T>
-  inline size_t CountCliquesNucPND(Graph& DG, size_t k, size_t r, size_t max_deg, T* table) {
-    k--; r--;
-
-    if (k == 2) {
-      auto tots = sequence<size_t>(DG.n, size_t{0});
-
-      auto base_f = [&](uintE v1, uintE v2, uintE v3) {
-        table->insert_twothree(v1, v2, v3, r, k);
-      };
-      parallel_for(0, DG.n, [&](size_t i) {
-        auto vert_i = DG.get_vertex(i);
-        auto iter_i = vert_i.out_neighbors().get_iter();
-        for (std::size_t j = 0; j < vert_i.out_degree(); j++) {
-          auto x = std::get<0>(iter_i.cur());
-          if (iter_i.has_next()) iter_i.next();
-          std::vector<uintE> inter;
-          intersectionPND(DG, i, x, inter);
-          tots[i] += inter.size();
-          for (std::size_t l = 0; l < inter.size(); l++) {
-            table->insert_twothree(i, x, inter[l], r, k);
-          }
-        }
-      });
-      return parlay::reduce(tots);
-    }
-    // Now k must be 3 (we'll count 4-cliques)
-    assert(k == 3);
-    auto tots = sequence<size_t>(DG.n, size_t{0});
-
-    auto base_f = [&](sequence<uintE>& base){
-      table->insert(base, r, k);
-    };
-    parallel_for(0, DG.n, [&](size_t i) {
-      auto base = sequence<uintE>(k + 1);
-      base[0] = i;
-      auto vert_i = DG.get_vertex(i);
-      auto iter_i = vert_i.out_neighbors().get_iter();
-      for (std::size_t j = 0; j < vert_i.out_degree(); j++) {
-        auto x = std::get<0>(iter_i.cur());
-        if (iter_i.has_next()) iter_i.next();
-        base[1] = x;
-        std::vector<uintE> inter;
-        intersectionPND(DG, i, x, inter);
-        // Now any two vert in inter that are in each other's nbhr list...
-        for (std::size_t l = 0; l < inter.size(); l++) {
-          for (std::size_t p = l + 1; p < inter.size(); p++) {
-            auto v1 = inter[l];
-            auto v2 = inter[p];
-            if (is_edge(DG, v1, v2)) {
-              base[2] = v1; base[3] = v2; base_f(base); tots[i]++;
-            } else if (is_edge(DG, v2, v1)) {
-              base[2] = v1; base[3] = v2; base_f(base); tots[i]++;
-            }
-          }
-        }
-      }
-    });
-
-    return parlay::reduce(tots);
-  }
-
-// This should only be used for (2, 3) and (3, 4) nucleus decomposition
-template <class Graph, class Graph2, class F, class I, class T>
-inline size_t cliqueUpdatePND(Graph& G, Graph2& DG, size_t r, 
-size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
-  size_t granularity, char* still_active, sequence<uintE> &rank, 
-  sequence<double>& per_processor_counts, 
-  bool do_update_changed, I& update_changed,
-  T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d,
-  bool use_ppc = true) {
-    using W = typename Graph::weight_type;
-    // Mark every vertex in the active set
-  parallel_for (0, active_size, [&] (size_t j) {
-    auto index = get_active(j); //cliques->find_index(get_active(j));
-    still_active[index] = 1;
-    }, 2048);
-    auto is_active = [&](size_t index) {
-    return still_active[index] == 1 || still_active[index] == 4;
-  };
-  auto is_inactive = [&](size_t index) {
-    return still_active[index] == 2;
-  };
-
-  t1.start();
-  if (k == 2 && r == 1) { // This is (2, 3)
-    auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
-    cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
-      [&](std::size_t index, double val){
-        if (use_ppc) {
-          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
-          if (ct == 0 && val != 0) count_idxs.add(index);
-        } else {
-          if (!is_inactive(index)) {
-          cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
-          if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
-            count_idxs.add(index);
-          }
-        }
-      }, r, k);
-    };
-
-      parallel_for(0, active_size, [&](size_t i){
-        auto x = get_active(i);
-        std::tuple<uintE, uintE> v1v2 = cliques->extract_clique_two(x, k);
-        uintE u = relabel ? inverse_rank[std::get<0>(v1v2)] : std::get<0>(v1v2);
-        uintE v = relabel ? inverse_rank[std::get<1>(v1v2)] : std::get<1>(v1v2);
-        std::vector<uintE> u_v_intersection;
-        intersectionPND(G, u, v, u_v_intersection);
-        for (std::size_t p = 0; p < u_v_intersection.size(); p++) {
-          uintE v3 = relabel ? rank[u_v_intersection[p]] : u_v_intersection[p];
-          update_d_twothree(std::get<0>(v1v2), std::get<1>(v1v2), v3);
-        }
-      });
-  } else if (k == 3 && r == 2) { // (3, 4))
-  auto update_d_threefour = [&](uintE v1, uintE v2, uintE v3, uintE v4){
-        //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
-        cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
-          [&](std::size_t index, double val){
-            if (use_ppc) {
-          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
-          if (ct == 0 && val != 0) count_idxs.add(index);
-            } else {
-              if (!is_inactive(index) && !is_active(index)) {
-        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
-        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
-          count_idxs.add(index);
-              }
-            }
-        }, r, k);
-      };
-
-      parallel_for(0, active_size, [&](size_t i) {
-        auto x = get_active(i);
-        std::tuple<uintE, uintE, uintE> v1v2v3 = cliques->extract_clique_three(x, k);
-        uintE u = relabel ? inverse_rank[std::get<0>(v1v2v3)] : std::get<0>(v1v2v3);
-        uintE v = relabel ? inverse_rank[std::get<1>(v1v2v3)] : std::get<1>(v1v2v3);
-        uintE w = relabel ? inverse_rank[std::get<2>(v1v2v3)] : std::get<2>(v1v2v3);
-        std::vector<uintE> u_v_w_intersection;
-        intersectionPND(G, u, v, w, u_v_w_intersection);
-        for (std::size_t p = 0; p < u_v_w_intersection.size(); p++) {
-          uintE actual_ngh = relabel ? rank[u_v_w_intersection[p]] : u_v_w_intersection[p];
-          update_d_threefour(std::get<0>(v1v2v3), std::get<1>(v1v2v3), std::get<2>(v1v2v3), actual_ngh);
-        }
-      },1, true);
-  }
-  else {std::cout << "ERROR" << std::endl; assert(false); exit(0); } // should never happen
-  t1.stop();
-
- std::size_t num_count_idxs = 0;
-if (do_update_changed && use_ppc) {
-t_update_d.start();
-  // Perform update_changed on each vertex with changed clique counts
- 
-  num_count_idxs = count_idxs.filter(update_changed, per_processor_counts);
-  count_idxs.reset();
-t_update_d.stop();
-}
-
-  // Mark every vertex in the active set as deleted
-  parallel_for (0, active_size, [&] (size_t j) {
-    auto index = get_active(j); 
-    still_active[index] = 2;}, 2048);
-
-  return num_count_idxs; //count_idxs[0];
-}
-
-template <class Graph, class Graph2, class F, class I, class T>
+template <class Graph, class Graph2, class F, class I, class T, class D, class CWP, class bucket_t>
 inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t r, 
 size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   size_t granularity, char* still_active, sequence<uintE> &rank, 
   sequence<double>& per_processor_counts, 
   bool do_update_changed, I& update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1,
-  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d,
-  bool use_ppc = true) {
+  sequence<uintE>& inverse_rank, bool relabel, timer& t_update_d, D& cores,
+  bool use_ppc,
+  bool inline_hierarchy, CWP& cwp, bucket_t cur_bkt) {
   
   using W = typename Graph::weight_type;
 
-  // Mark every vertex in the active set
-  parallel_for (0, active_size, [&] (size_t j) {
-    auto index = get_active(j); //cliques->find_index(get_active(j));
-    still_active[index] = 1;
+    // Mark every vertex in the active set
+    parallel_for (0, active_size, [&] (size_t j) {
+      auto index = get_active(j); //cliques->find_index(get_active(j));
+      still_active[index] = 1;
     }, 2048);
 
   auto is_active = [&](size_t index) {
@@ -488,6 +128,13 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
+  };
+  auto is_inactive_hierarchy = [&](size_t index) {
+    return still_active[index] == 0;
+  };
+
+  auto cores_func = [&](size_t a) {
+    return is_active(a) ? cur_bkt : cores[a];
   };
 
   auto update_d = [&](unsigned __int128 x, uintE* base){
@@ -505,6 +152,14 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
         }
       }
     }, r, k, x);
+
+    if (inline_hierarchy) {
+      cliques->extract_indices_conn(base, is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+          cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
   };
 
   // Set up space for clique counting
@@ -517,7 +172,11 @@ t1.start();
     // For each vert from 0 to active_size, intersect + place the intersection
     // in base[1], and then call update_d
     if (k == 2 && r == 1) { // This is (2, 3)
-      auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
+
+      parallel_for(0, active_size, [&](size_t i){
+        auto x = get_active(i);
+
+        auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
         cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
           [&](std::size_t index, double val){
             if (use_ppc) {
@@ -531,10 +190,17 @@ t1.start();
               }
             }
         }, r, k);
+
+         if (inline_hierarchy) {
+           std::vector<uintE> base = {v1, v2, v3};
+      cliques->extract_indices_conn(base.data(), is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+          cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
       };
 
-      parallel_for(0, active_size, [&](size_t i){
-        auto x = get_active(i);
         std::tuple<uintE, uintE> v1v2 = cliques->extract_clique_two(x, k);
         uintE u = relabel ? inverse_rank[std::get<0>(v1v2)] : std::get<0>(v1v2);
         uintE v = relabel ? inverse_rank[std::get<1>(v1v2)] : std::get<1>(v1v2);
@@ -548,22 +214,7 @@ t1.start();
 
       });
     } else if (k == 3 && r == 2) { // (3, 4))
-      auto update_d_threefour = [&](uintE v1, uintE v2, uintE v3, uintE v4){
-        //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
-        cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
-          [&](std::size_t index, double val){
-            if (use_ppc) {
-          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
-          if (ct == 0 && val != 0) count_idxs.add(index);
-            } else {
-              if (!is_inactive(index) && !is_active(index)) {
-              cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
-        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
-          count_idxs.add(index);
-              }
-            }
-        }, r, k);
-      };
+      
 
       /*auto init_intersect = [&](IntersectSpace* arr){ arr->alloc(G.n); };
       auto finish_intersect = [&](IntersectSpace* arr){
@@ -583,6 +234,34 @@ t1.start();
         is->alloc(G.n);
         auto labels = is->labels; //induced->old_labels;
         auto x = get_active(i);
+
+        auto update_d_threefour = [&](uintE v1, uintE v2, uintE v3, uintE v4){
+        //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
+        cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
+          [&](std::size_t index, double val){
+            if (use_ppc) {
+          double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
+          if (ct == 0 && val != 0) count_idxs.add(index);
+            } else {
+              if (!is_inactive(index) && !is_active(index)) {
+              cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
+          count_idxs.add(index);
+              }
+            }
+        }, r, k);
+
+        if (inline_hierarchy) {
+           std::vector<uintE> base = {v1, v2, v3, v4};
+      cliques->extract_indices_conn(base.data(), is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+         cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
+      };
+
+
         std::tuple<uintE, uintE, uintE> v1v2v3 = cliques->extract_clique_three(x, k);
         uintE u = relabel ? inverse_rank[std::get<0>(v1v2v3)] : std::get<0>(v1v2v3);
         auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -722,6 +401,14 @@ t1.start();
         }
       }
     }, r, k, x);
+
+    if (inline_hierarchy) {
+      cliques->extract_indices_conn(base, is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+          cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
   };
 
 
@@ -763,10 +450,167 @@ t_update_d.stop();
   return num_count_idxs; //count_idxs[0];
 }
 
-template <typename bucket_t, class Graph, class Graph2, class T>
+// Sort vertices from highest core # to lowest core #
+// Take each "bucket" of vertices in each core #
+// Maintain connectivity UF throughout all rounds
+// Run connectivity considering only vertices previously considered, or vertices
+// in the current bucket
+// k and r here should be the same as that used in cliqueUpdate
+template <class bucket_t, class Graph, class Graph2, class Table>
+inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
+  size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
+  auto n = table.return_total();
+  // TODO(jeshi): don't repeat work from peel
+  size_t max_deg = induced_hybrid::get_max_deg(GA);
+  sequence<uintE> inverse_rank;
+  if (relabel) {
+    // This maps a DG vertex to a G vertex
+    inverse_rank = sequence<uintE>(GA.n);
+    parallel_for(0, GA.n, [&](size_t i){
+      inverse_rank[rank[i]] = i;
+    });
+  }
+
+  // Sort vertices from highest core # to lowest core #
+  auto get_core = [&](uintE p, uintE q){ return cores[p] > cores[q]; };
+  auto sorted_vert = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
+  parlay::sample_sort_inplace(make_slice(sorted_vert), get_core);
+
+
+  sequence<uintE> mark_keys(n + 1);
+  parallel_for(0, n, [&](std::size_t i) {
+    if (i != 0 && cores[sorted_vert[i]] == cores[sorted_vert[i-1]])
+      mark_keys[i] = UINT_E_MAX;
+    else
+      mark_keys[i] = i;
+  });
+  mark_keys[n] = n;
+  auto vert_buckets = 
+      parlay::filter(mark_keys, [&](uintE x) -> bool { return x != UINT_E_MAX; });
+
+  //auto vert_buckets = GetBoundaryIndices<uintE>(n, [&](size_t i, size_t j){
+  //  return cores[sorted_vert[i]] == cores[sorted_vert[j]];
+  //});
+
+  auto uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
+  // TODO(jeshi): This isn't parallel, but I'd just like easy resizing atm
+  std::vector<uintE> connectivity_tree(n);
+  sequence<uintE> prev_parent = sequence<uintE>::from_function(n, [&](size_t i){ return i; });
+  uintE prev_max_parent = n;
+  //uintE prev_offset = 0;
+  parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
+
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, GA.n, true, true, true); };
+  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+
+  for (size_t i = 0; i < vert_buckets.size()-1; i++) {
+    size_t start_index = vert_buckets[i];
+    size_t end_index = vert_buckets[i + 1];
+
+    auto first_x = sorted_vert[start_index];
+    auto first_current_core = cores[first_x];
+    // TODO: to get rid of this, gotta check for valid indices
+    if (first_current_core != 0) {
+
+      auto is_active = [&](size_t index) {
+        return cores[index] == first_current_core;
+      };
+      auto is_inactive = [&](size_t index) {
+        return cores[index] < first_current_core;
+      };
+      //std::cout << "Core: " << first_current_core << std::endl; fflush(stdout);
+
+    parallel_for(start_index, end_index, [&](size_t j){
+      // Vertices are those given by sorted_vert[j]
+      auto x = sorted_vert[j];
+      if (table.is_valid(x)) {
+      auto current_core = cores[x];
+      assert(current_core == first_current_core);
+
+      // Steps:
+      // 1. Extract vertices given by index -- these will be the r-clique X
+      // 2. Find all s-clique containing the r-clique X
+      // 3. For each s-clique containing X, iterate over all combinations of
+      // r vertices in that s-clique; these form r-clique X'
+      // 4. Union X and X'
+    static thread_local HybridSpace_lw* induced = nullptr;
+    if (induced == nullptr) induced = new HybridSpace_lw();
+    induced->alloc(max_deg, k-r, GA.n, true, true, true);
+    init_induced(induced);
+
+    auto update_d_bind = [&](uintE* base){
+      table.extract_indices_conn(base, is_inactive, [&](std::size_t index){
+        if (index != x) {
+          uf.unite(x, index);
+        }
+      }, r, k, x);
+    };
+    uintE base[10];
+    table.extract_clique(x, base, GA, k);
+    // Fill base[k] ... base[k-r+1] and base[0]
+    if (relabel) {
+      auto g_vert_map = [&](uintE vert){return rank[vert];};
+      auto inverse_g_vert_map = [&](uintE vert){return inverse_rank[vert];};
+      induced->setup_nucleus(GA, DG, k, base, r, g_vert_map, inverse_g_vert_map);
+    } else {
+      auto g_vert_map = [&](uintE vert){return vert;};
+      induced->setup_nucleus(GA, DG, k, base, r, g_vert_map, g_vert_map);
+    }
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d_bind, base);
+      }
+    }, 1, true); // granularity
+    }
+
+    connectivity_tree.resize(prev_max_parent, UINT_E_MAX);
+
+        // TODO(jeshi): Here we gotta update the connectivity tree
+    parallel_for(0, n, [&](size_t l) { gbbs::simple_union_find::find_compress(l, uf.parents); });
+    //for (std::size_t yyy = 0 ; yyy < uf.parents.size(); yyy++) {
+    //  std::cout << "yyy: " << yyy << ", " << uf.parents[yyy] << std::endl;
+    //}
+    // It looks like at least for simple_union_find, uf.parents is guaranteed to be in the range 0
+    // to n, which we could inefficiently use...but maybe we have enough time here to compress
+    //auto old_max_parent = 1 + parlay::reduce(make_slice(uf.parents), parlay::maxm<uintE>());
+    // This is to compress the space of parents to at least be contiguous
+    //sequence<uintE> map_parents = sequence<uintE>::from_function(old_max_parent, [&](std::size_t l){return 0;});
+    // TODO(jeshi): should this be an atomic?
+    //parallel_for(0, n, [&](size_t l){
+    //  if (table.is_valid(l)) map_parents[uf.parents[l]] = 1;
+    //});
+    //auto max_parent = parlay::scan_inplace(make_slice(map_parents));
+    auto max_parent = n;
+
+    //std::cout << "Max parent: " << max_parent << std::endl;
+    //std::cout << "Prev max parent: " << prev_max_parent << std::endl; fflush(stdout);
+    parallel_for(0, n, [&](size_t l){
+      // One check is that once one person changes this value, anyone else trying to change
+      // this value should not succeed (they should be trying to change this to be the same val)
+      if (table.is_valid(l)) {
+        //assert(uf.parents[l] < old_max_parent);
+        assert(prev_parent[l] < prev_max_parent);
+        connectivity_tree[prev_parent[l]] = prev_max_parent + uf.parents[l]; //map_parents[uf.parents[l]];
+        // Update previous parent
+        prev_parent[l] = connectivity_tree[prev_parent[l]];
+      }
+    });
+    // Update previous max parent
+    //prev_offset = prev_max_parent;
+    prev_max_parent += max_parent;
+    //std::cout << "Prev max parent 2: " << prev_max_parent << std::endl; fflush(stdout);
+  }
+  //for (std::size_t i = 0; i < n; i++) {
+  //  std::cout << "core: " << i << ", " << cores[i] << std::endl;
+  //}
+  //for (std::size_t i = 0; i < connectivity_tree.size(); i++) {
+  //  std::cout << "i: " << i << ", parent: " << connectivity_tree[i] << std::endl;
+  //}
+  return connectivity_tree; //uf.finish();
+}
+
+template <typename bucket_t, class Graph, class Graph2, class T, class CWP>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
-  bool use_compress,
+  bool use_compress, bool inline_hierarchy, CWP& connect_while_peeling,
   size_t num_buckets=16) {
     size_t efficient = fake_efficient;
     if (fake_efficient == 3) efficient = 1;
@@ -779,6 +623,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     });
   }
     k--; r--;
+
   timer t2; t2.start();
 
   size_t num_entries = cliques->return_total();
@@ -801,6 +646,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
+  // For hierarchy
+  if (inline_hierarchy) connect_while_peeling = CWP(num_entries);
+
   /*timer t_compress;
   compress_utils compress_util;
   if (r == 1 && k == 2 && use_compress) {
@@ -817,9 +665,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   size_t finished = 0;
   bucket_t cur_bkt = 0;
   bucket_t max_bkt = 0;
+  bucket_t prev_bkt = 0;
   double max_density = 0;
   bool use_max_density = false;
   size_t iter = 0;
+  size_t total_active_size = 0;
+  //std::vector<unsigned __int128> total_active;
 
   while (finished < num_entries) {
     t_extract.start();
@@ -832,20 +683,58 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     auto get_active = [&](size_t j) -> unsigned __int128 { 
       return active[j]; }; //active.vtx(j); };
-
+    
     if (active_size == 0) continue;
 
     finished += active_size;
 
+    if (inline_hierarchy && prev_bkt != cur_bkt && cur_bkt != 0) {
+      connect_while_peeling.init(cur_bkt);
+    }
+
+    /*if (inline_hierarchy && prev_bkt != cur_bkt && prev_bkt != 0) {
+      auto hierarchy_is_inactive = [&](std::size_t j){ return still_active[j] == 0 || still_active[j] == 1; };
+      auto hierarchy_is_active = [&](std::size_t j){
+        return still_active[j] == 2; // && D[j] == prev_bkt;
+      };
+      auto get_total_active = [&](size_t j) -> unsigned __int128 { 
+        return total_active[j]; }; //active.vtx(j); };
+      // here, is_active is same, but is_inactive is never been active before
+      connect_while_peeling.update_cores(prev_bkt, get_total_active, total_active_size, G, 
+      DG, r, k, *cliques, rank, relabel, max_deg, inverse_rank, 
+      hierarchy_is_active, hierarchy_is_inactive, D);
+      total_active_size = 0;
+      total_active = std::vector<unsigned __int128>(0);
+    }*/
+
     //if (cur_bkt >= std::numeric_limits<bucket_t>::max() - 1) continue;
 
     max_bkt = std::max(cur_bkt, max_bkt);
-    if (cur_bkt == 0 || finished == num_entries) {
+    if (cur_bkt == 0) { // || finished == num_entries) { 
       parallel_for (0, active_size, [&] (size_t j) {
         auto index = get_active(j);
         still_active[index] = 2;
-        cliques->set_count(index, UINT_E_MAX);
+        cliques->set_count(index, 0); // UINT_E_MAX
+        D[index] = std::max((bucket_t) 0, (bucket_t) cur_bkt);
       }, 2048);
+      /*if (cur_bkt != 0 && inline_hierarchy && finished == num_entries) {
+        auto hierarchy_is_inactive = [&](std::size_t j){ return still_active[j] == 0 || still_active[j] == 1; };
+        auto hierarchy_is_active = [&](std::size_t j){
+          return still_active[j] == 2; //&& D[j] == cur_bkt;
+        };
+        total_active_size += active_size;
+        for (size_t i = 0; i < active_size; i++) {
+          total_active.push_back(active[i]);
+        }
+        auto get_total_active = [&](size_t j) -> unsigned __int128 { 
+          return total_active[j]; }; //active.vtx(j); };
+        // here, is_active is same, but is_inactive is never been active before
+        connect_while_peeling.update_cores(cur_bkt, get_total_active, total_active_size, G, 
+        DG, r, k, *cliques, rank, relabel, max_deg, inverse_rank, 
+        hierarchy_is_active, hierarchy_is_inactive, D);
+        total_active_size = 0;
+        total_active = std::vector<unsigned __int128>(0);
+    }*/
       continue;
     }
 
@@ -898,7 +787,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
-      t_update_d);
+      t_update_d, D, true, inline_hierarchy, connect_while_peeling, cur_bkt);
     }
       t_count.stop();
 
@@ -923,6 +812,11 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_update.stop();
 
     rounds++;
+    prev_bkt = cur_bkt;
+    /*total_active_size += active_size;
+    for (size_t i = 0; i < active_size; i++) {
+      total_active.push_back(active[i]);
+    }*/
 
     /*if (r == 1 && k == 2 && use_compress) {
       bool to_compress = compress_util.update_del_edges(active);
@@ -941,6 +835,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     }*/
   
   }
+
+  
 
   t_extract.next("### Peel Extract time: ");
   t_count.next("### Peel Count time: ");
@@ -967,10 +863,10 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 //*************************************************SPACE EFFICIENT CODE******************
 
 
-template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T>
+template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T, class CWP>
 sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
-  bool use_compress,
+  bool use_compress, bool inline_hierarchy, CWP& connect_while_peeling,
   size_t num_buckets=16) {
     size_t efficient = fake_efficient;
     if (fake_efficient == 3) efficient = 5;
@@ -1010,6 +906,8 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   std::cout << "created 6 " << std::endl; fflush(stdout);
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
+  if (inline_hierarchy) connect_while_peeling = CWP(num_entries);
+
   timer t_extract;
   timer t_count;
   timer t_update;
@@ -1023,6 +921,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   double max_density = 0;
   bool use_max_density = false;
   size_t iter = 0;
+  bucket_t prev_bkt = 0;
 
   while (finished < num_entries) {
     t_extract.start();
@@ -1039,6 +938,10 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     if (active_size == 0) continue;
 
     finished += active_size;
+
+    if (inline_hierarchy && prev_bkt != cur_bkt && cur_bkt != 0) {
+      connect_while_peeling.init(cur_bkt);
+    }
 
     max_bkt = std::max(cur_bkt, max_bkt);
     if (cur_bkt == 0 || finished == num_entries) {
@@ -1072,7 +975,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
-      t_update_d, false);
+      t_update_d, D, false, inline_hierarchy, connect_while_peeling, cur_bkt);
     }
       t_count.stop();
 
@@ -1135,6 +1038,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     t_update.stop();
 
     rounds++;
+    prev_bkt = cur_bkt;
   
   }
 

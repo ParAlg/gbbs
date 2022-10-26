@@ -126,8 +126,8 @@ cc_library(
 )
 
 cc_library(
-  name = "NucleusDecomposition_common",
-  hdrs = ["NucleusDecomposition_common.h"],
+  name = "NucleusDecomposition_structs",
+  hdrs = ["NucleusDecomposition_structs.h"],
   deps = [
   "//benchmarks/CliqueCounting:relabel",
   "//benchmarks/CliqueCounting:induced_neighborhood",
@@ -135,6 +135,7 @@ cc_library(
   "//benchmarks/CliqueCounting:induced_hybrid",
   "//benchmarks/CliqueCounting:induced_split",
   "//benchmarks/CliqueCounting:intersect",
+  "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
@@ -152,6 +153,70 @@ cc_library(
   ":multitable_nosearch",
   ":commontable",
   ":list_buffer",
+  ]
+)
+
+cc_library(
+  name = "NucleusDecomposition_pnd",
+  hdrs = ["NucleusDecomposition_pnd.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
+  "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
+  "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
+  "//benchmarks/KCore/JulienneDBS17:KCore",
+  "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
+  "//benchmarks/CliqueCounting:Clique",
+  ":onetable",
+  ":twotable",
+  ":twotable_nosearch",
+  ":multitable",
+  ":multitable_nosearch",
+  ":commontable",
+  ":list_buffer",
+  ]
+)
+
+cc_library(
+  name = "NucleusDecomposition_common",
+  hdrs = ["NucleusDecomposition_common.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/helpers:dyn_arr",
+  "//gbbs/helpers:sparse_additive_map",
+  "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
+  "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
+  "//benchmarks/KCore/JulienneDBS17:KCore",
+  "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
+  "//benchmarks/CliqueCounting:Clique",
+  ":onetable",
+  ":twotable",
+  ":twotable_nosearch",
+  ":multitable",
+  ":multitable_nosearch",
+  ":commontable",
+  ":list_buffer",
+  ":NucleusDecomposition_structs",
+  ":NucleusDecomposition_pnd",
   ]
 )
 

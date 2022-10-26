@@ -61,11 +61,75 @@
 
 namespace gbbs {
 
+  // For approximate nucleus decomp take log of core value (log_{1+eps})
+
+inline void CheckConnect(std::vector<uintE>& connect1, std::vector<uintE>& connect2, size_t num) {
+  std::vector<uintE> changed1;
+  uintE max_val = 0;
+  for (size_t i = 0; i < connect1.size(); i++) {
+    if (connect1[i] != UINT_E_MAX && connect1[i] > max_val) max_val = connect1[i];
+  }
+  for (size_t i = 0; i < connect2.size(); i++) {
+    if (connect2[i] != UINT_E_MAX && connect2[i] > max_val) max_val = connect2[i];
+  }
+  max_val++;
+  std::vector<uintE> map(max_val);
+  std::cout << "start check" << std::endl;
+  parallel_for(0, map.size(), [&](size_t i){map[i] = UINT_E_MAX;});
+  for (size_t i = 0; i < num; i++) {
+    if (connect1[i] == UINT_E_MAX ) {
+      assert(connect2[i] == UINT_E_MAX );
+      if (connect2[i] != UINT_E_MAX ) {
+        std::cout << "Err first round: connect2 i " << i << ", " << connect2[i] << std::endl;
+        exit(0);
+      }
+    } else if (map[connect1[i]] == UINT_E_MAX) {
+      map[connect1[i]] = connect2[i];
+      changed1.push_back(connect1[i]);
+    } else {
+      assert(map[connect1[i]] == connect2[i]);
+      if (map[connect1[i]] != connect2[i]) {
+        std::cout << "Why are these different: map: " << map[connect1[i]] << ", connect2: " << connect2[i] << std::endl;
+        exit(0);
+      }
+    }
+  }
+  //std::cout << "finish round 1" << std::endl;
+  int x = 2;
+  while(!changed1.empty()) {
+    if (changed1[0] >= connect1.size()) break;
+    std::vector<uintE> newchanged;
+    for (size_t i = 0; i < changed1.size(); i++) {
+      size_t i1 = changed1[i];
+      size_t i2 = map[i1];
+      if (connect1[i1] == UINT_E_MAX ) {
+        assert(connect2[i2] == UINT_E_MAX);
+        if (connect2[i2] != UINT_E_MAX) {
+          std::cout << "Err second round: connect2 i " << i2 << ", " << connect2[i2] << std::endl;
+          exit(0);
+        }
+      } else if (map[connect1[i1]] == UINT_E_MAX) {
+        map[connect1[i1]] = connect2[i2];
+        newchanged.push_back(connect1[i1]);
+      } else {
+        assert(map[connect1[i1]] == connect2[i2]);
+        if (map[connect1[i1]] != connect2[i2]) {
+          std::cout << "Why are these different second: map: " << map[connect1[i1]] << ", connect2: " << connect2[i2] << std::endl;
+          exit(0);
+        }
+      }
+    }
+    changed1 = newchanged;
+    //std::cout << "finish round " << x << std::endl;
+    x++;
+  }
+}
+
 template <class iden_t, class bucket_t, class Graph, class DirectedGraph, class Table>
-inline void NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
+inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   size_t r, size_t s, Table& table, 
   size_t max_deg, sequence<uintE>& rank, size_t efficient, bool relabel,
-  bool use_compress) {
+  bool use_compress, bool inline_hierarchy) {
 
   //std::cout << "Start count" << std::endl;
   timer t; t.start();
@@ -84,12 +148,54 @@ inline void NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   std::cout << "### Num " << s << " cliques = " << count << "\n";
 
   timer t2; t2.start();
-  if (use_compress) auto peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress);
-  else auto peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress);
+  sequence<bucket_t> peel;
+  ConnectWhilePeeling connect_with_peeling;
+  if (use_compress) {
+    peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+  } else {
+    peel = Peel<bucket_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+  }
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
 
-  //return peel;
+  std::vector<uintE> connect;
+  if (!inline_hierarchy) {
+    std::cout << "Running Connectivity" << std::endl;
+    timer t3; t3.start();
+    connect = construct_nd_connectivity(peel, GA, DG, r-1, s-1, table, rank, relabel);
+    double tt3 = t3.stop();
+    std::cout << "### Connectivity Running Time: " << tt3 << std::endl;
+  } else {
+    std::cout << "Constructing tree" << std::endl;
+    timer t3; t3.start();
+    connect = construct_nd_connectivity_from_connect(connect_with_peeling, peel, GA, DG, r-1, s-1, table, rank, relabel);
+    double tt3 = t3.stop();
+    std::cout << "### Connectivity Tree Running Time: " << tt3 << std::endl;
+
+    //std::cout << "Running Connectivity" << std::endl;
+    //t3.start();
+    //auto connect2 = construct_nd_connectivity(peel, GA, DG, r-1, s-1, table, rank, relabel);
+    //tt3 = t3.stop();
+    //std::cout << "### Connectivity Running Time: " << tt3 << std::endl;
+    /*std::cout << "Printing tree 1: " << std::endl;
+    for (std::size_t i = 0; i < connect.size(); i++) {
+      std::cout << i << ": " << connect[i] << std::endl;
+    }
+    std::cout << "Printing tree 2: " << std::endl;
+    for (std::size_t i = 0; i < connect2.size(); i++) {
+      std::cout << i << ": " << connect2[i] << std::endl;
+    }*/
+
+    //CheckConnect(connect, connect2, table.return_total());
+    //CheckConnect(connect2, connect, table.return_total());
+  }
+
+  /*std::cout << "Printing tree: " << std::endl;
+  for (std::size_t i = 0; i < connect.size(); i++) {
+    std::cout << i << ": " << connect[i] << std::endl;
+  }*/
+
+  return peel;
 }
 
 template<class T>
@@ -99,39 +205,40 @@ T round_up(T dividend, T divisor)
 }
 
 template <class bucket_t, class T, class H, class Graph, class Graph2>
-inline void runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
+inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
-  size_t efficient, bool use_compress, bool output_size) {
+  size_t efficient, bool use_compress, bool output_size, bool inline_hierarchy) {
   timer t; 
   //sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
 
-  if (table_type == 2) {
-    t.start();
-    twotable::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
-    double tt = t.stop();
-    std::cout << "### Table Running Time: " << tt << std::endl;
-    NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-  } else if (table_type == 1) {
+  //if (table_type == 2) {
+  //  t.start();
+  //  twotable::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
+  //  double tt = t.stop();
+  //  std::cout << "### Table Running Time: " << tt << std::endl;
+  //  return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy);
+  //} else 
+  /*if (table_type == 1) {
     t.start();
     onetable::OnelevelHash<T, H, bucket_t> table(r, DG, max_deg, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
-    NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-  } else if (table_type == 5) {
+    return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy);
+  } */ //else if (table_type == 5) {
     t.start();
     twotable_nosearch::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
-    NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress);
-  } 
+    return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy);
+  //} 
   //return count;
 }
 
 template <class Graph>
 inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, bool verify, size_t efficient, bool use_compress,
-  bool output_size) {
+  bool output_size, bool inline_hierarchy) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
 
@@ -182,16 +289,16 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
 
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
-    runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size);
+    auto peel = runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
-    runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size);
+    auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
   } else {
     // unsigned__int128
-      runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size);
+      auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
   }
 
 
@@ -201,16 +308,16 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
 
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
-    runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size);
+    auto peel = runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
-    runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size);
+    auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
   } else {
     // unsigned__int128
-      runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size);
+    auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy);
   }
 
   }

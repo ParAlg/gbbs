@@ -88,6 +88,9 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   bool use_compress = P.getOptionValue("-compress"); //only for 2, 3
   bool output_size = P.getOptionValue("-output_size");
 
+  // Hierarchy options
+  bool inline_hierarchy = P.getOptionValue("-inline");
+
   // use_compress only runs compress actually for (2, 3)
   // otherwise, it runs space efficient code, but only if using
   // twotable, twotable_nosearch, or multitable (rest is unimplemented)
@@ -107,11 +110,12 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   std::cout << "End internal state: " << std::endl;
 
   timer t; t.start();
-  if (r == 2 && ss == 3 && table_type == 5 && efficient == 2) {
-    KTruss_ht(GA, 16, compact);
-  } else {
-    NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, verify, efficient, use_compress, output_size);
-  }
+  //if (r == 2 && ss == 3 && table_type == 5 && efficient == 2) {
+  //  KTruss_ht(GA, 16, compact);
+  //} else {
+    NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, 
+      verify, efficient, use_compress, output_size, inline_hierarchy);
+  //}
 
   double tt = t.stop();
 
