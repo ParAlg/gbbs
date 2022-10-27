@@ -78,7 +78,7 @@ struct NDNode{
 inline void set_equal_and_check(NDNode* a, NDNode* b) {
   if (a->check == nullptr) a->check = b;
   if (b->check == nullptr) b->check = a;
-  if (a->check != b->check) {
+  if (a->check != b || b->check != a) {
     std::cout << "Mismatch: " << a->id << ", " << b->id << std::endl;
     fflush(stdout);
     exit(0);
