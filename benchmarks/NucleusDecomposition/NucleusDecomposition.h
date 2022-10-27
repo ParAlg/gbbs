@@ -95,7 +95,7 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
   while (has_changed) {
     has_changed = false;
     //for (size_t i = 0; i < num; i++) {
-    parallel_for(0, num. [&](size_t i){
+    parallel_for(0, num, [&](size_t i){
       auto idx = current_parent[i];
       if (idx == UINT_E_MAX || idx >= connect1.size() || connect1[idx] == UINT_E_MAX) continue;
       if (compress[idx] == UINT_E_MAX) has_changed = true;
