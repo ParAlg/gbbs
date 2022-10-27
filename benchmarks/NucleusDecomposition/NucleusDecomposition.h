@@ -116,6 +116,7 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
       if (has_duplicate) {
         compress[idx] = connect1[idx];
       } else if (connect1[idx] >= connect1.size()){
+        if (idx == i) compress[idx] = connect1[idx];
         //compress[idx] = connect1[idx];
       } else {
         compress[idx] = connect1[connect1[idx]];
