@@ -320,18 +320,26 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     size_t start_index = vert_buckets[i];
     size_t end_index = vert_buckets[i + 1];
 
-    //auto first_x = sorted_vert[start_index];
-    //auto first_current_core = cores[first_x];
+    auto first_x = sorted_vert[start_index];
+    if (table.is_valid(first_x)) {
+      auto first_current_core = cores[first_x];
     //auto parent_eq_func = [&](size_t a, size_t b) {return parents[sorted_vert[start_index + a]] == parents[sorted_vert[start_index + b]];};
     //auto parent_buckets = GetBoundaryIndices<size_t>(end_index - start_index, parent_eq_func);
     //parallel_for(0, parent_buckets.size() - 1, [&](size_t j){
     //  size_t parent_start_index = start_index + parent_buckets[j];
     //  size_t parent_end_index = start_index + parent_buckets[j + 1];
       parallel_for(0, end_index - start_index, [&](size_t a){
-        if (table.is_valid(sorted_vert[start_index + a])) connectivity_tree[sorted_vert[start_index + a]] = prev_max_parent + i;
+        if (table.is_valid(sorted_vert[start_index + a])) {
+          connectivity_tree[sorted_vert[start_index + a]] = prev_max_parent + i;
+          if (cores[sorted_vert[start_index + a]] != first_current_core) {
+            std::cout << "Cores don't match: " << first_current_core << ", " << sorted_vert[start_index + a] << ", " << cores[sorted_vert[start_index + a]] << std::endl;
+            fflush(stdout);
+          }
+        }
       });
     //});
     //prev_max_parent += parent_buckets.size() - 1;
+    }
   });
   prev_max_parent += vert_buckets.size() - 1;
   std::cout << "Finish first pass" << std::endl; fflush(stdout);
@@ -341,7 +349,13 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   for (size_t i = 0; i < cwp.links.size(); i++) {
     if (!table.is_valid(i)) continue;
     if (cwp.links[i] == UINT_E_MAX) continue;
-    if (i == parents[i]) connectivity_tree[connectivity_tree[i]] = connectivity_tree[cwp.links[i]];
+    if (i == parents[i]) {
+      connectivity_tree[connectivity_tree[i]] = connectivity_tree[cwp.links[i]];
+      if (cores[cwp.links[i]] >= cores[i]) {
+        std::cout << "Cores not less than: " << i << ", " << cwp.links[i] << ", " << cores[i] << ", " << cores[cwp.links[i]] << std::endl;
+        fflush(stdout);
+      }
+    }
   }
   std::cout << "Finish second pass" << std::endl; fflush(stdout);
   return connectivity_tree;
