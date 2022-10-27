@@ -65,7 +65,7 @@ namespace gbbs {
 
 inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t num) {
   std::cout << "Begin compress" << std::endl; fflush(stdout);
-  sequence<uintE> compress(connect1.size());
+  std::vector<uintE> compress(connect1.size());
   parallel_for(0, compress.size(), [&](size_t i){compress[i] = UINT_E_MAX; });
   sequence<uintE> current_parent(num);
   parallel_for(0, num, [&](size_t i){current_parent[i] = i;});
