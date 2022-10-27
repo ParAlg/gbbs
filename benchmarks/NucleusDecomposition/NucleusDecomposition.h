@@ -91,7 +91,7 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
     for (size_t i = 0; i < num; i++) {
       bool has_duplicate = false;
       auto idx = current_parent[i];
-      if (idx == UINT_E_MAX || connect1[idx] == UINT_E_MAX) continue;
+      if (idx == UINT_E_MAX || idx >= connect1.size() || connect1[idx] == UINT_E_MAX) continue;
       if (compress[idx] == UINT_E_MAX) has_changed = true;
       for (size_t j = 0; j < connect1.size(); j++) {
         if (idx == j) continue;
@@ -100,9 +100,11 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
           break;
         }
       }
-      if (has_duplicate || connect1[idx] >= connect1.size()) {
+      if (has_duplicate) {
         compress[idx] = connect1[idx];
-      } else  {
+      } else if (connect1[idx] >= connect1.size()){
+        compress[idx] = connect1[idx];
+      } else {
         compress[idx] = connect1[connect1[idx]];
       }
       current_parent[i] = compress[idx];
