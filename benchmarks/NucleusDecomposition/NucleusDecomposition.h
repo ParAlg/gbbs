@@ -79,6 +79,12 @@ inline void set_equal_and_check(NDNode* a, NDNode* b) {
   if (a->check == nullptr) a->check = b;
   if (b->check == nullptr) b->check = a;
   if (a->check != b || b->check != a) {
+    if (a->check != b) {
+      std::cout << "a: " << a->check->id << ", " << b->id << std::endl;
+    }
+    if (b->check != a) {
+      std::cout << "b: " << b->check->id << ", " << a->id << std::endl;
+    }
     std::cout << "Mismatch: " << a->id << ", " << b->id << std::endl;
     fflush(stdout);
     exit(0);
