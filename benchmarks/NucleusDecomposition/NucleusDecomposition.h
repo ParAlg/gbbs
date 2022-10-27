@@ -100,7 +100,7 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
       if (compress[idx] == UINT_E_MAX) has_changed = true;
 
       bool has_duplicate = false;
-      if (duplicate_table.find(idx) > 1) has_duplicate = true;
+      if (duplicate_table.find(connect1[idx]) > 1) has_duplicate = true;
       /*for (size_t j = 0; j < connect1.size(); j++) {
         if (idx == j) continue;
         if (connect1[j] == connect1[idx]) {
