@@ -133,8 +133,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     return still_active[index] == 0;
   };
 
-  auto cores_func = [&](size_t a) {
-    if (is_inactive_hierarchy(a)) return n;
+  auto cores_func = [&](size_t a) -> bucket_t {
+    if (is_inactive_hierarchy(a)) return n + 1;
     return cores[a]; // is_active(a) ? cur_bkt : 
   };
 
@@ -955,7 +955,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
 
-    size_t filter_size = 0;
+    //size_t filter_size = 0;
 
       auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
 
