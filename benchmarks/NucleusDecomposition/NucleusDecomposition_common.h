@@ -955,7 +955,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
 
-    //size_t filter_size = 0;
+    size_t filter_size = 0;
 
       auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
 
