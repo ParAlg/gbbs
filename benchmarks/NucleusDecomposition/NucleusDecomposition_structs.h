@@ -268,14 +268,14 @@ sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
 size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   std::cout << "Start connectivity tree" << std::endl; fflush(stdout);
   auto parents = cwp.uf.finish();
-  std::cout << "ECWP UF: " << std::endl;
+  /*std::cout << "ECWP UF: " << std::endl;
   for (size_t i = 0; i < parents.size(); i++) {
     std::cout << "i: " << i << ", " << parents[i] << std::endl;
   }
   std::cout << "ECWP Links: " << std::endl;
   for (size_t i = 0; i < cwp.links.size(); i++) {
     std::cout << "i: " << i << ", " << cwp.links[i] << std::endl;
-  }
+  }*/
   std::cout << "Finish cwp" << std::endl; fflush(stdout);
   auto n = table.return_total();
 
