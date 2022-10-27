@@ -63,6 +63,104 @@ namespace gbbs {
 
   // For approximate nucleus decomp take log of core value (log_{1+eps})
 
+struct NDNode{
+  uintE id;
+  NDNode* parent;
+  std::vector<NDNode*> children;
+  NDNode* check;
+  NDNode() {
+    id = UINT_E_MAX;
+    parent = nullptr;
+    check = nullptr;
+  }
+};
+
+inline void set_equal_and_check(NDNode* a, NDNode* b) {
+  if (a->check == nullptr) a->check = b;
+  if (b->check == nullptr) b->check = a;
+  if (a->check != b->check) {
+    std::cout << "Mismatch: " << a->id << ", " << b->id << std::endl;
+    fflush(stdout);
+    exit(0);
+  }
+  if (a->parent == nullptr) {
+    if (b->parent != nullptr) {
+      std::cout << "b Parent null mismatch: " << a->id << ", " << b->id << ", " << b->parent->id << std::endl;
+      fflush(stdout);
+      exit(0);
+    }
+  } else if (b->parent == nullptr) {
+    if (a->parent != nullptr) {
+      std::cout << "a Parent null mismatch: " << a->id << ", " << b->id << ", " << a->parent->id << std::endl;
+      fflush(stdout);
+      exit(0);
+    }
+  } else {
+    set_equal_and_check(a->parent, b->parent);
+  }
+}
+
+inline void check_ndnode(std::vector<NDNode*>& nodes1, std::vector<NDNode*>& nodes2, size_t num) {
+  for (size_t i = 0; i < num; i++) {
+    if (nodes1[i] == nullptr) {
+      if (nodes2[i] != nullptr) {
+        std::cout << "Should be null: " << i << ", " << nodes2[i].id << std::endl;
+        fflush(stdout);
+        exit(0);
+      }
+    } else {
+      nodes1[i]->check = nodes2[i];
+      nodes2[i]->check = nodes1[i];
+      set_equal_and_check(nodes1[i], nodes2[i]);
+    }
+  }
+}
+
+inline std::vector<NDNode*> convert_to_ndnode(std::vector<uintE>& connect) {
+  uintE max_val = 0;
+  for (size_t i = 0; i < connect.size(); i++) {
+    if (connect[i] != UINT_E_MAX && connect[i] > max_val) max_val = connect[i];
+  }
+  std::vector<NDNode*> all_nodes(max_val + 1, nullptr);
+  for (size_t i = 0; i < connect.size(); i++) {
+    if (connect[i] == UINT_E_MAX) continue;
+    if (all_nodes[i] == nullptr) {
+      all_nodes[i] = new NDNode();
+      all_nodes[i]->id = i;
+    }
+    if (all_nodes[connect[i]] == nullptr) {
+      all_nodes[connect[i]] = new NDNode();
+      all_nodes[connect[i]]->id = connect[i];
+    }
+    all_nodes[connect[i]]->children.push_back(all_nodes[i]);
+    all_nodes[i]->parent = all_nodes[connect[i]];
+  }
+  return all_nodes;
+  /*std::vector<NDNode*> roots;
+  for (size_t i = 0; i < all_nodes.size(); i++) {
+    if (all_nodes[i] == nullptr) continue;
+    if (all_nodes[i]->parent == nullptr) roots.push_back(all_nodes[i]);
+  }
+  return roots;*/
+}
+
+inline void compress_ndnode(std::vector<NDNode*>& all_nodes) {
+  for (size_t i = 0; i < all_nodes.size(); i++) {
+    if (all_nodes[i] == nullptr) continue;
+    if (all_nodes[i]->children.size() == 1) {
+      NDNode* child = (all_nodes[i]->children)[0];
+      NDNode* parent = all_nodes[i]->parent;
+      child->parent = parent;
+      if (parent != nullptr) {
+        for (size_t j = 0; j < parent->children.size(); j++) {
+          if (parent->children[j] == all_nodes[i]) parent->children[j] = child;
+          break;
+        }
+      }
+    }
+  }
+}
+
 inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t num) {
   std::cout << "Begin compress" << std::endl; fflush(stdout);
   std::vector<uintE> compress(connect1.size());
@@ -297,9 +395,15 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
       auto connect2 = construct_nd_connectivity(peel, GA, DG, r-1, s-1, table, rank, relabel);
       tt3 = t3.stop();
       std::cout << "### Connectivity Running Time: " << tt3 << std::endl;
+
+      auto ndnode1 = convert_to_ndnode(connect);
+      auto ndnode2 = convert_to_ndnode(connect2);
+      compress_ndnode(ndnode1);
+      compress_ndnode(ndnode2);
+      check_ndnode(ndnode1, ndnode2, table.return_total());
     
-      if (!efficient_inline_hierarchy) connect = CompressConnect(connect, table.return_total());
-      connect2 = CompressConnect(connect2, table.return_total());
+      /*if (!efficient_inline_hierarchy) connect = CompressConnect(connect, table.return_total());
+      connect2 = CompressConnect(connect2, table.return_total());*/
 
       /*std::cout << "Printing tree 1: " << std::endl;
     for (std::size_t i = 0; i < connect.size(); i++) {
@@ -311,10 +415,10 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
       std::cout << i << ": " << connect2[i] << std::endl;
     }*/
 
-      std::cout << "Start first way" << std::endl; fflush(stdout);
+      /*std::cout << "Start first way" << std::endl; fflush(stdout);
       CheckConnectCompress(connect, connect2, table.return_total());
       std::cout << "Start second way" << std::endl; fflush(stdout);
-      CheckConnectCompress(connect2, connect, table.return_total());
+      CheckConnectCompress(connect2, connect, table.return_total());*/
     }
   }
 
