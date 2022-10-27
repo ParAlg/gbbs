@@ -313,7 +313,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   for (size_t i = 0; i < cwp.links.size(); i++) {
     if (!table.is_valid(i)) continue;
     if (cwp.links[i] == UINT_E_MAX) continue;
-    if (i == parents[i]) connectivity_tree[parents[i]] = parents[cwp.links[parents[i]]];
+    if (i == parents[i]) connectivity_tree[connectivity_tree[parents[i]]] = prev_max_parent + parents[cwp.links[parents[i]]];
   }
   std::cout << "Finish second pass" << std::endl; fflush(stdout);
   return connectivity_tree;
