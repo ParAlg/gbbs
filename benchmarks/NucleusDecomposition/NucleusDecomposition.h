@@ -64,6 +64,7 @@ namespace gbbs {
   // For approximate nucleus decomp take log of core value (log_{1+eps})
 
 inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t num) {
+  std::cout << "Begin compress" << std::endl; fflush(stdout);
   std::vector<uintE> compress(connect1.size(), UINT_E_MAX);
   std::vector<uintE> current_parent(num);
   parallel_for(0, num, [&](size_t i){current_parent[i] = i;});
@@ -107,6 +108,7 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
       current_parent[i] = compress[idx];
     }
   }
+  std::cout << "End compress" << std::endl; fflush(stdout);
   return compress;
 }
 
@@ -232,14 +234,14 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
       auto connect2 = construct_nd_connectivity(peel, GA, DG, r-1, s-1, table, rank, relabel);
       tt3 = t3.stop();
       std::cout << "### Connectivity Running Time: " << tt3 << std::endl;
-    /*std::cout << "Printing tree 1: " << std::endl;
+    std::cout << "Printing tree 1: " << std::endl;
     for (std::size_t i = 0; i < connect.size(); i++) {
       std::cout << i << ": " << connect[i] << std::endl;
     }
     std::cout << "Printing tree 2: " << std::endl;
     for (std::size_t i = 0; i < connect2.size(); i++) {
       std::cout << i << ": " << connect2[i] << std::endl;
-    }*/
+    }
       if (efficient_inline_hierarchy) connect2 = CompressConnect(connect2, table.return_total());
 
       CheckConnect(connect, connect2, table.return_total());
