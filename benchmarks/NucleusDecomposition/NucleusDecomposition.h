@@ -74,6 +74,7 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
   parallel_for(0, connect1.size(), [&](size_t i){
     if (connect1[i] != UINT_E_MAX) duplicate_table.insert(std::make_tuple(connect1[i], 1));
   });
+  std::cout << "Finish hashing" << std::endl; fflush(stdout);
   /*for (size_t i = 0; i < num; i++) {
     if (connect1[i] == UINT_E_MAX) continue;
     bool has_duplicate = false;
@@ -118,6 +119,9 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
         compress[idx] = connect1[connect1[idx]];
       }
       if (current_parent[i] != compress[idx]) has_changed = true;
+      if (compress[idx] < current_parent[i]) {
+        std::cout << "Something is wrong: " << current_parent[i] << ", " << compress[idx] << std::endl; fflush(stdout); exit(0);
+      }
       current_parent[i] = compress[idx];
       }
     });
