@@ -276,7 +276,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   auto n = table.return_total();
 
   // Sort vertices from highest core # to lowest
-  auto get_core = [&](uintE p, uintE q){
+  /*auto get_core = [&](uintE p, uintE q){
     bucket_t core_p = table.is_valid(p) ? cores[p] : 0;
     bucket_t core_q = table.is_valid(q) ? cores[q] : 0;
     if (core_p == core_q) {
@@ -285,35 +285,41 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
       return parent_p < parent_q;
     }
     return core_p > core_q;
+  };*/
+  auto sort_by_parent = [&](uintE p, uintE q) {
+    //uintE parent_p = table.is_valid(p) ? parents[p] : p;
+    //uintE parent_q = table.is_valid(q) ? parents[q] : q;
+      return parents[p] < parents[q];
   };
   auto sorted_vert = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
-  parlay::sample_sort_inplace(make_slice(sorted_vert), get_core);
+  parlay::sample_sort_inplace(make_slice(sorted_vert), sort_by_parent);
   std::cout << "Finish sample sort" << std::endl; fflush(stdout);
 
-  auto cores_eq_func = [&](size_t i, size_t j) {return cores[sorted_vert[i]] == cores[sorted_vert[j]];};
-  auto vert_buckets = GetBoundaryIndices<size_t>(n, cores_eq_func);
+  auto parent_eq_func = [&](size_t i, size_t j) {return parents[sorted_vert[i]] == parents[sorted_vert[j]];};
+  auto vert_buckets = GetBoundaryIndices<size_t>(n, parent_eq_func);
   std::cout << "Finish boundary" << std::endl; fflush(stdout);
 
   std::vector<uintE> connectivity_tree(n);
   parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
   uintE prev_max_parent = n;
-  for (size_t i = 0; i < vert_buckets.size()-1; i++) {
+  parallel_for (0, vert_buckets.size()-1, [&](size_t i) {
     size_t start_index = vert_buckets[i];
     size_t end_index = vert_buckets[i + 1];
 
     //auto first_x = sorted_vert[start_index];
     //auto first_current_core = cores[first_x];
-    auto parent_eq_func = [&](size_t a, size_t b) {return parents[sorted_vert[start_index + a]] == parents[sorted_vert[start_index + b]];};
-    auto parent_buckets = GetBoundaryIndices<size_t>(end_index - start_index, parent_eq_func);
-    parallel_for(0, parent_buckets.size() - 1, [&](size_t j){
-      size_t parent_start_index = start_index + parent_buckets[j];
-      size_t parent_end_index = start_index + parent_buckets[j + 1];
-      parallel_for(parent_start_index, parent_end_index, [&](size_t a){
-        if (table.is_valid(sorted_vert[a])) connectivity_tree[sorted_vert[a]] = prev_max_parent + j;
+    //auto parent_eq_func = [&](size_t a, size_t b) {return parents[sorted_vert[start_index + a]] == parents[sorted_vert[start_index + b]];};
+    //auto parent_buckets = GetBoundaryIndices<size_t>(end_index - start_index, parent_eq_func);
+    //parallel_for(0, parent_buckets.size() - 1, [&](size_t j){
+    //  size_t parent_start_index = start_index + parent_buckets[j];
+    //  size_t parent_end_index = start_index + parent_buckets[j + 1];
+      parallel_for(start_index, end_index, [&](size_t a){
+        if (table.is_valid(sorted_vert[a])) connectivity_tree[sorted_vert[a]] = prev_max_parent + i;
       });
-    });
-    prev_max_parent += parent_buckets.size() - 1;
-  }
+    //});
+    //prev_max_parent += parent_buckets.size() - 1;
+  });
+  prev_max_parent += vert_buckets.size() - 1;
   std::cout << "Finish first pass" << std::endl; fflush(stdout);
   connectivity_tree.resize(prev_max_parent);
   parallel_for(n, prev_max_parent, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
@@ -321,7 +327,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   for (size_t i = 0; i < cwp.links.size(); i++) {
     if (!table.is_valid(i)) continue;
     if (cwp.links[i] == UINT_E_MAX) continue;
-    if (i == parents[i]) connectivity_tree[connectivity_tree[parents[i]]] = parents[cwp.links[parents[i]]];
+    if (i == parents[i]) connectivity_tree[connectivity_tree[i]] = connectivity_tree[cwp.links[i]];
   }
   std::cout << "Finish second pass" << std::endl; fflush(stdout);
   return connectivity_tree;
