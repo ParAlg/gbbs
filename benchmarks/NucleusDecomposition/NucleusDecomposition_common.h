@@ -134,7 +134,8 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
 
   auto cores_func = [&](size_t a) {
-    return is_active(a) ? cur_bkt : cores[a];
+    if (is_inactive_hierarchy(a)) return n;
+    return cores[a]; // is_active(a) ? cur_bkt : 
   };
 
   auto update_d = [&](unsigned __int128 x, uintE* base){
