@@ -65,12 +65,14 @@ namespace gbbs {
 
 inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t num) {
   std::cout << "Begin compress" << std::endl; fflush(stdout);
-  std::vector<uintE> compress(connect1.size(), UINT_E_MAX);
-  std::vector<uintE> current_parent(num);
+  sequence<uintE> compress(connect1.size());
+  parallel_for(0, compress.size(), [&](size_t i){compress[i] = UINT_E_MAX; });
+  sequence<uintE> current_parent(num);
   parallel_for(0, num, [&](size_t i){current_parent[i] = i;});
+  std::cout << "Finish making arrays" << std::endl; fflush(stdout);
 
   auto empty = std::make_tuple<uintE, uintE>(UINT_E_MAX, 0);
-  auto duplicate_table = gbbs::sparse_additive_map<uintE, uintE>(num, empty);
+  auto duplicate_table = gbbs::sparse_additive_map<uintE, uintE>(connect1.size(), empty);
   parallel_for(0, connect1.size(), [&](size_t i){
     if (connect1[i] != UINT_E_MAX) duplicate_table.insert(std::make_tuple(connect1[i], 1));
   });
