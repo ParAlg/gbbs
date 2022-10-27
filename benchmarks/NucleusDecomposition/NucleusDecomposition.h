@@ -152,6 +152,7 @@ inline void CheckConnectCompress(std::vector<uintE>& connect1, std::vector<uintE
     std::vector<uintE> new_changed;
     for (size_t i = 0; i < changed.size(); i++) {
       auto val1 = connect1[changed[i]];
+      if (val1 == UINT_E_MAX && map[changed[i]] >= connect2.size()) continue;
       auto val2 = connect2[map[changed[i]]];
       if (val1 == UINT_E_MAX) {
         if (val2 != UINT_E_MAX) {
