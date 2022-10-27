@@ -299,6 +299,16 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   auto vert_buckets = GetBoundaryIndices<size_t>(n, parent_eq_func);
   std::cout << "Finish boundary" << std::endl; fflush(stdout);
 
+  std::cout << "Sorted vert" << std::endl;
+  for (size_t i = 0; i < n; i++) {
+    std::cout << "i: " << i << ", " << sorted_vert[i] << std::endl;
+  }
+  std::cout << "Boundary indices" << std::endl;
+  for (size_t i = 0; i < vert_buckets.size(); i++) {
+    std::cout << "i: " << i << ", " << vert_buckets[i] << std::endl;
+  }
+  std::cout << "End boundary" << std::endl;
+
   std::vector<uintE> connectivity_tree(n);
   parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
   uintE prev_max_parent = n;
