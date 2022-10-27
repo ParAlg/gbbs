@@ -68,6 +68,12 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
   std::vector<uintE> compress(connect1.size(), UINT_E_MAX);
   std::vector<uintE> current_parent(num);
   parallel_for(0, num, [&](size_t i){current_parent[i] = i;});
+
+  auto empty = std::make_tuple<uintE, uintE>(UINT_E_MAX, 0);
+  auto duplicate_table = gbbs::sparse_additive_map<uintE, uintE>(num, empty);
+  parallel_for(0, connect1.size(), [&](size_t i){
+    if (connect1[i] != UINT_E_MAX) duplicate_table.insert(std::make_tuple(connect1[i], 1));
+  });
   /*for (size_t i = 0; i < num; i++) {
     if (connect1[i] == UINT_E_MAX) continue;
     bool has_duplicate = false;
@@ -89,17 +95,19 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
   while (has_changed) {
     has_changed = false;
     for (size_t i = 0; i < num; i++) {
-      bool has_duplicate = false;
       auto idx = current_parent[i];
       if (idx == UINT_E_MAX || idx >= connect1.size() || connect1[idx] == UINT_E_MAX) continue;
       if (compress[idx] == UINT_E_MAX) has_changed = true;
-      for (size_t j = 0; j < connect1.size(); j++) {
+
+      bool has_duplicate = (duplicate_table.find(idx) > 1);
+      /*for (size_t j = 0; j < connect1.size(); j++) {
         if (idx == j) continue;
         if (connect1[j] == connect1[idx]) {
           has_duplicate = true;
           break;
         }
-      }
+      }*/
+
       if (has_duplicate) {
         compress[idx] = connect1[idx];
       } else if (connect1[idx] >= connect1.size()){

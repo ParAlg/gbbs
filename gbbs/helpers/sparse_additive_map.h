@@ -120,6 +120,19 @@ class sparse_additive_map {
     return 0;
   }
 
+  V find(K k) {
+    size_t h = firstIndex(k);
+    while (1) {
+      if (std::get<0>(table[h]) == k) {
+        return std::get<1>(table[h]);
+      } else if (std::get<0>(table[h]) == empty_key) {
+        return 0;
+      }
+      h = incrementIndex(h);
+    }
+    return 0;
+  }
+
   auto entries() {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = gbbs::make_slice<T>(table, m);
