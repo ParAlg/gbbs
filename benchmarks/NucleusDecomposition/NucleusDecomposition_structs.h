@@ -36,23 +36,27 @@
 
 namespace gbbs {
 
-template <class A>
-sequence<A> GetBoundaryIndices(
+sequence<uintE> GetBoundaryIndices(
     std::size_t num_keys,
     const std::function<bool(std::size_t, std::size_t)>& key_eq_func) {
-  sequence<A> mark_keys(num_keys);
-  auto null_key = std::numeric_limits<A>::max();
+      uintE null_key = UINT_E_MAX;
+  sequence<uintE> mark_keys(num_keys + 1);
   parlay::parallel_for(0, num_keys, [&](std::size_t i) {
     if (i != 0 && key_eq_func(i, i - 1))
       mark_keys[i] = null_key;
     else
       mark_keys[i] = i;
   });
+  mark_keys[num_keys] = num_keys;
+  auto vert_buckets = 
+      parlay::filter(mark_keys, [&](uintE x) -> bool { return x != null_key; });
+  return vert_buckets;
+/*
   sequence<A> filtered_mark_keys(num_keys + 1);
   size_t filtered_size = parlay::filter_out(mark_keys, filtered_mark_keys, [&null_key](A x) -> bool { return x != null_key; });
   filtered_mark_keys[filtered_size] = num_keys;
   filtered_mark_keys.resize(filtered_size + 1);
-  return filtered_mark_keys;
+  return filtered_mark_keys;*/
 }
 
   struct IntersectSpace {
@@ -296,7 +300,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   std::cout << "Finish sample sort" << std::endl; fflush(stdout);
 
   auto parent_eq_func = [&](size_t i, size_t j) {return parents[sorted_vert[i]] == parents[sorted_vert[j]];};
-  auto vert_buckets = GetBoundaryIndices<size_t>(n, parent_eq_func);
+  auto vert_buckets = GetBoundaryIndices(n, parent_eq_func);
   std::cout << "Finish boundary" << std::endl; fflush(stdout);
 
   std::cout << "Sorted vert" << std::endl;
@@ -323,8 +327,8 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     //parallel_for(0, parent_buckets.size() - 1, [&](size_t j){
     //  size_t parent_start_index = start_index + parent_buckets[j];
     //  size_t parent_end_index = start_index + parent_buckets[j + 1];
-      parallel_for(start_index, end_index, [&](size_t a){
-        if (table.is_valid(sorted_vert[a])) connectivity_tree[sorted_vert[a]] = prev_max_parent + i;
+      parallel_for(0, end_index - start_index, [&](size_t a){
+        if (table.is_valid(sorted_vert[start_index + a])) connectivity_tree[sorted_vert[start_index + a]] = prev_max_parent + i;
       });
     //});
     //prev_max_parent += parent_buckets.size() - 1;
