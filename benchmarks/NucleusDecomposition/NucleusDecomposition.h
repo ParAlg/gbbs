@@ -63,6 +63,52 @@ namespace gbbs {
 
   // For approximate nucleus decomp take log of core value (log_{1+eps})
 
+inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t num) {
+  std::vector<uintE> compress(connect1.size(), UINT_E_MAX);
+  std::vector<uintE> current_parent(num);
+  parallel_for(0, num, [&](size_t i){current_parent[i] = i;});
+  /*for (size_t i = 0; i < num; i++) {
+    if (connect1[i] == UINT_E_MAX) continue;
+    bool has_duplicate = false;
+    for (size_t j = 0; j < num; j++) {
+      if (i == j) continue;
+      if (connect1[i] == connect1[j]) {
+        has_duplicate = true;
+        break;
+      }
+    }
+    if (has_duplicate || connect1[i] >= connect1.size()) {
+      compress[i] = connect1[i];
+    } else {
+      compress[i] = connect1[connect1[i]];
+    }
+    current_parent[i] = compress[i];
+  }*/
+  bool has_changed = true;
+  while (has_changed) {
+    has_changed = false;
+    for (size_t i = 0; i < num; i++) {
+      bool has_duplicate = false;
+      auto idx = current_parent[i];
+      if (compress[idx] == UINT_E_MAX) has_changed = true;
+      for (size_t j = 0; j < connect1.size(); j++) {
+        if (idx == j) continue;
+        if (connect1[j] == connect1[idx]) {
+          has_duplicate = true;
+          break;
+        }
+      }
+      if (has_duplicate || connect1[idx] >= connect1.size()) {
+        compress[idx] = connect1[idx];
+      } else  {
+        compress[idx] = connect1[connect1[idx]];
+      }
+      current_parent[i] = compress[idx];
+    }
+  }
+  return compress;
+}
+
 inline void CheckConnect(std::vector<uintE>& connect1, std::vector<uintE>& connect2, size_t num) {
   std::vector<uintE> changed1;
   uintE max_val = 0;
@@ -193,6 +239,7 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
     for (std::size_t i = 0; i < connect2.size(); i++) {
       std::cout << i << ": " << connect2[i] << std::endl;
     }*/
+      if (efficient_inline_hierarchy) connect2 = CompressConnect(connect2, table.return_total());
 
       CheckConnect(connect, connect2, table.return_total());
       CheckConnect(connect2, connect, table.return_total());
