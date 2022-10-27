@@ -155,7 +155,7 @@ inline void CheckConnectCompress(std::vector<uintE>& connect1, std::vector<uintE
       auto val2 = connect2[map[changed[i]]];
       if (val1 == UINT_E_MAX) {
         if (val2 != UINT_E_MAX) {
-          std::cout << "max mismatch: " << i << ", " << val1 << ", " << val2 << std::endl;
+          std::cout << "max mismatch: " << changed[i] << ", " << map[changed[i]]  << ", " << val1 << ", " << val2 << std::endl;
           fflush(stdout);
           exit(0);
         }
