@@ -238,11 +238,13 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
     for (std::size_t i = 0; i < connect.size(); i++) {
       std::cout << i << ": " << connect[i] << std::endl;
     }
-    std::cout << "Printing tree 2: " << std::endl;
+    
+      if (efficient_inline_hierarchy) connect2 = CompressConnect(connect2, table.return_total());
+
+      std::cout << "Printing tree 2: " << std::endl;
     for (std::size_t i = 0; i < connect2.size(); i++) {
       std::cout << i << ": " << connect2[i] << std::endl;
     }
-      if (efficient_inline_hierarchy) connect2 = CompressConnect(connect2, table.return_total());
 
       CheckConnect(connect, connect2, table.return_total());
       CheckConnect(connect2, connect, table.return_total());
