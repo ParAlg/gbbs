@@ -153,8 +153,10 @@ inline void compress_ndnode(std::vector<NDNode*>& all_nodes) {
       child->parent = parent;
       if (parent != nullptr) {
         for (size_t j = 0; j < parent->children.size(); j++) {
-          if (parent->children[j] == all_nodes[i]) parent->children[j] = child;
-          break;
+          if (parent->children[j] == all_nodes[i]) {
+            parent->children[j] = child;
+            break;
+          }
         }
       }
     }
