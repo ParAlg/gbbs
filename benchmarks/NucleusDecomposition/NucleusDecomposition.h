@@ -104,7 +104,7 @@ inline void check_ndnode(std::vector<NDNode*>& nodes1, std::vector<NDNode*>& nod
   for (size_t i = 0; i < num; i++) {
     if (nodes1[i] == nullptr) {
       if (nodes2[i] != nullptr) {
-        std::cout << "Should be null: " << i << ", " << nodes2[i].id << std::endl;
+        std::cout << "Should be null: " << i << ", " << nodes2[i]->id << std::endl;
         fflush(stdout);
         exit(0);
       }
