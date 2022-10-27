@@ -301,7 +301,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
       size_t parent_start_index = start_index + parent_buckets[j];
       size_t parent_end_index = start_index + parent_buckets[j + 1];
       parallel_for(parent_start_index, parent_end_index, [&](size_t a){
-        connectivity_tree[sorted_vert[a]] = prev_max_parent + j;
+        if (table.is_valid(sorted_vert[a])) connectivity_tree[sorted_vert[a]] = prev_max_parent + j;
       });
     });
     prev_max_parent += parent_buckets.size() - 1;
