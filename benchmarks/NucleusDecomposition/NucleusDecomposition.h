@@ -159,6 +159,7 @@ inline void compress_ndnode(std::vector<NDNode*>& all_nodes) {
           }
         }
       }
+      all_nodes[i] = nullptr;
     }
   }
 }
