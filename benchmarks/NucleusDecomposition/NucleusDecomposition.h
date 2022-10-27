@@ -132,6 +132,47 @@ inline std::vector<uintE> CompressConnect(std::vector<uintE>& connect1, size_t n
   return compress;
 }
 
+inline void CheckConnectCompress(std::vector<uintE>& connect1, std::vector<uintE>& connect2, size_t num) {
+  uintE max_val = 0;
+  for (size_t i = 0; i < connect1.size(); i++) {
+    if (connect1[i] != UINT_E_MAX && connect1[i] > max_val) max_val = connect1[i];
+  }
+  for (size_t i = 0; i < connect2.size(); i++) {
+    if (connect2[i] != UINT_E_MAX && connect2[i] > max_val) max_val = connect2[i];
+  }
+  max_val++;
+  std::vector<uintE> map(max_val);
+  parallel_for(0, map.size(), [&](size_t i){map[i] = UINT_E_MAX;});
+  parallel_for(0, num, [&](size_t i) {map[i] = i;});
+
+  std::vector<uintE> changed(num);
+  for(size_t i = 0; i < num; i++) {changed[i] = i;}
+
+  while (!changed.empty()) {
+    std::vector<uintE> new_changed;
+    for (size_t i = 0; i < changed.size(); i++) {
+      auto val1 = connect1[changed[i]];
+      auto val2 = connect2[map[changed[i]]];
+      if (val1 == UINT_E_MAX) {
+        if (val2 != UINT_E_MAX) {
+          std::cout << "max mismatch: " << i << ", " << val1 << ", " << val2 << std::endl;
+          fflush(stdout);
+          exit(0);
+        }
+      } else if (map[val1] == UINT_E_MAX) {
+        map[val1] = val2;
+        if (val1 < connect1.size()) new_changed.push_back(val1);
+      } else {
+        if (map[val1] != val2) {
+          std::cout << "These shouldn't be different: " << map[val1] << ", " << val2 << std::endl;
+        }
+      }
+
+    }
+    changed = std::move(new_changed);
+  }
+}
+
 inline void CheckConnect(std::vector<uintE>& connect1, std::vector<uintE>& connect2, size_t num) {
   std::vector<uintE> changed1;
   uintE max_val = 0;
@@ -163,7 +204,7 @@ inline void CheckConnect(std::vector<uintE>& connect1, std::vector<uintE>& conne
       }
     }
   }
-  //std::cout << "finish round 1" << std::endl;
+  std::cout << "finish round 1" << std::endl; fflush(stdout);
   int x = 2;
   while(!changed1.empty()) {
     if (changed1[0] >= connect1.size()) break;
@@ -254,13 +295,14 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
       auto connect2 = construct_nd_connectivity(peel, GA, DG, r-1, s-1, table, rank, relabel);
       tt3 = t3.stop();
       std::cout << "### Connectivity Running Time: " << tt3 << std::endl;
-    /*std::cout << "Printing tree 1: " << std::endl;
-    for (std::size_t i = 0; i < connect.size(); i++) {
-      std::cout << i << ": " << connect[i] << std::endl;
-    }*/
     
       if (!efficient_inline_hierarchy) connect = CompressConnect(connect, table.return_total());
       connect2 = CompressConnect(connect2, table.return_total());
+
+      /*std::cout << "Printing tree 1: " << std::endl;
+    for (std::size_t i = 0; i < connect.size(); i++) {
+      std::cout << i << ": " << connect[i] << std::endl;
+    }*/
 
      /* std::cout << "Printing tree 2: " << std::endl;
     for (std::size_t i = 0; i < connect2.size(); i++) {
@@ -268,9 +310,9 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
     }*/
 
       std::cout << "Start first way" << std::endl; fflush(stdout);
-      CheckConnect(connect, connect2, table.return_total());
+      CheckConnectCompress(connect, connect2, table.return_total());
       std::cout << "Start second way" << std::endl; fflush(stdout);
-      CheckConnect(connect2, connect, table.return_total());
+      CheckConnectCompress(connect2, connect, table.return_total());
     }
   }
 
