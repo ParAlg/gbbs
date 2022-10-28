@@ -120,6 +120,8 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
   if (cores(a) <= cores(b)) {
     auto link_a = links[a]; auto link_b = links[b];
     if (link_a != UINT_E_MAX && link_b != UINT_E_MAX) this->link(link_a, link_b, cores);
+    if (link_a != UINT_E_MAX) this->link(link_a, b, cores);
+    if (link_b != UINT_E_MAX) this->link(link_b, a, cores);
   }
   if (cores(a) == cores(b)) {
     this->uf.unite(a, b);
