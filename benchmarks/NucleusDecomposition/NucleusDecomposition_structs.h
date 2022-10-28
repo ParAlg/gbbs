@@ -146,7 +146,7 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
     //}
     parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
     //while (parent != new_parent) {
-    parent = new_parent;
+    //parent = new_parent;
     if (link_a != UINT_E_MAX) this->link(link_a, parent, cores);
     if (link_b != UINT_E_MAX) this->link(link_b, parent, cores);
     //new_parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
