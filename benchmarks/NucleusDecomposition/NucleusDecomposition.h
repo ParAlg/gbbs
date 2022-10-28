@@ -410,6 +410,16 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
 
       auto ndnode1 = convert_to_ndnode(connect);
       auto ndnode2 = convert_to_ndnode(connect2);
+
+      std::cout << "Printing tree 1: " << std::endl;
+    for (std::size_t i = 0; i < connect.size(); i++) {
+      std::cout << i << ": " << connect[i] << std::endl;
+    }
+     std::cout << "Printing tree 2: " << std::endl;
+    for (std::size_t i = 0; i < connect2.size(); i++) {
+      std::cout << i << ": " << connect2[i] << std::endl;
+    }
+    
       compress_ndnode(ndnode1);
       compress_ndnode(ndnode2);
       check_ndnode(ndnode1, ndnode2, table.return_total());
@@ -417,15 +427,7 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
       /*if (!efficient_inline_hierarchy) connect = CompressConnect(connect, table.return_total());
       connect2 = CompressConnect(connect2, table.return_total());*/
 
-      /*std::cout << "Printing tree 1: " << std::endl;
-    for (std::size_t i = 0; i < connect.size(); i++) {
-      std::cout << i << ": " << connect[i] << std::endl;
-    }*/
-
-     /* std::cout << "Printing tree 2: " << std::endl;
-    for (std::size_t i = 0; i < connect2.size(); i++) {
-      std::cout << i << ": " << connect2[i] << std::endl;
-    }*/
+      
 
       /*std::cout << "Start first way" << std::endl; fflush(stdout);
       CheckConnectCompress(connect, connect2, table.return_total());
