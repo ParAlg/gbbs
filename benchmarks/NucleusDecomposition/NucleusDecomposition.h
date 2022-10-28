@@ -84,6 +84,9 @@ inline void set_equal_and_check(NDNode* a, NDNode* b) {
     }
     if (b->check != a) {
       std::cout << "b: " << b->check->id << ", " << a->id << std::endl;
+      std::cout << "B structure: ID: " << b->id << ", Num children: " << b->children.size() << std::endl;
+      std::cout << "A structure: ID: " << a->id << ", Num children: " << a->children.size() << std::endl;
+      std::cout << "Expected A structure: ID: " << b->check->id << ", Num children: " << b->check->children.size() << std::endl;
     }
     std::cout << "Mismatch: " << a->id << ", " << b->id << std::endl;
     fflush(stdout);
