@@ -460,6 +460,9 @@ t_update_d.stop();
 template <class bucket_t, class Graph, class Graph2, class Table>
 inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
   size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
+    std::cout << "Core of 19 : " << cores[19] << std::endl;
+    std::cout << "Core of 20 : " << cores[19] << std::endl;
+    fflush(stdout);
   auto n = table.return_total();
   // TODO(jeshi): don't repeat work from peel
   size_t max_deg = induced_hybrid::get_max_deg(GA);
