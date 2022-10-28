@@ -121,10 +121,12 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
     auto link_a = links[a]; auto link_b = links[b];
     if (link_a != UINT_E_MAX && link_b != UINT_E_MAX) this->link(link_a, link_b, cores);
     if (link_a != UINT_E_MAX) {
+      this->link(link_a, b, cores);
       uintE parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
       if (parent != b) this->link(link_a, parent, cores);
     }
     if (link_b != UINT_E_MAX) {
+      this->link(link_b, a, cores);
       uintE parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
       if (parent != a) this->link(link_b, parent, cores);
     }
@@ -296,14 +298,14 @@ sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
 size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   std::cout << "Start connectivity tree" << std::endl; fflush(stdout);
   auto parents = cwp.uf.finish();
-  std::cout << "ECWP UF: " << std::endl;
+  /*std::cout << "ECWP UF: " << std::endl;
   for (size_t i = 0; i < parents.size(); i++) {
     std::cout << "i: " << i << ", " << parents[i] << std::endl;
   }
   std::cout << "ECWP Links: " << std::endl;
   for (size_t i = 0; i < cwp.links.size(); i++) {
     std::cout << "i: " << i << ", " << cwp.links[i] << std::endl;
-  }
+  }*/
   std::cout << "Finish cwp" << std::endl; fflush(stdout);
   auto n = table.return_total();
 
