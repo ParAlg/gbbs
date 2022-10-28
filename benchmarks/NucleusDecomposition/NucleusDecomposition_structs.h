@@ -117,6 +117,8 @@ class EfficientConnectWhilePeeling {
 
 template<class X, class Y, class F>
 void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
+  a = simple_union_find::find_compress_atomic(a, this->uf.parents);
+  b = simple_union_find::find_compress_atomic(b, this->uf.parents);
   if (cores(a) <= cores(b)) {
     auto link_a = links[a]; auto link_b = links[b];
     if (link_a != UINT_E_MAX && link_b != UINT_E_MAX) this->link(link_a, link_b, cores);
@@ -137,20 +139,20 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
     if (link_a != UINT_E_MAX || link_b != UINT_E_MAX) {
     uintE parent = UINT_E_MAX;
     uintE new_parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
-    while (parent != new_parent) {
+    //while (parent != new_parent) {
     parent = new_parent;
     if (link_a != UINT_E_MAX) this->link(link_a, parent, cores);
     if (link_b != UINT_E_MAX) this->link(link_b, parent, cores);
     new_parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
-    }
+    //}
     parent = UINT_E_MAX;
     new_parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
-    while (parent != new_parent) {
+    //while (parent != new_parent) {
     parent = new_parent;
     if (link_a != UINT_E_MAX) this->link(link_a, parent, cores);
     if (link_b != UINT_E_MAX) this->link(link_b, parent, cores);
     new_parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
-    }
+    //}
     }
   }
   else if (cores(a) < cores(b)) {
