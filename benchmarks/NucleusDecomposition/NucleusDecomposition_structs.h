@@ -107,6 +107,9 @@ class EfficientConnectWhilePeeling {
     template<class X, class Y, class F>
     void link(X a, Y b, F& cores);
 
+    template<class X, class Y, class F>
+    void check_equal_for_merge(X a, Y b, F& cores);
+
     template<class bucket_t>
     void init(bucket_t cur_bkt);
 
@@ -114,6 +117,16 @@ class EfficientConnectWhilePeeling {
     sequence<uintE> links;
     size_t n; // table size
 };
+
+template<class X, class Y, class F>
+void EfficientConnectWhilePeeling::check_equal_for_merge(X a, Y b, F& cores) {
+  if (cores(a) == cores(b)) {
+    this->uf.unite(a, b);
+  } else {
+    auto link_b = links[b];
+    if (link_b != UINT_E_MAX && cores(link_b) >= cores(a)) this->check_equal_for_merge(a, link_b, cores);
+  }
+}
 
 template<class X, class Y, class F>
 void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
@@ -176,12 +189,15 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
         if (b != parent_b) this->link(a, parent_b, cores);
       }
     }
+    auto link_a = links[a];
+    if (link_a != UINT_E_MAX) this->check_equal_for_merge(link_a, b, cores);
+    /*
     auto link_a = links[a]; //auto link_b = links[b];
     while (link_a != UINT_E_MAX){
       if (gbbs::atomic_compare_and_swap<uintE>(&(links[a]), link_a, UINT_E_MAX)) break;
       link_a = links[a];
     }
-    if (link_a != UINT_E_MAX) this->link(link_a, b, cores);
+    if (link_a != UINT_E_MAX) this->link(link_a, b, cores);*/
     //uintE parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
     //if (parent != b) this->link(link_a, parent, cores);
   }
