@@ -179,7 +179,7 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
       while (link_a != UINT_E_MAX && !gbbs::atomic_compare_and_swap<uintE>(&(links[a]), link_a, UINT_E_MAX)){
         link_a = links[a];
       }
-      this->link(link_a, b, cores);
+      if (link_a != UINT_E_MAX) this->link(link_a, b, cores);
       //uintE parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
       //if (parent != b) this->link(link_a, parent, cores);
     }
