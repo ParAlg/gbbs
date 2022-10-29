@@ -162,18 +162,18 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
       //uintE parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
       //if (parent != a) this->link(link_b, parent, cores);
     }*/
-    auto parent_b = simple_union_find::find_compress_atomic(b, this->uf.parents);
-    if (b != parent_b) this->link(a, parent_b, cores);
-    else {
-      if (!gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) {
+    //auto parent_b = simple_union_find::find_compress_atomic(b, this->uf.parents);
+    //if (b != parent_b) this->link(a, parent_b, cores);
+    //else {
+      //if (!gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) {
       while (true) {
         gbbs::uintE c = links[b];
         if (c == UINT_E_MAX) {
           if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) break;
         } else if (cores(c) < cores(a)) { // || (cores(c) == cores(a) && a < c)
           if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), c, a)) {
-            //parent_b = simple_union_find::find_compress_atomic(b, this->uf.parents);
-            //if (b != parent_b) this->link(a, parent_b, cores);
+            parent_b = simple_union_find::find_compress_atomic(b, this->uf.parents);
+            if (b != parent_b) this->link(a, parent_b, cores);
             this->link(a, c, cores);
             break;
           }
@@ -184,11 +184,11 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
           break;
         }
       }
-      } else {
-        parent_b = simple_union_find::find_compress_atomic(b, this->uf.parents);
-        if (b != parent_b) this->link(a, parent_b, cores);
-      }
-    }
+      //} else {
+      //  parent_b = simple_union_find::find_compress_atomic(b, this->uf.parents);
+      //  if (b != parent_b) this->link(a, parent_b, cores);
+      //}
+    //}
     //auto link_a = links[a];
     //if (link_a != UINT_E_MAX) this->check_equal_for_merge(link_a, b, cores);
     /*
