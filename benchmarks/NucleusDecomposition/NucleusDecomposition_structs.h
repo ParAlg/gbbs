@@ -140,11 +140,12 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
     this->uf.unite(a, b);
     auto link_a = links[a]; auto link_b = links[b];
     if (link_a != UINT_E_MAX || link_b != UINT_E_MAX) {
-    uintE parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
+   /* uintE parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
+    
+    if (link_a != UINT_E_MAX) this->link(link_a, parent, cores);
+    if (link_b != UINT_E_MAX) this->link(link_b, parent, cores);*/
     //while (parent != new_parent) {
     //parent = new_parent;
-    if (link_a != UINT_E_MAX) this->link(link_a, parent, cores);
-    if (link_b != UINT_E_MAX) this->link(link_b, parent, cores);
     //new_parent = simple_union_find::find_compress_atomic(a, this->uf.parents);
     //}
     //parent = simple_union_find::find_compress_atomic(b, this->uf.parents);
