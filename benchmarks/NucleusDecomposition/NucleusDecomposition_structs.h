@@ -199,8 +199,8 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
       //  if (b != parent_b) this->link(a, parent_b, cores);
       //}
     //}
-    //auto link_a = links[a];
-    //if (link_a != UINT_E_MAX) this->check_equal_for_merge(link_a, b, cores);
+    auto link_a = links[a];
+    if (link_a != UINT_E_MAX) this->check_equal_for_merge(link_a, b, cores);
     /*
     auto link_a = links[a]; //auto link_b = links[b];
     while (link_a != UINT_E_MAX){
