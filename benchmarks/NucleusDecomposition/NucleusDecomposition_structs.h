@@ -130,8 +130,8 @@ void EfficientConnectWhilePeeling::check_equal_for_merge(X a, Y b, F& cores) {
 
 template<class X, class Y, class F>
 void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
-  //a = simple_union_find::find_compress_atomic(a, this->uf.parents);
-  //b = simple_union_find::find_compress_atomic(b, this->uf.parents);
+  a = simple_union_find::find_compress_atomic(a, this->uf.parents);
+  b = simple_union_find::find_compress_atomic(b, this->uf.parents);
   //if (cores(a) <= cores(b)) {
   //  auto link_a = links[a]; auto link_b = links[b];
   //  if (link_a != UINT_E_MAX && link_b != UINT_E_MAX) this->link(link_a, link_b, cores);
@@ -189,8 +189,8 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
         if (b != parent_b) this->link(a, parent_b, cores);
       }
     }
-    auto link_a = links[a];
-    if (link_a != UINT_E_MAX) this->check_equal_for_merge(link_a, b, cores);
+    //auto link_a = links[a];
+    //if (link_a != UINT_E_MAX) this->check_equal_for_merge(link_a, b, cores);
     /*
     auto link_a = links[a]; //auto link_b = links[b];
     while (link_a != UINT_E_MAX){
