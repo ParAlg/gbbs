@@ -578,7 +578,7 @@ inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, G
       if (table.is_valid(l) && cores[l] >= first_current_core) map_parents[uf.parents[l]] = 1;
     });
     auto max_parent = parlay::scan_inplace(make_slice(map_parents));
-    std::cout << "Max parent: " << max_parent << std::endl; fflush(stdout);
+    //std::cout << "Max parent: " << max_parent << std::endl; fflush(stdout);
     //***: auto max_parent = n;
 
     //std::cout << "Max parent: " << max_parent << std::endl;
