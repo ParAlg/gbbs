@@ -573,23 +573,23 @@ inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, G
     // to n, which we could inefficiently use...but maybe we have enough time here to compress
     //auto old_max_parent = 1 + parlay::reduce(make_slice(uf.parents), parlay::maxm<uintE>());
     // This is to compress the space of parents to at least be contiguous
-    //sequence<uintE> map_parents = sequence<uintE>::from_function(old_max_parent, [&](std::size_t l){return 0;});
-    // TODO(jeshi): should this be an atomic?
-    //parallel_for(0, n, [&](size_t l){
-    //  if (table.is_valid(l)) map_parents[uf.parents[l]] = 1;
-    //});
-    //auto max_parent = parlay::scan_inplace(make_slice(map_parents));
-    auto max_parent = n;
+    sequence<uintE> map_parents = sequence<uintE>::from_function(n, [&](std::size_t l){return 0;});
+    parallel_for(0, n, [&](size_t l){
+      if (table.is_valid(l) && cores[l] >= first_current_core) map_parents[uf.parents[l]] = 1;
+    });
+    auto max_parent = parlay::scan_inplace(make_slice(map_parents));
+    std::cout << "Max parent: " << max_parent << std::endl; fflush(stdout);
+    //***: auto max_parent = n;
 
     //std::cout << "Max parent: " << max_parent << std::endl;
     //std::cout << "Prev max parent: " << prev_max_parent << std::endl; fflush(stdout);
     parallel_for(0, n, [&](size_t l){
       // One check is that once one person changes this value, anyone else trying to change
       // this value should not succeed (they should be trying to change this to be the same val)
-      if (table.is_valid(l)) {
+      if (table.is_valid(l) && cores[l] >= first_current_core) { //***: if (table.is_valid(l)) {
         //assert(uf.parents[l] < old_max_parent);
         assert(prev_parent[l] < prev_max_parent);
-        connectivity_tree[prev_parent[l]] = prev_max_parent + uf.parents[l]; //map_parents[uf.parents[l]];
+        connectivity_tree[prev_parent[l]] = prev_max_parent + map_parents[uf.parents[l]];  //***: uf.parents[l];
         // Update previous parent
         prev_parent[l] = connectivity_tree[prev_parent[l]];
       }
