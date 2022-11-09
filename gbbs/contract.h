@@ -23,7 +23,7 @@ inline size_t RelabelIds(Seq& ids) {
   using T = typename Seq::value_type;
   size_t n = ids.size();
   auto inverse_map = sequence<T>::uninitialized(n + 1);
-  parallel_for(0, n, [&](size_t i) { inverse_map[i] = 0; },
+  parallel_for(0, n+1, [&](size_t i) { inverse_map[i] = 0; },
                kDefaultGranularity);
   parallel_for(0, n,
                [&](size_t i) {
