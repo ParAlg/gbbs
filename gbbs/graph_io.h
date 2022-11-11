@@ -195,7 +195,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
   auto t_seq = parlay::make_slice(tOffsets.rbegin(), tOffsets.rend());
-  auto M = parlay::minm<uintT>();
+  auto M = parlay::minimum<uintT>();
   M.identity = m;
   parlay::scan_inclusive_inplace(t_seq, M);
 

@@ -99,10 +99,10 @@ namespace internal {
 //   Must be such that keys returned by `get_key on elements of `seq` are in the
 //   range [0, `num_keys`).
 template <class Seq, class Key_fn, class Value_fn, class Monoid>
-sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
+decltype(auto) CollectReduce(
     const Seq& seq, Key_fn&& get_key, Value_fn&& get_value, Monoid&& reduce_fn,
     size_t num_keys) {
-  using Value = typename std::remove_reference_t<Monoid>::T;
+  using Value = parlay::monoid_value_type_t<Monoid>;
   if (seq.empty()) {
     return sequence<Value>(num_keys, reduce_fn.identity);
   }
@@ -212,7 +212,7 @@ double Modularity(symmetric_graph<VertexTemplate, Weight>* graph,
                                    clusters_and_degrees.size()),
           [&](const std::pair<uintE, uintT> p) { return p.first; },
           [&](const std::pair<uintE, uintT> p) { return p.second; },
-          parlay::addm<uintT>{}, num_clusters)};
+          parlay::plus<uintT>{}, num_clusters)};
       // Approximately the fraction of edges that fall within a cluster for a
       // random graph with the same degree distribution:
       //   sum((sum(degree) for each vertex in cluster) / (2 * <number of
@@ -241,7 +241,7 @@ double Modularity(symmetric_graph<VertexTemplate, Weight>* graph,
   else {  // weighted case
     constexpr auto get_weight{
         [](uintE, uintE, const Weight weight) { return weight; }};
-    const parlay::addm<double> add_weights{};
+    const parlay::plus<double> add_weights{};
     // weighted_degrees[i] = sum of weights of incident edges on vertex i
     const auto weighted_degrees{
         sequence<double>::from_function(graph->n, [&](const size_t i) {

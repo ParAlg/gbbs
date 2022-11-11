@@ -109,7 +109,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts, const F& f) {
       return DG.get_vertex(v).out_degree();
     };
     parallel_for(0, n, [&](size_t i) {
-      auto monoid = parlay::addm<size_t>();
+      auto monoid = parlay::plus<size_t>();
       parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
   }

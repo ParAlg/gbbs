@@ -182,7 +182,7 @@ sequence<edge> tree_and_intercluster_edges(
   auto cluster_size_seq = parlay::delayed_seq<size_t>(
       n, [&](size_t i) { return static_cast<size_t>(flags[i]); });
   size_t num_clusters =
-      parlay::reduce(cluster_size_seq, parlay::addm<size_t>());
+      parlay::reduce(cluster_size_seq, parlay::plus<size_t>());
 
   auto intercluster = fetch_intercluster(G, clusters, num_clusters);
   debug(std::cout << "num_intercluster edges = " << intercluster.size()

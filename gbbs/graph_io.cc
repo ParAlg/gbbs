@@ -174,7 +174,7 @@ read_unweighted_asymmetric_graph(const char* fname, bool mmap, char* bytes,
   // offset to the right
   auto t_seq = parlay::make_slice(tOffsets.rbegin(), tOffsets.rend());
 
-  auto M = parlay::minm<uintT>();
+  auto M = parlay::minimum<uintT>();
   M.identity = m;
   parlay::scan_inclusive_inplace(t_seq, M);
 

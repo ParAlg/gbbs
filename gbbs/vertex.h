@@ -133,8 +133,8 @@ struct uncompressed_neighbors {
   }
 
   template <class M, class Monoid>
-  typename Monoid::T reduce(M m, Monoid reduce) {
-    using T = typename Monoid::T;
+  decltype(auto) reduce(M m, Monoid reduce) {
+    using T = parlay::monoid_value_type_t<Monoid>;
     if (degree == 0) return reduce.identity;
     auto im_f = [&](size_t i) {
       auto nw = neighbors[i];

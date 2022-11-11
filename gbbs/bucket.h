@@ -99,7 +99,7 @@ struct buckets {
     if (order == increasing) {
       auto imap_f = [&](size_t i) { return d[i]; };
       auto imap = parlay::delayed_seq<bucket_id>(n, imap_f);
-      size_t min_b = parlay::reduce(imap, parlay::minm<bucket_id>());
+      size_t min_b = parlay::reduce(imap, parlay::minimum<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
       auto imap_f = [&](size_t i) { return (d[i] == null_bkt) ? 0 : d[i]; };
@@ -238,7 +238,7 @@ struct buckets {
     parallel_for(0, last_ind, [&](size_t i) { outs[i] = get(i); });
     outs[last_ind] = 0;
 
-    parlay::scan_inplace(make_slice(outs), parlay::addm<bucket_id>());
+    parlay::scan_inplace(make_slice(outs), parlay::plus<bucket_id>());
     //    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
@@ -358,7 +358,7 @@ struct buckets {
           bkts[open_buckets].size,
           [&](size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
       if (order == increasing) {
-        size_t minBkt = parlay::reduce(imap, parlay::minm<size_t>());
+        size_t minBkt = parlay::reduce(imap, parlay::minimum<size_t>());
         cur_range = minBkt / open_buckets -
                     1;  // will be incremented in next unpack() call
       } else if (order == decreasing) {

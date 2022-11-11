@@ -51,7 +51,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
       return (bits[i] == 0) ? (uintE)i : UINT_E_MAX;
     };
     auto im = parlay::delayed_seq<uintE>(deg, im_f);
-    uintE color = parlay::reduce(im, parlay::minm<uintE>());
+    uintE color = parlay::reduce(im, parlay::minimum<uintE>());
     if (deg > 1000) {
       gbbs::free_array(bits, deg);
     }

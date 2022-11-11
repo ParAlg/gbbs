@@ -85,13 +85,13 @@ struct compressed_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto monoid = parlay::addm<size_t>();
+    auto monoid = parlay::plus<size_t>();
     return C::template map_reduce<W>(neighbors, id, degree, f, monoid,
                                      parallel);
   }
 
   template <class M, class Monoid>
-  inline typename Monoid::T reduce(M& m, Monoid& r) {
+  inline decltype(auto) reduce(M& m, Monoid& r) {
     return C::template map_reduce<W>(neighbors, id, degree, m, r);
   }
 

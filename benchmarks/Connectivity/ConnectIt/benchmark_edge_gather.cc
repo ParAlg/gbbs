@@ -35,7 +35,7 @@ double TestEdgeGather(Graph& G, commandLine& P) {
                    auto u_vtx = G.get_vertex(u);
                    auto map_f = [&](const uintE& u, const uintE& v,
                                     const W& wgh) { return arr[v]; };
-                   auto reduce_m = parlay::addm<size_t>();
+                   auto reduce_m = parlay::plus<size_t>();
                    u_vtx.out_neighbors().reduce(map_f, reduce_m);
                  },
                  512);
@@ -65,7 +65,7 @@ double TestEdgeMap(Graph& G, commandLine& P) {
                                     const W& wgh) {
                      return static_cast<size_t>(1);
                    };
-                   auto reduce_m = parlay::addm<size_t>();
+                   auto reduce_m = parlay::plus<size_t>();
                    out[u] = u_vtx.out_neighbors().reduce(map_f, reduce_m);
                  },
                  512);

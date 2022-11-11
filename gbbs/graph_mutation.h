@@ -334,12 +334,10 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
   auto vtx_offs = sequence<std::tuple<size_t, size_t>>(n + 1);
 
   // 1. Compute the # filtered edges and tmp-space required for each vtx.
-  uintE id = 0;
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return pred(src, ngh, wgh);
   };
-  auto red_f = [](size_t l, size_t r) { return l + r; };
-  auto red_monoid = parlay::make_monoid(red_f, id);
+  auto red_monoid = parlay::plus<size_t>();
   parallel_for(0, n, [&](size_t i) {
     uintE ct = G.get_vertex(i).out_neighbors().reduce(map_f, red_monoid);
     if (ct > 0) {

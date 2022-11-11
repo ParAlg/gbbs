@@ -156,10 +156,10 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class M, class Monoid>
-inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
+inline decltype(auto) map_reduce(uchar* edge_start, const uintE& source,
                                      const uintT& degree, M& m, Monoid& reduce,
                                      const bool par = true) {
-  using E = typename Monoid::T;
+  using E = parlay::monoid_value_type_t<Monoid>;
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
     W wgh = eatWeight<W>(edge_start);
@@ -167,7 +167,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
     for (size_t i = 1; i < degree; i++) {
       ngh += eatEdge(edge_start);
       wgh = eatWeight<W>(edge_start);
-      cur = reduce.f(cur, m(source, ngh, wgh));
+      cur = reduce(cur, m(source, ngh, wgh));
     }
     return cur;
   }

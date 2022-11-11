@@ -491,10 +491,10 @@ inline void decode_block_cond(T t, uchar* edge_start, const uintE& source,
 
 // r: E -> E -> E
 template <class W, class M, class Monoid>
-inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
+inline decltype(auto) map_reduce(uchar* edge_start, const uintE& source,
                                      const uintT& degree, M& m, Monoid& reduce,
                                      const bool par = true) {
-  using E = typename Monoid::T;
+  using E = parlay::monoid_value_type_t<Monoid>;
   if (degree > 0) {
     uintE virtual_degree = *((uintE*)edge_start);
     size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
@@ -526,12 +526,12 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
         uintE ngh = eatFirstEdge(finger, source);
         {  // Eat first edge, which is compressed specially
           W wgh = eatWeight<W>(finger);
-          cur = reduce.f(cur, m(source, ngh, wgh));
+          cur = reduce(cur, m(source, ngh, wgh));
         }
         for (size_t j = start_offset + 1; j < end_offset; j++) {
           ngh += eatEdge(finger);
           W wgh = eatWeight<W>(finger);
-          cur = reduce.f(cur, m(source, ngh, wgh));
+          cur = reduce(cur, m(source, ngh, wgh));
         }
       }
       block_outputs[i] = cur;

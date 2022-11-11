@@ -85,7 +85,7 @@ struct byte_decode {
   }
 
   template <class W, class M, class Monoid>
-  static inline typename Monoid::T map_reduce(uchar* edge_start,
+  static inline decltype(auto) map_reduce(uchar* edge_start,
                                               const uintE& source,
                                               const uintT& degree, M& m,
                                               Monoid& reduce,
@@ -159,7 +159,7 @@ struct bytepd_decode {
   }
 
   template <class W, class M, class Monoid>
-  static inline typename Monoid::T map_reduce(uchar* edge_start,
+  static inline decltype(auto) map_reduce(uchar* edge_start,
                                               const uintE& source,
                                               const uintT& degree, M& m,
                                               Monoid& reduce,
@@ -248,7 +248,7 @@ struct bytepd_amortized_decode {
   }
 
   template <class W, class M, class Monoid>
-  static inline typename Monoid::T map_reduce(uchar* edge_start,
+  static inline decltype(auto) map_reduce(uchar* edge_start,
                                               const uintE& source,
                                               const uintT& degree, M& m,
                                               Monoid& reduce,

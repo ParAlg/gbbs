@@ -426,7 +426,7 @@ inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
 template <class Seq>
 inline auto reduce_min(Seq const& I) -> typename Seq::value_type {
   using T = typename Seq::value_type;
-  return reduce(make_slice(I), minm<T>());
+  return reduce(make_slice(I), minimum<T>());
 }
 
 template <class Seq>
@@ -707,7 +707,7 @@ sequence<char> sequence_to_string(TSeq const& T) {
   auto S = sequence<size_t>::from_function(n, [&](size_t i) {
     return t_to_stringlen(T[i]) + 1;  // +1 for \n
   });
-  size_t m = parlay::scan_inplace(make_slice(S), addm<size_t>());
+  size_t m = parlay::scan_inplace(make_slice(S), plus<size_t>());
 
   auto C = sequence<char>::from_function(m, [&](size_t i) { return (char)0; });
   parallel_for(0, n - 1, [&](size_t i) {
