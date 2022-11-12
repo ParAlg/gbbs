@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/Connectivity/SimpleUnionAsync/Connectivity.h"
 
 #include "gbbs/gbbs.h"
 
@@ -464,39 +464,12 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
     return true;
   };
 
-  timer ccpred;
-  ccpred.start();
-  // 1. Pack out all critical edges
-  auto pack_predicate = [&](const uintE& src, const uintE& ngh,
-                            const W& wgh) -> int {
-    return !not_critical_edge(src, ngh);
-  };
-  timer ft;
-  ft.start();
-  filterEdges(GA, pack_predicate);
-  ft.stop();
-  debug(ft.next("filter edges time"););
-
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
-  auto cc = workefficient_cc::CC(GA, 0.2, true);
-  ccpred.stop();
-  debug(ccpred.next("cc pred time"););
-
-  //  //Note that counting components here will count initially isolated
-  //  vertices
-  //  //as distinct components.
-  //   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
-  //   parallel_for(0, n, [&] (size_t i) {
-  //     if (!flags[cc[i]]) {
-  //       flags[cc[i]] = 1;
-  //     }
-  //   });
-  //   flags[n] = 0;
-  //   parlay::scan_inplace(make_slice(flags));
-  //   size_t n_cc = flags[n];
-  //   std::cout << "num biconnected components, including isolated vertices = "
-  //   << flags[n] << "\n";
+  auto cc = simple_union_find::CC_predicate(GA,
+    [&] (const uintE& u, const uintE& v, const W& wgh) {
+      return not_critical_edge(u, v);
+  });
 
   if (out_f) {
     std::cout << "Writing labels to file: " << out_f << "\n";
@@ -528,13 +501,13 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
-template <template <class W> class vertex, class W>
-auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
+template <class Graph>
+auto Biconnectivity(Graph& GA, char* out_f = 0) {
   size_t n = GA.n;
 
   timer fcc;
   fcc.start();
-  sequence<uintE> Components = workefficient_cc::CC(GA, 0.2, false);
+  sequence<uintE> Components = simple_union_find::SimpleUnionAsync(GA);
   fcc.stop();
   debug(fcc.next("first cc"););
 

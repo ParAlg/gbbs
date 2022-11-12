@@ -159,4 +159,4 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
 
 }  // namespace gbbs
 
-generate_symmetric_main(gbbs::Biconnectivity_runner, true);
+generate_symmetric_main(gbbs::Biconnectivity_runner, false);

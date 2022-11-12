@@ -2,9 +2,6 @@
 
 namespace gbbs {
 
-void report_pathlen(uintE pathlen) {
-}
-
 sequence<std::tuple<uintE, uintE, UpdateType>> annotate_updates_insert(
     sequence<std::tuple<uintE, uintE>>& updates, size_t n) {
   auto seq =

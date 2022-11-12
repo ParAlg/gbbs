@@ -4,7 +4,7 @@ cc_library(
     name = "Biconnectivity",
     hdrs = ["Biconnectivity.h"],
     deps = [
-        "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+        "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
         "//gbbs",
     ],
 )

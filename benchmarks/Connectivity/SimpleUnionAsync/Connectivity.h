@@ -135,6 +135,26 @@ inline sequence<parent> SimpleUnionAsync(Graph& G) {
   return uf.finish();
 }
 
+// Same as SimpleUnionAsync above, but takes a predicate function and
+// only unites edges s.t. pred(u, v) = true.
+template <class Graph, class Predicate>
+inline sequence<parent> CC_predicate(Graph& G, Predicate pred) {
+  using W = typename Graph::weight_type;
+
+  size_t n = G.n;
+  auto uf = SimpleUnionAsyncStruct(n);
+
+  parallel_for(0, n, [&](size_t i) {
+    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+      if (pred(u,v,wgh)) {
+        uf.unite(u, v);
+      }
+    };
+    G.get_vertex(i).out_neighbors().map(map_f);
+  });
+  return uf.finish();
+}
+
 template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
