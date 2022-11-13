@@ -76,7 +76,7 @@ inline parlay::sequence<size_t> sample_indices(size_t n, size_t m, parlay::rando
 }
 
 template <template <class W> class vertex, class W>
-inline edge_array<W> get_edges(symmetric_graph<vertex, W>& G, size_t k,
+inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<vertex, W>& G, size_t k,
                                bool* matched, size_t round, parlay::random r) {
   using edge = std::tuple<uintE, uintE, W>;
 
@@ -178,10 +178,7 @@ inline edge_array<W> get_edges(symmetric_graph<vertex, W>& G, size_t k,
 
   debug(tt.next("extract edges time"););
 
-  edge_array<W> E;
-  E.E = std::move(out);
-  E.n = G.n;
-  return E;
+  return out;
 }
 
 };  // namespace mm
@@ -212,24 +209,21 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   timer eff;
   while (true) {
     gete.start();
-    edge_array<W> e_arr = mm::get_edges(G, k, matched.begin(), round, r);
+    auto edges = mm::get_edges(G, k, matched.begin(), round, r);
 
-    auto eim_f = [&](size_t i) { return e_arr.E[i]; };
-    auto eim = parlay::delayed_seq<edge>(e_arr.size(), eim_f);
-
-    if (eim.size() == 0) break;
+    if (edges.size() == 0) break;
     debug(gete.next("Get Edges Time"););
 
-    debug(std::cout << "Got: " << e_arr.size() << " edges " << std::endl;);
+    debug(std::cout << "Got: " << edges.size() << " edges " << std::endl;);
 
-    mm::matchStep<W> mStep(e_arr.E.begin(), R.begin(), matched.begin());
+    mm::matchStep<W> mStep(edges.begin(), R.begin(), matched.begin());
     eff.start();
-    eff_for<uintE>(mStep, 0, e_arr.size(), 50, 0, G.n);
+    eff_for<uintE>(mStep, 0, edges.size(), 50, 0, G.n);
     eff.stop();
     debug(gete.next("Match Time"););
 
     auto e_added = parlay::filter(
-        eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
+        parlay::make_slice(edges), [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
 
     matching.append(parlay::make_slice(e_added));
 
@@ -244,9 +238,10 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
   });  // allocated
   mt.stop();
+  debug(
   eff.next("eff for time");
   gete.next("get edges time");
-  mt.next("Matching time");
+  mt.next("Matching time"););
   return output;
 }
 
