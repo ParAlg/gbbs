@@ -69,83 +69,118 @@ struct matchStep {
   }
 };
 
-inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
-
-inline size_t key_for_pair(uintE k1, uintE k2, parlay::random rnd) {
-  size_t l = std::min(k1, k2);
-  size_t r = std::max(k1, k2);
-  size_t key = (l << 32) + r;
-  return rnd.ith_rand(key);
-}
-
-template <template <class W> class vertex, class W>
-inline edge_array<W> get_all_edges(symmetric_graph<vertex, W>& G, bool* matched,
-                                   parlay::random rnd) {
-  auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    return !(matched[src] || matched[ngh]) && (src < ngh);
-  };
-  edge_array<W> E = filterAllEdges(G, pred);
-
-  timer perm_t;
-  perm_t.start();
-
-  using edge = std::tuple<uintE, uintE, W>;
-  sequence<edge> e_arr = std::move(E.E);
-
-  auto perm = parlay::random_permutation<uintT>(e_arr.size());
-  auto out = sequence<edge>(e_arr.size());
-  parallel_for(0, e_arr.size(), kDefaultGranularity, [&](size_t i) {
-    out[i] = e_arr[perm[i]];  // gather or scatter?
-  });
-  E.E = std::move(out);
-  E.n = G.n;
-  perm_t.stop();
-  perm_t.next("permutation time");
-  return E;
+inline parlay::sequence<size_t> sample_indices(size_t n, size_t m, parlay::random r = random()) {
+  auto out = parlay::tabulate(n, [&](size_t i) { return r.ith_rand(i) % m; });
+  r = r.next();
+  return out;
 }
 
 template <template <class W> class vertex, class W>
 inline edge_array<W> get_edges(symmetric_graph<vertex, W>& G, size_t k,
-                               bool* matched, parlay::random r) {
+                               bool* matched, size_t round, parlay::random r) {
   using edge = std::tuple<uintE, uintE, W>;
-  size_t m = G.m / 2;  // assume sym
-  bool finish = (m <= k);
 
-  std::cout << "Threshold, using m = " << m << "\n";
-  size_t range = parlay::log2_up(G.m);
-  range = 1L << range;
-  range -= 1;
-
-  size_t threshold = k;
-  auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    size_t hash_val = hash_to_range(key_for_pair(src, ngh, r), range);
-    if ((src > ngh) || matched[ngh]) {
-      return 1;  // pack out, not in edgearr
-    } else if (hash_val < threshold || finish) {
-      return 2;  // pack out, returned in edgearr
+  timer tt;
+  tt.start();
+  auto live_degree = parlay::tabulate<size_t>(G.num_vertices(), [&](size_t i) {
+    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+      return (round == 0 || !matched[v]) && u < v;
+    };
+    uintE degree = 0;
+    if (!matched[i]) {
+      auto monoid = parlay::plus<uintE>();
+      degree = G.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     }
-    return 0;  // keep in graph, not in edgearr
-  };
-  timer fet;
-  fet.start();
-  edge_array<W> E = filterEdges(G, pred);
-  fet.stop();
-  fet.next("Filter edges time");
-
-  // permute the retrieved edges
-
-  auto e_arr = E.to_seq();
-  timer perm_t;
-  perm_t.start();
-  auto perm = parlay::random_permutation<uintT>(e_arr.size());
-  auto out = sequence<edge>(e_arr.size());
-  parallel_for(0, e_arr.size(), [&](size_t i) {
-    out[i] = e_arr[perm[i]];  // gather or scatter?
+    return degree;
   });
+  debug(tt.next("live degree time"););
+
+  size_t tot = parlay::scan_inplace(parlay::make_slice(live_degree));
+  debug(std::cout << "tot = " << tot << std::endl;);
+
+  parlay::sequence<size_t> indices;
+  parlay::sequence<edge> out;
+
+  if (tot < k) {
+    indices = parlay::tabulate(tot, [&](size_t i) { return i; });
+    out = parlay::sequence<edge>(tot);
+    debug(tt.next("permutation time"););
+    k = tot;
+  } else {
+    indices = sample_indices(k, tot, r);
+    debug(tt.next("permutation time"););
+    parlay::sort_inplace(indices);
+    debug(tt.next("sort time"););
+    out = parlay::sequence<edge>(k);
+  }
+
+  constexpr size_t kBlockSize = 1 << 16;
+  size_t num_blocks = parlay::num_blocks(k, kBlockSize);
+  debug(std::cout << "k = " << k << " num_blocks = " << num_blocks
+                  << std::endl;);
+  parlay::parallel_for(0, num_blocks, [&](size_t b) {
+    size_t start = b * kBlockSize;
+    size_t end = std::min(k, (b + 1) * kBlockSize);
+
+    size_t i = start;
+    size_t idx = indices[i];
+    auto cur_id = parlay::binary_search(parlay::make_slice(live_degree), idx,
+                                        std::less<size_t>());
+
+    while (i < end) {
+      idx = indices[i];
+      size_t incr = parlay::internal::linear_search(
+          parlay::make_slice(live_degree).cut(cur_id, live_degree.size()), idx,
+          std::less<size_t>());
+      cur_id += incr;
+      if (live_degree[cur_id] > idx) cur_id--;
+
+      size_t our_edge_start = live_degree[cur_id];
+      size_t our_edge_end =
+          ((idx == G.num_vertices() - 1) ? tot : live_degree[cur_id + 1]);
+      size_t our_degree = our_edge_end - our_edge_start;
+      while (our_degree == 0) {
+        cur_id++;
+        our_edge_start = live_degree[cur_id];
+        our_edge_end =
+            ((idx == G.num_vertices() - 1) ? tot : live_degree[cur_id + 1]);
+        our_degree = our_edge_end - our_edge_start;
+      }
+
+      // detect first edge for vertex
+      bool is_first_edge = (i == 0) || (indices[i - 1] < our_edge_start);
+      if (is_first_edge) {
+        size_t ctr = our_edge_start;
+        size_t target = idx;
+        size_t offset = i;
+        auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+          if (!matched[v] && u < v) {
+            if (target == ctr) {
+              out[offset] = {u, v, wgh};
+              offset++;
+              if (offset < k) {
+                target = indices[offset];
+              } else {
+                target = std::numeric_limits<size_t>::max();
+              }
+            }
+            ctr++;
+          }
+        };
+        G.get_vertex(cur_id).out_neighbors().map(map_f, false);
+
+        i = offset;
+      } else {
+        i++;
+      }
+    }
+  }, 1);
+
+  debug(tt.next("extract edges time"););
+
+  edge_array<W> E;
   E.E = std::move(out);
   E.n = G.n;
-  perm_t.stop();
-  perm_t.next("permutation time");
   return E;
 }
 
@@ -169,46 +204,32 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   auto matched =
       sequence<bool>::from_function(n, [&](size_t i) { return false; });
 
-  size_t k = ((3 * G.n) / 2);
+  size_t k = std::max(((3 * G.n) / 2), 1024 * static_cast<size_t>(1024));
   auto matching = parlay::sequence<edge>();
 
   size_t round = 0;
   timer gete;
   timer eff;
-  while (G.m > 0) {
+  while (true) {
     gete.start();
-    edge_array<W> e_arr = (round < mm::n_filter_steps)
-                              ? mm::get_edges(G, k, matched.begin(), r)
-                              : mm::get_all_edges(G, matched.begin(), r);
+    edge_array<W> e_arr = mm::get_edges(G, k, matched.begin(), round, r);
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
     auto eim = parlay::delayed_seq<edge>(e_arr.size(), eim_f);
-    gete.stop();
 
-    std::cout << "Got: " << e_arr.size() << " edges "
-              << " G.m is now: " << G.m << "\n";
+    if (eim.size() == 0) break;
+    debug(gete.next("Get Edges Time"););
+
+    debug(std::cout << "Got: " << e_arr.size() << " edges " << std::endl;);
+
     mm::matchStep<W> mStep(e_arr.E.begin(), R.begin(), matched.begin());
     eff.start();
     eff_for<uintE>(mStep, 0, e_arr.size(), 50, 0, G.n);
     eff.stop();
+    debug(gete.next("Match Time"););
 
     auto e_added = parlay::filter(
         eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
-    auto sizes = sequence<size_t>(e_added.size());
-    parallel_for(0, e_added.size(), [&](size_t i) {
-      const auto& e = e_added[i];
-      uintE u = std::get<0>(e) & mm::VAL_MASK;
-      uintE v = std::get<1>(e) & mm::VAL_MASK;
-      uintE deg_u = G.get_vertex(u).out_degree();
-      uintE deg_v = G.get_vertex(v).out_degree();
-      G.zeroVertexDegree(u);
-      G.zeroVertexDegree(v);
-      sizes[i] = deg_u + deg_v;
-    });
-    size_t total_size = parlay::reduce(sizes);
-    G.m -= total_size;
-    std::cout << "removed: " << total_size << " many edges"
-              << "\n";
 
     matching.append(parlay::make_slice(e_added));
 
@@ -232,18 +253,18 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
 template <template <class W> class vertex, class W, class Seq>
 inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   size_t n = G.n;
-  auto ok = sequence<bool>::from_function(n, [](size_t i) { return 1; });
-  auto matched = sequence<uintE>::from_function(n, [](size_t i) { return 0; });
+  auto ok = parlay::sequence<bool>::from_function(n, [](size_t i) { return 1; });
+  auto matched = parlay::sequence<uintE>::from_function(n, [](size_t i) { return 0; });
 
   // Check that this is a valid matching
-  parallel_for(0, matching.size(), [&](size_t i) {
+  parlay::parallel_for(0, matching.size(), [&](size_t i) {
     const auto& edge = matching[i];
     gbbs::write_add(&matched[std::get<0>(edge)], 1);
     gbbs::write_add(&matched[std::get<1>(edge)], 1);
   });
 
   bool valid = true;
-  parallel_for(0, n, [&](size_t i) {
+  parlay::parallel_for(0, n, [&](size_t i) {
     if (matched[i] > 1) valid = false;
   });
   assert(valid == true);
@@ -256,8 +277,8 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  parallel_for(0, n, 1,
-               [&](size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
+  parlay::parallel_for(0, n,
+               [&](size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); }, 1);
 
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_im = parlay::delayed_seq<size_t>(n, ok_f);
