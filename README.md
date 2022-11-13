@@ -49,12 +49,6 @@ The code for these applications is located in the `benchmark` directory. The
 implementations are based on the Ligra/Ligra+/Julienne graph processing
 frameworks. The framework code is located in the `src` directory.
 
-The codes used here are still in development, and we plan to add more
-applications/benchmarks. We currently include the following extra codes,
-which are part of ongoing work.
-
-* experimental/KTruss
-
 If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 
 ```
