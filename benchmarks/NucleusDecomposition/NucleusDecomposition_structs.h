@@ -333,7 +333,7 @@ template <class bucket_t, class Graph, class Graph2, class Table>
 inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnectWhilePeeling& cwp, 
 sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
 size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
-  std::cout << "Start connectivity tree" << std::endl; fflush(stdout);
+  //std::cout << "Start connectivity tree" << std::endl; fflush(stdout);
   auto parents = cwp.uf.finish();
   /*std::cout << "ECWP UF: " << std::endl;
   for (size_t i = 0; i < parents.size(); i++) {
@@ -343,7 +343,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   for (size_t i = 0; i < cwp.links.size(); i++) {
     std::cout << "i: " << i << ", " << cwp.links[i] << std::endl;
   }*/
-  std::cout << "Finish cwp" << std::endl; fflush(stdout);
+  //std::cout << "Finish cwp" << std::endl; fflush(stdout);
   auto n = table.return_total();
 
   // Sort vertices from highest core # to lowest
@@ -364,11 +364,11 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   };
   auto sorted_vert = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
   parlay::sample_sort_inplace(make_slice(sorted_vert), sort_by_parent);
-  std::cout << "Finish sample sort" << std::endl; fflush(stdout);
+  //std::cout << "Finish sample sort" << std::endl; fflush(stdout);
 
   auto parent_eq_func = [&](size_t i, size_t j) {return parents[sorted_vert[i]] == parents[sorted_vert[j]];};
   auto vert_buckets = GetBoundaryIndices(n, parent_eq_func);
-  std::cout << "Finish boundary" << std::endl; fflush(stdout);
+  //std::cout << "Finish boundary" << std::endl; fflush(stdout);
 
   /*std::cout << "Sorted vert" << std::endl;
   for (size_t i = 0; i < n; i++) {
@@ -398,10 +398,10 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
       parallel_for(0, end_index - start_index, [&](size_t a){
         if (table.is_valid(sorted_vert[start_index + a])) {
           connectivity_tree[sorted_vert[start_index + a]] = prev_max_parent + i;
-          if (cores[sorted_vert[start_index + a]] != first_current_core) {
-            std::cout << "Cores don't match: " << first_current_core << ", " << sorted_vert[start_index + a] << ", " << cores[sorted_vert[start_index + a]] << std::endl;
-            fflush(stdout);
-          }
+          //if (cores[sorted_vert[start_index + a]] != first_current_core) {
+          //  std::cout << "Cores don't match: " << first_current_core << ", " << sorted_vert[start_index + a] << ", " << cores[sorted_vert[start_index + a]] << std::endl;
+          //  fflush(stdout);
+          //}
         }
       });
     //});
@@ -409,7 +409,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     }
   });
   prev_max_parent += vert_buckets.size() - 1;
-  std::cout << "Finish first pass" << std::endl; fflush(stdout);
+  //std::cout << "Finish first pass" << std::endl; fflush(stdout);
   connectivity_tree.resize(prev_max_parent);
   parallel_for(n, prev_max_parent, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
 
@@ -418,13 +418,13 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     if (cwp.links[i] == UINT_E_MAX) continue;
     if (i == parents[i]) {
       connectivity_tree[connectivity_tree[i]] = connectivity_tree[cwp.links[i]];
-      if (cores[cwp.links[i]] >= cores[i]) {
-        std::cout << "Cores not less than: " << i << ", " << cwp.links[i] << ", " << cores[i] << ", " << cores[cwp.links[i]] << std::endl;
-        fflush(stdout);
-      }
+      //if (cores[cwp.links[i]] >= cores[i]) {
+      //  std::cout << "Cores not less than: " << i << ", " << cwp.links[i] << ", " << cores[i] << ", " << cores[cwp.links[i]] << std::endl;
+      //  fflush(stdout);
+      //}
     }
   }
-  std::cout << "Finish second pass" << std::endl; fflush(stdout);
+  //std::cout << "Finish second pass" << std::endl; fflush(stdout);
   return connectivity_tree;
 }
 

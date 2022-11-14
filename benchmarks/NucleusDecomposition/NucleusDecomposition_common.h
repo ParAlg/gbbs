@@ -755,12 +755,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           bucket_t deg = D[v];
           assert(deg > cur_bkt);
           auto clique_count = cliques->get_count(v);
-          if (std::round(ppc[v]) > clique_count){
-            std::cout << "PPC: " << std::round(ppc[v]) << ", count: " << clique_count << ", v: " << v << std::endl;
-            fflush(stdout);
-            exit(0);
-          }
-          assert(std::round(ppc[v]) <= clique_count);
+          //if (std::round(ppc[v]) > clique_count){
+            //std::cout << "PPC: " << std::round(ppc[v]) << ", count: " << clique_count << ", v: " << v << std::endl;
+            //fflush(stdout);
+            //exit(0);
+          //}
+          //assert(std::round(ppc[v]) <= clique_count);
           
           auto val = clique_count - std::round(ppc[v]);
           cliques->set_count(v, val);
@@ -1017,10 +1017,10 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
       auto v = count_idxs.get_v(i);
       if (v != UINT_E_MAX) {
-        if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
-        assert(v < D.size());
+        //if (v >= D.size()) {std::cout << "v: " << v << ", size: " << D.size() << std::endl; fflush(stdout);}
+        //assert(v < D.size());
       bucket_t bucket = D_filter[i];
-      assert(bucket != num_entries + 1);
+      //assert(bucket != num_entries + 1);
         if (still_active[v] != 2 && still_active[v] != 1 && still_active[v] != 4) return wrap(v, bucket);
       }
       return std::nullopt;
