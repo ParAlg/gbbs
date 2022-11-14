@@ -953,7 +953,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
     }
 
     max_bkt = std::max(cur_bkt, max_bkt);
-    if (cur_bkt == 0 || finished == num_entries) {
+    if (cur_bkt == 0) { //|| finished == num_entries
       parallel_for (0, active_size, [&] (size_t j) {
         auto index = get_active(j);
         still_active[index] = 2;
