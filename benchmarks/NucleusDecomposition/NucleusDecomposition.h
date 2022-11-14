@@ -489,6 +489,7 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
         if (peel1[i] != peel2[i]) {
           std::cout << "Mismatch i: " << i << " : " << peel1[i] << ", " << peel2[i] << std::endl;
           fflush(stdout);
+          exit(0);
         }
       }
       return peel1;
