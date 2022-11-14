@@ -130,7 +130,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     return still_active[index] == 2;
   };
   auto is_inactive_hierarchy = [&](size_t index) {
-    return still_active[index] == 0;
+    return still_active[index] == 0 || still_active[index] == 3;
   };
 
   auto cores_func = [&](size_t a) -> bucket_t {
