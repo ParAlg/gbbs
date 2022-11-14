@@ -945,6 +945,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
         auto index = get_active(j);
         still_active[index] = 2;
         cliques->set_count(index, UINT_E_MAX);
+        D[index] = std::max((bucket_t) 0, (bucket_t) cur_bkt);
       }, 2048);
       continue;
     }
