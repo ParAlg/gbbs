@@ -139,27 +139,35 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
 
   auto update_d = [&](unsigned __int128 x, uintE* base){
-    cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-      if (use_ppc) {
+    if (use_ppc) {
+      cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
       }
-      } else {
-        if (!is_inactive(index) && !is_active(index)) {
-        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
-        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
-          count_idxs.add(index);
-        }
-      }
-    }, r, k, x);
-
-    if (inline_hierarchy) {
+      }, r, k, x);
+      if (inline_hierarchy) {
       cliques->extract_indices_conn(base, is_inactive_hierarchy, [&](std::size_t index){
         if (index != x) {
           cwp.link(x, index, cores_func);
         }
       }, r, k, x);
+    }
+    } else {
+      if (inline_hierarchy) {
+      cliques->extract_indices_conn(base, is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+          cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
+    cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
+        if (!is_inactive(index) && !is_active(index)) {
+        cliques->update_count_atomic(index, gbbs::uintE{std::round(val)});
+        if (gbbs::CAS(&(still_active[index]), char{0}, char{3}) || gbbs::CAS(&(still_active[index]), char{1}, char{4}))
+          count_idxs.add(index);
+        }
+    }, r, k, x);
     }
   };
 
@@ -178,6 +186,14 @@ t1.start();
         auto x = get_active(i);
 
         auto update_d_twothree = [&](uintE v1, uintE v2, uintE v3){
+          if (inline_hierarchy) {
+           std::vector<uintE> base = {v1, v2, v3};
+      cliques->extract_indices_conn(base.data(), is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+          cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
         cliques->extract_indices_twothree(v1, v2, v3, is_active, is_inactive,
           [&](std::size_t index, double val){
             if (use_ppc) {
@@ -192,14 +208,7 @@ t1.start();
             }
         }, r, k);
 
-         if (inline_hierarchy) {
-           std::vector<uintE> base = {v1, v2, v3};
-      cliques->extract_indices_conn(base.data(), is_inactive_hierarchy, [&](std::size_t index){
-        if (index != x) {
-          cwp.link(x, index, cores_func);
-        }
-      }, r, k, x);
-    }
+         
       };
 
         std::tuple<uintE, uintE> v1v2 = cliques->extract_clique_two(x, k);
@@ -237,6 +246,15 @@ t1.start();
         auto x = get_active(i);
 
         auto update_d_threefour = [&](uintE v1, uintE v2, uintE v3, uintE v4){
+          if (inline_hierarchy) {
+           std::vector<uintE> base = {v1, v2, v3, v4};
+      cliques->extract_indices_conn(base.data(), is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+         cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
+
         //uintE base[4]; base[0] = v1; base[1] = v2; base[3] = v4; base[2] = v3;
         cliques->extract_indices_threefour(v1, v2, v3, v4, is_active, is_inactive,
           [&](std::size_t index, double val){
@@ -252,14 +270,7 @@ t1.start();
             }
         }, r, k);
 
-        if (inline_hierarchy) {
-           std::vector<uintE> base = {v1, v2, v3, v4};
-      cliques->extract_indices_conn(base.data(), is_inactive_hierarchy, [&](std::size_t index){
-        if (index != x) {
-         cwp.link(x, index, cores_func);
-        }
-      }, r, k, x);
-    }
+        
       };
 
 
@@ -388,6 +399,14 @@ t1.start();
     auto x = get_active(i);
 
       auto update_d_bind = [&](uintE* base){
+         if (inline_hierarchy) {
+      cliques->extract_indices_conn(base, is_inactive_hierarchy, [&](std::size_t index){
+        if (index != x) {
+          cwp.link(x, index, cores_func);
+        }
+      }, r, k, x);
+    }
+    
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       if (use_ppc) {
       double ct = gbbs::fetch_and_add(&(per_processor_counts[index]), val);
@@ -403,13 +422,7 @@ t1.start();
       }
     }, r, k, x);
 
-    if (inline_hierarchy) {
-      cliques->extract_indices_conn(base, is_inactive_hierarchy, [&](std::size_t index){
-        if (index != x) {
-          cwp.link(x, index, cores_func);
-        }
-      }, r, k, x);
-    }
+   
   };
 
 
@@ -776,17 +789,17 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       };
     t_count.start();
     count_idxs.resize(active_size, k, r, cur_bkt);
-    if (fake_efficient == 3) {
+    /*if (fake_efficient == 3) {
       filter_size = cliqueUpdatePND(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
       t_update_d);
-    } else {
+    } else {*/
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       true, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
       t_update_d, D, true, inline_hierarchy, connect_while_peeling, cur_bkt);
-    }
+    //}
       t_count.stop();
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
@@ -963,17 +976,17 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
       };
     t_count.start();
     count_idxs.resize(active_size, k, r, cur_bkt);
-    if (fake_efficient == 3) {
+    /*if (fake_efficient == 3) {
       filter_size = cliqueUpdatePND(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
       t_update_d, false);
-    } else {
+    } else {*/
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
       false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
       t_update_d, D, false, inline_hierarchy, connect_while_peeling, cur_bkt);
-    }
+    //}
       t_count.stop();
 
       //std::cout << "FLAG 1" << std::endl; fflush(stdout);
