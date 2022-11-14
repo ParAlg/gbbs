@@ -477,6 +477,22 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
     twotable_nosearch::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
+    if (verify) {
+      sequence<bucket_t> peel1 = NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy, efficient_inline_hierarchy, verify);
+      sequence<bucket_t> peel2 = NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, false, false, false, false);
+      if (peel1.size() != peel2.size()) {
+        std::cout << "Size mismatch: " << peel1.size() << ", " << peel2.size() << std::endl;
+        fflush(stdout);
+      }
+      for (size_t i = 0; i < peel1.size(); i++) {
+        if (peel1[i] != peel2[i]) {
+          std::cout << "Mismatch i: " << i << " : " << peel1[i] << ", " << peel2[i] << std::endl;
+          fflush(stdout);
+        }
+      }
+      return peel1;
+    }
+    
     return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy, efficient_inline_hierarchy, verify);
   //} 
   //return count;
