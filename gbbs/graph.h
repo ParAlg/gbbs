@@ -159,6 +159,7 @@ struct symmetric_graph {
     other.e0 = nullptr;
     other.vertex_weights = nullptr;
     other.deletion_fn = []() {};
+    return *this;
   }
 
   // Copy constructor
@@ -321,6 +322,7 @@ struct symmetric_ptr_graph {
     other.edge_list_sizes = nullptr;
     other.vertex_weights = nullptr;
     other.deletion_fn = []() {};
+    return *this;
   }
 
   // Copy constructor
@@ -488,6 +490,7 @@ struct asymmetric_graph {
     other.in_edges = nullptr;
     other.vertex_weights = nullptr;
     other.deletion_fn = []() {};
+    return *this;
   }
 
   // Copy constructor
@@ -594,6 +597,7 @@ struct asymmetric_ptr_graph {
     other.vertices = nullptr;
     other.vertex_weights = nullptr;
     other.deletion_fn = []() {};
+    return *this;
   }
 
   // Copy constructor
