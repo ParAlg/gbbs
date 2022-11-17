@@ -79,20 +79,22 @@ vertexSubsetData<uintE> srcPack(Graph& G, vertexSubset& vs, P p, flags fl = 0) {
 // this (possibly) directed graph. For convenience in cases where the graph
 // needed is symmetric, we coerce this to a symmetric_graph.
 template <
-    template <class inner_wgh> class vtx_type, class wgh_type, typename P,
+    class Graph, typename P,
     typename std::enable_if<
-        std::is_same<vtx_type<wgh_type>, symmetric_vertex<wgh_type>>::value,
+        std::is_same<typename Graph::vertex,
+                     symmetric_vertex<typename Graph::weight_type>>::value,
         int>::type = 0>
-static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
-    symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-  auto ret = filter_graph<vtx_type, wgh_type>(G, pred);
+static inline symmetric_graph<symmetric_vertex, typename Graph::weight_type>
+filterGraph(Graph& G, P& pred) {
+  auto ret =
+      filter_graph<symmetric_vertex, typename Graph::weight_type>(G, pred);
   auto newN = std::get<0>(ret);
   auto newM = std::get<1>(ret);
   auto newVData = std::get<2>(ret);
   auto newEdges = std::get<3>(ret);
 
   assert(newN == G.num_vertices());
-  return symmetric_graph<symmetric_vertex, wgh_type>(
+  return symmetric_graph<symmetric_vertex, typename Graph::weight_type>(
       newVData, newN, newM,
       [=]() {
         gbbs::free_array(newVData, newN);
