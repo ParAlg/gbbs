@@ -137,6 +137,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
   auto p_div = sequence<double>::from_function(n, [&](size_t i) -> double {
     return one_over_n / static_cast<double>(G.get_vertex(i).out_degree());
   });
+  auto p_div_next = sequence<double>(n);
 
   // read from special array of just degrees
 
@@ -159,7 +160,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
     const uintE& u = std::get<0>(k);
     const double& contribution = std::get<1>(k);
     p_next[u] = damping * contribution + addedConstant;
-    p_div[u] = p_next[u] / static_cast<double>(degrees[u]);
+    p_div_next[u] = p_next[u] / static_cast<double>(degrees[u]);
     return std::nullopt;
   };
 
@@ -185,8 +186,9 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
     if (L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
-    // Reset p_curr
+    // Reset p_curr and p_div
     std::swap(p_curr, p_next);
+    std::swap(p_div, p_div_next);
     t.stop();
     t.next("iteration time");
   }
