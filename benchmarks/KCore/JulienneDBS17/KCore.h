@@ -323,6 +323,7 @@ inline std::vector<uintE> construct_nd_connectivity(Graph& GA, sequence<uintE>& 
 
 template <class Graph, class CWP>
 inline sequence<uintE> KCore(Graph& G, CWP& connect_while_peeling, size_t num_buckets = 16, bool inline_hierarchy = false) {
+  using W = typename Graph::weight_type;
   timer t2; t2.start();
   const size_t n = G.n;
   auto D = sequence<uintE>::from_function(
