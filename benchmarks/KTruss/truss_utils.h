@@ -392,10 +392,10 @@ void truss_intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& inter
 // Intersect u and v's neighbors. Check if we should remove an edge, and if
 // so, insert it into decrement_tab (concurrent write)
 template <class edge_t, class trussness_t, class HT, class Trussness,
-          class Graph>
+          class Graph, class LinkFunc>
 void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
                          HT& decrement_tab, Trussness& get_trussness_and_id,
-                         uintE k, bool use_pnd = false) {
+                         uintE k, bool use_pnd, bool inline_hierarchy, LinkFunc& linkfunc) {
   trussness_t trussness_uv = k;
   edge_t uv_id = id;
 
@@ -409,6 +409,11 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
     edge_t uw_id, vw_id;
     std::tie(trussness_uw, uw_id) = get_trussness_and_id(u, w);
     std::tie(trussness_vw, vw_id) = get_trussness_and_id(v, w);
+  
+    if (inline_hierarchy) {
+      linkfunc(uw_id);
+      linkfunc(vw_id);
+    }
 
     if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id,
                       vw_id)) {
@@ -433,6 +438,35 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
         f(u, v, inter[p]);
       }
     }
+  }
+
+
+// get_trussness_and_id: (uintE, uintE) -> (trussness, id)
+// Intersect u and v's neighbors. Check if we should remove an edge, and if
+// so, insert it into decrement_tab (concurrent write)
+template <class edge_t, class trussness_t, class Trussness,
+          class Graph, class UnionFunc, class InvalidFunc>
+void do_union_things(Graph& G, edge_t id, uintE u, uintE v,
+                         Trussness& get_trussness_and_id,
+                         UnionFunc& func, InvalidFunc& invalid_func) {
+  edge_t uv_id = id;
+
+  auto add_f = [&](uintE* ct, const std::tuple<uintE, uintE>& tup) {
+    gbbs::fetch_and_add(ct, (uintE)1);
+  };
+
+  size_t ctr = 0;
+  auto f = [&](uintE __u, uintE __v, uintE w) {  // w in both N(u), N(v)
+    trussness_t trussness_uw, trussness_vw;
+    edge_t uw_id, vw_id;
+    std::tie(trussness_uw, uw_id) = get_trussness_and_id(u, w);
+    std::tie(trussness_vw, vw_id) = get_trussness_and_id(v, w);
+
+    if (!invalid_func(uw_id)) func(uv_id, uw_id);
+    if (!invalid_func(vw_id)) func(uv_id, vw_id);
+  };
+    auto v_v = G.get_vertex(v).out_neighbors();
+    G.get_vertex(u).out_neighbors().intersect_f_par(&v_v, f);
   }
 
 }  // namespace truss_utils

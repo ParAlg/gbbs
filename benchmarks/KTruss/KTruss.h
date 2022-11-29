@@ -33,6 +33,343 @@
 
 namespace gbbs {
 
+
+sequence<uintE> GetBoundaryIndices(
+    std::size_t num_keys,
+    const std::function<bool(std::size_t, std::size_t)>& key_eq_func) {
+      uintE null_key = UINT_E_MAX;
+  sequence<uintE> mark_keys(num_keys + 1);
+  parlay::parallel_for(0, num_keys, [&](std::size_t i) {
+    if (i != 0 && key_eq_func(i, i - 1))
+      mark_keys[i] = null_key;
+    else
+      mark_keys[i] = i;
+  });
+  mark_keys[num_keys] = num_keys;
+  auto vert_buckets = 
+      parlay::filter(mark_keys, [&](uintE x) -> bool { return x != null_key; });
+  return vert_buckets;
+}
+
+template <class Graph>
+bool is_edge(Graph& DG, uintE v, uintE u) {
+  using W = typename Graph::weight_type;
+  bool is = false;
+  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+    if (vv == u) is = true;
+    };
+    DG.get_vertex(v).out_neighbors().map(map_f, false);
+    return is;
+}
+
+class EfficientConnectWhilePeeling {
+  public:
+    EfficientConnectWhilePeeling() {}
+    EfficientConnectWhilePeeling(size_t _n) {
+      n = _n;
+      uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
+      links = sequence<uintE>::from_function(n, [&](size_t s) { return UINT_E_MAX; });
+    }
+    
+    void initialize(size_t _n);
+
+    template<class X, class Y, class F>
+    void link(X a, Y b, F& cores);
+
+    template<class X, class Y, class F>
+    void check_equal_for_merge(X a, Y b, F& cores);
+
+    template<class bucket_t>
+    void init(bucket_t cur_bkt);
+
+    gbbs::simple_union_find::SimpleUnionAsyncStruct uf =  gbbs::simple_union_find::SimpleUnionAsyncStruct(0);
+    sequence<uintE> links;
+    size_t n; // table size
+};
+
+void EfficientConnectWhilePeeling::initialize(size_t _n)  {
+  this->n = _n;
+  this->uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(this->n);
+  this->links = sequence<uintE>::from_function(this->n, [&](size_t s) { return UINT_E_MAX; });
+}
+
+template<class X, class Y, class F>
+void EfficientConnectWhilePeeling::check_equal_for_merge(X a, Y b, F& cores) {
+  if (cores(a) == cores(b)) {
+    this->uf.unite(a, b);
+  } else {
+    auto link_b = links[b];
+    if (link_b != UINT_E_MAX && cores(link_b) >= cores(a)) this->check_equal_for_merge(a, link_b, cores);
+  }
+}
+
+template<class X, class Y, class F>
+void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
+  a = simple_union_find::find_compress(a, this->uf.parents);
+  b = simple_union_find::find_compress(b, this->uf.parents);
+
+  if (cores(a) == cores(b)) {
+    this->uf.unite(a, b);
+    uintE parent = simple_union_find::find_compress(a, this->uf.parents);
+    auto link_a = links[a]; auto link_b = links[b];
+    if (link_a != UINT_E_MAX && parent != a) this->link(link_a, parent, cores);
+    if (link_b != UINT_E_MAX && parent != b) this->link(link_b, parent, cores);
+  }
+  else if (cores(a) < cores(b)) {
+      gbbs::uintE c = links[b];
+      while (true) {
+        c = links[b];
+        if (c == UINT_E_MAX) {
+          if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) break;
+        } else if (cores(c) < cores(a)) { // || (cores(c) == cores(a) && a < c)
+          if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), c, a)) {
+            auto parent_b = simple_union_find::find_compress(b, this->uf.parents);
+            if (b != parent_b) this->link(a, parent_b, cores);
+            this->link(a, c, cores);
+            break;
+          }
+        } else {
+          this->link(a, c, cores);
+          break;
+        }
+      }
+  }
+  else {
+    this->link(b, a, cores);
+  }
+}
+
+template <class bucket_t>
+void EfficientConnectWhilePeeling::init(bucket_t cur_bkt) {
+}
+
+
+class ConnectWhilePeeling {
+  public:
+    ConnectWhilePeeling() {}
+    ConnectWhilePeeling(size_t _n){
+      n = _n;
+    }
+
+    void initialize(size_t _n);
+
+    template<class X, class Y, class F>
+    void link(X x, Y index, F& cores);
+
+    template<class bucket_t>
+    void init(bucket_t cur_bkt);
+    size_t n; // table size
+    std::vector<gbbs::simple_union_find::SimpleUnionAsyncStruct> set_uf;
+    std::vector<uintE> set_core;
+};
+
+void ConnectWhilePeeling::initialize(size_t _n) { this->n = _n; }
+
+template<class X, class Y, class F>
+void ConnectWhilePeeling::link(X x, Y index, F& cores) {
+  parallel_for(0, set_uf.size(), [&](size_t idx){
+    if (cores(index) >= set_core[idx]) set_uf[idx].unite(x, index);
+  });
+}
+
+template <class bucket_t>
+void ConnectWhilePeeling::init(bucket_t cur_bkt) {
+  set_uf.push_back(gbbs::simple_union_find::SimpleUnionAsyncStruct(n));
+  set_core.push_back(cur_bkt);
+}
+
+template <class Table>
+inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnectWhilePeeling& cwp, Table& trussness_multi){
+  auto parents = cwp.uf.finish();
+
+  auto n = trussness_multi.size();
+  auto is_valid = [&](uintE id) { return std::get<1>(trussness_multi.big_table[id]) != UINT_E_MAX; }
+
+  // Sort vertices from highest core # to lowest
+  auto sort_by_parent = [&](uintE p, uintE q) {
+      return parents[p] < parents[q];
+  };
+  auto sorted_vert = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
+  parlay::sample_sort_inplace(make_slice(sorted_vert), sort_by_parent);
+
+  auto parent_eq_func = [&](size_t i, size_t j) {return parents[sorted_vert[i]] == parents[sorted_vert[j]];};
+  auto vert_buckets = GetBoundaryIndices(n, parent_eq_func);
+
+
+  std::vector<uintE> connectivity_tree(n);
+  parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
+  uintE prev_max_parent = n;
+  parallel_for (0, vert_buckets.size()-1, [&](size_t i) {
+    size_t start_index = vert_buckets[i];
+    size_t end_index = vert_buckets[i + 1];
+
+    auto first_x = sorted_vert[start_index];
+    if (is_valid(first_x)) {
+      parallel_for(0, end_index - start_index, [&](size_t a){
+        if (is_valid(sorted_vert[start_index + a])) {
+          connectivity_tree[sorted_vert[start_index + a]] = prev_max_parent + i;
+        }
+      });
+    }
+  });
+  prev_max_parent += vert_buckets.size() - 1;
+  //std::cout << "Finish first pass" << std::endl; fflush(stdout);
+  connectivity_tree.resize(prev_max_parent);
+  parallel_for(n, prev_max_parent, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
+
+  for (size_t i = 0; i < cwp.links.size(); i++) {
+    if (!table.is_valid(i)) continue;
+    if (cwp.links[i] == UINT_E_MAX) continue;
+    if (i == parents[i]) {
+      connectivity_tree[connectivity_tree[i]] = connectivity_tree[cwp.links[i]];
+    }
+  }
+  return connectivity_tree;
+}
+
+template <class Table>
+inline std::vector<uintE> construct_nd_connectivity_from_connect(ConnectWhilePeeling& connect_with_peeling, Table& trussness_multi){
+  auto n = trussness_multi.size();
+
+  std::vector<uintE> connectivity_tree(n);
+  sequence<uintE> prev_parent = sequence<uintE>::from_function(n, [&](size_t i){ return i; });
+  uintE prev_max_parent = n;
+  parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
+  for (long idx = connect_with_peeling.set_uf.size() - 1; idx >= 0; idx--) {
+    connectivity_tree.resize(prev_max_parent, UINT_E_MAX);
+    parallel_for(0, n, [&](size_t l) { gbbs::simple_union_find::find_compress(l, connect_with_peeling.set_uf[idx].parents); });
+
+    parallel_for(0, n, [&](size_t l){
+      if (table.is_valid(l)) {
+        connectivity_tree[prev_parent[l]] = prev_max_parent + connect_with_peeling.set_uf[idx].parents[l];
+        // Update previous parent
+        prev_parent[l] = connectivity_tree[prev_parent[l]];
+      }
+    });
+    // Update previous max parent
+    prev_max_parent += n;
+  }
+  return connectivity_tree;
+}
+
+// Sort vertices from highest core # to lowest core #
+// Take each "bucket" of vertices in each core #
+// Maintain connectivity UF throughout all rounds
+// Run connectivity considering only vertices previously considered, or vertices
+// in the current bucket
+// k and r here should be the same as that used in cliqueUpdate
+template <class Graph, class Table>
+inline std::vector<uintE> construct_nd_connectivity(Graph& GA, Table& trussness_multi){
+  using edge_t = uintE;
+  using bucket_t = uintE;
+  using trussness_t = uintE;
+
+  auto n = trussness_multi.size();
+
+  auto get_trussness_and_id = [&trussness_multi](uintE u, uintE v) {
+    // Precondition: uv is an edge in G.
+    edge_t id = trussness_multi.idx(u, v);
+    trussness_t truss = std::get<1>(trussness_multi.big_table[id]);
+    return std::make_tuple(truss, id);
+  };
+
+  auto cores = [&](uintE id){
+    auto truss = std::get<1>(trussness_multi.big_table[id]);
+    if (truss == std::numeric_limits<int>::max()) return 0;
+    if (truss != UINT_E_MAX) return truss + 1;
+    return truss;
+  };
+
+  // Sort vertices from highest core # to lowest core #
+  auto get_core = [&](uintE p, uintE q){
+    return cores(p) > cores(q);
+  };
+  auto sorted_vert = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
+  parlay::sample_sort_inplace(make_slice(sorted_vert), get_core);
+
+
+  sequence<uintE> mark_keys(n + 1);
+  parallel_for(0, n, [&](std::size_t i) {
+    if (i != 0 && cores(sorted_vert[i]) == cores(sorted_vert[i-1]))
+      mark_keys[i] = UINT_E_MAX;
+    else
+      mark_keys[i] = i;
+  });
+  mark_keys[n] = n;
+  auto vert_buckets = 
+      parlay::filter(mark_keys, [&](uintE x) -> bool { return x != UINT_E_MAX; });
+
+  auto uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
+  // TODO(jeshi): This isn't parallel, but I'd just like easy resizing atm
+  std::vector<uintE> connectivity_tree(n);
+  sequence<uintE> prev_parent = sequence<uintE>::from_function(n, [&](size_t i){ return i; });
+  uintE prev_max_parent = n;
+  //uintE prev_offset = 0;
+  parallel_for(0, n, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
+
+  for (size_t i = 0; i < vert_buckets.size()-1; i++) {
+    size_t start_index = vert_buckets[i];
+    size_t end_index = vert_buckets[i + 1];
+
+    auto first_x = sorted_vert[start_index];
+    auto first_current_core = cores(first_x);
+    // TODO: to get rid of this, gotta check for valid indices
+    if (first_current_core != UINT_E_MAX && first_current_core != 0) {
+
+      auto is_active = [&](size_t index) {
+        return cores(index) == first_current_core;
+      };
+      auto is_inactive = [&](size_t index) {
+        return cores(index) < first_current_core;
+      };
+
+    parallel_for(start_index, end_index, [&](size_t j){
+      // Vertices are those given by sorted_vert[j]
+      auto x = sorted_vert[j];
+  
+      auto current_core = cores(x);
+      assert(current_core == first_current_core);
+
+      // Steps:
+      // 1. Extract vertices given by index -- these will be the r-clique X
+      // 2. Find all s-clique containing the r-clique X
+      // 3. For each s-clique containing X, iterate over all combinations of
+      // r vertices in that s-clique; these form r-clique X'
+      // 4. Union X and X'
+      auto unite_func = [&](edge_t a, edge_t b){ uf.unite(a, b); };
+      uintE u = trussness_multi.u_for_id(id);
+      uintE v = std::get<0>(trussness_multi.big_table[id]);
+
+      truss_utils::do_union_things<edge_t, trussness_t>(GA, x, u, v, get_trussness_and_id, unite_func, is_inactive);
+
+
+    }, 1, true); // granularity
+    }
+
+    connectivity_tree.resize(prev_max_parent, UINT_E_MAX);
+
+    parallel_for(0, n, [&](size_t l) { gbbs::simple_union_find::find_compress(l, uf.parents); });
+
+    sequence<uintE> map_parents = sequence<uintE>::from_function(n, [&](std::size_t l){return 0;});
+    parallel_for(0, n, [&](size_t l){
+      if (cores(l) != UINT_E_MAX && cores(l) >= first_current_core) map_parents[uf.parents[l]] = 1;
+    });
+    auto max_parent = parlay::scan_inplace(make_slice(map_parents));
+
+    parallel_for(0, n, [&](size_t l){
+      if (cores(l) != UINT_E_MAX && cores(l) >= first_current_core) {
+        assert(prev_parent[l] < prev_max_parent);
+        connectivity_tree[prev_parent[l]] = prev_max_parent + map_parents[uf.parents[l]];  //***: uf.parents[l];
+        // Update previous parent
+        prev_parent[l] = connectivity_tree[prev_parent[l]];
+      }
+    });
+    prev_max_parent += max_parent;
+  }
+
+  return connectivity_tree;
+}
+
 template <class Graph, class T>
 void CountCliquesNucPND(Graph& DG, T apply_func) {
       //auto tots = sequence<size_t>(DG.n, size_t{0});
@@ -111,8 +448,9 @@ void initialize_trussness_values(Graph& GA, MT& multi_table, bool use_pnd = fals
 //
 //   3.b Get the entries of the HT, actually decrement their coreness, see if
 //   their bucket needs to be updated and if so, update.
-template <class Graph>
-void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
+template <class Graph, class CWP>
+truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(Graph& GA, CWP& connect_while_peeling, 
+  size_t num_buckets = 16, bool inline_hierarchy = false, bool use_compact = true, bool use_pnd = false) {
   using W = typename Graph::weight_type;
   size_t n_edges = GA.m / 2;
 
@@ -172,6 +510,12 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
   // Initialize the bucket structure. #ids = trussness table size
   std::cout << "multi_size = " << trussness_multi.size() << std::endl;
   auto multi_size = trussness_multi.size();
+
+
+  timer t2; t2.start();
+
+  connect_while_peeling.initialize(multi_size);
+
   auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) {
     auto table_value =
         std::get<1>(trussness_multi.big_table[i]);  // the trussness.
@@ -204,6 +548,10 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
   peeling_t.start();
   size_t finished = 0, k_max = 0;
   size_t iter = 0;
+  uintE prev_bkt = 0;
+
+  char* still_active = (char*) calloc(multi_size, sizeof(char));
+
   while (finished != n_edges) {
     bt.start();
     auto bkt = b.next_bucket();
@@ -217,6 +565,10 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
     finished += rem_edges.size();
     k_max = std::max(k_max, bkt.id);
 
+    if (inline_hierarchy && prev_bkt != k && k != 0) {
+      connect_while_peeling.init(k);
+    }
+
     //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
 
     if (k == 0 || finished == n_edges) {
@@ -224,11 +576,16 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
       // which is safe since there are no readers until we output.
       parallel_for(0, rem_edges.size(), [&](size_t i) {
         edge_t id = rem_edges[i];
+        still_active[rem_edges[i]] = 2;
         std::get<1>(trussness_multi.big_table[id]) =
             std::numeric_limits<int>::max();  // UINT_E_MAX is reserved
       });
       continue;
     }
+
+    parallel_for (0, rem_edges.size(), [&] (size_t j) {
+        still_active[rem_edges[j]] = 1;
+     });
 
     size_t e_size = 2 * k * rem_edges.size();
     size_t e_space_required = (size_t)1
@@ -241,6 +598,11 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
         std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0),
         hash_edge_id, false /* do not clear */);
 
+    auto cores_func = [&](size_t a) -> uintE {
+      if (still_active[a] == 0) return multi_size + 1;
+      return still_active[a] == 1 ? k : std::get<1>(trussness_multi.big_table[a]); // 
+    };
+    
     //    std::cout << "starting decrements" << std::endl;
     decrement_t.start();
     parallel_for(0, rem_edges.size(), 1, [&](size_t i) {
@@ -248,8 +610,14 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
       uintE u = trussness_multi.u_for_id(id);
       uintE v = std::get<0>(trussness_multi.big_table[id]);
 
+      auto to_link = [&](edge_t index) {
+        if (index != id && still_active[index] != 0) {
+          cwp.link(id, index, cores_func);
+        }
+      };
+
       truss_utils::decrement_trussness<edge_t, trussness_t>(
-          GA, id, u, v, decr_tab, get_trussness_and_id, k, use_pnd);
+          GA, id, u, v, decr_tab, get_trussness_and_id, k, use_pnd, inline_hierarchy, to_link);
     });
     decrement_t.stop();
     //    std::cout << "finished decrements" << std::endl;
@@ -277,6 +645,10 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
     bt.start();
     b.update_buckets(edges_moved_f, rebucket_edges.size());
     bt.stop();
+
+     parallel_for (0, rem_edges.size(), [&] (size_t j) {
+        still_active[rem_edges[j]] = 2;
+     });
 
     //    auto apply_f = [&](const std::tuple<edge_t, uintE>& p)
     //        -> const Maybe<std::tuple<edge_t, bucket_t> > {
@@ -321,6 +693,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
     decr_tab.clear_table();
     iter++;
 
+    if (use_compact) { 
     del_edges.copyIn(rem_edges, rem_edges.size());
 
     if (del_edges.size > 2 * GA.n) {
@@ -385,7 +758,13 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
       ct.stop();
       std::cout << "Finished compacting." << std::endl;
     }
+    }
+    
+    prev_bkt = k;
   }
+
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
 
   peeling_t.stop();
   peeling_t.next("peeling time");
@@ -398,6 +777,37 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16, bool use_pnd = false) {
   // Edges with trussness 0 had their values stored as
   // std::numeric_limits<int>::max()
   std::cout << "iters = " << iter << std::endl;
+
+  return trussness_multi;
+}
+
+template <class Graph>
+void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool efficient_inline_hierarchy) {
+    if (efficient_inline_hierarchy) inline_hierarchy = true;
+
+  truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> multitable;
+  
+  EfficientConnectWhilePeeling ecwp;
+  ConnectWhilePeeling connect_with_peeling;
+
+  if (!efficient_inline_hierarchy) multitable = KTruss_ht(GA, connect_with_peeling, num_buckets, inline_hierarchy, false, false);
+  else multitable = KTruss_ht(GA, ecwp, num_buckets, inline_hierarchy, false, false);
+
+  std::vector<uintE> connect;
+  if (!inline_hierarchy) {
+    std::cout << "Running Connectivity" << std::endl;
+    timer t3; t3.start();
+    connect = construct_nd_connectivity(GA, multitable);
+    double tt3 = t3.stop();
+    std::cout << "### Connectivity Running Time: " << tt3 << std::endl;
+  } else {
+    std::cout << "Constructing tree" << std::endl;
+    timer t3; t3.start();
+    if (!efficient_inline_hierarchy) connect = construct_nd_connectivity_from_connect(connect_with_peeling, multitable);
+    else connect = construct_nd_connectivity_from_connect(ecwp, multitable);
+    double tt3 = t3.stop();
+    std::cout << "### Connectivity Tree Running Time: " << tt3 << std::endl;
+  }
 }
 
 }  // namespace gbbs
