@@ -29,6 +29,8 @@
 #include "gbbs/helpers/dyn_arr.h"
 #include "gbbs/helpers/sparse_table.h"
 
+#include "benchmarks/Connectivity/SimpleUnionAsync/Connectivity.h"
+
 #include "truss_utils.h"
 
 namespace gbbs {
