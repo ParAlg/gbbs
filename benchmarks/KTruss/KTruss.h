@@ -55,17 +55,6 @@ sequence<uintE> GetBoundaryIndices(
   return vert_buckets;
 }
 
-template <class Graph>
-bool is_edge(Graph& DG, uintE v, uintE u) {
-  using W = typename Graph::weight_type;
-  bool is = false;
-  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
-    if (vv == u) is = true;
-    };
-    DG.get_vertex(v).out_neighbors().map(map_f, false);
-    return is;
-}
-
 class EfficientConnectWhilePeeling {
   public:
     EfficientConnectWhilePeeling() {}

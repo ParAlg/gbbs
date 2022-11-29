@@ -452,11 +452,6 @@ void do_union_things(Graph& G, edge_t id, uintE u, uintE v,
                          UnionFunc& func, InvalidFunc& invalid_func) {
   edge_t uv_id = id;
 
-  auto add_f = [&](uintE* ct, const std::tuple<uintE, uintE>& tup) {
-    gbbs::fetch_and_add(ct, (uintE)1);
-  };
-
-  size_t ctr = 0;
   auto f = [&](uintE __u, uintE __v, uintE w) {  // w in both N(u), N(v)
     trussness_t trussness_uw, trussness_vw;
     edge_t uw_id, vw_id;

@@ -55,11 +55,23 @@ double KCore_runner(Graph& G, commandLine P) {
   }
   assert(P.getOption("-s"));
 
+  bool inline_hierarchy = P.getOptionValue("-inline");
+  bool efficient_inline_hierarchy = P.getOptionValue("-efficient_inline");
+
+  double tt;
+
   // runs the fetch-and-add based implementation if set.
-  timer t;
-  t.start();
-  auto cores = (fa) ? KCore_FA(G, num_buckets) : KCore(G, num_buckets);
-  double tt = t.stop();
+  if (fa) {
+    timer t;
+    t.start();
+    auto cores = KCore_FA(G, num_buckets);
+    tt = t.stop();
+  } else {
+    timer t;
+    t.start();
+    KCore_connect(G, num_buckets, inline_hierarchy, efficient_inline_hierarchy);
+    tt = t.stop();
+  }
 
   std::cout << "### Running Time: " << tt << std::endl;
 

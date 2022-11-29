@@ -6,6 +6,7 @@ cc_library(
     deps = [
         "//gbbs",
         "//gbbs:julienne",
+        "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
     ],
 )
 
