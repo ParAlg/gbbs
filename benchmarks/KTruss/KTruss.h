@@ -340,8 +340,8 @@ inline std::vector<uintE> construct_nd_connectivity(Graph& GA, Table& trussness_
       // r vertices in that s-clique; these form r-clique X'
       // 4. Union X and X'
       auto unite_func = [&](edge_t a, edge_t b){ uf.unite(a, b); };
-      uintE u = trussness_multi.u_for_id(id);
-      uintE v = std::get<0>(trussness_multi.big_table[id]);
+      uintE u = trussness_multi.u_for_id(x);
+      uintE v = std::get<0>(trussness_multi.big_table[x]);
 
       truss_utils::do_union_things<edge_t, trussness_t>(GA, x, u, v, get_trussness_and_id, unite_func, is_inactive);
 
@@ -452,7 +452,8 @@ void initialize_trussness_values(Graph& GA, MT& multi_table, bool use_pnd = fals
 //   3.b Get the entries of the HT, actually decrement their coreness, see if
 //   their bucket needs to be updated and if so, update.
 template <class Graph, class CWP>
-truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(Graph& GA, CWP& connect_while_peeling, 
+gbbs::truss_utils::multi_table<unsigned int, unsigned int, gbbs::KTruss_ht(Graph&, CWP&, size_t, bool, bool, bool) [with Graph = gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, gbbs::empty>; CWP = gbbs::ConnectWhilePeeling; size_t = long unsigned int]::<lambda(size_t)> >
+  KTruss_ht(Graph& GA, CWP& connect_while_peeling, 
   size_t num_buckets = 16, bool inline_hierarchy = false, bool use_compact = true, bool use_pnd = false) {
   using W = typename Graph::weight_type;
   size_t n_edges = GA.m / 2;
@@ -615,7 +616,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
 
       auto to_link = [&](edge_t index) {
         if (index != id && still_active[index] != 0) {
-          cwp.link(id, index, cores_func);
+          connect_while_peeling.link(id, index, cores_func);
         }
       };
 
@@ -788,7 +789,7 @@ template <class Graph>
 void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool efficient_inline_hierarchy) {
     if (efficient_inline_hierarchy) inline_hierarchy = true;
 
-  truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> multitable;
+  gbbs::truss_utils::multi_table<unsigned int, unsigned int, gbbs::KTruss_ht(Graph&, CWP&, size_t, bool, bool, bool) [with Graph = gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, gbbs::empty>; CWP = gbbs::ConnectWhilePeeling; size_t = long unsigned int]::<lambda(size_t)> > multitable;
   
   EfficientConnectWhilePeeling ecwp;
   ConnectWhilePeeling connect_with_peeling;
