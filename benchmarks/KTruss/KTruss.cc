@@ -80,4 +80,4 @@ double KTruss_runner(Graph& G, commandLine P) {
 
 }  // namespace gbbs
 
-generate_symmetric_main(gbbs::KTruss_runner, false);
+generate_symmetric_main(gbbs::ktruss::KTruss_runner, false);
