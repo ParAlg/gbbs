@@ -14,7 +14,7 @@ cc_library(
         "//gbbs:edge_map_reduce",
         "//gbbs/helpers:dyn_arr",
         "//gbbs/helpers:sparse_table",
-        "//gbbs/benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
+        "//benchmarks/Connectivity/SimpleUnionAsync:Connectivity",
     ],
 )
 
