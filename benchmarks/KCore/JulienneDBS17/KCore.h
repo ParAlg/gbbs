@@ -353,13 +353,14 @@ inline sequence<uintE> KCore(Graph& G, CWP& connect_while_peeling, size_t num_bu
       return D[a];
     };
 
-    parallel_for(0, active.size(), [&](size_t i){
-      uintE u = active.get(i);
+    auto link_func = [&](uintE u) {
       auto map_f = [&](uintE __u, uintE v, const W& w) {  
         if (u != v && D[v] <= k) connect_while_peeling.link(u, v, cores_func);
       };
       GA.get_vertex(u).out_neighbors().map(map_f, false);
-    });
+    };
+
+    vertexMap(active, link_func);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
