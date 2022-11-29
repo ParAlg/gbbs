@@ -206,7 +206,6 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(uintE n, Effici
   return connectivity_tree;
 }
 
-template <class Table>
 inline std::vector<uintE> construct_nd_connectivity_from_connect(uintE n, ConnectWhilePeeling& connect_with_peeling){
   std::vector<uintE> connectivity_tree(n);
   sequence<uintE> prev_parent = sequence<uintE>::from_function(n, [&](size_t i){ return i; });
