@@ -276,7 +276,7 @@ inline std::vector<uintE> construct_nd_connectivity(Graph& GA, Table& trussness_
     return std::make_tuple(truss, id);
   };
 
-  auto cores = [&](uintE id){
+  auto cores = [&](uintE id) -> uintE {
     auto truss = std::get<1>(trussness_multi.big_table[id]);
     if (truss == std::numeric_limits<int>::max()) return 0;
     if (truss != UINT_E_MAX) return truss + 1;
