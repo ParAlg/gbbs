@@ -519,8 +519,6 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
 
   connect_while_peeling.initialize(multi_size);
 
-  std::cout << "Initialized cwp" << std::endl; fflush(stdout);
-
   auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) {
     auto table_value =
         std::get<1>(trussness_multi.big_table[i]);  // the trussness.
@@ -605,7 +603,11 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
 
     auto cores_func = [&](size_t a) -> uintE {
       if (still_active[a] == 0) return multi_size + 1;
-      return still_active[a] == 1 ? k : std::get<1>(trussness_multi.big_table[a]); // 
+      if (still_active[a] == 1) return k + 1;
+      auto truss = std::get<1>(trussness_multi.big_table[a]);
+      if (truss == std::numeric_limits<int>::max()) return 0;
+      if (truss != UINT_E_MAX) return truss + 1;
+      return truss; 
     };
     
     //    std::cout << "starting decrements" << std::endl;
