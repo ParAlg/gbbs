@@ -279,7 +279,7 @@ inline std::vector<uintE> construct_nd_connectivity(Graph& GA, Table& trussness_
   auto cores = [&](uintE id) -> uintE {
     auto truss = std::get<1>(trussness_multi.big_table[id]);
     if (truss == std::numeric_limits<int>::max()) return 0;
-    if (truss != UINT_E_MAX) return truss - 1;
+    if (truss != UINT_E_MAX) return truss + 1;
     return truss;
   };
 
@@ -533,7 +533,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
       1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0),
       hash_edge_id);
 
-  auto del_edges = gbbs::dyn_arr<edge_t>(6 * GA.n);
+  //auto del_edges = gbbs::dyn_arr<edge_t>(6 * GA.n);
   auto actual_degree = sequence<uintE>::from_function(
       GA.n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
 
@@ -603,10 +603,10 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
 
     auto cores_func = [&](size_t a) -> uintE {
       if (still_active[a] == 0) return multi_size + 1;
-      //else if (still_active[a] == 1) return k - 1;
+      else if (still_active[a] == 1) return k;
       auto truss = std::get<1>(trussness_multi.big_table[a]);
       if (truss == std::numeric_limits<int>::max()) return 0;
-      if (truss != UINT_E_MAX) return truss - 1;
+      if (truss != UINT_E_MAX) return truss + 1;
       return truss; 
     };
     
@@ -653,46 +653,10 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
     b.update_buckets(edges_moved_f, rebucket_edges.size());
     bt.stop();
 
-     parallel_for (0, rem_edges.size(), [&] (size_t j) {
-        still_active[rem_edges[j]] = 2;
-     });
-
-    //    auto apply_f = [&](const std::tuple<edge_t, uintE>& p)
-    //        -> const Maybe<std::tuple<edge_t, bucket_t> > {
-    //      edge_t id = std::get<0>(p);
-    //      uintE triangles_removed = std::get<1>(p);
-    //      uintE current_deg = std::get<1>(trussness_multi.big_table[id]);
-    //      if (current_deg > k) {
-    //        uintE new_deg = std::max(current_deg - triangles_removed, k);
-    //        std::get<1>(trussness_multi.big_table[id]) = new_deg;
-    //        bucket_t bkt = b.get_bucket(current_deg, new_deg);
-    //        return wrap(id, bkt);
-    //      }
-    //      return Maybe<std::tuple<edge_t, bucket_t>>();
-    //    };
-    //
-    //    em_t.start();
-    //    sequence<edge_t> edge_seq = decrement_tab.entries();
-    //    auto res = em.template edgeMapCount(edge_seq, apply_f);
-    //    em_t.stop();
-    //
-    //    auto rebucket_f = [&] (size_t i) -> Maybe<std::tuple<edge_t,
-    //    bucket_t>> {
-    //      auto ret = Maybe<std::tuple<edge_t, bucket_t>>();
-    //      ret.t = res.second[i];
-    //      ret.exists = true;
-    //      return ret;
-    //    };
-    //    auto edges_moved_map = parlay::delayed_seq<Maybe<std::tuple<edge_t,
-    //    bucket_t>>>(res.first, rebucket_f);
-    //    auto edges_moved_f = [&] (size_t i) { return edges_moved_map[i]; };
-    //    bt.start();
-    //    b.update_buckets(edges_moved_f, edges_moved_map.size());
-    //    bt.stop();
-
     // Unmark edges removed in this round, and decrement their trussness.
     parallel_for(0, rem_edges.size(), [&](size_t i) {
       edge_t id = rem_edges[i];
+      still_active[id] = 2;
       std::get<1>(trussness_multi.big_table[id]) -= 1;
     });
 
@@ -700,7 +664,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
     decr_tab.clear_table();
     iter++;
 
-    if (use_compact) { 
+    /*if (use_compact) { 
     del_edges.copyIn(rem_edges, rem_edges.size());
 
     if (del_edges.size > 2 * GA.n) {
@@ -765,7 +729,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
       ct.stop();
       std::cout << "Finished compacting." << std::endl;
     }
-    }
+    }*/
     
     prev_bkt = k;
   }
