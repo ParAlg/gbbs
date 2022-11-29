@@ -35,12 +35,14 @@
 
 namespace gbbs {
 
+namespace ktruss {
+
 template <class Graph>
 double KTruss_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
   bool no_buckets = P.getOption("-no_buckets");
   bool use_pnd = P.getOption("-pnd");
-  
+
   bool inline_hierarchy = P.getOptionValue("-inline");
   bool efficient_inline_hierarchy = P.getOptionValue("-efficient_inline");
 
@@ -73,6 +75,8 @@ double KTruss_runner(Graph& G, commandLine P) {
             // packing optimization.
   return tt;
 }
+
+} // namespace ktruss
 
 }  // namespace gbbs
 

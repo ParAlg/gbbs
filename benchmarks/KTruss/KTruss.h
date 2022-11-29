@@ -35,6 +35,8 @@
 
 namespace gbbs {
 
+namespace ktruss {
+
 
 sequence<uintE> GetBoundaryIndices(
     std::size_t num_keys,
@@ -780,5 +782,7 @@ void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool e
     std::cout << "### Connectivity Tree Running Time: " << tt3 << std::endl;
   }
 }
+
+} // namespace ktruss
 
 }  // namespace gbbs

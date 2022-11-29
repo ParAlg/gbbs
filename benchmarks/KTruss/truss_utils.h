@@ -21,6 +21,7 @@
 #pragma once
 
 namespace gbbs {
+  namespace ktruss {
 namespace truss_utils {
 
 struct edge_id {
@@ -470,4 +471,5 @@ void do_union_things(Graph& G, edge_t id, uintE u, uintE v,
   }
 
 }  // namespace truss_utils
+  } // namespace ktruss
 }  // namespace gbbs
