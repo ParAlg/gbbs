@@ -279,7 +279,7 @@ inline std::vector<uintE> construct_nd_connectivity(Graph& GA, Table& trussness_
   auto cores = [&](uintE id) -> uintE {
     auto truss = std::get<1>(trussness_multi.big_table[id]);
     if (truss == std::numeric_limits<int>::max()) return 0;
-    if (truss != UINT_E_MAX) return truss + 1;
+    if (truss != UINT_E_MAX) return truss - 1;
     return truss;
   };
 
@@ -574,7 +574,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
 
     //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
 
-    if (k == 0 || finished == n_edges) {
+    if (k == 0) { // || finished == n_edges
       // No triangles incident to these edges. We set their trussness to MAX,
       // which is safe since there are no readers until we output.
       parallel_for(0, rem_edges.size(), [&](size_t i) {
@@ -605,8 +605,8 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
       if (still_active[a] == 0) return multi_size + 1;
       if (still_active[a] == 1) return k;
       auto truss = std::get<1>(trussness_multi.big_table[a]);
-      if (truss == std::numeric_limits<int>::max()) return 1;
-      if (truss != UINT_E_MAX) return truss;
+      if (truss == std::numeric_limits<int>::max()) return 0;
+      if (truss != UINT_E_MAX) return truss - 1;
       return truss; 
     };
     
