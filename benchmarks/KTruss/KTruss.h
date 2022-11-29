@@ -185,7 +185,7 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnec
   auto parents = cwp.uf.finish();
 
   auto n = trussness_multi.size();
-  auto is_valid = [&](uintE id) { return std::get<1>(trussness_multi.big_table[id]) != UINT_E_MAX; }
+  auto is_valid = [&](uintE id) { return std::get<1>(trussness_multi.big_table[id]) != UINT_E_MAX; };
 
   // Sort vertices from highest core # to lowest
   auto sort_by_parent = [&](uintE p, uintE q) {
@@ -220,7 +220,7 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnec
   parallel_for(n, prev_max_parent, [&](std::size_t i){connectivity_tree[i] = UINT_E_MAX;});
 
   for (size_t i = 0; i < cwp.links.size(); i++) {
-    if (!table.is_valid(i)) continue;
+    if (!is_valid(i)) continue;
     if (cwp.links[i] == UINT_E_MAX) continue;
     if (i == parents[i]) {
       connectivity_tree[connectivity_tree[i]] = connectivity_tree[cwp.links[i]];
@@ -232,6 +232,7 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnec
 template <class Table>
 inline std::vector<uintE> construct_nd_connectivity_from_connect(ConnectWhilePeeling& connect_with_peeling, Table& trussness_multi){
   auto n = trussness_multi.size();
+  auto is_valid = [&](uintE id) { return std::get<1>(trussness_multi.big_table[id]) != UINT_E_MAX; };
 
   std::vector<uintE> connectivity_tree(n);
   sequence<uintE> prev_parent = sequence<uintE>::from_function(n, [&](size_t i){ return i; });
@@ -242,7 +243,7 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(ConnectWhilePee
     parallel_for(0, n, [&](size_t l) { gbbs::simple_union_find::find_compress(l, connect_with_peeling.set_uf[idx].parents); });
 
     parallel_for(0, n, [&](size_t l){
-      if (table.is_valid(l)) {
+      if (is_valid(l)) {
         connectivity_tree[prev_parent[l]] = prev_max_parent + connect_with_peeling.set_uf[idx].parents[l];
         // Update previous parent
         prev_parent[l] = connectivity_tree[prev_parent[l]];
