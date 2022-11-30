@@ -321,6 +321,53 @@ inline std::vector<uintE> construct_nd_connectivity(Graph& GA, sequence<uintE>& 
 
 } // namespace kcore
 
+template <class Graph>
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
+  const size_t n = G.n;
+  auto D = sequence<uintE>::from_function(
+      n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
+
+  auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0),
+                                     (size_t)G.m / 50);
+  auto b = make_vertex_buckets(n, D, increasing, num_buckets);
+  timer bt;
+
+  size_t finished = 0, rho = 0, k_max = 0;
+  while (finished != n) {
+    bt.start();
+    auto bkt = b.next_bucket();
+    bt.stop();
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
+    uintE k = bkt.id;
+    finished += active.size();
+    k_max = std::max(k_max, bkt.id);
+
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const std::optional<std::tuple<uintE, uintE> > {
+          uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+          uintE deg = D[v];
+          if (deg > k) {
+            uintE new_deg = std::max(deg - edgesRemoved, k);
+            D[v] = new_deg;
+            return wrap(v, b.get_bucket(new_deg));
+          }
+          return std::nullopt;
+        };
+
+    auto cond_f = [](const uintE& u) { return true; };
+    vertexSubsetData<uintE> moved =
+        nghCount(G, active, cond_f, apply_f, em, no_dense);
+
+    bt.start();
+    b.update_buckets(moved);
+    bt.stop();
+    rho++;
+  }
+  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  debug(bt.next("bucket time"););
+  return D;
+}
+
 template <class Graph, class CWP>
 inline sequence<uintE> KCore(Graph& G, CWP& connect_while_peeling, size_t num_buckets = 16, bool inline_hierarchy = false) {
   using W = typename Graph::weight_type;
