@@ -826,6 +826,8 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     }
   });
 
+  std::cout << approx_out_str << std::endl;
+  std::cout << "Printing" << std::endl;
   std::ofstream file{approx_out_str};
   for (size_t i = 0; i < num_entries; i++) {
     if (!cliques->is_valid(i)) continue;
@@ -839,6 +841,8 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     file << base[0] << ": " << D[i] << std::endl;
   }
   file.close();
+
+  std::cout << "Finished printing" << std::endl;
 
   return D;
 }
