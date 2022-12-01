@@ -351,7 +351,7 @@ template <class iden_t, class bucket_t, class Graph, class DirectedGraph, class 
 inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   size_t r, size_t s, Table& table, 
   size_t max_deg, sequence<uintE>& rank, size_t efficient, bool relabel,
-  bool use_compress, bool inline_hierarchy, bool efficient_inline_hierarchy, bool verify, bool approx) {
+  bool use_compress, bool inline_hierarchy, bool efficient_inline_hierarchy, bool verify, bool approx, double approx_eps, double approx_delta) {
   if (efficient_inline_hierarchy) inline_hierarchy = true;
 
   //std::cout << "Start count" << std::endl;
@@ -382,16 +382,16 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
       if (!approx)
         peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
       else {
-        std::cout << "Running approx" << std::endl;
-        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+        //std::cout << "Running approx" << std::endl;
+        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling, approx_eps, approx_delta);
       }
     }
     else {
       if (!approx)
         peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
       else {
-        std::cout << "Running approx" << std::endl;
-        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
+        //std::cout << "Running approx" << std::endl;
+        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp, approx_eps, approx_delta);
       }
     }
   } else {
@@ -472,56 +472,24 @@ template <class bucket_t, class T, class H, class Graph, class Graph2>
 inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
   size_t efficient, bool use_compress, bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy,
-  bool verify, bool approx) {
+  bool verify, bool approx, double approx_eps, double approx_delta) {
   timer t; 
   //sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
 
-  //if (table_type == 2) {
-  //  t.start();
-  //  twotable::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
-  //  double tt = t.stop();
-  //  std::cout << "### Table Running Time: " << tt << std::endl;
-  //  return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy);
-  //} else 
-  /*if (table_type == 1) {
-    t.start();
-    onetable::OnelevelHash<T, H, bucket_t> table(r, DG, max_deg, shift_factor);
-    double tt = t.stop();
-    std::cout << "### Table Running Time: " << tt << std::endl;
-    return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy);
-  } */ //else if (table_type == 5) {
-    t.start();
-    twotable_nosearch::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, relabel, shift_factor);
-    double tt = t.stop();
-    std::cout << "### Table Running Time: " << tt << std::endl;
-    /*if (verify) {
-      sequence<bucket_t> peel1 = NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy, efficient_inline_hierarchy, verify);
-      twotable_nosearch::TwolevelHash<T, H, bucket_t> table2(r, DG, max_deg, relabel, shift_factor);
-      sequence<bucket_t> peel2 = NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table2, max_deg, rank, efficient, relabel, false, false, false, false);
-      if (peel1.size() != peel2.size()) {
-        std::cout << "Size mismatch: " << peel1.size() << ", " << peel2.size() << std::endl;
-        fflush(stdout);
-      }
-      for (size_t i = 0; i < peel1.size(); i++) {
-        if (peel1[i] != peel2[i]) {
-          std::cout << "Mismatch i: " << i << " : " << peel1[i] << ", " << peel2[i] << std::endl;
-          fflush(stdout);
-          exit(0);
-        }
-      }
-      return peel1;
-    }*/
+  t.start();
+  twotable_nosearch::TwolevelHash<T, H, bucket_t> table(r, DG, max_deg, relabel, shift_factor);
+  double tt = t.stop();
+  std::cout << "### Table Running Time: " << tt << std::endl;
 
-    return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
-  //} 
-  //return count;
+  return NucleusDecompositionRunner<T, bucket_t>(GA, DG, r, s, table, max_deg, rank, efficient, relabel, use_compress, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
 }
 
 template <class Graph>
 inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, bool verify, size_t efficient, bool use_compress,
-  bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy, bool approx) {
+  bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy, bool approx,
+  double approx_eps, double approx_delta) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
   std::cout << "Approx: " << approx << std::endl;
@@ -574,15 +542,15 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     auto peel = runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
     auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
   } else {
     // unsigned__int128
       auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
   }
 
 
@@ -593,15 +561,15 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 4 && table_type != 5 && table_type != 4) {
     // unsigned __int32
     auto peel = runner<bucket_t, unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
     auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
   } else {
     // unsigned__int128
     auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
   }
 
   }

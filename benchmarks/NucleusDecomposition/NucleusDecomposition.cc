@@ -93,6 +93,8 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   bool efficient_inline_hierarchy = P.getOptionValue("-efficient_inline");
 
   bool approx = P.getOptionValue("-approx");
+  double approx_eps = P.getOptionDoubleValue("-approx_eps", 0.2);
+  double approx_delta = P.getOptionDoubleValue("-approx_delta", 0.1);
 
   // use_compress only runs compress actually for (2, 3)
   // otherwise, it runs space efficient code, but only if using
@@ -117,7 +119,8 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   //  KTruss_ht(GA, 16, compact);
   //} else {
     NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, 
-      verify, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, approx);
+      verify, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, approx,
+      approx_eps, approx_delta);
   //}
 
   double tt = t.stop();
