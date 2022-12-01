@@ -1089,6 +1089,8 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
   bool use_compress, bool inline_hierarchy, CWP& connect_while_peeling,
   size_t num_buckets=16, double eps = 0.2, double delta = 0.1, bool use_pow = false) {
+    std::cout << "Eps: " << eps << ", delta: " << delta << std::endl;
+
     size_t efficient = fake_efficient;
     if (fake_efficient == 3) efficient = 5;
   sequence<uintE> inverse_rank;
@@ -1110,7 +1112,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   };
   auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     auto deg = cliques->get_count(i);
-    if (approx_is_max_val(deg)) return deg;
+    if (approx_is_max_val(deg)) return 0; //return deg;
     return ceil(log(1 + deg) / one_plus_delta);
   });
 
