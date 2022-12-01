@@ -1105,16 +1105,18 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     auto deg = cliques->get_count(i);
     if (deg == 0) return 0; //return deg;
-    if (deg == UINT_E_MAX) return UINT_E_MAX;
-    return ceil(log(1 + deg) / one_plus_delta);
+    if (deg == UINT_E_MAX) return 0;
+    std::cout << "Deg: " << get_bucket(deg) << std::endl;
+    return get_bucket(deg);
   });
 
   auto D_capped = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     return cliques->get_count(i);
   });
 
+std::cout << "Start b" << std::endl; fflush(stdout);
   auto b = buckets<sequence<bucket_t>, iden_t, bucket_t>(num_entries, D, increasing, num_buckets);
-
+std::cout << "End b" << std::endl; fflush(stdout);
   auto per_processor_counts = sequence<double>(0);
   
   list_buffer count_idxs(num_entries, efficient);
