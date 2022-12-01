@@ -355,7 +355,7 @@ template <class bucket_t, class T, class H, class Graph, class Graph2>
 inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor,
   size_t efficient, bool use_compress, bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy,
-  bool verify, bool approx, double approx_eps, double approx_delta) {
+  bool verify, bool approx, double approx_eps, double approx_delta, std::string& approx_out_str) {
     using iden_t = T;
     using DirectedGraph = Graph2;
   timer t; 
@@ -388,11 +388,11 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
 
     if (!efficient_inline_hierarchy) {
         //std::cout << "Running approx" << std::endl;
-        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling, 16, approx_eps, approx_delta);
+        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling, approx_out_str, 16, approx_eps, approx_delta);
     }
     else {
         //std::cout << "Running approx" << std::endl;
-        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp, 16, approx_eps, approx_delta);
+        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp, approx_out_str, 16, approx_eps, approx_delta);
     }
 
   double tt2 = t2.stop();
@@ -436,7 +436,7 @@ template <class Graph>
 inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, bool verify, size_t efficient, bool use_compress,
   bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy, bool approx,
-  double approx_eps, double approx_delta) {
+  double approx_eps, double approx_delta, std::string& approx_out_str) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
   std::cout << "Approx: " << approx << std::endl;
@@ -488,11 +488,11 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   if (num_bytes_needed <= 8) {
     // unsigned __int64
     auto peel = runner<bucket_t, unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
+      max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta, approx_out_str);
   } else {
     // unsigned__int128
     auto peel = runner<bucket_t, unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
-        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta);
+        max_deg, rank, shift_factor, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, verify, approx, approx_eps, approx_delta, approx_out_str);
   }
 
 

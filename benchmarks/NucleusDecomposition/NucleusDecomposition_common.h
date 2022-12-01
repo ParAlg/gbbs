@@ -1113,9 +1113,8 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     return cliques->get_count(i);
   });
 
-std::cout << "Start b" << std::endl; fflush(stdout);
   auto b = buckets<sequence<bucket_t>, iden_t, bucket_t>(num_entries, D, increasing, num_buckets);
-std::cout << "End b" << std::endl; fflush(stdout);
+
   auto per_processor_counts = sequence<double>(0);
   
   list_buffer count_idxs(num_entries, efficient);
@@ -1262,7 +1261,7 @@ std::cout << "End b" << std::endl; fflush(stdout);
   t_update_d.next("Update d time: ");
 
   double tt2 = t2.stop();
-  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  std::cout << "### Real Peel Running Time: " << tt2 << std::endl;
 
   std::cout.precision(17);
   std::cout << "rho: " << rounds << std::endl;

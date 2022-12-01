@@ -96,6 +96,8 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   double approx_eps = P.getOptionDoubleValue("-approx_eps", 0.2);
   double approx_delta = P.getOptionDoubleValue("-approx_delta", 0.1);
 
+  auto approx_out_str = P.getOptionValue("-approx_out", "");
+
   // use_compress only runs compress actually for (2, 3)
   // otherwise, it runs space efficient code, but only if using
   // twotable, twotable_nosearch, or multitable (rest is unimplemented)
@@ -120,7 +122,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   //} else {
     NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space, 
       verify, efficient, use_compress, output_size, inline_hierarchy, efficient_inline_hierarchy, approx,
-      approx_eps, approx_delta);
+      approx_eps, approx_delta, approx_out_str);
   //}
 
   double tt = t.stop();

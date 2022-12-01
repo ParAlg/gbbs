@@ -626,6 +626,7 @@ template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T
 sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
   bool use_compress, bool inline_hierarchy, CWP& connect_while_peeling,
+  std::string& approx_out_str,
   size_t num_buckets=16, double eps = 0.2, double delta = 0.1, bool use_pow = false) {
     std::cout << "Eps: " << eps << ", delta: " << delta << std::endl;
 
@@ -659,9 +660,9 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     return cliques->get_count(i);
   });
 
-std::cout << "Start b" << std::endl; fflush(stdout);
+//std::cout << "Start b" << std::endl; fflush(stdout);
   auto b = buckets<sequence<bucket_t>, iden_t, bucket_t>(num_entries, D, increasing, num_buckets);
-std::cout << "End b" << std::endl; fflush(stdout);
+//std::cout << "End b" << std::endl; fflush(stdout);
   auto per_processor_counts = sequence<double>(0);
   
   list_buffer count_idxs(num_entries, efficient);
@@ -808,7 +809,7 @@ std::cout << "End b" << std::endl; fflush(stdout);
   t_update_d.next("Update d time: ");
 
   double tt2 = t2.stop();
-  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  std::cout << "### Real Peel Running Time: " << tt2 << std::endl;
 
   std::cout.precision(17);
   std::cout << "rho: " << rounds << std::endl;
@@ -824,6 +825,20 @@ std::cout << "End b" << std::endl; fflush(stdout);
       D[i] = D_capped[i];  // use capped induced degree when peeled as the coreness estimate
     }
   });
+
+  std::ofstream file{approx_out_str};
+  for (size_t i = 0; i < num_entries; i++) {
+    if (!cliques->is_valid(i)) continue;
+
+    uintE base[10];
+    // Fill base[k] ... base[k-r+1] and base[0]
+    cliques->extract_clique(i, base, G, k);
+    for (j = 0; j <= r - 1; j++) {
+      file << base[k - j] << ", ";
+    }
+    file << base[0] << ": " << D[i] << std::endl;
+  }
+  file.close();
 
   return D;
 }
