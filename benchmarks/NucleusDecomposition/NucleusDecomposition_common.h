@@ -1078,9 +1078,10 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
 template<class Y>
 bool approx_is_max_val(Y max_val) {
-  std::size_t max_bit = sizeof(Y) * 8;
-  Y check_bit = (max_val >> (max_bit - 1)) & 1U;
-  return (check_bit != 0);
+  //std::size_t max_bit = sizeof(Y) * 8;
+  //Y check_bit = (max_val >> (max_bit - 1)) & 1U;
+  //return (check_bit != 0);
+  return max_val == std::numeric_limits<Y>::max();
 }
 
 template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T, class CWP>
