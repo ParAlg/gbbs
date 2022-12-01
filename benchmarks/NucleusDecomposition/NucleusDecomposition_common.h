@@ -1076,14 +1076,6 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 
 //******************************APPROX CODE**********************************
 
-template<class Y>
-bool approx_is_max_val(Y max_val) {
-  //std::size_t max_bit = sizeof(Y) * 8;
-  //Y check_bit = (max_val >> (max_bit - 1)) & 1U;
-  //return (check_bit != 0);
-  return max_val == std::numeric_limits<Y>::max();
-}
-
 template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T, class CWP>
 sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
@@ -1112,7 +1104,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   };
   auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     auto deg = cliques->get_count(i);
-    if (approx_is_max_val(deg)) return 0; //return deg;
+    if (deg == 0) return 0; //return deg;
     return ceil(log(1 + deg) / one_plus_delta);
   });
 
@@ -1277,7 +1269,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
 
   parallel_for(0, num_entries, [&] (size_t i) {
     if (use_pow) {  // use 2^{peeled_bkt} as the coreness estimate
-      if (!approx_is_max_val(D[i])) D[i] = (D[i] == 0) ? 0 : 1 << D[i];
+      D[i] = (D[i] == 0) ? 0 : 1 << D[i];
     } else {
       D[i] = D_capped[i];  // use capped induced degree when peeled as the coreness estimate
     }
