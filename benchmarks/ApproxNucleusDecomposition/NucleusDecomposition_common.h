@@ -31,7 +31,6 @@
 //#include "onetable.h"
 #include "commontable.h"
 #include "list_buffer.h"
-#include "NucleusDecomposition_pnd.h"
 #include "NucleusDecomposition_structs.h"
 
 #include "benchmarks/Connectivity/SimpleUnionAsync/Connectivity.h"
@@ -1106,6 +1105,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     auto deg = cliques->get_count(i);
     if (deg == 0) return 0; //return deg;
     if (deg == UINT_E_MAX) return 0;
+    std::cout << "Deg: " << get_bucket(deg) << std::endl;
     return get_bucket(deg);
   });
 
