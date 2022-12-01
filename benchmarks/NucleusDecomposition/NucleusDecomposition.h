@@ -381,14 +381,18 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
     if (!efficient_inline_hierarchy) {
       if (!approx)
         peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
-      else
+      else {
+        std::cout << "Running approx" << std::endl;
         peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling);
+      }
     }
     else {
       if (!approx)
         peel = Peel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
-      else
+      else {
+        std::cout << "Running approx" << std::endl;
         peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp);
+      }
     }
   } else {
     if (!efficient_inline_hierarchy) {
