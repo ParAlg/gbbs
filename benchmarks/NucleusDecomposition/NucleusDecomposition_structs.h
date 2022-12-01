@@ -26,9 +26,7 @@
 #include "benchmarks/CliqueCounting/induced_split.h"
 #include "benchmarks/CliqueCounting/relabel.h"
 
-#include "twotable.h"
 #include "twotable_nosearch.h"
-#include "onetable.h"
 #include "commontable.h"
 #include "list_buffer.h"
 
