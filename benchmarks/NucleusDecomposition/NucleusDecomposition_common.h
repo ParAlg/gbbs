@@ -1220,7 +1220,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
           auto val = cliques->get_count(v);
           bucket_t new_deg = std::max((bucket_t) val, (bucket_t) lower_bound);
           D_capped[v] = new_deg;
-          uintE new_bkt = std::max(get_bucket(new_deg), cur_bkt);
+          uintE new_bkt = std::max((bucket_t) get_bucket(new_deg),(bucket_t) cur_bkt);
           if (deg != new_bkt) {
             D[v] = new_bkt;
             D_filter[i] = b.get_bucket(deg, new_bkt);
