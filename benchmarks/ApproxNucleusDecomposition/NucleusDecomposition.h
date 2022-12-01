@@ -388,11 +388,11 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
 
     if (!efficient_inline_hierarchy) {
         //std::cout << "Running approx" << std::endl;
-        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling, approx_eps, approx_delta);
+        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, connect_with_peeling, 16, approx_eps, approx_delta);
     }
     else {
         //std::cout << "Running approx" << std::endl;
-        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp, approx_eps, approx_delta);
+        peel = ApproxPeel_space_efficient<bucket_t, iden_t>(GA, DG, r, s, &table, rank, efficient, relabel, use_compress, inline_hierarchy, ecwp, 16, approx_eps, approx_delta);
     }
 
   double tt2 = t2.stop();
