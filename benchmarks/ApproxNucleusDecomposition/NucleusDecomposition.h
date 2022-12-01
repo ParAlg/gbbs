@@ -372,7 +372,7 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
   //std::cout << "Start count" << std::endl;
   t.start();
   size_t count = CountCliquesNuc(DG, s, r, max_deg, &table);
-  double tt = t.stop();
+  tt = t.stop();
   //std::cout << "End count" << std::endl;
 
   std::cout << "### Count Running Time: " << tt << std::endl;
