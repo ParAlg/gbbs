@@ -833,7 +833,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     uintE base[10];
     // Fill base[k] ... base[k-r+1] and base[0]
     cliques->extract_clique(i, base, G, k);
-    for (j = 0; j <= r - 1; j++) {
+    for (size_t j = 0; j <= r - 1; j++) {
       file << base[k - j] << ", ";
     }
     file << base[0] << ": " << D[i] << std::endl;
