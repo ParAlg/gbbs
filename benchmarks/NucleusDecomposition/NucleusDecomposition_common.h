@@ -1074,4 +1074,213 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
 }
 
 
+//******************************APPROX CODE**********************************
+
+template<class Y>
+bool approx_is_max_val(Y max_val) {
+  std::size_t max_bit = sizeof(Y) * 8;
+  Y check_bit = (max_val >> (max_bit - 1)) & 1U;
+  return (check_bit != 0);
+}
+
+template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T, class CWP>
+sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
+  T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
+  bool use_compress, bool inline_hierarchy, CWP& connect_while_peeling,
+  size_t num_buckets=16, double eps = 0.2, double delta = 0.1, bool use_pow = false) {
+    size_t efficient = fake_efficient;
+    if (fake_efficient == 3) efficient = 5;
+  sequence<uintE> inverse_rank;
+  if (relabel) {
+    // This maps a DG vertex to a G vertex
+    inverse_rank = sequence<uintE>(G.n);
+    parallel_for(0, G.n, [&](size_t i){
+      inverse_rank[rank[i]] = i;
+    });
+  }
+    k--; r--;
+  timer t2; t2.start();
+
+  size_t num_entries = cliques->return_total();
+  std::cout << "num entries: " << num_entries << std::endl;
+  double one_plus_delta = log(1 + delta);
+  auto get_bucket = [&](size_t deg) -> uintE {
+    return ceil(log(1 + deg) / one_plus_delta);
+  };
+  auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
+    auto deg = cliques->get_count(i);
+    if (approx_is_max_val(deg)) return deg;
+    return ceil(log(1 + deg) / one_plus_delta);
+  });
+
+  auto D_capped = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
+    return cliques->get_count(i);
+  });
+
+  auto b = buckets<sequence<bucket_t>, iden_t, bucket_t>(num_entries, D, increasing, num_buckets);
+
+  auto per_processor_counts = sequence<double>(0);
+  
+  list_buffer count_idxs(num_entries, efficient);
+
+  char* still_active = (char*) calloc(num_entries, sizeof(char));
+  size_t max_deg = induced_hybrid::get_max_deg(G);
+
+  timer t_extract;
+  timer t_count;
+  timer t_update;
+  timer t_x;
+  timer t_update_d;
+
+  size_t rounds = 0;
+  size_t finished = 0;
+  bucket_t cur_bkt = 0;
+  bucket_t max_bkt = 0;
+  double max_density = 0;
+  bool use_max_density = false;
+  size_t iter = 0;
+  bucket_t prev_bkt = 0;
+
+  size_t cur_inner_rounds = 0;
+  size_t max_inner_rounds = log(G.n) / log(1.0 + eps);
+
+  while (finished < num_entries) {
+    t_extract.start();
+    // Retrieve next bucket
+    auto bkt = b.next_bucket();
+    auto active = bkt.identifiers; //vertexSubset(num_entries, bkt.identifiers);
+    auto active_size = active.size();
+    cur_bkt = bkt.id;
+    t_extract.stop();
+
+    auto get_active = [&](size_t j) -> unsigned __int128 { 
+      return active[j]; }; //active.vtx(j); };
+
+    if (active_size == 0) continue;
+
+    finished += active_size;
+
+    if (prev_bkt != cur_bkt) {
+      cur_inner_rounds = 0;
+    }
+
+     // Check if we hit the threshold for inner peeling rounds.
+    if (cur_inner_rounds == max_inner_rounds) {
+      // new re-insertions will go to at least bucket k (one greater than before).
+      cur_bkt++;
+      cur_inner_rounds = 0;
+    }
+    uintE lower_bound = ceil(pow((1 + delta), cur_bkt-1));
+
+    if (inline_hierarchy && prev_bkt != cur_bkt && cur_bkt != 0) {
+      connect_while_peeling.init(cur_bkt);
+    }
+
+    max_bkt = std::max(cur_bkt, max_bkt);
+    if (cur_bkt == 0) { //|| finished == num_entries
+      parallel_for (0, active_size, [&] (size_t j) {
+        auto index = get_active(j);
+        still_active[index] = 2;
+        cliques->set_count(index, UINT_E_MAX);
+        D[index] = std::max((bucket_t) 0, (bucket_t) cur_bkt);
+      }, 2048);
+      continue;
+    }
+
+    iter++;
+
+    size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
+
+    size_t filter_size = 0;
+
+      auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
+
+      };
+    t_count.start();
+    count_idxs.resize(active_size, k, r, cur_bkt);
+    filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
+      granularity, still_active, rank, per_processor_counts,
+      false, update_changed, cliques, num_entries, count_idxs, t_x, inverse_rank, relabel,
+      t_update_d, D, false, inline_hierarchy, connect_while_peeling, cur_bkt);
+
+    t_count.stop();
+
+    t_update.start();
+    auto num_count_idxs = count_idxs.num_entries();
+    auto D_filter = sequence<bucket_t>(num_count_idxs);
+    
+    parallel_for(0, num_count_idxs, [&](size_t i){
+      auto v = count_idxs.get_v(i);
+        if (v == UINT_E_MAX) {
+          count_idxs.void_v(i, v);
+          D_filter[i] = num_entries + 1;
+        } 
+        else {
+          bucket_t deg = D[v];
+          auto val = cliques->get_count(v);
+          bucket_t new_deg = std::max((bucket_t) val, (bucket_t) lower_bound);
+          D_capped[v] = new_deg;
+          uintE new_bkt = std::max(get_bucket(new_deg), cur_bkt);
+          if (deg != new_bkt) {
+            D[v] = new_bkt;
+            D_filter[i] = b.get_bucket(deg, new_bkt);
+          } else {
+            count_idxs.void_v(i, v);
+            D_filter[i] = num_entries + 1;
+          }
+        }
+
+        if (v != UINT_E_MAX) {
+          gbbs::CAS(&(still_active[v]), char{3}, char{0});
+          gbbs::CAS(&(still_active[v]), char{4}, char{1});
+        }
+    });
+    //std::cout << "FLAG 2" << std::endl; fflush(stdout);
+    auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
+      auto v = count_idxs.get_v(i);
+      if (v != UINT_E_MAX) {
+      bucket_t bucket = D_filter[i];
+        if (still_active[v] != 2 && still_active[v] != 1 && still_active[v] != 4) return wrap(v, bucket);
+      }
+      return std::nullopt;
+    };
+
+    
+    b.update_buckets(apply_f, num_count_idxs);
+    count_idxs.reset();
+    t_update.stop();
+
+    rounds++;
+    prev_bkt = cur_bkt;
+    cur_inner_rounds++;
+  
+  }
+
+  t_extract.next("### Peel Extract time: ");
+  t_count.next("### Peel Count time: ");
+  t_update.next("### Peel Update time: ");
+  t_x.next("Inner counting: ");
+  t_update_d.next("Update d time: ");
+
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+
+  std::cout.precision(17);
+  std::cout << "rho: " << rounds << std::endl;
+  std::cout << "clique core: " << max_bkt << std::endl;
+  if (use_max_density) std::cout << "max density: " << max_density << std::endl;
+
+  free(still_active);
+
+  parallel_for(0, num_entries, [&] (size_t i) {
+    if (use_pow) {  // use 2^{peeled_bkt} as the coreness estimate
+      if (!approx_is_max_val(D[i])) D[i] = (D[i] == 0) ? 0 : 1 << D[i];
+    } else {
+      D[i] = D_capped[i];  // use capped induced degree when peeled as the coreness estimate
+    }
+  });
+
+  return D;
+}
+
 } // end namespace gbbs
