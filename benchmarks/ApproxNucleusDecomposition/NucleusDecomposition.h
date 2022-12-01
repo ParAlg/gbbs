@@ -370,7 +370,7 @@ inline sequence<bucket_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long
    if (efficient_inline_hierarchy) inline_hierarchy = true;
 
   //std::cout << "Start count" << std::endl;
-  timer t; t.start();
+  t.start();
   size_t count = CountCliquesNuc(DG, s, r, max_deg, &table);
   double tt = t.stop();
   //std::cout << "End count" << std::endl;
