@@ -520,6 +520,7 @@ inline void NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type,
   bool output_size, bool inline_hierarchy, bool efficient_inline_hierarchy, bool approx) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
+  std::cout << "Approx: " << approx << std::endl;
 
   // Obtain vertex ordering
   timer t_rank; t_rank.start();
