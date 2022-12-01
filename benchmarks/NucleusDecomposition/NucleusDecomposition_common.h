@@ -1105,6 +1105,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     auto deg = cliques->get_count(i);
     if (deg == 0) return 0; //return deg;
+    if (deg == UINT_E_MAX) return UINT_E_MAX;
     return ceil(log(1 + deg) / one_plus_delta);
   });
 
@@ -1137,7 +1138,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   bucket_t prev_bkt = 0;
 
   size_t cur_inner_rounds = 0;
-  size_t max_inner_rounds = log(G.n) / log(1.0 + eps);
+  size_t max_inner_rounds = log(num_entries) / log(1.0 + eps);
 
   while (finished < num_entries) {
     t_extract.start();
@@ -1154,6 +1155,8 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     if (active_size == 0) continue;
 
     finished += active_size;
+
+    if (cur_bkt == UINT_E_MAX) continue;
 
     if (prev_bkt != cur_bkt) {
       cur_inner_rounds = 0;
