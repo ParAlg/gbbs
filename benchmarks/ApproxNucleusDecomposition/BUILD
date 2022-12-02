@@ -264,6 +264,14 @@ cc_library(
 )
 
 cc_binary(
+  name = "Compare_main",
+  srcs = ["Compare.cc"],
+  deps = [
+  "//gbbs",
+  ]
+)
+
+cc_binary(
   name = "NucleusDecomposition_main",
   srcs = ["NucleusDecomposition.cc"],
   deps = [
