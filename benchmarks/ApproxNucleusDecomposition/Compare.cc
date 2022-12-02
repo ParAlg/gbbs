@@ -35,6 +35,17 @@ void read_cores(std::string& filename, sequence<std::pair<std::vector<gbbs::uint
   infile.close();
 }
 
+bool check_equal_vectors(std::vector<gbbs::uintE>& a, std::vector<gbbs::uintE>& b) {
+  for (size_t i =0; i < a.size(); i++) {
+    if (a[i] != b[i]) {
+      std::cout << "Mismatch: " << a[i] << ", " << b[i] << std::endl;
+      fflush(stdout);
+      return false;
+    }
+  }
+  return true;
+}
+
 // Given approximate cores, output comparisons to exact k-core
 void print_stats(std::string& exact_filename, std::string& approx_filename){
   size_t number_of_lines = 0;
@@ -70,6 +81,11 @@ void print_stats(std::string& exact_filename, std::string& approx_filename){
     for (size_t i=0; i<exact_cores.size(); i++) {
       double true_core = exact_cores[i].second;
       double appx_core = approx_cores[i].second;
+      if (!check_equal_vectors(exact_cores[i].first, approx_cores[i].first)) {
+        std::cout << "Issue at: " << i << std::endl;
+        fflush(stdout);
+        exit(0);
+      }
       if (max_exact_core < true_core) max_exact_core = true_core;
       if (max_approx_core < appx_core) max_approx_core = appx_core;
       if (true_core != 0 && appx_core != 0) {
