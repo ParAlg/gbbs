@@ -628,7 +628,9 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   bool use_compress, bool inline_hierarchy, CWP& connect_while_peeling,
   std::string& approx_out_str,
   size_t num_buckets=16, double eps = 0.2, double delta = 0.1, bool use_pow = false) {
-    std::cout << "Eps: " << eps << ", delta: " << delta << std::endl;
+    std::cout << "Delta which is really eps: " << delta << std::endl;
+    // We're gonna ignore eps
+    // delta is really eps
 
     size_t efficient = fake_efficient;
     if (fake_efficient == 3) efficient = 5;
@@ -647,7 +649,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   std::cout << "num entries: " << num_entries << std::endl;
   double one_plus_delta = log(1 + delta);
   auto get_bucket = [&](size_t deg) -> uintE {
-    return ceil(log(1 + deg) / one_plus_delta);
+    return ceil(log((1 + deg) / (2 + delta)) / one_plus_delta);
   };
   auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     auto deg = cliques->get_count(i);
@@ -686,7 +688,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   bucket_t prev_bkt = 0;
 
   size_t cur_inner_rounds = 0;
-  size_t max_inner_rounds = log(num_entries) / log(1.0 + eps);
+  size_t max_inner_rounds = log(num_entries) / log(1.0 + 2 / delta);
 
   while (finished < num_entries) {
     t_extract.start();
