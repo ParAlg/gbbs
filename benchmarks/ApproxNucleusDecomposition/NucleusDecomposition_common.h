@@ -622,6 +622,20 @@ inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, G
 
 //******************************APPROX CODE**********************************
 
+unsigned approx_nChoosek( unsigned n, unsigned k )
+{
+    if (k > n) return 0;
+    if (k * 2 > n) k = n-k;
+    if (k == 0) return 1;
+
+    int result = n;
+    for( int i = 2; i <= k; ++i ) {
+        result *= (n-i+1);
+        result /= i;
+    }
+    return result;
+}
+
 template <typename bucket_t, typename iden_t, class Graph, class Graph2, class T, class CWP>
 sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k, 
   T* cliques, sequence<uintE> &rank, size_t fake_efficient, bool relabel, 
@@ -631,6 +645,8 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
     std::cout << "Delta which is really eps: " << delta << std::endl;
     // We're gonna ignore eps
     // delta is really eps
+
+    auto schooser = approx_nChoosek(k, r);
 
     size_t efficient = fake_efficient;
     if (fake_efficient == 3) efficient = 5;
@@ -647,9 +663,9 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
 
   size_t num_entries = cliques->return_total();
   std::cout << "num entries: " << num_entries << std::endl;
-  double one_plus_delta = log(1 + delta);
+  double one_plus_delta = log(schooser + delta);
   auto get_bucket = [&](size_t deg) -> uintE {
-    return ceil(log((1 + deg) / (2 + delta)) / one_plus_delta);
+    return ceil(log(1 + deg) / one_plus_delta);
   };
   auto D = sequence<bucket_t>::from_function(num_entries, [&](size_t i) -> bucket_t {
     auto deg = cliques->get_count(i);
@@ -688,7 +704,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   bucket_t prev_bkt = 0;
 
   size_t cur_inner_rounds = 0;
-  size_t max_inner_rounds = log(num_entries) / log(1.0 + 2 / delta);
+  size_t max_inner_rounds = log(num_entries) / log(1.0 + schooser / delta);
 
   while (finished < num_entries) {
     t_extract.start();
@@ -718,7 +734,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
       cur_bkt++;
       cur_inner_rounds = 0;
     }
-    uintE lower_bound = ceil(pow((1 + delta), cur_bkt-1));
+    uintE lower_bound = ceil(pow((schooser + delta), cur_bkt-1));
 
     if (inline_hierarchy && prev_bkt != cur_bkt && cur_bkt != 0) {
       connect_while_peeling.init(cur_bkt);
