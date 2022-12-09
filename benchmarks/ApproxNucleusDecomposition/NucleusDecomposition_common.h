@@ -704,7 +704,7 @@ sequence<bucket_t> ApproxPeel_space_efficient(Graph& G, Graph2& DG, size_t r, si
   bucket_t prev_bkt = 0;
 
   size_t cur_inner_rounds = 0;
-  size_t max_inner_rounds = log(num_entries) / log(1.0 + schooser / delta);
+  size_t max_inner_rounds = log(num_entries) / log(1.0 + delta / schooser);
 
   while (finished < num_entries) {
     t_extract.start();
