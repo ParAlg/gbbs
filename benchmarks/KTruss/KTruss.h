@@ -604,7 +604,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
         still_active[rem_edges[i]] = 2;
         std::get<1>(trussness_multi.big_table[id]) =
             std::numeric_limits<int>::max();  // UINT_E_MAX is reserved
-        trussness_multi_capped[id] = std::numeric_limits<int>::max();
+        trussness_multi_capped[id] = 0;
       });
       continue;
     }
