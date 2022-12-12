@@ -660,9 +660,10 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       assert(current_deg > k);
       uintE new_deg = std::max((bucket_t) current_deg - triangles_removed, (bucket_t) lower_bound);
       std::get<1>(trussness_multi.big_table[id]) = new_deg;  // update
+      uintE old_deg = trussness_multi_capped[id];
       uintE new_bkt = std::max((bucket_t) get_bucket(new_deg),(bucket_t) k);
       trussness_multi_capped[id] = new_bkt;
-      std::get<1>(decr_edges[i]) = b.get_bucket(get_bucket(current_deg), new_bkt);
+      std::get<1>(decr_edges[i]) = b.get_bucket(old_deg, new_bkt);
     });
 
     auto rebucket_edges =
