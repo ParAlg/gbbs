@@ -359,9 +359,7 @@ inline bool should_remove(uintE k, trussness_t trussness_uv,
 }
 
 template <class trussness_t, class edge_t>
-inline bool should_remove(uintE k, trussness_t trussness_uv,
-                          trussness_t trussness_uw, trussness_t trussness_vw,
-                          edge_t uv_id, edge_t uw_id, edge_t vw_id, char* still_active) {
+inline bool should_remove(edge_t uv_id, edge_t uw_id, edge_t vw_id, char* still_active) {
   // this triangle was removed in a previous round.
   if (still_active[uv_id] == 2 || still_active[uw_id] == 2 || still_active[vw_id] == 2) {
     return false;
@@ -473,7 +471,6 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
     gbbs::fetch_and_add(ct, (uintE)1);
   };
 
-  size_t ctr = 0;
   auto f = [&](uintE __u, uintE __v, uintE w) {  // w in both N(u), N(v)
     trussness_t trussness_uw, trussness_vw;
     edge_t uw_id, vw_id;
@@ -485,15 +482,9 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
       linkfunc(vw_id);
     }
 
-    if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id,
-                      vw_id, still_active)) {
-      ctr++;
-      if (still_active[uw_id] == 0) {
-        decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
-      }
-      if (still_active[vw_id] == 0) {
-        decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
-      }
+    if (should_remove(uv_id, uw_id, vw_id, still_active)) {
+      if (still_active[uw_id] == 0) decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
+      if (still_active[vw_id] == 0) decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
     }
   };
     auto v_v = G.get_vertex(v).out_neighbors();

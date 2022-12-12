@@ -456,6 +456,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
   double one_plus_delta = log(schooser + delta);
   auto get_bucket = [&](size_t deg) -> uintE {
+    if (deg == 0) return deg;
     return ceil(log(1 + deg) / one_plus_delta);
   };
 
@@ -504,7 +505,8 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   std::cout << "multi_size = " << trussness_multi.size() << std::endl;
   auto multi_size = trussness_multi.size();
 
-  sequence<uintE> trussness_multi_capped(multi_size, UINT_E_MAX);
+  sequence<uintE> trussness_multi_capped(multi_size);
+  parallel_for(0, multi_size, [&](size_t i){trussness_multi_capped[i] = UINT_E_MAX;});
 
 
   timer t2; t2.start();
@@ -528,9 +530,6 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     }
   });
 
-  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) -> uintE {
-    return trussness_multi_capped[i];  // the trussness.
-  });
   auto b = buckets<sequence<bucket_t>, edge_t, bucket_t>(multi_size, trussness_multi_capped, increasing, num_buckets);
   
   //make_buckets<edge_t, bucket_t>(trussness_multi_capped.size(), get_bkt,
@@ -576,11 +575,10 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     bt.stop();
 
     auto rem_edges = bkt.identifiers;
-    if (rem_edges.size() == 0) {
-      continue;
-    }
+    if (rem_edges.size() == 0) continue;
 
     uintE k = bkt.id;
+    uintE cur_bkt = k;
     finished += rem_edges.size();
 
     if (k == UINT_E_MAX) continue;
@@ -608,7 +606,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       // which is safe since there are no readers until we output.
       parallel_for(0, rem_edges.size(), [&](size_t i) {
         edge_t id = rem_edges[i];
-        still_active[rem_edges[i]] = 2;
+        still_active[id] = 2;
         std::get<1>(trussness_multi.big_table[id]) = 0;  // UINT_E_MAX is reserved
         trussness_multi_capped[id] = 0;
       });
@@ -620,10 +618,17 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
         still_active[rem_edges[j]] = 1;
      });
 
-    size_t e_size = 2 * k * rem_edges.size();
+    uintE max_max = 0;
+    for (size_t i = 0; i < rem_edges.size(); i++) {
+      edge_t id = rem_edges[i];
+      auto max_check = std::get<1>(trussness_multi.big_table[id]);
+      if (max_check > max_max) max_max = max_check;
+    }
+
+    size_t e_size = 2 * max_max * rem_edges.size();
     size_t e_space_required = (size_t)1
                               << parlay::log2_up((size_t)(e_size * 1.2 + 1));
-    e_space_required = n_edges;
+
     // Resize the table that stores edge updates if necessary.
     decr_source_table.resize_no_copy(e_space_required);
     auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(
