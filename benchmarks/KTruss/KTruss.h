@@ -676,7 +676,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
     // Clear the table storing the edge decrements.
     decr_tab.clear_table();
-    pre_bkt = k;
+    prev_bkt = k;
 
     rounds++;
     cur_inner_rounds++;
