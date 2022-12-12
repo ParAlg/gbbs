@@ -62,7 +62,7 @@ class valueHT {
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
   valueHT(size_t _m, V _empty)
-      : m((size_t)1 << parlay::log2_up((size_t)(_m))),
+      : m((size_t)1 << parlay::log2_up((size_t)(_m + 1))),
         mask(m - 1),
         empty(_empty) {
     table = gbbs::new_array_no_init<V>(m);
@@ -186,7 +186,7 @@ class multi_table {
     offsets = sequence<size_t>(n + 1);
     parallel_for(0, n, [&](size_t i) {
       size_t table_elms = size_func(i);
-      offsets[i] = (1 << parlay::log2_up((size_t)(table_elms * 1.2))) +
+      offsets[i] = (1 << parlay::log2_up((size_t)(table_elms * 1.2 + 1))) +
                    2;  // 2 cell padding (l, r)
     });
     offsets[n] = 0;
