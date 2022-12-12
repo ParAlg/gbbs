@@ -492,7 +492,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     return GA.get_vertex(vtx).out_neighbors().count(count_f);
   };
   auto trussness_multi =
-      truss_utils::make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
+      truss_utils::make_multi_table<uintE, uintE>(n_edges, UINT_E_MAX, get_size);
 
 
   // Initially stores #triangles incident/edge.
