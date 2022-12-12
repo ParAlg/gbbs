@@ -618,12 +618,16 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
         still_active[rem_edges[j]] = 1;
      });
 
-    uintE max_max = 0;
+    auto max_seq = parlay::delayed_seq<uintE>(
+      rem_edges.size(), [&](size_t i) -> uintE { return std::get<1>(trussness_multi.big_table[rem_edges[i]]); });
+  auto max_max = parlay::reduce_max(max_seq);
+
+    /*uintE max_max = 0;
     for (size_t i = 0; i < rem_edges.size(); i++) {
       edge_t id = rem_edges[i];
       auto max_check = std::get<1>(trussness_multi.big_table[id]);
       if (max_check > max_max) max_max = max_check;
-    }
+    }*/
 
     size_t e_size = 2 * max_max * rem_edges.size();
     size_t e_space_required = (size_t)1
