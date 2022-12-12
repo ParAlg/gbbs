@@ -602,8 +602,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       parallel_for(0, rem_edges.size(), [&](size_t i) {
         edge_t id = rem_edges[i];
         still_active[rem_edges[i]] = 2;
-        std::get<1>(trussness_multi.big_table[id]) =
-            std::numeric_limits<int>::max();  // UINT_E_MAX is reserved
+        std::get<1>(trussness_multi.big_table[id]) = 0;  // UINT_E_MAX is reserved
         trussness_multi_capped[id] = 0;
       });
       continue;
