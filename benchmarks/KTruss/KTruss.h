@@ -625,7 +625,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
                               << parlay::log2_up((size_t)(e_size * 1.2 + 1));
 
     // Resize the table that stores edge updates if necessary.
-    decr_source_table.resize_no_copy(e_space_required);
+    decr_source_table.resize_no_copy(2*e_space_required);
     auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(
         decr_source_table.backing.begin(), e_space_required,
         std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0),

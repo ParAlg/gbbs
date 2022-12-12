@@ -490,11 +490,9 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
       ctr++;
       if (still_active[uw_id] == 0) {
         decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
-        //          decrement_tab.insert(uw_id);
       }
       if (still_active[vw_id] == 0) {
         decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
-        //          decrement_tab.insert(vw_id);
       }
     }
   };
