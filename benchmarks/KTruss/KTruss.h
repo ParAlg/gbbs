@@ -574,7 +574,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
-    std::cout << "Get bucket" << std::endl; fflush(stdout);
+
     auto rem_edges = bkt.identifiers;
     if (rem_edges.size() == 0) {
       continue;
@@ -582,6 +582,8 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
     uintE k = bkt.id;
     finished += rem_edges.size();
+
+    if (k == UINT_E_MAX) continue;
     
     if (prev_bkt != k) {
       cur_inner_rounds = 0;
