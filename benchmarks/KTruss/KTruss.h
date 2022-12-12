@@ -452,7 +452,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     // We're gonna ignore eps
     // delta is really eps
 
-  auto schooser = approx_nChoosek(3, 2);
+  uintE schooser = 3;
 
   double one_plus_delta = log(schooser + delta);
   auto get_bucket = [&](size_t deg) -> uintE {
@@ -511,7 +511,8 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     auto table_value =
         std::get<1>(trussness_multi.big_table[i]);  // the trussness.
     if (table_value == 0) return (uintE) 0;
-    if (table_value == UINT_E_MAX) return (uintE) 0;
+    if (table_value == UINT_E_MAX) return (uintE) UINT_E_MAX;
+    if (table_value == std::numeric_limits<int>::max()) return (uintE) std::numeric_limits<int>::max();
     return (uintE)get_bucket(table_value);
   });
   auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt,
