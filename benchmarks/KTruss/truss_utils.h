@@ -358,7 +358,7 @@ inline bool should_remove(uintE k, trussness_t trussness_uv,
   return true;
 }
 
-template <class trussness_t, class edge_t>
+template <class edge_t>
 inline bool should_remove(edge_t uv_id, edge_t uw_id, edge_t vw_id, char* still_active) {
   // this triangle was removed in a previous round.
   if (still_active[uv_id] == 2 || still_active[uw_id] == 2 || still_active[vw_id] == 2) {
