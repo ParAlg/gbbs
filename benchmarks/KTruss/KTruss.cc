@@ -46,6 +46,10 @@ double KTruss_runner(Graph& G, commandLine P) {
   bool inline_hierarchy = P.getOptionValue("-inline");
   bool efficient_inline_hierarchy = P.getOptionValue("-efficient_inline");
 
+  bool use_approx = P.getOptionValue("-approx");
+  double approx_delta = P.getOptionDoubleValue("-approx_delta", 0.1);
+  auto approx_out_str = P.getOptionValue("-approx_out", "");
+
   std::cout << "### Application: KTruss" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -66,7 +70,7 @@ double KTruss_runner(Graph& G, commandLine P) {
   t.start();
   //auto trusses = (!no_buckets) ? KTruss(G, num_buckets) : KTruss_no_bucket(G);
   //KTruss_ht(G, num_buckets, use_pnd);
-  KTruss_connect(G, num_buckets, inline_hierarchy, efficient_inline_hierarchy);
+  KTruss_connect(G, num_buckets, inline_hierarchy, efficient_inline_hierarchy, use_approx, approx_out_str, approx_delta);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

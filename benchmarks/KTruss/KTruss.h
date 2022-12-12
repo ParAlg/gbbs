@@ -424,6 +424,300 @@ void initialize_trussness_values(Graph& GA, MT& multi_table, bool use_pnd = fals
   tct.next("TC time");
 }
 
+unsigned approx_nChoosek( unsigned n, unsigned k )
+{
+    if (k > n) return 0;
+    if (k * 2 > n) k = n-k;
+    if (k == 0) return 1;
+
+    int result = n;
+    for( int i = 2; i <= k; ++i ) {
+        result *= (n-i+1);
+        result /= i;
+    }
+    return result;
+}
+
+template <class Graph, class CWP>
+truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_approx(Graph& GA, CWP& connect_while_peeling, 
+  bool inline_hierarchy, std::string& approx_out_str, size_t num_buckets=16, double delta = 0.1, bool use_pow = false) {
+  using W = typename Graph::weight_type;
+  size_t n_edges = GA.m / 2;
+
+  using edge_t = uintE;
+  using bucket_t = uintE;
+  using trussness_t = uintE;
+
+      std::cout << "Delta which is really eps: " << delta << std::endl;
+    // We're gonna ignore eps
+    // delta is really eps
+
+  auto schooser = approx_nChoosek(3, 2);
+
+  double one_plus_delta = log(schooser + delta);
+  auto get_bucket = [&](size_t deg) -> uintE {
+    return ceil(log(1 + deg) / one_plus_delta);
+  };
+
+  auto deg_lt = parlay::delayed_seq<uintE>(GA.n, [&](size_t i) {
+    return GA.get_vertex(i).out_degree() < (1 << 15);
+  });
+  std::cout << "count = " << parlay::reduce(deg_lt) << std::endl;
+  auto deg_lt_ct = parlay::delayed_seq<size_t>(GA.n, [&](size_t i) {
+    if (GA.get_vertex(i).out_degree() < (1 << 15)) {
+      return GA.get_vertex(i).out_degree();
+    }
+    return (uintE)0;
+  });
+  std::cout << "total degree = " << parlay::reduce(deg_lt_ct) << std::endl;
+
+  auto counts = sequence<size_t>(GA.n, (size_t)0);
+  parallel_for(0, GA.n, [&](size_t i) {
+    auto d_i = GA.get_vertex(i).out_degree();
+    bool d_i_lt = d_i <= (1 << 15);
+    auto count_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+      return u < v ? d_i_lt : 0;
+    };
+    counts[i] = GA.get_vertex(i).out_neighbors().count(count_f);
+  });
+  std::cout << "total lt ct = " << parlay::reduce(counts) << std::endl;
+
+  std::tuple<edge_t, bucket_t> histogram_empty =
+      std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
+  auto em = hist_table<edge_t, bucket_t>(histogram_empty, GA.m / 50);
+
+  // Store the initial trussness of each edge in the trussness table.
+  std::function<size_t(size_t)> get_size = [&](size_t vtx) -> size_t {
+    auto count_f = [&](uintE u, uintE v, W& wgh) { return vtx < v; };
+    return GA.get_vertex(vtx).out_neighbors().count(count_f);
+  };
+  auto trussness_multi =
+      truss_utils::make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
+
+
+  // Initially stores #triangles incident/edge.
+  initialize_trussness_values(GA, trussness_multi, false);
+
+  // Initialize the bucket structure. #ids = trussness table size
+  std::cout << "multi_size = " << trussness_multi.size() << std::endl;
+  auto multi_size = trussness_multi.size();
+
+
+  timer t2; t2.start();
+
+  connect_while_peeling.initialize(multi_size);
+
+  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) {
+    auto table_value =
+        std::get<1>(trussness_multi.big_table[i]);  // the trussness.
+    if (table_value == 0) return 0;
+    if (table_value == UINT_E_MAX) return 0;
+    return (uintE)get_bucket(table_value);
+  });
+  auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt,
+                                          increasing, num_buckets);
+
+  // Stores edges idents that lose a triangle, including duplicates (MultiSet)
+  auto hash_edge_id = [&](const edge_t& e) { return parlay::hash32(e); };
+  auto decr_source_table = gbbs::make_sparse_table<edge_t, uintE>(
+      1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0),
+      hash_edge_id);
+
+  //auto del_edges = gbbs::dyn_arr<edge_t>(6 * GA.n);
+  auto actual_degree = sequence<uintE>::from_function(
+      GA.n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
+
+  auto get_trussness_and_id = [&trussness_multi](uintE u, uintE v) {
+    // Precondition: uv is an edge in G.
+    edge_t id = trussness_multi.idx(u, v);
+    trussness_t truss = std::get<1>(trussness_multi.big_table[id]);
+    return std::make_tuple(truss, id);
+  };
+
+  size_t data_structure_size = sizeof(decltype(trussness_multi)) + sizeof(std::tuple<uintE, uintE>) * trussness_multi.big_size;
+  std::cout << "Data Structure Size: " << data_structure_size << std::endl; fflush(stdout);
+
+  timer em_t, decrement_t, bt, ct, peeling_t;
+  peeling_t.start();
+  size_t finished = 0, k_max = 0;
+  size_t iter = 0;
+  uintE prev_bkt = 0;
+
+  char* still_active = (char*) calloc(multi_size, sizeof(char));
+
+  size_t rounds = 0;
+  bucket_t cur_bkt = 0;
+  bucket_t max_bkt = 0;
+  double max_density = 0;
+  bool use_max_density = false;
+
+  size_t cur_inner_rounds = 0;
+  size_t max_inner_rounds = log(num_entries) / log(1.0 + delta / schooser);
+
+
+  while (finished < num_entries) {
+    bt.start();
+    auto bkt = b.next_bucket();
+    bt.stop();
+    auto rem_edges = bkt.identifiers;
+    if (rem_edges.size() == 0) {
+      continue;
+    }
+
+    uintE k = bkt.id;
+    finished += rem_edges.size();
+    
+    if (prev_bkt != k) {
+      cur_inner_rounds = 0;
+    }
+     // Check if we hit the threshold for inner peeling rounds.
+    if (cur_inner_rounds == max_inner_rounds) {
+      // new re-insertions will go to at least bucket k (one greater than before).
+      k++;
+      cur_inner_rounds = 0;
+    }
+     uintE lower_bound = ceil(pow((schooser + delta), k-1));
+
+    if (inline_hierarchy && prev_bkt != k && k != 0) {
+      connect_while_peeling.init(k);
+    }
+    k_max = std::max(k_max, k);
+
+    //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
+
+    if (k == 0) { // || finished == n_edges
+      // No triangles incident to these edges. We set their trussness to MAX,
+      // which is safe since there are no readers until we output.
+      parallel_for(0, rem_edges.size(), [&](size_t i) {
+        edge_t id = rem_edges[i];
+        still_active[rem_edges[i]] = 2;
+        std::get<1>(trussness_multi.big_table[id]) =
+            std::numeric_limits<int>::max();  // UINT_E_MAX is reserved
+      });
+      continue;
+    }
+    iter++;
+
+    parallel_for (0, rem_edges.size(), [&] (size_t j) {
+        still_active[rem_edges[j]] = 1;
+     });
+
+    size_t e_size = 2 * k * rem_edges.size();
+    size_t e_space_required = (size_t)1
+                              << parlay::log2_up((size_t)(e_size * 1.2));
+
+    // Resize the table that stores edge updates if necessary.
+    decr_source_table.resize_no_copy(e_space_required);
+    auto decr_tab = gbbs::make_sparse_table<edge_t, uintE>(
+        decr_source_table.backing.begin(), e_space_required,
+        std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0),
+        hash_edge_id, false /* do not clear */);
+
+    auto cores_func = [&](size_t a) -> uintE {
+      if (still_active[a] == 0) return multi_size + 1;
+      else if (still_active[a] == 1) return k;
+      auto truss = std::get<1>(trussness_multi.big_table[a]);
+      if (truss == std::numeric_limits<int>::max()) return 0;
+      if (truss != UINT_E_MAX) return truss + 1;
+      return truss; 
+    };
+    
+    //    std::cout << "starting decrements" << std::endl;
+    decrement_t.start();
+    parallel_for(0, rem_edges.size(), 1, [&](size_t i) {
+      edge_t id = rem_edges[i];
+      uintE u = trussness_multi.u_for_id(id);
+      uintE v = std::get<0>(trussness_multi.big_table[id]);
+
+      auto to_link = [&](edge_t index) {
+        if (index != id && still_active[index] != 0) {
+          connect_while_peeling.link(id, index, cores_func);
+        }
+      };
+
+      truss_utils::decrement_trussness<edge_t, trussness_t>(
+          GA, id, u, v, decr_tab, get_trussness_and_id, k, use_pnd, inline_hierarchy, to_link);
+    });
+    decrement_t.stop();
+    //    std::cout << "finished decrements" << std::endl;
+
+    auto decr_edges = decr_tab.entries();
+    parallel_for(0, decr_edges.size(), [&](size_t i) {
+      auto id_and_ct = decr_edges[i];
+      edge_t id = std::get<0>(id_and_ct);
+      uintE triangles_removed = std::get<1>(id_and_ct);
+      uintE current_deg = std::get<1>(trussness_multi.big_table[id]);
+      assert(current_deg > k);
+      uintE new_deg = std::max((bucket_t) current_deg - triangles_removed, (bucket_t) lower_bound);
+      std::get<1>(trussness_multi.big_table[id]) = new_deg;  // update
+      uintE new_bkt = std::max((bucket_t) get_bucket(new_deg),(bucket_t) k);
+      std::get<1>(decr_edges[i]) = b.get_bucket(get_bucket(current_deg), new_bkt);
+    });
+
+    auto rebucket_edges =
+        parlay::filter(decr_edges, [&](const std::tuple<edge_t, uintE>& eb) {
+          return std::get<1>(eb) != UINT_E_MAX;
+        });
+    auto edges_moved_f = [&](size_t i) {
+      return std::optional<std::tuple<edge_t, bucket_t>>(rebucket_edges[i]);
+    };
+
+    bt.start();
+    b.update_buckets(edges_moved_f, rebucket_edges.size());
+    bt.stop();
+
+    // Unmark edges removed in this round, and decrement their trussness.
+    parallel_for(0, rem_edges.size(), [&](size_t i) {
+      edge_t id = rem_edges[i];
+      still_active[id] = 2;
+      std::get<1>(trussness_multi.big_table[id]) -= 1;
+    });
+
+    // Clear the table storing the edge decrements.
+    decr_tab.clear_table();
+    pret_bkt = k;
+
+    rounds++;
+    cur_inner_rounds++;
+  
+  }
+
+
+  double tt2 = t2.stop();
+  std::cout << "### Real Peel Running Time: " << tt2 << std::endl;
+
+  peeling_t.stop();
+  peeling_t.next("peeling time");
+  ct.next("Compaction time");
+  bt.next("Bucketing time");
+  em_t.next("EdgeMap time");
+  decrement_t.next("Decrement trussness time");
+
+  std::cout.precision(17);
+  std::cout << "rho: " << rounds << std::endl;
+  std::cout << "clique core: " << max_bkt << std::endl;
+  if (use_max_density) std::cout << "max density: " << max_density << std::endl;
+
+  if (approx_out_str != "") {
+    std::cout << approx_out_str << std::endl;
+    std::cout << "Printing" << std::endl;
+    std::ofstream file{approx_out_str};
+
+    for (size_t i = 0; i < GA.n; i++) {
+      auto f = [&](const uintE& u, const uintE& v, const W& wgh){
+        auto truss_tuple = get_trussness_and_id(u, v);
+        file << u << ", " << v << ": " << std::get<0>(truss_tuple) << std::endl;
+      };
+      GA.get_vertex(i).out_neighbors().map(f, false);
+    }
+    file.close();
+
+    std::cout << "Finished printing" << std::endl;
+  }
+
+  return D;
+}
+
 // High-level desc:
 // 1. Compute a hash table mapping each edge (u, v), u < v, to its trussness The
 // initial trussness values are just the number of triangles each edge
@@ -744,7 +1038,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
 }
 
 template <class Graph>
-void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool efficient_inline_hierarchy) {
+void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool efficient_inline_hierarchy, bool use_approx, std::string& approx_out_str, double delta) {
     if (efficient_inline_hierarchy) inline_hierarchy = true;
 
   truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> multitable;
@@ -752,8 +1046,13 @@ void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool e
   EfficientConnectWhilePeeling ecwp;
   ConnectWhilePeeling connect_with_peeling;
 
-  if (!efficient_inline_hierarchy) multitable = KTruss_ht(GA, connect_with_peeling, num_buckets, inline_hierarchy, false, false);
-  else multitable = KTruss_ht(GA, ecwp, num_buckets, inline_hierarchy, false, false);
+  if (!use_approx) {
+    if (!efficient_inline_hierarchy) multitable = KTruss_ht(GA, connect_with_peeling, num_buckets, inline_hierarchy, false, false);
+    else multitable = KTruss_ht(GA, ecwp, num_buckets, inline_hierarchy, false, false);
+  } else {
+    if (!efficient_inline_hierarchy) multitable = KTruss_approx(GA, connect_with_peeling, inline_hierarchy, approx_out_str, num_buckets, delta, false);
+    else multitable = KTruss_approx(GA, ecwp, inline_hierarchy, approx_out_str, num_buckets, delta, false);
+  }
 
   std::vector<uintE> connect;
   if (!inline_hierarchy) {
