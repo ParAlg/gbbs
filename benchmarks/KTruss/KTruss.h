@@ -531,8 +531,10 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) -> uintE {
     return trussness_multi_capped[i];  // the trussness.
   });
-  auto b = make_buckets<edge_t, bucket_t>(trussness_multi_capped.size(), get_bkt,
-                                          increasing, num_buckets);
+  auto b = buckets<sequence<bucket_t>, edge_t, bucket_t>(nmulti_size, trussness_multi_capped, increasing, num_buckets);
+  
+  //make_buckets<edge_t, bucket_t>(trussness_multi_capped.size(), get_bkt,
+  //                                        increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
   auto hash_edge_id = [&](const edge_t& e) { return parlay::hash32(e); };
