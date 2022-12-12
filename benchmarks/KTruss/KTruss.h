@@ -599,7 +599,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     }
     k_max = std::max((uintE)k_max, (uintE)k);
 
-    std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl; fflush(stdout);
+    //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl; fflush(stdout);
 
     if (k == 0) { // || finished == n_edges
       // No triangles incident to these edges. We set their trussness to MAX,
@@ -620,7 +620,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
     auto max_seq = parlay::delayed_seq<uintE>(
       rem_edges.size(), [&](size_t i) -> uintE { return std::get<1>(trussness_multi.big_table[rem_edges[i]]); });
-  auto max_max = parlay::reduce_max(max_seq);
+    auto max_max = parlay::reduce_max(max_seq);
 
     /*uintE max_max = 0;
     for (size_t i = 0; i < rem_edges.size(); i++) {
@@ -649,7 +649,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       return truss; 
     };
     
-        std::cout << "starting decrements" << std::endl; fflush(stdout);
+    //    std::cout << "starting decrements" << std::endl; fflush(stdout);
     decrement_t.start();
     parallel_for(0, rem_edges.size(), 1, [&](size_t i) {
       edge_t id = rem_edges[i];
@@ -666,7 +666,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
           GA, id, u, v, decr_tab, get_trussness_and_id, k, false, inline_hierarchy, to_link, still_active);
     });
     decrement_t.stop();
-        std::cout << "finished decrements" << std::endl; fflush(stdout);
+    //    std::cout << "finished decrements" << std::endl; fflush(stdout);
 
     auto decr_edges = decr_tab.entries();
     parallel_for(0, decr_edges.size(), [&](size_t i) {
