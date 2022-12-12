@@ -695,8 +695,8 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   decrement_t.next("Decrement trussness time");
 
   std::cout.precision(17);
-  std::cout << "rho: " << rounds << std::endl;
-  std::cout << "clique core: " << max_bkt << std::endl;
+  std::cout << "rho: " << iter << std::endl;
+  std::cout << "clique core: " << k_max << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
   if (approx_out_str != "") {
