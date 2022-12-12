@@ -488,14 +488,14 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
     if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id,
                       vw_id, still_active)) {
       ctr++;
-      //if (trussness_uw > k) {
+      if (still_active[uw_id] == 0) {
         decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
         //          decrement_tab.insert(uw_id);
-      //}
-      //if (trussness_vw > k) {
+      }
+      if (still_active[vw_id] == 0) {
         decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
         //          decrement_tab.insert(vw_id);
-      //}
+      }
     }
   };
     auto v_v = G.get_vertex(v).out_neighbors();
