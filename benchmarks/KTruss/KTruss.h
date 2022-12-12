@@ -594,7 +594,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     }
     k_max = std::max((uintE)k_max, (uintE)k);
 
-    //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
+    std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
 
     if (k == 0) { // || finished == n_edges
       // No triangles incident to these edges. We set their trussness to MAX,
