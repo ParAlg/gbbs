@@ -565,6 +565,8 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   size_t cur_inner_rounds = 0;
   size_t max_inner_rounds = log(num_entries) / log(1.0 + delta / schooser);
 
+  std::cout << "Start while" << std::endl; fflush(stdout);
+
 
   while (finished < num_entries) {
     bt.start();
