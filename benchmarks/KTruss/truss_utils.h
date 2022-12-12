@@ -358,6 +358,26 @@ inline bool should_remove(uintE k, trussness_t trussness_uv,
   return true;
 }
 
+template <class trussness_t, class edge_t>
+inline bool should_remove(uintE k, trussness_t trussness_uv,
+                          trussness_t trussness_uw, trussness_t trussness_vw,
+                          edge_t uv_id, edge_t uw_id, edge_t vw_id, char* still_active) {
+  // this triangle was removed in a previous round.
+  if (still_active[uv_id] == 2 || still_active[uw_id] == 2 || still_active[vw_id] == 2) {
+    return false;
+  }
+  if (still_active[uw_id] == 1) {  // uw also removed on this round
+    return (uv_id < uw_id) &&
+           !(still_active[vw_id] == 1);  // sym break, make sure vw also not removed.
+  } else if (still_active[vw_id] == 1) {
+    return (uv_id < vw_id);  // sym break, we know uw does not have top bit set.
+  }
+
+  // neither other edge is removed this round. can safely remove this
+  // triangle as uv.
+  return true;
+}
+
   template <class Graph>
 void truss_intersectionPND(Graph& G, uintE v, uintE u, std::vector<uintE>& intersection){
   auto vert_v = G.get_vertex(v);
@@ -418,6 +438,55 @@ void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
 
     if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id,
                       vw_id)) {
+      ctr++;
+      if (trussness_uw > k) {
+        decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
+        //          decrement_tab.insert(uw_id);
+      }
+      if (trussness_vw > k) {
+        decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
+        //          decrement_tab.insert(vw_id);
+      }
+    }
+  };
+    auto v_v = G.get_vertex(v).out_neighbors();
+    if (!use_pnd) {
+      G.get_vertex(u).out_neighbors().intersect_f_par(&v_v, f);
+    } else {
+      std::vector<uintE> inter;
+      truss_intersectionPND(G, v, u, inter);
+      for (std::size_t p = 0; p < inter.size(); p++) {
+        f(u, v, inter[p]);
+      }
+    }
+  }
+
+template <class edge_t, class trussness_t, class HT, class Trussness,
+          class Graph, class LinkFunc>
+void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v,
+                         HT& decrement_tab, Trussness& get_trussness_and_id,
+                         uintE k, bool use_pnd, bool inline_hierarchy, LinkFunc& linkfunc, char* still_active) {
+  trussness_t trussness_uv = k;
+  edge_t uv_id = id;
+
+  auto add_f = [&](uintE* ct, const std::tuple<uintE, uintE>& tup) {
+    gbbs::fetch_and_add(ct, (uintE)1);
+  };
+
+  size_t ctr = 0;
+  auto f = [&](uintE __u, uintE __v, uintE w) {  // w in both N(u), N(v)
+    trussness_t trussness_uw, trussness_vw;
+    edge_t uw_id, vw_id;
+    std::tie(trussness_uw, uw_id) = get_trussness_and_id(u, w);
+    std::tie(trussness_vw, vw_id) = get_trussness_and_id(v, w);
+  
+    if (inline_hierarchy) {
+      linkfunc(uw_id);
+      linkfunc(vw_id);
+    }
+
+    if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id,
+                      vw_id, still_active)) {
       ctr++;
       if (trussness_uw > k) {
         decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);

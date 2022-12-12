@@ -502,20 +502,34 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   std::cout << "multi_size = " << trussness_multi.size() << std::endl;
   auto multi_size = trussness_multi.size();
 
+  sequence<uintE> trussness_multi_capped(multi_size, UINT_E_MAX);
+
 
   timer t2; t2.start();
 
+  auto get_trussness_and_id = [&trussness_multi](uintE u, uintE v) {
+    // Precondition: uv is an edge in G.
+    edge_t id = trussness_multi.idx(u, v);
+    trussness_t truss = std::get<1>(trussness_multi.big_table[id]);
+    return std::make_tuple(truss, id);
+  };
+
   connect_while_peeling.initialize(multi_size);
 
-  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) -> uintE {
-    auto table_value =
-        std::get<1>(trussness_multi.big_table[i]);  // the trussness.
-    if (table_value == 0) return (uintE) 0;
-    if (table_value == UINT_E_MAX) return (uintE) UINT_E_MAX;
-    if (table_value == std::numeric_limits<int>::max()) return (uintE) std::numeric_limits<int>::max();
-    return (uintE)get_bucket(table_value);
+
+  GA.mapEdges([&](const uintE& u, const uintE& v, const W& wgh) {
+    if (u < v) {
+      auto truss_tuple = get_trussness_and_id(u, v);
+      auto bucket = std::get<0>(truss_tuple);
+      if (bucket != 0 && bucket != UINT_E_MAX && bucket != std::numeric_limits<int>::max()) bucket = get_bucket(bucket);
+      trussness_multi_capped[std::get<1>(truss_tuple)] = bucket;
+    }
   });
-  auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt,
+
+  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) -> uintE {
+    return trussness_multi_capped[i];  // the trussness.
+  });
+  auto b = make_buckets<edge_t, bucket_t>(trussness_multi_capped.size(), get_bkt,
                                           increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
@@ -527,13 +541,6 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   //auto del_edges = gbbs::dyn_arr<edge_t>(6 * GA.n);
   auto actual_degree = sequence<uintE>::from_function(
       GA.n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
-
-  auto get_trussness_and_id = [&trussness_multi](uintE u, uintE v) {
-    // Precondition: uv is an edge in G.
-    edge_t id = trussness_multi.idx(u, v);
-    trussness_t truss = std::get<1>(trussness_multi.big_table[id]);
-    return std::make_tuple(truss, id);
-  };
 
   size_t data_structure_size = sizeof(decltype(trussness_multi)) + sizeof(std::tuple<uintE, uintE>) * trussness_multi.big_size;
   std::cout << "Data Structure Size: " << data_structure_size << std::endl; fflush(stdout);
@@ -595,6 +602,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
         still_active[rem_edges[i]] = 2;
         std::get<1>(trussness_multi.big_table[id]) =
             std::numeric_limits<int>::max();  // UINT_E_MAX is reserved
+        trussness_multi_capped[id] = std::numeric_limits<int>::max();
       });
       continue;
     }
@@ -618,9 +626,9 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     auto cores_func = [&](size_t a) -> uintE {
       if (still_active[a] == 0) return multi_size + 1;
       else if (still_active[a] == 1) return k;
-      auto truss = std::get<1>(trussness_multi.big_table[a]);
+      auto truss = trussness_multi_capped[a];
       if (truss == std::numeric_limits<int>::max()) return 0;
-      if (truss != UINT_E_MAX) return truss + 1;
+      //if (truss != UINT_E_MAX) return truss + 1;
       return truss; 
     };
     
@@ -638,7 +646,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       };
 
       truss_utils::decrement_trussness<edge_t, trussness_t>(
-          GA, id, u, v, decr_tab, get_trussness_and_id, k, false, inline_hierarchy, to_link);
+          GA, id, u, v, decr_tab, get_trussness_and_id, k, false, inline_hierarchy, to_link, still_active);
     });
     decrement_t.stop();
     //    std::cout << "finished decrements" << std::endl;
@@ -653,6 +661,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       uintE new_deg = std::max((bucket_t) current_deg - triangles_removed, (bucket_t) lower_bound);
       std::get<1>(trussness_multi.big_table[id]) = new_deg;  // update
       uintE new_bkt = std::max((bucket_t) get_bucket(new_deg),(bucket_t) k);
+      trussness_multi_capped[id] = new_bkt;
       std::get<1>(decr_edges[i]) = b.get_bucket(get_bucket(current_deg), new_bkt);
     });
 
@@ -672,7 +681,6 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     parallel_for(0, rem_edges.size(), [&](size_t i) {
       edge_t id = rem_edges[i];
       still_active[id] = 2;
-      std::get<1>(trussness_multi.big_table[id]) -= 1;
     });
 
     // Clear the table storing the edge decrements.
@@ -950,73 +958,6 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
     // Clear the table storing the edge decrements.
     decr_tab.clear_table();
     iter++;
-
-    /*if (use_compact) { 
-    del_edges.copyIn(rem_edges, rem_edges.size());
-
-    if (del_edges.size > 2 * GA.n) {
-      ct.start();
-      // compact
-      std::cout << "compacting, " << del_edges.size << std::endl;
-      // map over both endpoints, update counts using histogram
-      // this is really a uintE seq, but edge_t >= uintE, and this way we can
-      // re-use the same histogram structure.
-      auto decr_seq = sequence<edge_t>(2 * del_edges.size);
-      parallel_for(0, del_edges.size, [&](size_t i) {
-        size_t fst = 2 * i;
-        size_t snd = fst + 1;
-        edge_t id = del_edges.A[i];
-        uintE u = trussness_multi.u_for_id(id);
-        uintE v = std::get<0>(trussness_multi.big_table[id]);
-        decr_seq[fst] = u;
-        decr_seq[snd] = v;
-      });
-      std::cout << "compacting 1, " << del_edges.size << std::endl;
-
-      // returns only those vertices that have enough degree lost to warrant
-      // packing them out. Again note that edge_t >= uintE
-      auto apply_vtx_f = [&](const std::tuple<edge_t, uintE>& p)
-          -> const std::optional<std::tuple<edge_t, uintE>> {
-            uintE id = std::get<0>(p);
-            uintE degree_lost = std::get<1>(p);
-            actual_degree[id] -= degree_lost;
-            // compare with GA.V[id]. this is the current space used for this
-            // vtx.
-            return std::nullopt;
-          };
-      std::cout << "compacting 2, " << del_edges.size << std::endl;
-
-      em_t.start();
-      auto vs = vertexSubset(GA.n, std::move(decr_seq));
-      std::cout << "compacting 3, " << del_edges.size << std::endl;
-      auto cond_f = [&](const uintE& u) { return true; };
-      nghCount(GA, vs, cond_f, apply_vtx_f, em, no_output);
-      em_t.stop();
-      std::cout << "compacting 4, " << del_edges.size << std::endl;
-
-      auto all_vertices =
-          parlay::delayed_seq<uintE>(GA.n, [&](size_t i) { return i; });
-      auto to_pack_seq = parlay::filter(all_vertices, [&](uintE u) {
-        return 4 * actual_degree[u] >= GA.get_vertex(u).out_degree();
-      });
-      auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
-      std::cout << "compacting 5, " << del_edges.size << std::endl;
-
-      auto pack_predicate = [&](const uintE& u, const uintE& ngh,
-                                const W& wgh) {
-        // return true iff edge is still alive
-        trussness_t t_u_ngh;
-        edge_t edgeid;
-        std::tie(t_u_ngh, edgeid) = get_trussness_and_id(u, ngh);
-        return t_u_ngh >= k;
-      };
-      edgeMapFilter(GA, to_pack, pack_predicate, pack_edges | no_output);
-
-      del_edges.size = 0;  // reset dyn_arr
-      ct.stop();
-      std::cout << "Finished compacting." << std::endl;
-    }
-    }*/
     
     prev_bkt = k;
   }
