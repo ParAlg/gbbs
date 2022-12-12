@@ -640,7 +640,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       return truss; 
     };
     
-    //    std::cout << "starting decrements" << std::endl;
+        std::cout << "starting decrements" << std::endl; fflush(stdout);
     decrement_t.start();
     parallel_for(0, rem_edges.size(), 1, [&](size_t i) {
       edge_t id = rem_edges[i];
@@ -657,7 +657,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
           GA, id, u, v, decr_tab, get_trussness_and_id, k, false, inline_hierarchy, to_link, still_active);
     });
     decrement_t.stop();
-    //    std::cout << "finished decrements" << std::endl;
+        std::cout << "finished decrements" << std::endl; fflush(stdout);
 
     auto decr_edges = decr_tab.entries();
     parallel_for(0, decr_edges.size(), [&](size_t i) {
