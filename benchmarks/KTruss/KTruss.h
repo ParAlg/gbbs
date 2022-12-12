@@ -614,7 +614,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
     size_t e_size = 2 * k * rem_edges.size();
     size_t e_space_required = (size_t)1
-                              << parlay::log2_up((size_t)(e_size * 1.2));
+                              << parlay::log2_up((size_t)(e_size * 1.2 + 1));
 
     // Resize the table that stores edge updates if necessary.
     decr_source_table.resize_no_copy(e_space_required);
