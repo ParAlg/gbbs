@@ -507,11 +507,11 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
   connect_while_peeling.initialize(multi_size);
 
-  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) {
+  auto get_bkt = parlay::delayed_seq<uintE>(multi_size, [&](size_t i) -> uintE {
     auto table_value =
         std::get<1>(trussness_multi.big_table[i]);  // the trussness.
-    if (table_value == 0) return 0;
-    if (table_value == UINT_E_MAX) return 0;
+    if (table_value == 0) return (uintE) 0;
+    if (table_value == UINT_E_MAX) return (uintE) 0;
     return (uintE)get_bucket(table_value);
   });
   auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt,
@@ -550,6 +550,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
   bucket_t max_bkt = 0;
   double max_density = 0;
   bool use_max_density = false;
+  auto num_entries = n_edges;
 
   size_t cur_inner_rounds = 0;
   size_t max_inner_rounds = log(num_entries) / log(1.0 + delta / schooser);
@@ -581,7 +582,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     if (inline_hierarchy && prev_bkt != k && k != 0) {
       connect_while_peeling.init(k);
     }
-    k_max = std::max(k_max, k);
+    k_max = std::max((uintE)k_max, (uintE)k);
 
     //std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
 
@@ -636,7 +637,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       };
 
       truss_utils::decrement_trussness<edge_t, trussness_t>(
-          GA, id, u, v, decr_tab, get_trussness_and_id, k, use_pnd, inline_hierarchy, to_link);
+          GA, id, u, v, decr_tab, get_trussness_and_id, k, false, inline_hierarchy, to_link);
     });
     decrement_t.stop();
     //    std::cout << "finished decrements" << std::endl;
@@ -675,7 +676,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 
     // Clear the table storing the edge decrements.
     decr_tab.clear_table();
-    pret_bkt = k;
+    pre_bkt = k;
 
     rounds++;
     cur_inner_rounds++;
@@ -715,7 +716,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
     std::cout << "Finished printing" << std::endl;
   }
 
-  return D;
+  return trussness_multi;
 }
 
 // High-level desc:
