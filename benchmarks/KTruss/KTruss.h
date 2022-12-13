@@ -629,7 +629,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
       if (max_check > max_max) max_max = max_check;
     }*/
 
-    size_t e_size = 2 * max_max * rem_edges.size();
+    size_t e_size = std::min( (size_t) multi_size, (size_t) 2 * max_max * rem_edges.size());
     size_t e_space_required = (size_t)1
                               << parlay::log2_up((size_t)(e_size * 1.2 + 1));
 
