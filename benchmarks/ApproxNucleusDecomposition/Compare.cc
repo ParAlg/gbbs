@@ -35,7 +35,7 @@ sequence<std::pair<std::vector<gbbs::uintE>, gbbs::uintE>> read_cores_ktruss(std
     split(line, row_values.first);
     row_values.second = row_values.first.back();
     row_values.first.pop_back();
-    if (row_values.first[1] > row_values.first[0]) {
+    if (row_values.first[1] > row_values.first[0] && row_values.second != 0) {
       std::sort(row_values.first.begin(), row_values.first.end());
       cores[index] = row_values;
       index++;
