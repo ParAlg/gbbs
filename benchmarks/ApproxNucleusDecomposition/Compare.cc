@@ -86,6 +86,8 @@ void print_stats(std::string& exact_filename, std::string& approx_filename, bool
 
   std::cout << "Number of lines: " << number_of_lines << std::endl; fflush(stdout);
 
+  if (ktruss) number_of_lines /= 2;
+
   using PairType = std::pair<std::vector<gbbs::uintE>, gbbs::uintE>;
 
   sequence<PairType> exact_cores;
