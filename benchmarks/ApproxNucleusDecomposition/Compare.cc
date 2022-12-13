@@ -25,7 +25,13 @@ void split(const std::string& inputString, std::vector<gbbs::uintE>& elems) {
   }
 }
 
-sequence<std::pair<std::vector<gbbs::uintE>, gbbs::uintE>> read_cores_ktruss(std::string& filename, size_t number_of_lines) {
+sequence<std::pair<std::vector<gbbs::uintE>, gbbs::uintE>> read_cores_ktruss(std::string& filename, size_t number_of_lines, bool exact=false) {
+  auto cores_func = [&](gbbs::uintE truss) -> uintE {
+    if (truss == std::numeric_limits<int>::max()) return 0;
+    if (truss != UINT_E_MAX) return truss + 1;
+    return truss; 
+  };
+
   sequence<std::pair<std::vector<gbbs::uintE>, gbbs::uintE>> cores(number_of_lines);
   std::ifstream infile(filename);
   std::string line;
@@ -33,7 +39,7 @@ sequence<std::pair<std::vector<gbbs::uintE>, gbbs::uintE>> read_cores_ktruss(std
   while (std::getline(infile, line)) {
     std::pair<std::vector<gbbs::uintE>, gbbs::uintE> row_values;
     split(line, row_values.first);
-    row_values.second = row_values.first.back();
+    row_values.second = exact ? cores_func(row_values.first.back()) : row_values.first.back();
     row_values.first.pop_back();
     if (row_values.first[1] > row_values.first[0]) {
       std::sort(row_values.first.begin(), row_values.first.end());
@@ -92,7 +98,7 @@ void print_stats(std::string& exact_filename, std::string& approx_filename, bool
 
   sequence<PairType> exact_cores;
   if (!ktruss) exact_cores = read_cores(exact_filename, number_of_lines);
-  else exact_cores = read_cores_ktruss(exact_filename, number_of_lines);
+  else exact_cores = read_cores_ktruss(exact_filename, number_of_lines, true);
   sequence<PairType> approx_cores;
   if (!ktruss) approx_cores = read_cores(approx_filename, number_of_lines);
   else approx_cores = read_cores_ktruss(approx_filename, number_of_lines);
