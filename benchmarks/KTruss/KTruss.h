@@ -767,7 +767,7 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_app
 //   3.b Get the entries of the HT, actually decrement their coreness, see if
 //   their bucket needs to be updated and if so, update.
 template <class Graph, class CWP>
-truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(Graph& GA, CWP& connect_while_peeling, 
+truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(Graph& GA, CWP& connect_while_peeling, std::string& approx_out_str,
   size_t num_buckets = 16, bool inline_hierarchy = false, bool use_compact = true, bool use_pnd = false) {
   using W = typename Graph::weight_type;
   size_t n_edges = GA.m / 2;
@@ -997,6 +997,23 @@ truss_utils::multi_table<uintE, uintE, std::function<size_t(size_t)>> KTruss_ht(
   // std::numeric_limits<int>::max()
   std::cout << "iters = " << iter << std::endl;
 
+  if (approx_out_str != "") {
+    std::cout << approx_out_str << std::endl;
+    std::cout << "Printing" << std::endl;
+    std::ofstream file{approx_out_str};
+
+    for (size_t i = 0; i < GA.n; i++) {
+      auto f = [&](const uintE& u, const uintE& v, const W& wgh){
+        auto truss_tuple = get_trussness_and_id(u, v);
+        file << u << ", " << v << ": " << std::get<0>(truss_tuple) << std::endl;
+      };
+      GA.get_vertex(i).out_neighbors().map(f, false);
+    }
+    file.close();
+
+    std::cout << "Finished printing" << std::endl;
+  }
+
   return trussness_multi;
 }
 
@@ -1010,8 +1027,8 @@ void KTruss_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool e
   ConnectWhilePeeling connect_with_peeling;
 
   if (!use_approx) {
-    if (!efficient_inline_hierarchy) multitable = KTruss_ht(GA, connect_with_peeling, num_buckets, inline_hierarchy, false, false);
-    else multitable = KTruss_ht(GA, ecwp, num_buckets, inline_hierarchy, false, false);
+    if (!efficient_inline_hierarchy) multitable = KTruss_ht(GA, connect_with_peeling, approx_out_str, num_buckets, inline_hierarchy, false, false);
+    else multitable = KTruss_ht(GA, ecwp, approx_out_str, num_buckets, inline_hierarchy, false, false);
   } else {
     if (!efficient_inline_hierarchy) multitable = KTruss_approx(GA, connect_with_peeling, inline_hierarchy, approx_out_str, num_buckets, delta, false);
     else multitable = KTruss_approx(GA, ecwp, inline_hierarchy, approx_out_str, num_buckets, delta, false);
