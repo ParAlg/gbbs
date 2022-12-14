@@ -548,7 +548,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
       uintE deg = D[v];
       uintE edgesRemoved = ER[v];
       ER[v] = 0;
-      uintE new_deg = std::max(deg - edgesRemoved, (uintE) lower_boound);
+      uintE new_deg = std::max(deg - edgesRemoved, (uintE) lower_bound);
       D[v] = new_deg;
       uintE old_deg = D_capped[v];
       uintE new_bkt = std::max((uintE) get_bucket(new_deg),(uintE) k);
