@@ -473,7 +473,8 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
 
   auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0),
                                      (size_t)G.m / 50);
-  auto b = make_vertex_buckets(n, D_capped, increasing, num_buckets);
+  //auto b = make_vertex_buckets(n, D_capped, increasing, num_buckets);
+  auto b = buckets<sequence<uintE>, uintE, uintE>(n, D_capped, increasing, num_buckets);
   uintE prev_bkt = 0;
   timer bt;
 
@@ -527,7 +528,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
             uintE old_deg = D_capped[v];
             uintE new_bkt = std::max((uintE) get_bucket(new_deg),(uintE) k);
             D_capped[v] = new_bkt;
-            return wrap(v, b.get_bucket(old_deg, new_bkt));
+            return wrap(v, b.get_bucket(old_deg, new_bkt)); //old_deg, new_bkt
           }
           return std::nullopt;
         };
