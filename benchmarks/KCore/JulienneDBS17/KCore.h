@@ -518,13 +518,13 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
     }
 
     auto cores_func = [&](size_t a) -> uintE {
-      if (D_capped[a] > k) return n + 1;
-      return D_capped[a];
+      if (D[a] > k) return n + 1;
+      return D[a];
     };
 
     auto link_func = [&](uintE u) {
       auto map_f = [&](uintE __u, uintE v, const W& w) {  
-        if (u != v && D_capped[v] <= k) connect_while_peeling.link(u, v, cores_func);
+        if (u != v && D[v] <= k) connect_while_peeling.link(u, v, cores_func);
       };
       G.get_vertex(u).out_neighbors().map(map_f, false);
     };
