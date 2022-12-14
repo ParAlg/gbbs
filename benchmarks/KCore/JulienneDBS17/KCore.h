@@ -570,8 +570,6 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.next("bucket time"););
-  b.del();
-  em.del();
 
   parallel_for(0, n, [&] (size_t i) {
       D[i] = Degrees[i].first;
