@@ -469,7 +469,9 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
   const size_t n = G.n;
   auto D = sequence<uintE>::from_function(
       n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
-  auto D_capped = sequence<uintE>::from_function(n, [&](size_t i){ return get_bucket(D[i]); });
+  sequence<uintE> D_capped(n);
+  parallel_for(0, n, [&](size_t i){D_capped[i] = get_bucket(D[i]); });
+  //auto D_capped = sequence<uintE>::from_function(n, [&](size_t i){ return get_bucket(D[i]); });
 
   auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0),
                                      (size_t)G.m / 50);
