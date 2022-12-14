@@ -522,14 +522,14 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
         -> const std::optional<std::tuple<uintE, uintE> > {
           uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
           uintE deg = D[v];
-          if (deg > k) {
+          //if (deg > k) {
             uintE new_deg = std::max((uintE) deg - edgesRemoved, (uintE) lower_bound);
             D[v] = new_deg;
             uintE old_deg = D_capped[v];
             uintE new_bkt = std::max((uintE) get_bucket(new_deg),(uintE) k);
             D_capped[v] = new_bkt;
             return wrap(v, b.get_bucket(old_deg, new_bkt)); //old_deg, new_bkt
-          }
+          //}
           return std::nullopt;
         };
 
