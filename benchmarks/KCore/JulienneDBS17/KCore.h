@@ -580,7 +580,7 @@ void KCore_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool ef
   } else {
     ecwp = kcore::EfficientConnectWhilePeeling(GA.n);
     if (!use_approx) D = KCore(GA, ecwp, num_buckets, inline_hierarchy, approx_out_str);
-    else  D = KCore(GA, ecwp, num_buckets, inline_hierarchy, approx_out_str, approx_delta);
+    else  D = KCore_approx(GA, ecwp, num_buckets, inline_hierarchy, approx_out_str, approx_delta);
   }
 
   std::vector<uintE> connect;
