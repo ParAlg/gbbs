@@ -126,11 +126,84 @@ void print_stats(std::string& exact_filename, std::string& approx_filename, bool
     for (size_t i=0; i<exact_cores.size(); i++) {
       double true_core = exact_cores[i].second;
       double appx_core = approx_cores[i].second;
-      if (!check_equal_vectors(exact_cores[i].first, approx_cores[i].first)) {
-        std::cout << "Issue at: " << i << std::endl;
-        fflush(stdout);
-        exit(0);
+      //if (!check_equal_vectors(exact_cores[i].first, approx_cores[i].first)) {
+      //  std::cout << "Issue at: " << i << std::endl;
+      //  fflush(stdout);
+      //  exit(0);
+      //}
+      if (max_exact_core < true_core) max_exact_core = true_core;
+      if (max_approx_core < appx_core) max_approx_core = appx_core;
+      if (true_core != 0 && appx_core != 0) {
+        auto this_error = std::max(true_core, appx_core) /
+          std::min(true_core, appx_core);
+        total_error += this_error;
+        max_error = std::max(max_error, this_error);
+        min_error = std::min(min_error, this_error);
+        denominator++;
       }
+    }
+    min_error = min_error == std::numeric_limits<double>::max() ? 0 : min_error;
+    auto avg_error = (denominator == 0) ? 0 : (total_error / denominator);
+
+    std::cout << "### Coreness Estimate (Approx): " << max_approx_core << std::endl;
+    std::cout << "### Coreness Exact: " << max_exact_core << std::endl;
+
+    std::cout << "### Per Vertex Average Coreness Error: " << avg_error
+      << std::endl;
+    std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl;
+    std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl;
+}
+
+// Given approximate cores, output comparisons to exact k-core
+void print_stats_ktruss(std::string& exact_filename, std::string& approx_filename, bool ktruss=true){
+  size_t number_of_lines = 0;
+  std::string line;
+  std::ifstream myfile(exact_filename);
+  while (std::getline(myfile, line)) ++number_of_lines;
+  myfile.close();
+
+  std::cout << "Number of lines: " << number_of_lines << std::endl; fflush(stdout);
+
+  if (ktruss) number_of_lines /= 2;
+
+  using PairType = std::pair<std::vector<gbbs::uintE>, gbbs::uintE>;
+
+  sequence<PairType> exact_cores;
+  if (!ktruss) exact_cores = read_cores(exact_filename, number_of_lines);
+  else exact_cores = read_cores_ktruss(exact_filename, number_of_lines, true);
+  sequence<PairType> approx_cores;
+  if (!ktruss) approx_cores = read_cores(approx_filename, number_of_lines);
+  else approx_cores = read_cores_ktruss(approx_filename, number_of_lines);
+  //double mult_appx = (2 + 2*eps);
+
+  /*auto get_core = [&](const PairType& p, const PairType& q) -> bool{
+    // We want to compare the two vectors in p.first and q.first
+    //std::cout << "P size: " << p.first.size() << ", Q size: " << q.first.size() << std::endl; fflush(stdout);
+    for (size_t i = 0; i < p.first.size(); i++) {
+      if (p.first[i] != q.first[i]) return p.first[i] < q.first[i];
+    }
+    return p.first[0] < q.first[0];
+  };
+  parlay::sample_sort_inplace(make_slice(exact_cores), get_core);
+  parlay::sample_sort_inplace(make_slice(approx_cores), get_core);
+
+  std::cout << "Finish sorting" << std::endl; fflush(stdout);*/
+
+    double total_error = 0.0;
+    double max_error = 0.0;
+    double min_error = std::numeric_limits<double>::max();
+    double denominator = 0;
+    uintE max_approx_core = 0;
+    uintE max_exact_core = 0;
+    for (size_t i=0; i<exact_cores.size(); i++) {
+      if (exact_cores[i].first[0] > exact_cores[i].first[1]) continue;
+      double true_core = exact_cores[i].second;
+      double appx_core = approx_cores[i].second;
+      //if (!check_equal_vectors(exact_cores[i].first, approx_cores[i].first)) {
+      //  std::cout << "Issue at: " << i << std::endl;
+      //  fflush(stdout);
+      //  exit(0);
+      //}
       if (max_exact_core < true_core) max_exact_core = true_core;
       if (max_approx_core < appx_core) max_approx_core = appx_core;
       if (true_core != 0 && appx_core != 0) {
@@ -168,7 +241,8 @@ double Compare_runner(Graph& G, commandLine P) {
   auto exact_str = P.getOptionValue("-exact", "");
   auto approx_str = P.getOptionValue("-approx", "");
   bool ktruss = P.getOptionValue("-ktruss");
-  print_stats(exact_str, approx_str, ktruss);
+  if (ktruss) print_stats_ktruss(exact_str, approx_str, ktruss);
+  else print_stats(exact_str, approx_str, ktruss);
   return 0;
 }
 }  // namespace gbbs
