@@ -58,6 +58,10 @@ double KCore_runner(Graph& G, commandLine P) {
   bool inline_hierarchy = P.getOptionValue("-inline");
   bool efficient_inline_hierarchy = P.getOptionValue("-efficient_inline");
 
+  bool use_approx = P.getOptionValue("-approx");
+  double approx_delta = P.getOptionDoubleValue("-approx_delta", 0.1);
+  auto approx_out_str = P.getOptionValue("-approx_out", "");
+
   double tt;
 
   // runs the fetch-and-add based implementation if set.
@@ -69,7 +73,7 @@ double KCore_runner(Graph& G, commandLine P) {
   } else {
     timer t;
     t.start();
-    KCore_connect(G, num_buckets, inline_hierarchy, efficient_inline_hierarchy);
+    KCore_connect(G, num_buckets, inline_hierarchy, efficient_inline_hierarchy, use_approx, approx_delta, approx_out_str);
     tt = t.stop();
   }
 
