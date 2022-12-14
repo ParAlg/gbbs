@@ -453,6 +453,30 @@ inline sequence<uintE> KCore(Graph& G, CWP& connect_while_peeling, size_t num_bu
   return D;
 }
 
+template <class W>
+struct kcore_fetch_add {
+  uintE* er;
+  uintE* D;
+  uintE k;
+  kcore_fetch_add(uintE* _er, uintE* _D, uintE _k) : er(_er), D(_D), k(_k) {}
+  inline std::optional<uintE> update(const uintE& s, const uintE& d,
+                                     const W& w) {
+    er[d]++;
+    if (er[d] == 1) {
+      return std::optional<uintE>((uintE)0);
+    }
+    return std::nullopt;
+  }
+  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
+                                           const W& wgh) {
+    if (gbbs::fetch_and_add(&er[d], (uintE)1) == 1) {
+      return std::optional<uintE>((uintE)0);
+    }
+    return std::nullopt;
+  }
+  inline bool cond(uintE d) { return D[d] > k; }
+};
+
 template <class Graph, class CWP>
 inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t num_buckets, bool inline_hierarchy,
   std::string& approx_out_str, double delta) {
@@ -471,8 +495,10 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
       n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
   auto D_capped = sequence<uintE>::from_function(n, [&](size_t i){ return get_bucket(D[i]); });
 
-  auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0),
-                                     (size_t)G.m / 50);
+  auto ER = sequence<uintE>::from_function(n, [&](size_t i) { return 0; });
+
+  //auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0),
+  //                                   (size_t)G.m / 50);
   //auto b = make_vertex_buckets(n, D_capped, increasing, num_buckets);
   auto b = buckets<sequence<uintE>, uintE, uintE>(n, D_capped, increasing, num_buckets);
   uintE prev_bkt = 0;
@@ -518,28 +544,28 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
 
     vertexMap(active, link_func);
 
-    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const std::optional<std::tuple<uintE, uintE> > {
-          uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-          uintE deg = D[v];
-          //if (deg > k) {
-            uintE new_deg = std::max((uintE) deg - edgesRemoved, (uintE) lower_bound);
-            D[v] = new_deg;
-            uintE old_deg = D_capped[v];
-            uintE new_bkt = std::max((uintE) get_bucket(new_deg),(uintE) k);
-            D_capped[v] = new_bkt;
-            return wrap(v, b.get_bucket(old_deg, new_bkt)); //old_deg, new_bkt
-          //}
-          return std::nullopt;
-        };
+    auto apply_f = [&](const uintE v, uintE& bkt_to_modify) -> void {
+      uintE deg = D[v];
+      uintE edgesRemoved = ER[v];
+      ER[v] = 0;
+      uintE new_deg = std::max(deg - edgesRemoved, (uintE) lower_boound);
+      D[v] = new_deg;
+      uintE old_deg = D_capped[v];
+      uintE new_bkt = std::max((uintE) get_bucket(new_deg),(uintE) k);
+      D_capped[v] = new_bkt;
+      bkt_to_modify = b.get_bucket(old_deg, new_bkt);
+    };
 
-    auto cond_f = [](const uintE& u) { return true; };
-    vertexSubsetData<uintE> moved =
-        nghCount(G, active, cond_f, apply_f, em, no_dense);
+    auto moved = edgeMapData<uintE>(
+        G, active, kcore_fetch_add<W>(ER.begin(), D.begin(), k));
+    vertexMap(moved, apply_f);
 
-    bt.start();
-    b.update_buckets(moved);
-    bt.stop();
+    if (moved.dense()) {
+      b.update_buckets(moved.get_fn_repr(), n);
+    } else {
+      b.update_buckets(moved.get_fn_repr(), moved.size());
+    }
+=
     rho++;
     prev_bkt = k;
   }
@@ -601,29 +627,7 @@ void KCore_connect(Graph& GA, size_t num_buckets, bool inline_hierarchy, bool ef
   }
 }
 
-template <class W>
-struct kcore_fetch_add {
-  uintE* er;
-  uintE* D;
-  uintE k;
-  kcore_fetch_add(uintE* _er, uintE* _D, uintE _k) : er(_er), D(_D), k(_k) {}
-  inline std::optional<uintE> update(const uintE& s, const uintE& d,
-                                     const W& w) {
-    er[d]++;
-    if (er[d] == 1) {
-      return std::optional<uintE>((uintE)0);
-    }
-    return std::nullopt;
-  }
-  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
-                                           const W& wgh) {
-    if (gbbs::fetch_and_add(&er[d], (uintE)1) == 1) {
-      return std::optional<uintE>((uintE)0);
-    }
-    return std::nullopt;
-  }
-  inline bool cond(uintE d) { return D[d] > k; }
-};
+
 
 template <class Graph>
 inline sequence<uintE> KCore_FA(Graph& G, size_t num_buckets = 16) {
