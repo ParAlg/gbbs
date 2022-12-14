@@ -565,7 +565,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
     } else {
       b.update_buckets(moved.get_fn_repr(), moved.size());
     }
-=
+
     rho++;
     prev_bkt = k;
   }
