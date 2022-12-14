@@ -486,7 +486,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
-    auto active = vertexSubset(n, std::move(bkt.identifiers));
+    auto active = bkt.identifiers; //vertexSubset(n, std::move());
     uintE k = bkt.id;
     finished += active.size();
 
@@ -517,7 +517,8 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
       G.get_vertex(u).out_neighbors().map(map_f, false);
     };
 
-    vertexMap(active, link_func);
+    parallel_for(0, active.size(), [&](size_t i){ link_func(active[i]); });
+    //vertexMap(active, link_func);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
@@ -535,8 +536,9 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
         };
 
     auto cond_f = [](const uintE& u) { return true; };
+    auto vs = vertexSubset(n, std::move(active));
     vertexSubsetData<uintE> moved =
-        nghCount(G, active, cond_f, apply_f, em, no_dense);
+        nghCount(G, vs, cond_f, apply_f, em, no_dense);
 
     bt.start();
     b.update_buckets(moved);
