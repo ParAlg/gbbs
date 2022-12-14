@@ -458,6 +458,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
   std::string& approx_out_str, double delta) {
   std::cout << "Delta which is really eps: " << delta << std::endl;
   uintE schooser = 2;
+
   double one_plus_delta = log(schooser + delta);
   auto get_bucket = [&](size_t deg) -> uintE {
     if (deg == 0) return deg;
@@ -467,43 +468,51 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
   using W = typename Graph::weight_type;
   timer t2; t2.start();
   const size_t n = G.n;
-  auto D = sequence<uintE>::from_function(
-      n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
-  sequence<uintE> D_capped(n);
-  parallel_for(0, n, [&](size_t i){D_capped[i] = get_bucket(D[i]); });
-  //auto D_capped = sequence<uintE>::from_function(n, [&](size_t i){ return get_bucket(D[i]); });
+  auto Degrees =
+      sequence<std::pair<uintE, bool>>::from_function(n, [&](size_t i) {
+          return std::make_pair(G.get_vertex(i).out_degree(), false); });
+  auto D = sequence<uintE>::from_function(G.n, [&] (size_t i) {
+    return get_bucket(Degrees[i].first); });
 
   auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0),
                                      (size_t)G.m / 50);
-  auto b = make_vertex_buckets(n, D_capped, increasing, num_buckets);
-  uintE prev_bkt = 0;
+  auto b = make_vertex_buckets(n, D, increasing, num_buckets);
+  uintE prev_bkt = UINT_E_MAX;
   timer bt;
 
   size_t finished = 0, rho = 0, k_max = 0;
   size_t cur_inner_rounds = 0;
   size_t max_inner_rounds = log(n) / log(1.0 + delta / schooser);
-  while (finished < n) {
+  while (finished != n) {
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
-    auto active = bkt.identifiers; //vertexSubset(n, std::move());
+    
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     uintE k = bkt.id;
     finished += active.size();
+    k_max = std::max(k_max, bkt.id);
+    if (k != prev_bkt) {
+      prev_bkt = k;
+      cur_inner_rounds = 0;
+    }
 
-    //std::cout << "k: " << k << ", active size: " << active.size() << ", finished: " << finished << ", n: " << n << std::endl;
-    if (active.size() == 0) continue;
-
-    if (prev_bkt != k) cur_inner_rounds = 0;
     // Check if we hit the threshold for inner peeling rounds.
     if (cur_inner_rounds == max_inner_rounds) {
       // new re-insertions will go to at least bucket k (one greater than before).
       k++;
       cur_inner_rounds = 0;
     }
+
+    // Mark peeled vertices as done.
+    parallel_for(0, active.size(), [&] (size_t i) {
+      uintE vtx = active.s[i];
+      assert(!Degrees[vtx].second);  // not yet peeled
+      Degrees[vtx].second = true;  // set to peeled
+    });
+
     uintE lower_bound = ceil(pow((schooser + delta), k-1));
 
-    k_max = std::max(k_max, bkt.id);
-    
     if (inline_hierarchy && prev_bkt != k && k != 0) {
       connect_while_peeling.init(k);
     }
@@ -520,39 +529,53 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
       G.get_vertex(u).out_neighbors().map(map_f, false);
     };
 
-    parallel_for(0, active.size(), [&](size_t i){ link_func(active[i]); });
-    //vertexMap(active, link_func);
+    //parallel_for(0, active.size(), [&](size_t i){ link_func(active[i]); });
+    vertexMap(active, link_func);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
-          uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-          uintE deg = D[v];
-          uintE old_deg = D_capped[v];
-          if (old_deg > k) {
-            uintE new_deg = std::max((uintE) deg - edgesRemoved, (uintE) lower_bound);
-            D[v] = new_deg;
-            uintE new_bkt = std::max((uintE) get_bucket(new_deg),(uintE) k);
-            D_capped[v] = new_bkt;
-            return wrap(v, b.get_bucket(new_bkt)); //old_deg, new_bkt
-          }
-          return std::nullopt;
-        };
+      uintE v = std::get<0>(p), edges_removed = std::get<1>(p);
+      if (!Degrees[v].second) {
+        uintE deg = Degrees[v].first;
+        uintE new_deg = std::max(deg - edges_removed, lower_bound);
+        assert(new_deg >= 0);
+        Degrees[v].first = new_deg;
+        uintE new_bkt = std::max(get_bucket(new_deg), k);
+        uintE prev_bkt = D[v];
+        if (prev_bkt != new_bkt) {
+          D[v] = new_bkt;
+          return wrap(v, b.get_bucket(new_bkt));
+        }
+      }
+      return std::nullopt;
+    };
 
-    auto cond_f = [](const uintE& u) { return true; };
-    auto vs = vertexSubset(n, std::move(active));
-    vertexSubsetData<uintE> moved =
-        nghCount(G, vs, cond_f, apply_f, em, no_dense);
+    auto cond_f = [] (const uintE& u) { return true; };
+    vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em,
+        no_dense);
 
-    bt.start();
-    b.update_buckets(moved);
+   bt.start();
+    if (moved.dense()) {
+      b.update_buckets(moved.get_fn_repr(), n);
+    } else {
+      b.update_buckets(moved.get_fn_repr(), moved.size());
+    }
+
     bt.stop();
     rho++;
     prev_bkt = k;
+    cur_inner_rounds++;
   }
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.next("bucket time"););
+  b.del();
+  em.del();
+
+  parallel_for(0, n, [&] (size_t i) {
+      D[i] = Degrees[i].first;
+  });
 
   if (approx_out_str != "") {
     std::cout << approx_out_str << std::endl;
