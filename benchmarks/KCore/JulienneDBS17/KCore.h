@@ -482,7 +482,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
   size_t finished = 0, rho = 0, k_max = 0;
   size_t cur_inner_rounds = 0;
   size_t max_inner_rounds = log(n) / log(1.0 + delta / schooser);
-  while (finished != n) {
+  while (finished < n) {
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
