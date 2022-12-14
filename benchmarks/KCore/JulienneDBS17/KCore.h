@@ -491,6 +491,7 @@ inline sequence<uintE> KCore_approx(Graph& G, CWP& connect_while_peeling, size_t
     finished += active.size();
 
     std::cout << "k: " << k << ", active size: " << active.size() << ", finished: " << finished << ", n: " << n << std::endl;
+    if (active.size() == 0) continue;
 
     if (prev_bkt != k) cur_inner_rounds = 0;
     // Check if we hit the threshold for inner peeling rounds.
