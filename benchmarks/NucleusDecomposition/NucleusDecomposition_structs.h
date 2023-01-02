@@ -452,6 +452,12 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
     }
   }
   //std::cout << "Finish second pass" << std::endl; fflush(stdout);
+
+  size_t space_usage = 0;
+  space_usage += sizeof(uintE) * n * 2; // for sorted_vert and connectivity_tree
+  space_usage += sizeof(uintE) * vert_buckets.size(); // for boundary
+  std::cout << "Tree space usage: " << space_usage << std::endl;
+
   return connectivity_tree;
 }
 
@@ -460,6 +466,12 @@ inline std::vector<uintE> construct_nd_connectivity_from_connect(ConnectWhilePee
 sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
 size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
   auto n = table.return_total();
+
+  size_t space_usage = 0;
+  space_usage += sizeof(uintE) * n; // for connectivity_tree
+  space_usage += sizeof(uintE) * n; // for prev_parent
+  std::cout << "Tree space usage: " << space_usage << std::endl;
+
   std::vector<uintE> connectivity_tree(n);
   sequence<uintE> prev_parent = sequence<uintE>::from_function(n, [&](size_t i){ return i; });
   uintE prev_max_parent = n;

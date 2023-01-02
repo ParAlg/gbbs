@@ -618,6 +618,12 @@ inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, G
   //for (std::size_t i = 0; i < connectivity_tree.size(); i++) {
   //  std::cout << "i: " << i << ", parent: " << connectivity_tree[i] << std::endl;
   //}
+  size_t space_usage = 0;
+  space_usage += sizeof(uintE) * n * 2 + sizeof(uintE) * (n+1); // for sorted_vert and connectivity_tree and mark_keys
+  space_usage += sizeof(uintE) * vert_buckets.size(); // for vert_buckets
+  space_usage += sizeof(uintE) * n * 3; // for uf and prev_parent and map_parents
+  std::cout << "Tree space usage: " << space_usage << std::endl;
+
   return connectivity_tree; //uf.finish();
 }
 
@@ -929,6 +935,14 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   //std::cout << "created 6 " << std::endl; fflush(stdout);
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
+  size_t space_usage = 0;
+  if (relabel) space_usage += sizeof(uintE) * G.n; // for inverse rank
+  space_usage += sizeof(uintE) * G.n; // for rank
+  space_usage += sizeof(bucket_t) * num_entries; // for D
+  space_usage += sizeof(uintE) * num_entries; // for b
+  space_usage += sizeof(char) * num_entries; // for still_active
+  std::cout << "Space usage: " << space_usage << std::endl;
+
   timer t_extract;
   timer t_count;
   timer t_update;
@@ -1080,6 +1094,7 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
   if (inline_hierarchy) connect_while_peeling.print_size();
+  count_idxs.print_size();
 
   //b.del();
   free(still_active);
