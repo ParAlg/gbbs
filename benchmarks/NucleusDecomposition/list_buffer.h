@@ -51,6 +51,23 @@ class list_buffer {
     // for easier dynamic?
     std::vector<std::vector<uintE>> ddyn_lists;
 
+    void print_size() {
+      size_t space = 0;
+      if (efficient == 1) {
+        space += (ss + 1024 * num_workers2) * sizeof(uintE); // for list
+        space += (num_workers2) * sizeof(size_t); // for starts
+        space += sizeof(bool) * (ss + 1024 * num_workers2); // for topack
+      } else if (efficient == 0) {
+        space += sizeof(uintE) * list.size();
+      } else if (efficient == 5) {
+        space += sizeof(size_t) * (num_workers2 + 1);
+        for (size_t i = 0; i < ddyn_lists.size(); i++) {
+          space += sizeof(uintE) * ddyn_lists[i].size();
+        }
+      }
+      std::cout << "List buffer space: " << space << std::endl;
+    }
+
 // option to have a thread local vector that's resizable per thread to hold
 // the new r cliques; you need to get your thread id
     list_buffer(size_t s, size_t _efficient = 1){

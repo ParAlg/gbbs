@@ -114,10 +114,18 @@ class EfficientConnectWhilePeeling {
     template<class bucket_t>
     void init(bucket_t cur_bkt);
 
+    void print_size();
+
     gbbs::simple_union_find::SimpleUnionAsyncStruct uf =  gbbs::simple_union_find::SimpleUnionAsyncStruct(0);
     sequence<uintE> links;
     size_t n; // table size
 };
+
+void EfficientConnectWhilePeeling::print_size() {
+  //size_t links_size = sizeof(uintE) * n;
+  //size_t uf_size = sizeof(uintE) * n;
+  std::cout << "CWP size: " << sizeof(uintE) * n * 2 << " bytes" << std::endl;
+}
 
 void EfficientConnectWhilePeeling::initialize(size_t _n)  {
   this->n = _n;
@@ -247,6 +255,7 @@ class ConnectWhilePeeling {
 
     template<class bucket_t>
     void init(bucket_t cur_bkt);
+    void print_size();
     /*template <class F, class Graph, class Graph2, class Table, class G, class H, class D>
     void update_cores(size_t active_core, F get_active, size_t active_size, Graph& GA, 
       Graph2& DG, size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel,
@@ -258,6 +267,12 @@ class ConnectWhilePeeling {
     std::vector<gbbs::simple_union_find::SimpleUnionAsyncStruct> set_uf;
     std::vector<uintE> set_core;
 };
+
+void ConnectWhilePeeling::print_size() {
+  size_t set_uf_size = set_uf.size() * n * sizeof(uintE);
+  size_t set_core_size = set_core.size() * sizeof(uintE);
+  std::cout << "CWP size: " << set_uf_size + set_core_size << " bytes" << std::endl;
+}
 
 void ConnectWhilePeeling::initialize(size_t _n) { this->n = _n; }
 

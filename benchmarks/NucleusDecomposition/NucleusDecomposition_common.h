@@ -660,6 +660,15 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   char* still_active = (char*) calloc(num_entries, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
+  size_t space_usage = 0;
+  if (relabel) space_usage += sizeof(uintE) * G.n; // for inverse rank
+  space_usage += sizeof(uintE) * G.n; // for rank
+  space_usage += sizeof(bucket_t) * num_entries + (sizeof(uintE) + sizeof(bucket_t)) * num_entries_filter; // for D and D_filter
+  space_usage += sizeof(uintE) * num_entries; // for b
+  space_usage += sizeof(double) * num_entries; // for per_processor_counts
+  space_usage += sizeof(char) * num_entries; // for still_active
+  std::cout << "Space usage: " << space_usage << std::endl;
+
   /*timer t_compress;
   compress_utils compress_util;
   if (r == 1 && k == 2 && use_compress) {
@@ -864,6 +873,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   std::cout << "clique core: " << max_bkt << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
+  if (inline_hierarchy) connect_while_peeling.print_size();
+  count_idxs.print_size();
+
   //b.del();
   free(still_active);
 
@@ -1066,6 +1078,8 @@ sequence<bucket_t> Peel_space_efficient(Graph& G, Graph2& DG, size_t r, size_t k
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "clique core: " << max_bkt << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
+
+  if (inline_hierarchy) connect_while_peeling.print_size();
 
   //b.del();
   free(still_active);
