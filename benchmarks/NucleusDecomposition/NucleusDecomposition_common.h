@@ -472,7 +472,8 @@ t_update_d.stop();
 // k and r here should be the same as that used in cliqueUpdate
 template <class bucket_t, class Graph, class Graph2, class Table>
 inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
-  size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
+  size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel, bool count_links = false){
+  size_t num_links = 0;
   auto n = table.return_total();
   // TODO(jeshi): don't repeat work from peel
   size_t max_deg = induced_hybrid::get_max_deg(GA);
@@ -556,6 +557,7 @@ inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, G
       table.extract_indices_conn(base, is_inactive, [&](std::size_t index){
         if (index != x) {
           uf.unite(x, index);
+          if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
         }
       }, r, k, x);
     };
@@ -623,6 +625,8 @@ inline std::vector<uintE> construct_nd_connectivity(sequence<bucket_t>& cores, G
   space_usage += sizeof(uintE) * vert_buckets.size(); // for vert_buckets
   space_usage += sizeof(uintE) * n * 3; // for uf and prev_parent and map_parents
   std::cout << "Tree space usage: " << space_usage << std::endl;
+
+  if (count_links) std::cout << "Num links: " << num_links << std::endl;
 
   return connectivity_tree; //uf.finish();
 }

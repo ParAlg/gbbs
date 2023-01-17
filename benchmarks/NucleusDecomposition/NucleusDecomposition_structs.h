@@ -119,6 +119,8 @@ class EfficientConnectWhilePeeling {
     gbbs::simple_union_find::SimpleUnionAsyncStruct uf =  gbbs::simple_union_find::SimpleUnionAsyncStruct(0);
     sequence<uintE> links;
     size_t n; // table size
+    bool count_links = false;
+    size_t num_links = 0;
 };
 
 void EfficientConnectWhilePeeling::print_size() {
@@ -137,6 +139,7 @@ template<class X, class Y, class F>
 void EfficientConnectWhilePeeling::check_equal_for_merge(X a, Y b, F& cores) {
   if (cores(a) == cores(b)) {
     this->uf.unite(a, b);
+    if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
   } else {
     auto link_b = links[b];
     if (link_b != UINT_E_MAX && cores(link_b) >= cores(a)) this->check_equal_for_merge(a, link_b, cores);
@@ -153,6 +156,7 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
   //}
   if (cores(a) == cores(b)) {
     this->uf.unite(a, b);
+    if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
     uintE parent = simple_union_find::find_compress(a, this->uf.parents);
     auto link_a = links[a]; auto link_b = links[b];
     if (link_a != UINT_E_MAX && parent != a) this->link(link_a, parent, cores);
@@ -196,8 +200,10 @@ void EfficientConnectWhilePeeling::link(X a, Y b, F& cores) {
       while (true) {
         c = links[b];
         if (c == UINT_E_MAX) {
+          if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
           if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), UINT_E_MAX, a)) break;
         } else if (cores(c) < cores(a)) { // || (cores(c) == cores(a) && a < c)
+          if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
           if (gbbs::atomic_compare_and_swap<uintE>(&(links[b]), c, a)) {
             auto parent_b = simple_union_find::find_compress(b, this->uf.parents);
             if (b != parent_b) this->link(a, parent_b, cores);
@@ -266,6 +272,8 @@ class ConnectWhilePeeling {
     size_t n; // table size
     std::vector<gbbs::simple_union_find::SimpleUnionAsyncStruct> set_uf;
     std::vector<uintE> set_core;
+    bool count_links = false;
+    size_t num_links = 0;
 };
 
 void ConnectWhilePeeling::print_size() {
@@ -279,7 +287,10 @@ void ConnectWhilePeeling::initialize(size_t _n) { this->n = _n; }
 template<class X, class Y, class F>
 void ConnectWhilePeeling::link(X x, Y index, F& cores) {
   parallel_for(0, set_uf.size(), [&](size_t idx){
-    if (cores(index) >= set_core[idx]) set_uf[idx].unite(x, index);
+    if (cores(index) >= set_core[idx]) {
+      set_uf[idx].unite(x, index);
+      if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
+    }
   });
 }
 
@@ -359,7 +370,7 @@ void ConnectWhilePeeling::update_cores(size_t active_core, F get_active, size_t 
 template <class bucket_t, class Graph, class Graph2, class Table>
 inline std::vector<uintE> construct_nd_connectivity_from_connect(EfficientConnectWhilePeeling& cwp, 
 sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
-size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
+size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel, bool count_links = false){
   //std::cout << "Start connectivity tree" << std::endl; fflush(stdout);
   auto parents = cwp.uf.finish();
   /*std::cout << "ECWP UF: " << std::endl;
@@ -464,7 +475,7 @@ size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
 template <class bucket_t, class Graph, class Graph2, class Table>
 inline std::vector<uintE> construct_nd_connectivity_from_connect(ConnectWhilePeeling& connect_with_peeling, 
 sequence<bucket_t>& cores, Graph& GA, Graph2& DG,
-size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel){
+size_t r, size_t k, Table& table, sequence<uintE>& rank, bool relabel, bool count_links = false){
   auto n = table.return_total();
 
   size_t space_usage = 0;
