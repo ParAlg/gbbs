@@ -148,12 +148,12 @@ struct symmetric_graph {
 
   // Move assignment
   symmetric_graph& operator=(symmetric_graph&& other) noexcept {
+    deletion_fn();
     n = other.n;
     m = other.m;
     v_data = other.v_data;
     e0 = other.e0;
     vertex_weights = other.vertex_weights;
-    deletion_fn();
     deletion_fn = std::move(other.deletion_fn);
     other.v_data = nullptr;
     other.e0 = nullptr;
@@ -311,12 +311,12 @@ struct symmetric_ptr_graph {
 
   // Move assignment
   symmetric_ptr_graph& operator=(symmetric_ptr_graph&& other) noexcept {
+    deletion_fn();
     n = other.n;
     m = other.m;
     vertices = other.vertices;
     edge_list_sizes = other.edge_list_sizes;
     vertex_weights = other.vertex_weights;
-    deletion_fn();
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
     other.edge_list_sizes = nullptr;
@@ -475,6 +475,7 @@ struct asymmetric_graph {
 
   // Move assignment
   asymmetric_graph& operator=(asymmetric_graph&& other) noexcept {
+    deletion_fn();
     n = other.n;
     m = other.m;
     v_out_data = other.v_out_data;
@@ -482,7 +483,6 @@ struct asymmetric_graph {
     out_edges = other.out_edges;
     in_edges = other.in_edges;
     vertex_weights = other.vertex_weights;
-    deletion_fn();
     deletion_fn = std::move(other.deletion_fn);
     other.v_out_data = nullptr;
     other.v_in_data = nullptr;
@@ -588,11 +588,11 @@ struct asymmetric_ptr_graph {
 
   // Move assignment
   asymmetric_ptr_graph& operator=(asymmetric_ptr_graph&& other) noexcept {
+    deletion_fn();
     n = other.n;
     m = other.m;
     vertices = other.vertices;
     vertex_weights = other.vertex_weights;
-    deletion_fn();
     deletion_fn = std::move(other.deletion_fn);
     other.vertices = nullptr;
     other.vertex_weights = nullptr;
