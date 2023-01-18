@@ -411,10 +411,10 @@ inline sequence<bucket_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& D
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
 
   if (inline_hierarchy && !efficient_inline_hierarchy && count_links) {
-    std::cout << "Num links: " << connect_with_peeling.num_links << std::endl;
+    connect_with_peeling.print_links();
   }
   else if (efficient_inline_hierarchy && count_links) {
-    std::cout << "Num links: " << ecwp.num_links << std::endl;
+    ecwp.print_links();
   }
 
   if (approx_out_str != "") {
