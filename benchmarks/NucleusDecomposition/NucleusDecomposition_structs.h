@@ -96,11 +96,14 @@ bool is_edge(Graph& DG, uintE v, uintE u) {
 
 class EfficientConnectWhilePeeling {
   public:
-    EfficientConnectWhilePeeling() {}
+    EfficientConnectWhilePeeling() {
+      all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
+    }
     EfficientConnectWhilePeeling(size_t _n) {
       n = _n;
       uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
       links = sequence<uintE>::from_function(n, [&](size_t s) { return UINT_E_MAX; });
+      all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
     }
     
     void initialize(size_t _n);
@@ -147,7 +150,6 @@ void EfficientConnectWhilePeeling::initialize(size_t _n)  {
   this->n = _n;
   this->uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(this->n);
   this->links = sequence<uintE>::from_function(this->n, [&](size_t s) { return UINT_E_MAX; });
-  this->all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
 }
 
 template<class X, class Y, class F>
