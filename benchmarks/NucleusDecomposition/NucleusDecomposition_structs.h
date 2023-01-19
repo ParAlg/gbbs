@@ -296,7 +296,7 @@ class ConnectWhilePeeling {
     std::vector<uintE> set_core;
     bool count_links = false;
     size_t num_links = 0;
-    sequence<uintE> all_links;
+    sequence<uintE> all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
 };
 
 void ConnectWhilePeeling::increment_links() {
