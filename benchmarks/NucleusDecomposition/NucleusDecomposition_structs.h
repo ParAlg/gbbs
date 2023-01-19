@@ -263,9 +263,12 @@ void EfficientConnectWhilePeeling::init(bucket_t cur_bkt) {
 
 class ConnectWhilePeeling {
   public:
-    ConnectWhilePeeling() {}
+    ConnectWhilePeeling() {
+      all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
+    }
     ConnectWhilePeeling(size_t _n){
       n = _n;
+      all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
       //uf = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
       //links = sequence<uintE>::from_function(n, [&](size_t s) { return UINT_E_MAX; });
       //uf_links = gbbs::simple_union_find::SimpleUnionAsyncStruct(n);
@@ -279,6 +282,7 @@ class ConnectWhilePeeling {
     template<class bucket_t>
     void init(bucket_t cur_bkt);
     void print_size();
+    void increment_links();
     void print_links();
     /*template <class F, class Graph, class Graph2, class Table, class G, class H, class D>
     void update_cores(size_t active_core, F get_active, size_t active_size, Graph& GA, 
@@ -292,10 +296,16 @@ class ConnectWhilePeeling {
     std::vector<uintE> set_core;
     bool count_links = false;
     size_t num_links = 0;
+    sequence<uintE> all_links;
 };
+
+void ConnectWhilePeeling::increment_links() {
+  if (count_links) gbbs::fetch_and_add(&(all_links[worker_id()]), (size_t) 1);
+}
 
 void ConnectWhilePeeling::print_links() {
   if (count_links) {
+   num_links = parlay::reduce(all_links);
    std::cout << "Num links: " << num_links << std::endl;
   }
 }
@@ -313,7 +323,7 @@ void ConnectWhilePeeling::link(X x, Y index, F& cores) {
   parallel_for(0, set_uf.size(), [&](size_t idx){
     if (cores(index) >= set_core[idx]) {
       set_uf[idx].unite(x, index);
-      if (count_links) gbbs::fetch_and_add(&num_links, (size_t) 1);
+      increment_links();
     }
   });
 }
