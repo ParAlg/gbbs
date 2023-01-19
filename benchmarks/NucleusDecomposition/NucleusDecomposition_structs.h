@@ -131,7 +131,7 @@ class EfficientConnectWhilePeeling {
 };
 
 void EfficientConnectWhilePeeling::increment_links() {
-  if (count_links) gbbs::fetch_and_add(&(all_links[worker_id()]), (size_t) 1);
+  if (count_links) gbbs::fetch_and_add(&(all_links[worker_id()]), (uintE) 1);
 }
 void EfficientConnectWhilePeeling::print_links() {
   if (count_links) {
@@ -300,7 +300,7 @@ class ConnectWhilePeeling {
 };
 
 void ConnectWhilePeeling::increment_links() {
-  if (count_links) gbbs::fetch_and_add(&(all_links[worker_id()]), (size_t) 1);
+  if (count_links) gbbs::fetch_and_add(&(all_links[worker_id()]), (uintE) 1);
 }
 
 void ConnectWhilePeeling::print_links() {
@@ -316,7 +316,10 @@ void ConnectWhilePeeling::print_size() {
   std::cout << "CWP size: " << set_uf_size + set_core_size << " bytes" << std::endl;
 }
 
-void ConnectWhilePeeling::initialize(size_t _n) { this->n = _n; }
+void ConnectWhilePeeling::initialize(size_t _n) {
+  this->n = _n;
+  all_links = sequence<uintE>::from_function(num_workers(), [](size_t i){return 0;});
+}
 
 template<class X, class Y, class F>
 void ConnectWhilePeeling::link(X x, Y index, F& cores) {
