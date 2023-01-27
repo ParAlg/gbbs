@@ -125,27 +125,4 @@ static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
                                              newEdges);
 }
 
-// Used by MST and MaximalMatching
-// Predicate returns three values:
-// 0 : keep in graph, do not return in edge array
-// 1 : remove from graph, do not return in edge array
-// 2 : remove from graph, return in edge array
-// Cost: O(n+m) work
-template <class Graph, class P>
-edge_array<typename Graph::weight_type> filterEdges(Graph& G, P& pred,
-                                                    flags fl = 0) {
-  return filter_edges(G, pred, fl);
-}
-
-template <class Graph, class P>
-edge_array<typename Graph::weight_type> filterAllEdges(Graph& G, P& pred,
-                                                       flags fl = 0) {
-  return filter_all_edges(G, pred, fl);
-}
-
-template <class Graph, class P>
-edge_array<typename Graph::weight_type> sampleEdges(Graph& G, P& pred) {
-  return sample_edges(G, pred);
-}
-
 }  // namespace gbbs
