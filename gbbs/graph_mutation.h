@@ -383,26 +383,6 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
 template <class Graph, class P>
-inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
-  using W = typename Graph::weight_type;
-  size_t n = G.num_vertices();
-  auto space = sequence<uintT>(n);
-  parallel_for(0, n, [&](size_t i) {
-    space[i] = G.get_vertex(i).out_neighbors().calculateTemporarySpace();
-  });
-  size_t total_space = parlay::scan_inplace(space);
-  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
-
-  auto for_inner = [&](size_t i) {
-    std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-    G.packNeighbors(i, p, (uint8_t*)tmp_v);
-  };
-  parallel_for(0, n, 1, [&](size_t i) { for_inner(i); });
-}
-
-// Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
-// in the new adjacency list if p(ngh) is true.
-template <class Graph, class P>
 inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
