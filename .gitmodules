@@ -2,6 +2,3 @@
 	path = external/parlaylib
   url = https://github.com/ParAlg/parlaylib
   branch = bazel_v2
-[submodule "PAM"]
-	path = external/PAM
-	url = https://github.com/ldhulipala/PAM
