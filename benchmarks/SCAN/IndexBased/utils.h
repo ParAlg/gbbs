@@ -103,7 +103,7 @@ decltype(auto) CollectReduce(
     const Seq& seq, Key_fn&& get_key, Value_fn&& get_value, Monoid&& reduce_fn,
     size_t num_keys) {
   using Value = parlay::monoid_value_type_t<Monoid>;
-  if (seq.empty()) {
+  if (seq.size() == 0) {
     return sequence<Value>(num_keys, reduce_fn.identity);
   }
   sequence<size_t> bucketed_indices = sequence<size_t>::from_function(
