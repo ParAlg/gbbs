@@ -1,4 +1,4 @@
 [submodule "parlaylib"]
 	path = external/parlaylib
   url = https://github.com/ParAlg/parlaylib
-  branch = bazel_v2
+  branch = Bazel
