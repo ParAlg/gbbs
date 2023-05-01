@@ -54,7 +54,7 @@ struct Edge {
 };
 
 template <>
-Edge<gbbs::empty>::Edge(const uintE _from, const uintE _to);
+Edge<gbbs::empty>::Edge(uintE _from, uintE _to);
 
 namespace internal {  // Internal declarations
 

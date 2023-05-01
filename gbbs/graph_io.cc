@@ -29,7 +29,7 @@ void skip_ifstream_comments(std::ifstream* stream) {
 }  // namespace internal
 
 template <>
-Edge<gbbs::empty>::Edge(const uintE _from, const uintE _to)
+Edge<gbbs::empty>::Edge(uintE _from, uintE _to)
     : from(_from), to(_to) {}
 
 std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
