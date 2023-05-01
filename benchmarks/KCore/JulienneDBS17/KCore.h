@@ -71,7 +71,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.next("bucket time"););
+  gbbs_debug(bt.next("bucket time"););
   return D;
 }
 
@@ -195,7 +195,7 @@ inline parlay::sequence<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.next("bucket time"););
+  gbbs_debug(bt.next("bucket time"););
   return degeneracy_order;
 }
 
@@ -248,7 +248,7 @@ inline parlay::sequence<uintE> DegeneracyOrderWithLoad(Graph& G, sequence<uintE>
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
-  debug(bt.next("bucket time"););
+  gbbs_debug(bt.next("bucket time"););
   return degeneracy_order;
 }
 }  // namespace gbbs

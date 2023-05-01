@@ -130,7 +130,7 @@ inline parlay::sequence<edge> SpanningForest_Impl(
   auto clusters = std::move(clusters_and_parents.first);
   auto parents = std::move(clusters_and_parents.second);
   ldd_t.stop();
-  debug(ldd_t.next("ldd time"););
+  gbbs_debug(ldd_t.next("ldd time"););
 
   // Filter out tree edges added this round (ids are in the current level)
   auto delayed_edges = parlay::delayed_seq<edge>(
@@ -147,7 +147,7 @@ inline parlay::sequence<edge> SpanningForest_Impl(
   relabel_t.start();
   size_t num_clusters = contract_sf::RelabelIds(clusters);
   relabel_t.stop();
-  debug(relabel_t.next("relabel time"););
+  gbbs_debug(relabel_t.next("relabel time"););
 
   timer contract_t;
   contract_t.start();
@@ -158,7 +158,7 @@ inline parlay::sequence<edge> SpanningForest_Impl(
   auto GC_and_new_mapping =
       contract_sf::contract(G, clusters, num_clusters, edge_mapping);
   contract_t.stop();
-  debug(contract_t.next("contract time"););
+  gbbs_debug(contract_t.next("contract time"););
   auto GC = std::move(GC_and_new_mapping.first);
   auto new_mapping =
       std::move(GC_and_new_mapping.second);  // sparse_table<edge, edge>

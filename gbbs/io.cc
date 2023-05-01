@@ -67,7 +67,7 @@ void unmmap(const char* bytes, size_t bytes_size) {
 sequence<char> readStringFromFile(const char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
-    debug(std::cout << "# Unable to open file: " << fileName << "\n";);
+    gbbs_debug(std::cout << "# Unable to open file: " << fileName << "\n";);
     abort();
   }
   uint64_t end = file.tellg();
@@ -87,7 +87,7 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
 #else
   if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
 #endif
-    debug(std::cout << "# input opened!"
+    gbbs_debug(std::cout << "# input opened!"
                     << "\n";);
   } else {
     std::cout << "# can't open input file!";
@@ -104,41 +104,41 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
 #else
   char* bytes = (char*)memalign(4096 * 2, fsize + 4096);
 #endif
-  debug(std::cout << "# fsize = " << fsize << "\n";);
+  gbbs_debug(std::cout << "# fsize = " << fsize << "\n";);
 
   size_t sz = 0;
 
   size_t pgsize = getpagesize();
-  debug(std::cout << "# pgsize = " << pgsize << "\n";);
+  gbbs_debug(std::cout << "# pgsize = " << pgsize << "\n";);
 
   size_t read_size = 1024 * 1024 * 1024;
   if (sz + read_size > fsize) {
     size_t k = std::ceil((fsize - sz) / pgsize);
     read_size = std::max(k * pgsize, pgsize);
-    debug(std::cout << "# set read size to: " << read_size << " "
+    gbbs_debug(std::cout << "# set read size to: " << read_size << " "
                     << (fsize - sz) << " bytes left"
                     << "\n";);
   }
 
   while (sz + read_size < fsize) {
     void* buf = bytes + sz;
-    debug(std::cout << "# reading: " << read_size << "\n";);
+    gbbs_debug(std::cout << "# reading: " << read_size << "\n";);
     sz += read(fd, buf, read_size);
-    debug(std::cout << "# read: " << sz << " bytes"
+    gbbs_debug(std::cout << "# read: " << sz << " bytes"
                     << "\n";);
     if (sz + read_size > fsize) {
       size_t k = std::ceil((fsize - sz) / pgsize);
       read_size = std::max(k * pgsize, pgsize);
-      debug(std::cout << "# set read size to: " << read_size << " "
+      gbbs_debug(std::cout << "# set read size to: " << read_size << " "
                       << (fsize - sz) << " bytes left"
                       << "\n";);
     }
   }
   if (sz < fsize) {
-    debug(std::cout << "# last read: rem = " << (fsize - sz) << "\n";);
+    gbbs_debug(std::cout << "# last read: rem = " << (fsize - sz) << "\n";);
     void* buf = bytes + sz;
     sz += read(fd, buf, pgsize);
-    debug(std::cout << "# read " << sz << " bytes "
+    gbbs_debug(std::cout << "# read " << sz << " bytes "
                     << "\n";);
   }
   close(fd);

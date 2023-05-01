@@ -106,7 +106,7 @@ struct UFAlgorithm {
     ft.start();
     parallel_for(0, n, [&](size_t i) { parents[i] = find(i, parents); });
     ft.stop();
-    debug(ft.next("find time"););
+    gbbs_debug(ft.next("find time"););
   }
 
   template <bool reorder_batch, class Seq>

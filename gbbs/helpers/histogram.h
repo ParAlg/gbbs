@@ -145,7 +145,7 @@ struct hist_table {
       size_t rounded_size = (1L << parlay::log2_up<size_t>(req_size));
       table = parlay::sequence<KV>(rounded_size, empty);
       size = rounded_size;
-      debug(std::cout << "resized to: " << size << "\n";);
+      gbbs_debug(std::cout << "resized to: " << size << "\n";);
     }
   }
 };

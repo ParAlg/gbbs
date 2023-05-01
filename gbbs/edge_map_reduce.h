@@ -142,7 +142,7 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
   vs.toDense();
   std::cout << "Made it dense!" << std::endl;
 
-  debug(std::cout << "running dense" << std::endl << std::endl;);
+  gbbs_debug(std::cout << "running dense" << std::endl << std::endl;);
 
   auto count_f = [&](uintE u, uintE v, W& wgh) -> size_t {
     return static_cast<size_t>(vs.isIn(v));
@@ -459,7 +459,7 @@ struct EdgeMap {
     using OT = std::tuple<bool, O>;
     vs.toDense();
 
-    debug(std::cout << "running dense" << std::endl << std::endl;);
+    gbbs_debug(std::cout << "running dense" << std::endl << std::endl;);
 
     auto count_f = [&](uintE u, uintE v, W& wgh) -> size_t {
       return static_cast<size_t>(vs.isIn(v));

@@ -86,11 +86,11 @@ called bytepd_amortized (bytepda) is similar to the parallelByte format used in
 Ligra+, with some additional functionality to support efficiently packs,
 filters, and other operations over neighbor lists.
 
-To compile codes for graphs with more than 2^32 edges, the `LONG` command-line
+To compile codes for graphs with more than 2^32 edges, the `GBBSLONG` command-line
 parameter should be set. If the graph has more than 2^32 vertices, the
-`EDGELONG` command-line parameter should be set. Note that the codes have not
+`GBBSEDGELONG` command-line parameter should be set. Note that the codes have not
 been tested with more than 2^32 vertices, so if any issues arise please contact
-[Laxman Dhulipala](mailto:ldhulipa@cs.cmu.edu).
+[Laxman Dhulipala](mailto:laxman@umd.edu).
 
 To compile with the Cilk Plus scheduler instead of the Homegrown scheduler, use
 the Bazel configuration `--config=cilk`. To compile using OpenMP instead, use

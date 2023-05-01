@@ -130,7 +130,7 @@ preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
     }
   }
   seq.stop();
-  debug(seq.next("seq time"););
+  gbbs_debug(seq.next("seq time"););
 
   auto nghs = sequence<uintE>::from_function(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
@@ -189,7 +189,7 @@ preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
     vs.toSparse();
   }
   augs.stop();
-  debug(augs.next("aug size time"););
+  gbbs_debug(augs.next("aug size time"););
 
   // Optional: Prefix sum over sources with aug-size (if we want distinct
   // preorder #s)
@@ -251,7 +251,7 @@ preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
     vs = vertexSubset(n, std::move(next_vs));
   }
   pren.stop();
-  debug(pren.next("preorder number from sizes time"););
+  gbbs_debug(pren.next("preorder number from sizes time"););
 
   timer map_e;
   map_e.start();
@@ -285,7 +285,7 @@ preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
   parallel_for(0, n, 1,
                [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   map_e.stop();
-  debug(map_e.next("map edges time"););
+  gbbs_debug(map_e.next("map edges time"););
 
   timer leaff;
   leaff.start();
@@ -306,7 +306,7 @@ preorder_number(symmetric_graph<vertex, W>& GA, sequence<uintE>& Parents,
   // Delete tree
   nghs.clear();
   leaff.stop();
-  debug(leaff.next("leaffix to update min max time"););
+  gbbs_debug(leaff.next("leaffix to update min max time"););
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
@@ -492,10 +492,10 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
     // }
     // out.close();
   }
-  debug(std::cout << "Bicc done"
+  gbbs_debug(std::cout << "Bicc done"
                   << "\n";);
   ccc.stop();
-  debug(ccc.next("critical conn time"););
+  gbbs_debug(ccc.next("critical conn time"););
   return std::make_tuple(std::move(Parents), std::move(cc));
 }
 
@@ -509,7 +509,7 @@ auto Biconnectivity(Graph& GA, char* out_f = 0) {
   fcc.start();
   sequence<uintE> Components = simple_union_find::SimpleUnionAsync(GA);
   fcc.stop();
-  debug(fcc.next("first cc"););
+  gbbs_debug(fcc.next("first cc"););
 
   timer sc;
   sc.start();
@@ -523,7 +523,7 @@ auto Biconnectivity(Graph& GA, char* out_f = 0) {
   //  debugging
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();
-  debug(sc.next("sc, multibfs time"););
+  gbbs_debug(sc.next("sc, multibfs time"););
 
   // Returns ((min, max), preorder#, and augmented sizes) of each subtree.
   timer pn;
@@ -535,7 +535,7 @@ auto Biconnectivity(Graph& GA, char* out_f = 0) {
   std::tie(min_max, preorder_num, aug_sizes) =
       preorder_number(GA, Parents, Sources_copy);
   pn.stop();
-  debug(pn.next("preorder time"););
+  gbbs_debug(pn.next("preorder time"););
 
   return critical_connectivity(GA, std::move(Parents), std::move(min_max),
                                std::move(preorder_num), std::move(aug_sizes),

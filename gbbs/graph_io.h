@@ -226,7 +226,7 @@ read_compressed_symmetric_graph(const char* fname, bool mmap) {
   long* sizes = (long*)bytes;
   uint64_t n = sizes[0], m = sizes[1];
 
-  debug(uint64_t totalSpace = sizes[2];
+  gbbs_debug(uint64_t totalSpace = sizes[2];
         std::cout << "# n = " << n << " m = " << m
                   << " totalSpace = " << totalSpace << "\n");
 
@@ -268,7 +268,7 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap) {
   long* sizes = (long*)bytes;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  debug(std::cout << "# n = " << n << " m = " << m
+  gbbs_debug(std::cout << "# n = " << n << " m = " << m
                   << " totalSpace = " << totalSpace << "\n");
 
   uintT* offsets = (uintT*)(bytes + 3 * sizeof(long));
@@ -284,7 +284,7 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap) {
   skip += totalSpace;
   uchar* inData = (uchar*)(bytes + skip);
   sizes = (long*)inData;
-  debug(size_t inTotalSpace = sizes[0];
+  gbbs_debug(size_t inTotalSpace = sizes[0];
         std::cout << "# inTotalSpace = " << inTotalSpace << "\n";);
   skip += sizeof(long);
   inOffsets = (uintT*)(bytes + skip);
@@ -641,7 +641,7 @@ parse_weighted_graph(const char* fname, bool mmap, bool binary, char* bytes,
     }
     auto tokens = parlay::map_tokens(
         parlay::make_slice(S), [](auto x) { return parlay::make_slice(x); });
-    debug(std::string header = std::string(tokens[0].begin(), tokens[0].size());
+    gbbs_debug(std::string header = std::string(tokens[0].begin(), tokens[0].size());
           assert(header == internal::kWeightedAdjGraphHeader););
 
     uint64_t len = tokens.size() - 1;

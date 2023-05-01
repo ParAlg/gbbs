@@ -12,12 +12,12 @@ JEMALLOCLD = $(shell jemalloc-config --libdir)
 JEMALLOC = -L$(JEMALLOCLD) -ljemalloc
 endif
 
-# Always compile with LONG (note that timings on small graphs may be a bit
+# Always compile with GBBSLONG (note that timings on small graphs may be a bit
 # faster w/o this flag).
-INTT = -DLONG
+INTT = -DGBBSLONG
 
-ifdef EDGELONG
-INTE = -DEDGELONG
+ifdef GBBSEDGELONG
+INTE = -DGBBSEDGELONG
 endif
 
 OPT = -O3 -DNDEBUG

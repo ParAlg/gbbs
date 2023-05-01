@@ -35,7 +35,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon = 0.1) {
       uintE v = active[i];
       return D[v];
     });
-    debug(std::cout << "Kth smallesting w ns = " << ns << std::endl;
+    gbbs_debug(std::cout << "Kth smallesting w ns = " << ns << std::endl;
           std::cout << "num remaining = " << active_degs.size() << std::endl;);
     kt.start();
     uintE threshold = parlay::approximate_kth_smallest(active_degs, ns,
@@ -64,7 +64,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon = 0.1) {
     auto this_round_vs = vertexSubset(n, std::move(this_round));
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
-  debug(kt.next("kth time"); ft.next("filter time"););
+  gbbs_debug(kt.next("kth time"); ft.next("filter time"););
   return ret;
 }
 

@@ -27,12 +27,12 @@
 #include "bridge.h"
 
 namespace gbbs {
-#define LONG 1
+#define GBBSLONG 1
 
 #ifndef NDEBUG
-#define debug(_body) _body;
+#define gbbs_debug(_body) _body;
 #else
-#define debug(_body)
+#define gbbs_debug(_body)
 #endif
 
 typedef unsigned int uint;
@@ -40,8 +40,8 @@ typedef unsigned long ulong;
 
 // size of edge-offsets.
 // If the number of edges is more than sizeof(MAX_UINT),
-// you should set the LONG flag on the command line.
-#if defined(LONG)
+// you should set the GBBSLONG flag on the command line.
+#if defined(GBBSLONG)
 typedef long intT;
 typedef unsigned long uintT;
 #define INT_T_MAX LONG_MAX
@@ -55,8 +55,8 @@ typedef unsigned int uintT;
 
 // edge size macros.
 // If the number of vertices is more than sizeof(MAX_UINT)
-// you should set the EDGELONG flag on the command line.
-#if defined(EDGELONG)
+// you should set the GBBSEDGELONG flag on the command line.
+#if defined(GBBSEDGELONG)
 typedef long intE;
 typedef unsigned long uintE;
 #define INT_E_MAX LONG_MAX

@@ -82,7 +82,7 @@ template <
 inline auto filter_graph(Graph& G, P& pred) {
   size_t n = G.num_vertices();
 
-  debug(std::cout << "# Filtering"
+  gbbs_debug(std::cout << "# Filtering"
                   << "\n");
 
   // 1. Calculate total size
@@ -403,7 +403,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G, vertexSubset& vs, P& p,
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
     tmp = gbbs::new_array_no_init<uint8_t>(total_space);
-    debug(std::cout << "Allocated " << total_space << " temporary space."
+    gbbs_debug(std::cout << "Allocated " << total_space << " temporary space."
                     << std::endl;);
   }
   if (should_output(fl)) {

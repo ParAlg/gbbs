@@ -47,7 +47,7 @@ inline size_t RelabelIds(Seq& ids) {
 template <class Graph, class C, class E>
 auto fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters,
                               E& edge_mapping) {
-  debug(std::cout << "Running fetch edges small" << std::endl;);
+  gbbs_debug(std::cout << "Running fetch edges small" << std::endl;);
   using K = std::pair<uintE, uintE>;
   using V = std::pair<uintE, uintE>;
   using KV = std::tuple<K, V>;
@@ -82,7 +82,7 @@ auto fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters,
 template <class Graph, class C, class E>
 auto fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters,
                            E& edge_mapping) {
-  debug(std::cout << "Running fetch edges te" << std::endl;);
+  gbbs_debug(std::cout << "Running fetch edges te" << std::endl;);
   using K = std::pair<uintE, uintE>;
   using V = std::pair<uintE, uintE>;
   using KV = std::tuple<K, V>;
@@ -90,7 +90,7 @@ auto fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters,
 
   size_t n = GA.n;
 
-  debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
+  gbbs_debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
   timer count_t;
   count_t.start();
   auto deg_map = sequence<uintE>(n + 1);
@@ -105,7 +105,7 @@ auto fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters,
   deg_map[n] = 0;
   parlay::scan_inplace(deg_map);
   count_t.stop();
-  debug(count_t.next("count time"););
+  gbbs_debug(count_t.next("count time"););
 
   timer ins_t;
   ins_t.start();
@@ -114,7 +114,7 @@ auto fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters,
 
   auto edge_table =
       gbbs::sparse_table<K, V, hash_pair>(deg_map[n], empty, hash_pair());
-  debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
+  gbbs_debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
   deg_map.clear();
 
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -139,7 +139,7 @@ auto fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters,
   using KV = std::tuple<K, V>;
   using W = typename Graph::weight_type;
   size_t n = GA.n;
-  debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
+  gbbs_debug(std::cout << "num_clusters = " << num_clusters << std::endl;);
   size_t estimated_edges = num_clusters * 5;
 
   timer ins_t;
@@ -149,7 +149,7 @@ auto fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters,
 
   auto edge_table =
       gbbs::sparse_table<K, V, hash_pair>(estimated_edges, empty, hash_pair());
-  debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
+  gbbs_debug(std::cout << "sizeof table = " << edge_table.m << std::endl;);
 
   bool abort = false;
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -164,7 +164,7 @@ auto fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters,
   parallel_for(0, n, 1,
                [&](size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   if (abort) {
-    debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
+    gbbs_debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
     return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);
   }
   return edge_table;
@@ -221,7 +221,7 @@ inline auto contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters,
 
   auto GC = sym_graph_from_edges<gbbs::empty>(sym_edges, num_ns_clusters);
 
-  debug(std::cout << "table.size = " << table.m << std::endl;);
+  gbbs_debug(std::cout << "table.size = " << table.m << std::endl;);
   auto ret_table =
       gbbs::sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
   // Go through the edge table and map edges to their new ids

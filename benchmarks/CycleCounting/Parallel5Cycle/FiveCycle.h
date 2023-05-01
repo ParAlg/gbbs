@@ -247,7 +247,7 @@ inline sequence<uintT> orderNodesByDegree(Graph& G, size_t n) {
   // parallel_for(0, n, kDefaultGranularity, [&] (size_t i)
   //                { r[o[i]] = i; });
   t.stop();
-  debug(t.next("Rank time"););
+  gbbs_debug(t.next("Rank time"););
   return o;
 }
 

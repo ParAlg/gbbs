@@ -139,7 +139,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle, double beta,
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   gs.stop();
-  debug(gs.next("generate shifts time"););
+  gbbs_debug(gs.next("generate shifts time"););
   auto cluster_ids = sequence<uintE>(n, UINT_E_MAX);
 
   timer add_t;
@@ -183,7 +183,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle, double beta,
 
     round++;
   }
-  debug(add_t.next("add vertices time"); vt.next("edge map time"););
+  gbbs_debug(add_t.next("add vertices time"); vt.next("edge map time"););
   return cluster_ids;
 }
 
@@ -197,7 +197,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle, double beta,
 template <class Graph>
 sequence<uintE> LDD(Graph& G, double beta, bool permute = true) {
   using W = typename Graph::weight_type;
-  debug(std::cout << "permute = " << permute << std::endl;);
+  gbbs_debug(std::cout << "permute = " << permute << std::endl;);
   auto oracle = [&](const uintE& u, const uintE& v, const W& wgh) {
     return true;
   };

@@ -87,7 +87,7 @@ template <class Data /* per-vertex data in the emitted vertex_subset */,
           class F /* edgeMap struct */>
 inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset,
                                                   F& f, const flags fl) {
-  debug(std::cout << "# dense forward" << std::endl;);
+  gbbs_debug(std::cout << "# dense forward" << std::endl;);
   using D = typename vertexSubsetData<Data>::D;
   size_t n = GA.n;
   if (should_output(fl)) {
@@ -149,7 +149,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
                    ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                    : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
     dt.stop();
-    debug(dt.next("dense time"););
+    gbbs_debug(dt.next("dense time"););
     return ret;
   }
 
@@ -176,12 +176,12 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
                    ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                    : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
     st.stop();
-    debug(st.next("dense convert time"););
+    gbbs_debug(st.next("dense convert time"););
     return ret;
   } else {
     auto vs_out = edgeMapChunked<Data, Graph, VS, F>(GA, vs, f, fl);
     st.stop();
-    debug(st.next("sparse time"););
+    gbbs_debug(st.next("sparse time"););
     //    auto vs_out = edgeMapBlocked<Data, Graph, VS, F>(GA, vs, f, fl);
     //    auto vs_out = edgeMapSparse<Data, Graph, VS, F>(GA, vs, f, fl);
     return vs_out;

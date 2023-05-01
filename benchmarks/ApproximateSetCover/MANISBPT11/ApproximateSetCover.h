@@ -128,7 +128,7 @@ inline parlay::sequence<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     P.clear();
     permt.stop();
 
-    debug(std::cout << "Round = " << rounds << " bkt = " << cur_bkt
+    gbbs_debug(std::cout << "Round = " << rounds << " bkt = " << cur_bkt
                     << " active = " << active.size()
                     << " stillactive = " << still_active.size() << "\n";);
 
@@ -187,7 +187,7 @@ inline parlay::sequence<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
       return std::optional<std::tuple<uintE, uintE>>(
           std::make_tuple(v, bucket));
     };
-    debug(std::cout << "cover.size = " << cover.size() << "\n");
+    gbbs_debug(std::cout << "cover.size = " << cover.size() << "\n");
     b.update_buckets(f, active.size());
     rounds++;
     bktt.stop();

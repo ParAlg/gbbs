@@ -57,7 +57,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
         ((double)edges_remaining) / ((double)vertices_remaining.size());
     double target_density = (density_multiplier * ((double)edges_remaining)) /
                             ((double)vertices_remaining.size());
-    debug(std::cout << "Target density on round " << round << " is "
+    gbbs_debug(std::cout << "Target density on round " << round << " is "
                     << target_density << " erm = " << edges_remaining
                     << " vrm = " << vertices_remaining.size() << std::endl;
           std::cout << "Current density on round " << round << " is "
@@ -72,7 +72,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     auto splits = parlay::split_two(vertices_remaining, keep_seq);
     A = std::move(splits.first);
     size_t num_removed = splits.second;
-    debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
+    gbbs_debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
     auto removed = sequence<uintE>::uninitialized(num_removed);
     parallel_for(0, num_removed, [&](size_t i) {
@@ -115,7 +115,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
         ((double)edges_remaining) / ((double)vtxs_remaining.size());
     double target_density = (density_multiplier * ((double)edges_remaining)) /
                             ((double)vtxs_remaining.size());
-    debug(std::cout << "Target density on round " << round << " is "
+    gbbs_debug(std::cout << "Target density on round " << round << " is "
                     << target_density << " erm = " << edges_remaining
                     << " vrm = " << vtxs_remaining.size() << std::endl;
           std::cout << "Current density on round " << round << " is "
@@ -131,7 +131,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     auto split_vtxs_m = parlay::split_two(vtxs_remaining, keep_seq);
     A = std::move(split_vtxs_m.first);
     size_t num_removed = split_vtxs_m.second;
-    debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
+    gbbs_debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
     auto removed = sequence<uintE>::uninitialized(num_removed);
     parallel_for(0, num_removed, [&](size_t i) {

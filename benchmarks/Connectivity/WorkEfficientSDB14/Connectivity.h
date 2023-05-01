@@ -39,17 +39,17 @@ inline sequence<parent> CC_impl(Graph& G, double beta, size_t level,
   timer ldd_t;
   ldd_t.start();
   sequence<parent> clusters = LDD(G, beta, permute);
-  debug(ldd_t.next("ldd time"););
+  gbbs_debug(ldd_t.next("ldd time"););
 
   timer relabel_t;
   relabel_t.start();
   size_t num_clusters = contract::RelabelIds(clusters);
-  debug(relabel_t.next("relabel time"););
+  gbbs_debug(relabel_t.next("relabel time"););
 
   timer contract_t;
   contract_t.start();
   auto c_out = contract::contract(G, clusters, num_clusters);
-  debug(contract_t.next("contract time"););
+  gbbs_debug(contract_t.next("contract time"););
   // flags maps from clusters -> no-singleton-clusters
   auto GC = std::move(std::get<0>(c_out));
   auto& flags = std::get<1>(c_out);

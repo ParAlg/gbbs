@@ -97,7 +97,7 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
 
   size_t iter = 0;
   while (iter++ < max_iters) {
-    debug(timer t; t.start(););
+    gbbs_debug(timer t; t.start(););
     // SpMV
     edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G), 0,
             no_output);
@@ -110,12 +110,12 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
     double L1_norm = parlay::reduce(differences);
     if (L1_norm < eps) break;
 
-    debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
+    gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
     // Reset p_curr
     parallel_for(0, n, [&](size_t i) { p_curr[i] = static_cast<double>(0); });
     std::swap(p_curr, p_next);
 
-    debug(t.stop(); t.next("iteration time"););
+    gbbs_debug(t.stop(); t.next("iteration time"););
   }
   auto max_pr = parlay::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
@@ -184,7 +184,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
     });
     double L1_norm = parlay::reduce(differences, parlay::plus<double>());
     if (L1_norm < eps) break;
-    debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
+    gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset p_curr and p_div
     std::swap(p_curr, p_next);
@@ -389,13 +389,13 @@ sequence<double> PageRankDelta(Graph& G, double eps = 0.000001,
         n, [&](size_t i) { return fabs(Delta[i].delta); });
     double L1_norm = parlay::reduce(differences, parlay::plus<double>());
     if (L1_norm < eps) break;
-    debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
+    gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset
     parallel_for(0, n, [&](size_t i) { nghSum[i] = static_cast<double>(0); });
 
     Frontier = std::move(active);
-    debug(t.stop(); t.next("iteration time"););
+    gbbs_debug(t.stop(); t.next("iteration time"););
   }
   auto max_pr = parlay::reduce_max(p);
   std::cout << "max_pr = " << max_pr << std::endl;

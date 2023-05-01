@@ -64,7 +64,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001,
   size_t iter = 0;
   double sim = u == v ? 1 : 0;
   while (iter++ < max_iters) {
-    debug(timer t; t.start(););
+    gbbs_debug(timer t; t.start(););
     // SpMV
     auto Frontier_v_new =
         edgeMap(G, Frontier_v,
@@ -88,7 +88,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001,
     double L1_norm_u = parlay::reduce(differences_u, parlay::plus<double>());
     if (L1_norm_v < eps && L1_norm_u < eps) break;
 
-    debug(std::cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u
+    gbbs_debug(std::cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u
                     << std::endl;);
     // Reset p_curr
     parallel_for(0, n, [&](size_t i) { p_curr_v[i] = static_cast<double>(0); });
@@ -97,7 +97,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001,
     parallel_for(0, n, [&](size_t i) { p_curr_u[i] = static_cast<double>(0); });
     std::swap(p_curr_u, p_next_u);
 
-    debug(t.stop(); t.next("iteration time"););
+    gbbs_debug(t.stop(); t.next("iteration time"););
   }
 
   auto max_pr_v = parlay::reduce_max(p_next_v);

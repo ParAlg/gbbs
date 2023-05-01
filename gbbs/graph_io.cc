@@ -58,13 +58,13 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     sequence<slice<char>> tokens = parlay::map_tokens(
         parlay::make_slice(S), [](auto x) { return parlay::make_slice(x); });
 
-    debug(std::string header = std::string(tokens[0].begin(), tokens[0].size());
+    gbbs_debug(std::string header = std::string(tokens[0].begin(), tokens[0].size());
           assert(header == internal::kUnweightedAdjGraphHeader););
 
     n = parlay::internal::chars_to_int_t<unsigned long>(tokens[1]);
     m = parlay::internal::chars_to_int_t<unsigned long>(tokens[2]);
 
-    debug(std::cout << "# n = " << n << " m = " << m
+    gbbs_debug(std::cout << "# n = " << n << " m = " << m
                     << " len = " << (tokens.size() - 1) << "\n";
           uint64_t len = tokens.size() - 1; assert(len == n + m + 2););
 

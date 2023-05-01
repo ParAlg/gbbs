@@ -93,10 +93,10 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
     }
     return degree;
   });
-  debug(tt.next("live degree time"););
+  gbbs_debug(tt.next("live degree time"););
 
   size_t tot = parlay::scan_inplace(parlay::make_slice(live_degree));
-  debug(std::cout << "tot = " << tot << std::endl;);
+  gbbs_debug(std::cout << "tot = " << tot << std::endl;);
 
   parlay::sequence<size_t> indices;
   parlay::sequence<edge> out;
@@ -104,19 +104,19 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
   if (tot < k) {
     indices = parlay::tabulate(tot, [&](size_t i) { return i; });
     out = parlay::sequence<edge>(tot);
-    debug(tt.next("permutation time"););
+    gbbs_debug(tt.next("permutation time"););
     k = tot;
   } else {
     indices = sample_indices(k, tot, r);
-    debug(tt.next("permutation time"););
+    gbbs_debug(tt.next("permutation time"););
     parlay::sort_inplace(indices);
-    debug(tt.next("sort time"););
+    gbbs_debug(tt.next("sort time"););
     out = parlay::sequence<edge>(k);
   }
 
   constexpr size_t kBlockSize = 1 << 16;
   size_t num_blocks = parlay::num_blocks(k, kBlockSize);
-  debug(std::cout << "k = " << k << " num_blocks = " << num_blocks
+  gbbs_debug(std::cout << "k = " << k << " num_blocks = " << num_blocks
                   << std::endl;);
   parlay::parallel_for(0, num_blocks, [&](size_t b) {
     size_t start = b * kBlockSize;
@@ -176,7 +176,7 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
     }
   }, 1);
 
-  debug(tt.next("extract edges time"););
+  gbbs_debug(tt.next("extract edges time"););
 
   return out;
 }
@@ -212,15 +212,15 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     auto edges = mm::get_edges(G, k, matched.begin(), round, r);
 
     if (edges.size() == 0) break;
-    debug(gete.next("Get Edges Time"););
+    gbbs_debug(gete.next("Get Edges Time"););
 
-    debug(std::cout << "Got: " << edges.size() << " edges " << std::endl;);
+    gbbs_debug(std::cout << "Got: " << edges.size() << " edges " << std::endl;);
 
     mm::matchStep<W> mStep(edges.begin(), R.begin(), matched.begin());
     eff.start();
     eff_for<uintE>(mStep, 0, edges.size(), 50, 0, G.n);
     eff.stop();
-    debug(gete.next("Match Time"););
+    gbbs_debug(gete.next("Match Time"););
 
     auto e_added = parlay::filter(
         parlay::make_slice(edges), [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
@@ -238,7 +238,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
   });  // allocated
   mt.stop();
-  debug(
+  gbbs_debug(
   eff.next("eff for time");
   gete.next("get edges time");
   mt.next("Matching time"););

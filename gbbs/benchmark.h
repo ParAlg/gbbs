@@ -286,7 +286,7 @@
   int main(int argc, char* argv[]) {                                       \
     gbbs::commandLine P(argc, argv, " [-s] <inFile>");                     \
     char* iFile = P.getArgument(0);                                        \
-    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
+    gbbs_debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
     bool compressed = P.getOptionValue("-c");                              \
     bool mmap = P.getOptionValue("-m");                                    \
     bool binary = P.getOptionValue("-b");                                  \
@@ -308,7 +308,7 @@
   int main(int argc, char* argv[]) {                                    \
     gbbs::commandLine P(argc, argv, " [-s] <inFile>");                  \
     char* iFile = P.getArgument(0);                                     \
-    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric);); \
+    gbbs_debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric);); \
     bool compressed = P.getOptionValue("-c");                           \
     bool mmap = P.getOptionValue("-m");                                 \
     bool binary = P.getOptionValue("-b");                               \

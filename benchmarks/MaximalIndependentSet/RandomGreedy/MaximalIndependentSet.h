@@ -133,7 +133,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
   });
   init_t.stop();
-  debug(init_t.next("init"););
+  gbbs_debug(init_t.next("init"););
 
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };

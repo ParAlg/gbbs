@@ -65,7 +65,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
   size_t round = 0;
 
   while (n > 1 && m > 0) {
-    debug(std::cout << "Boruvka round: " << round << " n: " << n << " m: " << m
+    gbbs_debug(std::cout << "Boruvka round: " << round << " n: " << n << " m: " << m
                     << "\n";);
 
     timer init_t;
@@ -77,7 +77,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
           std::make_pair(UINT_E_MAX, std::numeric_limits<int32_t>::max());
     });
     init_t.stop();
-    debug(init_t.next("init time"););
+    gbbs_debug(init_t.next("init time"););
 
     // 1. write_min to select the minimum edge out of each component.
     timer min_t;
@@ -90,7 +90,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
       gbbs::write_min(min_edges + std::get<1>(e), cas_e, less);
     });
     min_t.stop();
-    debug(min_t.next("write min time"););
+    gbbs_debug(min_t.next("write min time"););
 
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
@@ -103,7 +103,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
         exhausted[v] = true;
         is_root[i] = false;
         new_mst_edges[i] = UINT_E_MAX;
-        debug(uintE pv = parents[v]; assert(pv == v););
+        gbbs_debug(uintE pv = parents[v]; assert(pv == v););
       } else {
         uintE ind = e.first;
         const auto& edge = edges[ind];
@@ -122,17 +122,17 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
       }
     });
     mark_t.stop();
-    debug(mark_t.next("mark time"););
+    gbbs_debug(mark_t.next("mark time"););
 
     // 3. filter out the new MinimumSpanningForest edges.
     timer filter_t;
     filter_t.start();
     n_in_mst += parlay::filterf(new_mst_edges.begin(), mst + n_in_mst, n,
                                 [](uintE v) { return v != UINT_E_MAX; });
-    debug(std::cout << "      " << n_in_mst << " edges added to mst."
+    gbbs_debug(std::cout << "      " << n_in_mst << " edges added to mst."
                     << "\n";);
     filter_t.stop();
-    debug(filter_t.next("filter time"););
+    gbbs_debug(filter_t.next("filter time"););
 
     // 4. pointer jump to find component centers.
     timer jump_t;
@@ -146,7 +146,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
       }
     });
     jump_t.stop();
-    debug(jump_t.next("jump time"););
+    gbbs_debug(jump_t.next("jump time"););
 
     // 5. compact the vertices (pack out the roots)
     timer compact_t;
@@ -156,8 +156,8 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
     n = parlay::pack_out(vtxs_im, is_root, gbbs::make_slice(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();
-    debug(compact_t.next("compact time"););
-    debug(std::cout << "      " << n << " vertices remain."
+    gbbs_debug(compact_t.next("compact time"););
+    gbbs_debug(std::cout << "      " << n << " vertices remain."
                     << "\n";);
 
     // 6. relabel the edges with the new roots.
@@ -179,7 +179,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
       }
     });
     relab_t.stop();
-    debug(relab_t.next("relabel time"););
+    gbbs_debug(relab_t.next("relabel time"););
 
     // 7. filter (or ignore) self-edges.
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
@@ -188,7 +188,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs,
     m = parlay::pack_out(edge_ids_im, self_loop_im,
                          gbbs::make_slice(next_edge_ids, m));
 
-    debug(std::cout << "filter, m is now " << m << " n is now " << n << "\n";);
+    gbbs_debug(std::cout << "filter, m is now " << m << " n is now " << n << "\n";);
     std::swap(edge_ids, next_edge_ids);
     round++;
   }
@@ -280,11 +280,11 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k,
 
   size_t weight_size = (last_ind - first_ind + 1);
   double split_wgh_fraction = ((1.0 * (last_ind - first_ind + 1)) / ssize);
-  debug(std::cout << "split wgh is: " << split_weight << "\n";
+  gbbs_debug(std::cout << "split wgh is: " << split_weight << "\n";
         std::cout << "fraction of sample composed by split_wgh = "
                   << split_wgh_fraction << "\n";);
   st.stop();
-  debug(st.next("startup time"););
+  gbbs_debug(st.next("startup time"););
 
   // 3. filter edges based on splitter
   if (split_wgh_fraction < 0.2) {
@@ -374,7 +374,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
     auto E = (round < n_filter_steps) ? get_top_k(GA, split_idx, r, round == 0)
                                       : get_all_edges(GA);
     get_t.stop();
-    debug(get_t.next("get time"););
+    gbbs_debug(get_t.next("get time"););
     size_t n_edges = E.size();
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
@@ -400,7 +400,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
                               n_active, mst);
     auto edge_ids = gbbs::make_slice(mst, n_in_mst);
     bt.stop();
-    debug(bt.next("boruvka time"););
+    gbbs_debug(bt.next("boruvka time"););
 
     auto edges_to_add = parlay::delayed_seq<edge>(edge_ids.size(), [&](size_t i) { return edges_save[edge_ids[i]]; });
     mst_edges.append(edges_to_add);
@@ -414,7 +414,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
     auto vtx_range = gbbs::make_slice(vtxs + n_active, vtxs + n);
     n_active += parlay::pack_index_out(make_slice(exhausted), vtx_range);
     pack_t.stop();
-    debug(pack_t.next("reactivation pack"););
+    gbbs_debug(pack_t.next("reactivation pack"););
 
     parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
       if (exhausted[i]) exhausted[i] = false;
@@ -437,7 +437,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(
       auto c_ngh = parents[ngh];
       return c_src == c_ngh;
     };
-    debug(std::cout << "Filtering G, m = " << GA.m << "\n";);
+    gbbs_debug(std::cout << "Filtering G, m = " << GA.m << "\n";);
     timer filter_t;
     filter_t.start();
     filter_edges(GA, filter_pred);

@@ -105,7 +105,7 @@ struct UFAlgorithm {
     ft.start();
     parallel_for(0, n, [&](size_t i) { Parents[i] = find(i, Parents); });
     ft.stop();
-    debug(ft.next("find time"););
+    gbbs_debug(ft.next("find time"););
   }
 };
 

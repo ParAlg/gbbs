@@ -164,7 +164,7 @@ struct symmetric_graph {
 
   // Copy constructor
   symmetric_graph(const symmetric_graph& other) {
-    debug(std::cout << "Copying symmetric graph." << std::endl;);
+    gbbs_debug(std::cout << "Copying symmetric graph." << std::endl;);
     n = other.n;
     m = other.m;
     v_data = gbbs::new_array_no_init<vertex_data>(n);
@@ -495,7 +495,7 @@ struct asymmetric_graph {
 
   // Copy constructor
   asymmetric_graph(const asymmetric_graph& other) {
-    debug(std::cout << "Copying asymmetric graph." << std::endl;);
+    gbbs_debug(std::cout << "Copying asymmetric graph." << std::endl;);
     n = other.n;
     m = other.m;
     v_out_data = gbbs::new_array_no_init<vertex_data>(n);

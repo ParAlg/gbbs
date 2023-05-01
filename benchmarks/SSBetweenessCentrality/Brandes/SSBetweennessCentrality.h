@@ -113,7 +113,7 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
 
   long round = 0;
   while (!Frontier.isEmpty()) {
-    debug(std::cout << "round = " << round << " fsize = " << Frontier.size()
+    gbbs_debug(std::cout << "round = " << round << " fsize = " << Frontier.size()
                     << std::endl;);
     round++;
     //      vertexSubset output = edgeMap(G, Frontier,
@@ -148,7 +148,7 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  debug(bt.next("back total time"););
+  gbbs_debug(bt.next("back total time"););
 
   // Update dependencies scores
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
@@ -186,7 +186,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier,
   }
 
   if (out_degrees > G.m / 20) {
-    debug(std::cout << "dense, out_degrees = " << out_degrees << std::endl;);
+    gbbs_debug(std::cout << "dense, out_degrees = " << out_degrees << std::endl;);
 
     auto cond_f = [&](size_t i) { return (Visited[i] == false); };
     auto map_f = [&](const uintE& s, const uintE& d, const W& wgh) -> double {
@@ -252,7 +252,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G,
   fwd.start();
   long round = 0;
   while (!Frontier.isEmpty()) {
-    debug(std::cout << "round = " << round << " fsize = " << Frontier.size()
+    gbbs_debug(std::cout << "round = " << round << " fsize = " << Frontier.size()
                     << std::endl;);
     round++;
 
@@ -265,7 +265,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G,
   }
   Levels.push_back(std::move(Frontier));
   fwd.stop();
-  debug(fwd.next("forward time"));
+  gbbs_debug(fwd.next("forward time"));
 
   for (size_t i = 0; i < 100; i++) {
     std::cout << NumPaths[i] << std::endl;
@@ -298,7 +298,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G,
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  debug(bt.next("back total time"););
+  gbbs_debug(bt.next("back total time"););
 
   // Update dependencies scores
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) {
@@ -373,7 +373,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G,
       });
     };
     while (!Frontier.isEmpty()) {
-      debug(std::cout << "round = " << round << " fsize = " << Frontier.size()
+      gbbs_debug(std::cout << "round = " << round << " fsize = " << Frontier.size()
                       << std::endl;);
       round++;
 
@@ -443,7 +443,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G,
     }
   }
   bt.stop();
-  debug(bt.next("back total time"););
+  gbbs_debug(bt.next("back total time"););
 
   // Update dependencies scores
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) {

@@ -99,7 +99,7 @@ inline size_t CountDirected(Graph& DG, size_t* counts, vertexSubset& Frontier) {
 template <class Graph, class F>
 inline size_t CountDirectedBalanced(Graph& DG, size_t* counts, const F& f) {
   using W = typename Graph::weight_type;
-  debug(std::cout << "Starting counting"
+  gbbs_debug(std::cout << "Starting counting"
                   << "\n";);
   size_t n = DG.n;
 
