@@ -254,7 +254,7 @@ read_compressed_symmetric_graph(const char* fname, bool mmap) {
     };
   }
   symmetric_graph<csv_bytepd_amortized, weight_type> G(v_data, n, m,
-                                                       deletion_fn, edges);
+                                                       std::move(deletion_fn), edges);
   return G;
 }
 

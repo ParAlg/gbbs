@@ -123,7 +123,7 @@ struct symmetric_graph {
         deletion_fn([]() {}) {}
 
   symmetric_graph(vertex_data* v_data, size_t n, size_t m,
-                  std::function<void()> _deletion_fn, edge_type* _e0,
+                  std::function<void()>&& _deletion_fn, edge_type* _e0,
                   vertex_weight_type* _vertex_weights = nullptr)
       : v_data(v_data),
         e0(_e0),
@@ -696,7 +696,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   if (m == 0) {
     if (n == 0) {
       std::function<void()> del = []() {};
-      return symmetric_graph<symmetric_vertex, Wgh>(nullptr, 0, 0, del,
+      return symmetric_graph<symmetric_vertex, Wgh>(nullptr, 0, 0, std::move(del),
                                                     nullptr);
     } else {
       auto v_data = gbbs::new_array_no_init<vertex_data>(n);

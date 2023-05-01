@@ -320,7 +320,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
     }
     auto out = sequence<O>::uninitialized(ct);
     size_t k = S.compactInto(apply_f, out.begin());
-    auto res = sequence<O>::uninitialized(k);
+    auto res = sequence<O>(k);
     for (size_t i = 0; i < k; i++) {
       res[i] = out[i];
     }
