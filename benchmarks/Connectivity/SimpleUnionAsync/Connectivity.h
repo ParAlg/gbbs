@@ -29,26 +29,25 @@
 namespace gbbs {
 namespace simple_union_find {
 
-inline uintE find_compress(uintE i, parent* parents) {
-  uintE pathlen = 1;
-  parent j = i;
+template <class IntT>
+inline IntT find_compress(uintE i, IntT* parents) {
+  IntT j = i;
   if (parents[j] == j) return j;
   do {
     j = parents[j];
-    pathlen++;
   } while (parents[j] != j);
-  parent tmp;
+  IntT tmp;
   while ((tmp = parents[i]) > j) {
     parents[i] = j;
     i = tmp;
   }
-  report_pathlen(pathlen);
   return j;
 }
 
-inline void unite_impl(uintE u_orig, uintE v_orig, parent* parents) {
-  parent u = u_orig;
-  parent v = v_orig;
+template <class IntT>
+inline void unite_impl(uintE u_orig, uintE v_orig, IntT* parents) {
+  IntT u = u_orig;
+  IntT v = v_orig;
   while (1) {
     u = find_compress(u, parents);
     v = find_compress(v, parents);
@@ -64,29 +63,28 @@ inline void unite_impl(uintE u_orig, uintE v_orig, parent* parents) {
   }
 }
 
-inline uintE find_compress_atomic(uintE i, parent* parents) {
-  uintE pathlen = 1;
-  parent j = i;
+template <class IntT>
+inline IntT find_compress_atomic(uintE i, IntT* parents) {
+  IntT j = i;
   if (gbbs::atomic_load(&parents[j]) == j) return j;
   do {
     j = gbbs::atomic_load(&parents[j]);
-    pathlen++;
   } while (gbbs::atomic_load(&parents[j]) != j);
-  parent tmp;
+  IntT tmp;
   while ((tmp = gbbs::atomic_load(&parents[i])) > j) {
     if (!gbbs::atomic_compare_and_swap(&parents[i], tmp, j)) {
       return j;
     }
     i = tmp;
   }
-  report_pathlen(pathlen);
   return j;
 }
 
+template <class IntT>
 inline void unite_impl_atomic(uintE u_orig, uintE v_orig,
-                              parent* parents) {
-  parent u = u_orig;
-  parent v = v_orig;
+                              IntT* parents) {
+  IntT u = u_orig;
+  IntT v = v_orig;
   while (1) {
     u = find_compress_atomic(u, parents);
     v = find_compress_atomic(v, parents);

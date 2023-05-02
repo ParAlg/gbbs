@@ -104,7 +104,6 @@ struct SVAlgorithm {
           pathlen++;
         }
         prev_parents[u] = parents[u];
-        report_pathlen(pathlen);
       });
     }
     std::cout << "#rounds = " << rounds << std::endl;
@@ -155,7 +154,6 @@ struct SVAlgorithm {
             pathlen++;
           }
           prev_parents[u] = parents[u];
-          report_pathlen(pathlen);
         }
 
         if (flags[v] == false &&
@@ -165,7 +163,6 @@ struct SVAlgorithm {
             pathlen++;
           }
           prev_parents[v] = parents[v];
-          report_pathlen(pathlen);
         }
       });
 
@@ -189,7 +186,6 @@ struct SVAlgorithm {
       //          parents[u] = parents[parents[u]];
       //          pathlen++;
       //        }
-      //        report_pathlen(pathlen);
       //
       //        pathlen = 1;
       //        while (parents[v] != parents[parents[v]]) {
@@ -198,7 +194,6 @@ struct SVAlgorithm {
       //        }
       //        prev_parents[u] = parents[u];
       //        prev_parents[v] = parents[v];
-      //        report_pathlen(pathlen);
       //      });
     }
   }

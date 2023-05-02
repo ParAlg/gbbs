@@ -12,8 +12,6 @@ using incremental_update = std::tuple<uintE, uintE, UpdateType>;
 
 constexpr uintE largest_comp = UINT_E_MAX;
 
-inline void report_pathlen(uintE pathlen) {}
-
 template <class Seq>
 std::pair<sequence<incremental_update>, size_t> reorder_updates(Seq& updates) {
   auto bool_seq = parlay::delayed_seq<bool>(updates.size(), [&](size_t i) {

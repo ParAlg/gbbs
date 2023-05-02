@@ -97,7 +97,6 @@ inline uintE find(uintE x, sequence<vdata>& vdatas) {
     u = vdatas[u].get_parent();
     pathlen++;
   }
-  // report_pathlen(pathlen);
   return u;  // u is a root
 }
 
@@ -110,7 +109,6 @@ inline uintE find_twotry_splitting(uintE x, sequence<vdata>& vdatas) {
     auto vd = vdatas[v];
     pathlen++;
     if (vd.is_root()) {
-      // report_pathlen(pathlen);
       return v;
     }
 
@@ -126,7 +124,6 @@ inline uintE find_twotry_splitting(uintE x, sequence<vdata>& vdatas) {
     vd = vdatas[v];
     w = vd.get_parent();
     if (vd.is_root()) {
-      // report_pathlen(pathlen);
       return v;
     }
 
@@ -139,7 +136,6 @@ inline uintE find_twotry_splitting(uintE x, sequence<vdata>& vdatas) {
 
     u = v;
   }
-  // report_pathlen(pathlen);
   return u;  // u is a root
 }
 

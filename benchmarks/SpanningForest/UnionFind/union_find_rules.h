@@ -14,7 +14,6 @@ inline uintE find_naive(uintE i, sequence<parent>& Parents) {
     i = Parents[i];
     pathlen++;
   }
-  report_pathlen(pathlen);
   return i;
 }
 
@@ -31,7 +30,6 @@ inline uintE find_compress(uintE i, sequence<parent>& Parents) {
     Parents[i] = j;
     i = tmp;
   }
-  report_pathlen(pathlen);
   return j;
 }
 
@@ -41,7 +39,6 @@ inline uintE find_atomic_split(uintE i, sequence<parent>& Parents) {
     parent v = Parents[i];
     parent w = Parents[v];
     if (v == w) {
-      report_pathlen(pathlen);
       return v;
     } else {
       gbbs::atomic_compare_and_swap(&Parents[i], v, w);
@@ -58,7 +55,6 @@ inline uintE find_atomic_halve(uintE i, sequence<parent>& Parents) {
     parent v = Parents[i];
     parent w = Parents[v];
     if (v == w) {
-      report_pathlen(pathlen);
       return v;
     } else {
       gbbs::atomic_compare_and_swap(&Parents[i], (parent)v, (parent)w);
@@ -172,7 +168,6 @@ struct UniteRemLock {
     }
     compress(u_orig, Parents);
     compress(v_orig, Parents);
-    report_pathlen(pathlen);
   }
 };
 
@@ -210,7 +205,6 @@ struct UniteRemCAS {
       }
       pathlen++;
     }
-    report_pathlen(pathlen);
   }
 };
 
