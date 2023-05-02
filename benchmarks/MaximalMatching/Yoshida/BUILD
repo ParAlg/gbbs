@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "reorder",
     hdrs = ["reorder.h"],
@@ -33,8 +37,4 @@ cc_binary(
         "//gbbs",
         "//gbbs:bridge",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

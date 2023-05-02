@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "PageRank",
     hdrs = ["PageRank.h"],
@@ -14,8 +18,4 @@ cc_binary(
     name = "PageRank_main",
     srcs = ["PageRank.cc"],
     deps = [":PageRank"],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

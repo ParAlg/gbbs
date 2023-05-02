@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "SSBetweennessCentrality",
     hdrs = ["SSBetweennessCentrality.h"],
@@ -15,8 +19,4 @@ cc_binary(
     name = "SSBetweennessCentrality_main",
     srcs = ["SSBetweennessCentrality.cc"],
     deps = [":SSBetweennessCentrality"],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "SpanningForest",
     hdrs = ["SpanningForest.h"],
@@ -17,8 +21,4 @@ cc_binary(
         "//benchmarks/SpanningForest:common",
         "//gbbs",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

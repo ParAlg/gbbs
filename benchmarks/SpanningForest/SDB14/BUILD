@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "contract_sf",
     hdrs = ["contract_sf.h"],
@@ -29,8 +33,4 @@ cc_binary(
         "//benchmarks/SpanningForest:common",
         "//benchmarks/SpanningForest/BFSSF:SpanningForest",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

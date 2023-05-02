@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "common",
     srcs = [
@@ -14,8 +18,4 @@ cc_library(
         "//gbbs/helpers:assert",
         "//gbbs/helpers:atomic_counter",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

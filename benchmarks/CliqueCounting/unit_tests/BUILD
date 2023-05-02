@@ -2,6 +2,10 @@ licenses(["notice"])
 
 # load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 # TODO(jeshi,laxmand): fix clique tests
 # gbbs_cc_test(
 #     name = "test_clique",

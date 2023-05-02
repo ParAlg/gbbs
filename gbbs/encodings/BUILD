@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "byte",
     srcs = ["byte.cc"],
@@ -35,8 +39,4 @@ cc_library(
         ":byte_pd",
         ":byte_pd_amortized",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

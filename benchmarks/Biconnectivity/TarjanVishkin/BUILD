@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "Biconnectivity",
     hdrs = ["Biconnectivity.h"],
@@ -16,8 +20,4 @@ cc_binary(
         ":Biconnectivity",
         "//gbbs/helpers:sparse_additive_map",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

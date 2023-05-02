@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "DeltaStepping",
     hdrs = ["DeltaStepping.h"],
@@ -13,8 +17,4 @@ cc_binary(
     name = "DeltaStepping_main",
     srcs = ["DeltaStepping.cc"],
     deps = [":DeltaStepping"],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

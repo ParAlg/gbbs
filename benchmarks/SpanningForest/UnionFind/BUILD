@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "union_find_rules",
     hdrs = ["union_find_rules.h"],
@@ -17,8 +21,4 @@ cc_library(
         "//benchmarks/SpanningForest:common",
         "//gbbs",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "assert",
     hdrs = ["assert.h"],
@@ -88,8 +92,4 @@ cc_library(
     deps = [
         "//gbbs:macros",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "Triangle",
     hdrs = ["Triangle.h"],
@@ -15,8 +19,4 @@ cc_binary(
     name = "Triangle_main",
     srcs = ["Triangle.cc"],
     deps = [":Triangle"],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

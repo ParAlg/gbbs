@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "framework",
     hdrs = ["framework.h"],
@@ -19,8 +23,4 @@ cc_library(
     name = "sampling",
     hdrs = ["sampling.h"],
     deps = [],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

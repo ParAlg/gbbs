@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "Spanner",
     hdrs = ["Spanner.h"],
@@ -14,8 +18,4 @@ cc_binary(
     name = "Spanner_main",
     srcs = ["Spanner.cc"],
     deps = [":Spanner"],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "intersect",
     hdrs = ["intersect.h"],
@@ -93,8 +97,4 @@ cc_binary(
     deps = [
         ":Clique",
     ],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )

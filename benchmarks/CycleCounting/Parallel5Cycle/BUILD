@@ -1,5 +1,9 @@
 licenses(["notice"])
 
+package(
+    default_visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "FiveCycle",
     hdrs = ["FiveCycle.h"],
@@ -17,8 +21,4 @@ cc_binary(
     name = "FiveCycle_main",
     srcs = ["FiveCycle.cc"],
     deps = [":FiveCycle"],
-)
-
-package(
-    default_visibility = ["//visibility:public"],
 )
