@@ -224,7 +224,7 @@ inline parlay::sequence<uintE> DegeneracyOrderWithLoad(Graph& G, sequence<uintE>
     degeneracy_order.append(active_seq);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const std::optional<std::tuple<uintE, uintE> > {
+        -> std::optional<std::tuple<uintE, uintE> > {
           uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
           uintE deg = D[v];
           if (deg > k) {
