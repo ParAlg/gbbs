@@ -29,7 +29,7 @@
 namespace gbbs {
 namespace simple_union_find {
 
-inline uintE find_compress(uintE i, sequence<parent>& parents) {
+inline uintE find_compress(uintE i, parent* parents) {
   uintE pathlen = 1;
   parent j = i;
   if (parents[j] == j) return j;
@@ -46,7 +46,7 @@ inline uintE find_compress(uintE i, sequence<parent>& parents) {
   return j;
 }
 
-inline void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
+inline void unite_impl(uintE u_orig, uintE v_orig, parent* parents) {
   parent u = u_orig;
   parent v = v_orig;
   while (1) {
@@ -64,7 +64,7 @@ inline void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
   }
 }
 
-inline uintE find_compress_atomic(uintE i, sequence<parent>& parents) {
+inline uintE find_compress_atomic(uintE i, parent* parents) {
   uintE pathlen = 1;
   parent j = i;
   if (gbbs::atomic_load(&parents[j]) == j) return j;
@@ -84,7 +84,7 @@ inline uintE find_compress_atomic(uintE i, sequence<parent>& parents) {
 }
 
 inline void unite_impl_atomic(uintE u_orig, uintE v_orig,
-                              sequence<parent>& parents) {
+                              parent* parents) {
   parent u = u_orig;
   parent v = v_orig;
   while (1) {
@@ -109,9 +109,9 @@ struct SimpleUnionAsyncStruct {
     parents =
         sequence<uintE>::from_function(n, [&](size_t i) { return (uintE)i; });
   }
-  void unite(uintE u, uintE v) { unite_impl(u, v, parents); }
+  void unite(uintE u, uintE v) { unite_impl(u, v, parents.begin()); }
   sequence<parent> finish() {
-    parallel_for(0, n, [&](size_t i) { find_compress(i, parents); });
+    parallel_for(0, n, [&](size_t i) { find_compress(i, parents.begin()); });
     return std::move(parents);
   }
 };
