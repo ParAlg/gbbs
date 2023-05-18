@@ -30,7 +30,7 @@ namespace gbbs {
 namespace simple_union_find {
 
 template <class IntT>
-inline IntT find_compress(uintE i, IntT* parents) {
+inline IntT find_compress(IntT i, IntT* parents) {
   IntT j = i;
   if (parents[j] == j) return j;
   do {
@@ -45,7 +45,7 @@ inline IntT find_compress(uintE i, IntT* parents) {
 }
 
 template <class IntT>
-inline bool unite_impl(uintE u_orig, uintE v_orig, IntT* parents) {
+inline bool unite_impl(IntT u_orig, IntT v_orig, IntT* parents) {
   IntT u = u_orig;
   IntT v = v_orig;
   while (u != v) {
@@ -63,7 +63,7 @@ inline bool unite_impl(uintE u_orig, uintE v_orig, IntT* parents) {
 }
 
 template <class IntT>
-inline IntT find_compress_atomic(uintE i, IntT* parents) {
+inline IntT find_compress_atomic(IntT i, IntT* parents) {
   IntT j = i;
   if (gbbs::atomic_load(&parents[j]) == j) return j;
   do {
@@ -80,7 +80,7 @@ inline IntT find_compress_atomic(uintE i, IntT* parents) {
 }
 
 template <class IntT>
-inline bool unite_impl_atomic(uintE u_orig, uintE v_orig,
+inline bool unite_impl_atomic(IntT u_orig, IntT v_orig,
                               IntT* parents) {
   IntT u = u_orig;
   IntT v = v_orig;
@@ -103,11 +103,11 @@ struct SimpleUnionAsyncStruct {
   sequence<parent> parents;
   SimpleUnionAsyncStruct(size_t n) : n(n) {
     parents =
-        sequence<uintE>::from_function(n, [&](size_t i) { return (uintE)i; });
+        sequence<parent>::from_function(n, [&](parent i) { return i; });
   }
-  void unite(uintE u, uintE v) { unite_impl(u, v, parents.begin()); }
+  void unite(parent u, parent v) { unite_impl(u, v, parents.begin()); }
   sequence<parent> finish() {
-    parallel_for(0, n, [&](size_t i) { find_compress(i, parents.begin()); });
+    parallel_for(0, n, [&](parent i) { find_compress(i, parents.begin()); });
     return std::move(parents);
   }
 };
