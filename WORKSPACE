@@ -4,9 +4,16 @@ load("@bazel_tools//tools/cpp:cc_configure.bzl", "cc_configure")
 
 cc_configure()
 
-local_repository(
+#local_repository(
+#    name = "parlaylib",
+#    path = "external/parlaylib/include",
+#)
+
+http_archive(
     name = "parlaylib",
-    path = "external/parlaylib/include",
+    sha256 = "68c062ad116fd49d77651d7a24fb985aa66e8ec9ad05176b6af3ab5d29a16b1f",
+    strip_prefix = "parlaylib-bazel/include/",
+    urls = ["https://github.com/ParAlg/parlaylib/archive/refs/tags/bazel.tar.gz"],
 )
 
 http_archive(
@@ -15,3 +22,7 @@ http_archive(
     strip_prefix = "googletest-release-1.11.0",
     urls = ["https://github.com/google/googletest/archive/release-1.11.0.tar.gz"],
 )
+
+#  path = external/parlaylib
+#  url = https://github.com/ParAlg/parlaylib
+#  branch = Bazel
