@@ -27,7 +27,7 @@ cc_configure()
 git_repository(
     name = "parlaylib",
     remote = "https://github.com/ParAlg/parlaylib.git",
-    commit = "c011f1651eb693195d2320fbd8ca04df3fde1f25",
+    commit = "6b4a4cdbfeb3c481608a42db0230eb6ebb87bf8d",
     strip_prefix = "include/",
 )
 
