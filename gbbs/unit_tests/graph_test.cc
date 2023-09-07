@@ -1,6 +1,8 @@
 #include "gbbs/graph.h"
 #include "parlay/primitives.h"
 
+#include <atomic>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -161,9 +163,9 @@ TEST(TestSymPtrGraphFromEdges, MapEdgesWorks) {
   // NOTE: graph.mapEdges() does not return anything so we are testing it by
   // disabling parallelism and sum the edge weights into a single variable for
   // testing purposes.
-  int sum = 0;
+  std::atomic<int> sum = 0;
   auto map_fn = [&](uintE x, uintE y, int w) { sum += w; };
-  graph.mapEdges(map_fn, /*parallel_inner_map=*/false);
+  graph.mapEdges(map_fn);
   EXPECT_EQ(sum, /* 2 + 2 + 3 + 3 = */ 10);
   gbbs::free_array(graph_and_vtxs.second, graph.n);
 }
