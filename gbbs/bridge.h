@@ -70,8 +70,8 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   {
     alloc = new A();
     init_alloc(alloc);
-    parallel_for_1(start, end, [&](size_t i) { f(i, alloc); }, granularity,
-                   conservative);
+    parallel_for(start, end, [&](size_t i) { f(i, alloc); }, granularity,
+                 conservative);
     //#pragma omp for schedule(dynamic, 1) nowait
     // for(long i=start; i<end; i++) f(i, alloc);
     finish_alloc(alloc);
