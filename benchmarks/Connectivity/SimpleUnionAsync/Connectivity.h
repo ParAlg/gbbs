@@ -105,7 +105,7 @@ inline IntT find_compress(IntT i, Range parents) {
 
 template <class IntT, class Range>
 inline bool unite_impl(IntT u_orig, IntT v_orig, Range parents) {
-  return unite_imlp(u_orig, v_orig, &(parents.begin()));
+  return unite_impl(u_orig, v_orig, &(parents.begin()));
 }
 
 template <class IntT, class Range>
