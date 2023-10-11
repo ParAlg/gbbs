@@ -98,6 +98,27 @@ inline bool unite_impl_atomic(IntT u_orig, IntT v_orig,
   return false;
 }
 
+template <class IntT, class Range>
+inline IntT find_compress(IntT i, Range parents) {
+  return find_compress(i, &(parents.begin()));
+}
+
+template <class IntT, class Range>
+inline bool unite_impl(IntT u_orig, IntT v_orig, Range parents) {
+  return unite_imlp(u_orig, v_orig, &(parents.begin()));
+}
+
+template <class IntT, class Range>
+inline IntT find_compress_atomic(IntT i, Range parents) {
+  return find_compress_atomic(i, &(parents.begin()));
+}
+
+template <class IntT, class Range>
+inline bool unite_impl_atomic(IntT u_orig, IntT v_orig,
+                              Range parents) {
+  return unite_impl_atomic(u_orig, v_orig, &(parents.begin()));
+}
+
 struct SimpleUnionAsyncStruct {
   size_t n;
   sequence<parent> parents;
