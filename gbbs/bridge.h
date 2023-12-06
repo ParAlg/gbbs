@@ -720,6 +720,52 @@ sequence<char> sequence_to_string(TSeq const& T) {
   return parlay::filter(make_slice(C), [&](char A) { return A > 0; });
 }
 
+template <class A, class B>
+inline void type_to_string_tab(char* s, std::pair<A, B> a) {
+  int l = t_to_stringlen(a.first);
+  type_to_string(s, a.first);
+  s[l] = '\t';
+  type_to_string(s + l + 1, a.second);
+}
+
+template <class A, class B>
+inline void type_to_string_tab(char* s, std::tuple<A, B> a) {
+  int l = t_to_stringlen(std::get<0>(a));
+  type_to_string(s, std::get<0>(a));
+  s[l] = '\t';
+  type_to_string(s + l + 1, std::get<1>(a));
+}
+
+template <class A, class B, class C>
+inline void type_to_string_tab(char* s, std::tuple<A, B, C> a) {
+  int l = t_to_stringlen(std::get<0>(a));
+  type_to_string(s, std::get<0>(a));
+  s[l] = '\t';
+  int l1 = t_to_stringlen(std::get<1>(a));
+  type_to_string(s + l + 1, std::get<1>(a));
+  s[l + l1 + 1] = '\t';
+  type_to_string(s + l + l1 + 2, std::get<2>(a));
+}
+
+template <class TSeq>
+sequence<char> sequence_to_string_tab(TSeq const& T) {
+  size_t n = T.size();
+  auto S = sequence<size_t>::from_function(n, [&](size_t i) {
+    return t_to_stringlen(T[i]) + 1;  // +1 for \n
+  });
+  size_t m = parlay::scan_inplace(make_slice(S), plus<size_t>());
+
+  auto C = sequence<char>::from_function(m, [&](size_t i) { return (char)0; });
+  parallel_for(0, n - 1, [&](size_t i) {
+    type_to_string_tab(C.begin() + S[i], T[i]);
+    C[S[i + 1] - 1] = '\n';
+  });
+  type_to_string_tab(C.begin() + S[n - 1], T[n - 1]);
+  C[m - 1] = '\n';
+
+  return parlay::filter(make_slice(C), [&](char A) { return A > 0; });
+}
+
 using parlay::internal::chars_to_int_t;
 using parlay::internal::get_counts;
 

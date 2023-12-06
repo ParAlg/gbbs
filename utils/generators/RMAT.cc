@@ -34,8 +34,22 @@ int BuildRMAT(int argc, char* argv[]) {
     abort();
   }
 
-  auto C = parlay::sequence_to_string(updates);
-  for (size_t i = 0; i < 100; i++) {
+  std::cout << "Num updates: " << updates.size() << std::endl;
+  // Remove duplicates
+  updates = parlay::filter(updates, [](std::tuple<uintE, uintE>& e){
+  if (std::get<0>(e) == std::get<1>(e)) return false;
+  return true;
+  });
+  auto updates_ordered = parlay::delayed_seq<std::tuple<uintE, uintE>>(updates.size(), [&updates](size_t i){
+  auto [u, v] = updates[i];
+  if(u < v) return updates[i];
+  return std::make_tuple(v, u);
+  });
+  updates = parlay::remove_duplicates_ordered(updates_ordered);
+  std::cout << "Num unique updates: " << updates.size() << std::endl;
+
+  auto C = parlay::sequence_to_string_tab(updates);
+  for (size_t i = 0; i < 5; i++) {
     std::cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i])
               << std::endl;
   }
