@@ -54,7 +54,14 @@ struct symmetric_graph {
   using weight_type = W;
   using neighbor_type = typename vertex::neighbor_type;
   using graph = symmetric_graph<vertex_type, W>;
+
+  // Vertices can have an optional weight. Currently the type of this weight is
+  // hard-coded as a double. We should consider generalizing this in the future
+  // if the need arises.
   using vertex_weight_type = double;
+
+  // The type of an edge. Used when building the graph from_edges, or returning
+  // the graph as a list of edges.
   using edge = std::tuple<uintE, uintE, W>;
 
   size_t num_vertices() const { return n; }
@@ -75,37 +82,24 @@ struct symmetric_graph {
     v_data[id].degree = degree;
   }
 
+  // Sets the provided vertex's degree to zero.
   void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
 
-  sequence<edge> edges() const {
-    using g_edge = std::tuple<uintE, uintE, W>;
-    auto degs = sequence<size_t>::from_function(
-        n, [&](size_t i) { return get_vertex(i).out_degree(); });
-    size_t sum_degs = parlay::scan_inplace(make_slice(degs));
-    assert(sum_degs == m);
-    auto edges = sequence<g_edge>(sum_degs);
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   size_t k = degs[i];
-                   auto map_f = [&](const uintE& u, const uintE& v,
-                                    const W& wgh) {
-                     edges[k++] = std::make_tuple(u, v, wgh);
-                   };
-                   get_vertex(i).out_neighbors().map(map_f, false);
-                 },
-                 1);
-    return edges;
-  }
 
+  // ======== Other useful graph operators ========
+
+  // Apply the map operator f : (uintE * uintE * W) -> void
+  // to each edge.
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true, size_t granularity = 1) const {
-    parallel_for(0, n,
+    parlay::parallel_for(0, n,
                  [&](size_t i) {
                    get_vertex(i).out_neighbors().map(f, parallel_inner_map);
                  },
                  granularity);
   }
 
+  // TODO(laxmand): update this function to take a parlay:::monoid.
   template <class M, class R>
   typename R::T reduceEdges(M map_f, R reduce_f) const {
     using T = typename R::T;
@@ -114,6 +108,28 @@ struct symmetric_graph {
     });
     return parlay::reduce(D, reduce_f);
   }
+
+  // Returns the edge set of the graph. Each edge (u,v) will be output twice,
+  // once as (u,v) and once as (v,u).
+  sequence<edge> edges() const {
+    using g_edge = std::tuple<uintE, uintE, W>;
+    auto degs = sequence<size_t>::from_function(
+        n, [&](size_t i) { return get_vertex(i).out_degree(); });
+    size_t sum_degs = parlay::scan_inplace(make_slice(degs));
+    assert(sum_degs == m);
+    auto edges = sequence<g_edge>(sum_degs);
+    parlay::parallel_for(0, n, [&](size_t i) {
+                   size_t k = degs[i];
+                   auto map_f = [&](const uintE& u, const uintE& v,
+                                    const W& wgh) {
+                     edges[k++] = std::make_tuple(u, v, wgh);
+                   };
+                   get_vertex(i).out_neighbors().map(map_f, false);
+                 });
+    return edges;
+  }
+
+
 
   // ======================= Constructors and fields  ========================
   symmetric_graph()
