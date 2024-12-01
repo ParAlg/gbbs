@@ -4,10 +4,10 @@
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
 // The above copyright notice and this permission notice shall be included in
@@ -17,13 +17,14 @@
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 
 #pragma once
 
 #include <stdlib.h>
+
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -34,9 +35,9 @@
 #include "compressed_vertex.h"
 #include "edge_array.h"
 #include "flags.h"
+#include "gbbs/helpers/undirected_edge.h"
 #include "macros.h"
 #include "vertex.h"
-#include "gbbs/helpers/undirected_edge.h"
 
 namespace gbbs {
 
@@ -69,9 +70,9 @@ struct symmetric_graph {
 
   // ======== Graph operators that perform packing ========
   template <class P>
-  uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
+  uintE packNeighbors(uintE id, P &p, uint8_t *tmp) {
     uintE new_degree =
-        get_vertex(id).out_neighbors().pack(p, (std::tuple<uintE, W>*)tmp);
+        get_vertex(id).out_neighbors().pack(p, (std::tuple<uintE, W> *)tmp);
     v_data[id].degree = new_degree;  // updates the degree
     return new_degree;
   }
@@ -85,18 +86,19 @@ struct symmetric_graph {
   // Sets the provided vertex's degree to zero.
   void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
 
-
   // ======== Other useful graph operators ========
 
   // Apply the map operator f : (uintE * uintE * W) -> void
   // to each edge.
   template <class F>
-  void mapEdges(F f, bool parallel_inner_map = true, size_t granularity = 1) const {
-    parlay::parallel_for(0, n,
-                 [&](size_t i) {
-                   get_vertex(i).out_neighbors().map(f, parallel_inner_map);
-                 },
-                 granularity);
+  void mapEdges(F f, bool parallel_inner_map = true,
+                size_t granularity = 1) const {
+    parlay::parallel_for(
+        0, n,
+        [&](size_t i) {
+          get_vertex(i).out_neighbors().map(f, parallel_inner_map);
+        },
+        granularity);
   }
 
   // TODO(laxmand): update this function to take a parlay:::monoid.
@@ -118,18 +120,18 @@ struct symmetric_graph {
     size_t sum_degs = parlay::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
     auto edges = sequence<g_edge>(sum_degs);
-    parlay::parallel_for(0, n, [&](size_t i) {
-                   size_t k = degs[i];
-                   auto map_f = [&](const uintE& u, const uintE& v,
-                                    const W& wgh) {
-                     edges[k++] = std::make_tuple(u, v, wgh);
-                   };
-                   get_vertex(i).out_neighbors().map(map_f, false);
-                 });
+    parlay::parallel_for(
+        0, n,
+        [&](size_t i) {
+          size_t k = degs[i];
+          auto map_f = [&](const uintE &u, const uintE &v, const W &wgh) {
+            edges[k++] = std::make_tuple(u, v, wgh);
+          };
+          get_vertex(i).out_neighbors().map(map_f, false);
+        },
+        1);
     return edges;
   }
-
-
 
   // ======================= Constructors and fields  ========================
   symmetric_graph()
@@ -140,9 +142,9 @@ struct symmetric_graph {
         m(0),
         deletion_fn([]() {}) {}
 
-  symmetric_graph(vertex_data* v_data, size_t n, size_t m,
-                  std::function<void()>&& _deletion_fn, neighbor_type* _e0,
-                  vertex_weight_type* _vertex_weights = nullptr)
+  symmetric_graph(vertex_data *v_data, size_t n, size_t m,
+                  std::function<void()> &&_deletion_fn, neighbor_type *_e0,
+                  vertex_weight_type *_vertex_weights = nullptr)
       : v_data(v_data),
         e0(_e0),
         vertex_weights(_vertex_weights),
@@ -151,7 +153,7 @@ struct symmetric_graph {
         deletion_fn(_deletion_fn) {}
 
   // Move constructor
-  symmetric_graph(symmetric_graph&& other) noexcept {
+  symmetric_graph(symmetric_graph &&other) noexcept {
     n = other.n;
     m = other.m;
     v_data = other.v_data;
@@ -165,7 +167,7 @@ struct symmetric_graph {
   }
 
   // Move assignment
-  symmetric_graph& operator=(symmetric_graph&& other) noexcept {
+  symmetric_graph &operator=(symmetric_graph &&other) noexcept {
     deletion_fn();
     n = other.n;
     m = other.m;
@@ -181,7 +183,7 @@ struct symmetric_graph {
   }
 
   // Copy constructor
-  symmetric_graph(const symmetric_graph& other) {
+  symmetric_graph(const symmetric_graph &other) {
     gbbs_debug(std::cout << "Copying symmetric graph." << std::endl;);
     n = other.n;
     m = other.m;
@@ -209,11 +211,11 @@ struct symmetric_graph {
   vertex get_vertex(uintE i) const { return vertex(e0, v_data[i], i); }
 
   // Graph Data
-  vertex_data* v_data;
+  vertex_data *v_data;
   // Pointer to edges
-  neighbor_type* e0;
+  neighbor_type *e0;
   // Pointer to vertex weights
-  vertex_weight_type* vertex_weights;
+  vertex_weight_type *vertex_weights;
 
   // number of vertices in G
   size_t n;
@@ -240,9 +242,9 @@ struct symmetric_ptr_graph {
 
   // ======== Graph operators that perform packing ========
   template <class P>
-  uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
+  uintE packNeighbors(uintE id, P &p, uint8_t *tmp) {
     uintE new_degree =
-        get_vertex(id).out_neighbors().pack(p, (std::tuple<uintE, W>*)tmp);
+        get_vertex(id).out_neighbors().pack(p, (std::tuple<uintE, W> *)tmp);
     vertices[id].degree = new_degree;  // updates the degree
     return new_degree;
   }
@@ -262,26 +264,27 @@ struct symmetric_ptr_graph {
     size_t sum_degs = parlay::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
     auto edges = sequence<g_edge>(sum_degs);
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   size_t k = degs[i];
-                   auto map_f = [&](const uintE& u, const uintE& v,
-                                    const W& wgh) {
-                     edges[k++] = std::make_tuple(u, v, wgh);
-                   };
-                   get_vertex(i).out_neighbors().map(map_f, false);
-                 },
-                 1);
+    parallel_for(
+        0, n,
+        [&](size_t i) {
+          size_t k = degs[i];
+          auto map_f = [&](const uintE &u, const uintE &v, const W &wgh) {
+            edges[k++] = std::make_tuple(u, v, wgh);
+          };
+          get_vertex(i).out_neighbors().map(map_f, false);
+        },
+        1);
     return edges;
   }
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) const {
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   get_vertex(i).out_neighbors().map(f, parallel_inner_map);
-                 },
-                 1);
+    parallel_for(
+        0, n,
+        [&](size_t i) {
+          get_vertex(i).out_neighbors().map(f, parallel_inner_map);
+        },
+        1);
   }
 
   template <class M, class R>
@@ -302,10 +305,10 @@ struct symmetric_ptr_graph {
         vertex_weights(nullptr),
         deletion_fn([]() {}) {}
 
-  symmetric_ptr_graph(size_t n, size_t m, vertex* _vertices,
+  symmetric_ptr_graph(size_t n, size_t m, vertex *_vertices,
                       std::function<void()> _deletion_fn,
-                      vertex_weight_type* _vertex_weights = nullptr,
-                      uintE* _edge_list_sizes = nullptr)
+                      vertex_weight_type *_vertex_weights = nullptr,
+                      uintE *_edge_list_sizes = nullptr)
       : n(n),
         m(m),
         vertices(_vertices),
@@ -314,7 +317,7 @@ struct symmetric_ptr_graph {
         deletion_fn(_deletion_fn) {}
 
   // Move constructor
-  symmetric_ptr_graph(symmetric_ptr_graph&& other) noexcept {
+  symmetric_ptr_graph(symmetric_ptr_graph &&other) noexcept {
     n = other.n;
     m = other.m;
     vertices = other.vertices;
@@ -328,7 +331,7 @@ struct symmetric_ptr_graph {
   }
 
   // Move assignment
-  symmetric_ptr_graph& operator=(symmetric_ptr_graph&& other) noexcept {
+  symmetric_ptr_graph &operator=(symmetric_ptr_graph &&other) noexcept {
     deletion_fn();
     n = other.n;
     m = other.m;
@@ -344,7 +347,7 @@ struct symmetric_ptr_graph {
   }
 
   // Copy constructor
-  symmetric_ptr_graph(const symmetric_ptr_graph& other) {
+  symmetric_ptr_graph(const symmetric_ptr_graph &other) {
     n = other.n;
     m = other.m;
     vertices = gbbs::new_array_no_init<vertex>(n);
@@ -355,11 +358,11 @@ struct symmetric_ptr_graph {
     });
     offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(offsets));
-    neighbor_type* E = gbbs::new_array_no_init<neighbor_type>(total_space);
+    neighbor_type *E = gbbs::new_array_no_init<neighbor_type>(total_space);
 
     parallel_for(0, n, [&](size_t i) {
       size_t offset = offsets[i];
-      auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
+      auto map_f = [&](const uintE &u, const uintE &v, const W &wgh,
                        size_t ind) {
         E[offset + ind] = std::make_tuple(v, wgh);
       };
@@ -386,8 +389,8 @@ struct symmetric_ptr_graph {
 
   ~symmetric_ptr_graph() { deletion_fn(); }
 
-  // Note that observers recieve a handle to a vertex object which is only valid
-  // so long as this graph's memory is valid.
+  // Note that observers recieve a handle to a vertex object which is only
+  // valid so long as this graph's memory is valid.
   vertex get_vertex(uintE i) const { return vertices[i]; }
 
   // number of vertices in G
@@ -395,12 +398,12 @@ struct symmetric_ptr_graph {
   // number of edges in G
   size_t m;
   // pointer to array of vertex objects
-  vertex* vertices;
+  vertex *vertices;
   // pointer to array of vertex edge-list sizes---necessary if copying a
   // compressed graph in this representation.
-  uintE* edge_list_sizes;
+  uintE *edge_list_sizes;
   // pointer to array of vertex weights
-  vertex_weight_type* vertex_weights;
+  vertex_weight_type *vertex_weights;
 
   // called to delete the graph
   std::function<void()> deletion_fn;
@@ -434,17 +437,17 @@ struct asymmetric_graph {
   // called to delete the graph
   std::function<void()> deletion_fn;
 
-  vertex_data* v_out_data;
-  vertex_data* v_in_data;
+  vertex_data *v_out_data;
+  vertex_data *v_in_data;
 
   // Pointer to out-edges
-  neighbor_type* out_edges;
+  neighbor_type *out_edges;
 
   // Pointer to in-edges
-  neighbor_type* in_edges;
+  neighbor_type *in_edges;
 
   // Pointer to vertex weights
-  vertex_weight_type* vertex_weights;
+  vertex_weight_type *vertex_weights;
 
   vertex get_vertex(size_t i) const {
     return vertex(out_edges, v_out_data[i], in_edges, v_in_data[i], i);
@@ -460,10 +463,10 @@ struct asymmetric_graph {
         in_edges(nullptr),
         vertex_weights(nullptr) {}
 
-  asymmetric_graph(vertex_data* v_out_data, vertex_data* v_in_data, size_t n,
+  asymmetric_graph(vertex_data *v_out_data, vertex_data *v_in_data, size_t n,
                    size_t m, std::function<void()> _deletion_fn,
-                   neighbor_type* _out_edges, neighbor_type* _in_edges,
-                   vertex_weight_type* _vertex_weights = nullptr)
+                   neighbor_type *_out_edges, neighbor_type *_in_edges,
+                   vertex_weight_type *_vertex_weights = nullptr)
       : n(n),
         m(m),
         deletion_fn(_deletion_fn),
@@ -474,7 +477,7 @@ struct asymmetric_graph {
         vertex_weights(_vertex_weights) {}
 
   // Move constructor
-  asymmetric_graph(asymmetric_graph&& other) noexcept {
+  asymmetric_graph(asymmetric_graph &&other) noexcept {
     n = other.n;
     m = other.m;
     v_out_data = other.v_out_data;
@@ -492,7 +495,7 @@ struct asymmetric_graph {
   }
 
   // Move assignment
-  asymmetric_graph& operator=(asymmetric_graph&& other) noexcept {
+  asymmetric_graph &operator=(asymmetric_graph &&other) noexcept {
     deletion_fn();
     n = other.n;
     m = other.m;
@@ -512,7 +515,7 @@ struct asymmetric_graph {
   }
 
   // Copy constructor
-  asymmetric_graph(const asymmetric_graph& other) {
+  asymmetric_graph(const asymmetric_graph &other) {
     gbbs_debug(std::cout << "Copying asymmetric graph." << std::endl;);
     n = other.n;
     m = other.m;
@@ -545,11 +548,12 @@ struct asymmetric_graph {
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) const {
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   get_vertex(i).out_neighbors().map(f, parallel_inner_map);
-                 },
-                 1);
+    parallel_for(
+        0, n,
+        [&](size_t i) {
+          get_vertex(i).out_neighbors().map(f, parallel_inner_map);
+        },
+        1);
   }
 };
 
@@ -567,9 +571,9 @@ struct asymmetric_ptr_graph {
   // number of edges in G
   size_t m;
   // pointer to array of vertex object
-  vertex* vertices;
+  vertex *vertices;
   // pointer to array of vertex weights
-  vertex_weight_type* vertex_weights;
+  vertex_weight_type *vertex_weights;
 
   // called to delete the graph
   std::function<void()> deletion_fn;
@@ -583,9 +587,9 @@ struct asymmetric_ptr_graph {
         deletion_fn([]() {}),
         vertex_weights(nullptr) {}
 
-  asymmetric_ptr_graph(size_t n, size_t m, vertex* _vertices,
+  asymmetric_ptr_graph(size_t n, size_t m, vertex *_vertices,
                        std::function<void()> _deletion_fn,
-                       vertex_weight_type* _vertex_weights = nullptr)
+                       vertex_weight_type *_vertex_weights = nullptr)
       : n(n),
         m(m),
         vertices(_vertices),
@@ -593,7 +597,7 @@ struct asymmetric_ptr_graph {
         vertex_weights(_vertex_weights) {}
 
   // Move constructor
-  asymmetric_ptr_graph(asymmetric_ptr_graph&& other) noexcept {
+  asymmetric_ptr_graph(asymmetric_ptr_graph &&other) noexcept {
     n = other.n;
     m = other.m;
     vertices = other.vertices;
@@ -605,7 +609,7 @@ struct asymmetric_ptr_graph {
   }
 
   // Move assignment
-  asymmetric_ptr_graph& operator=(asymmetric_ptr_graph&& other) noexcept {
+  asymmetric_ptr_graph &operator=(asymmetric_ptr_graph &&other) noexcept {
     deletion_fn();
     n = other.n;
     m = other.m;
@@ -619,7 +623,7 @@ struct asymmetric_ptr_graph {
   }
 
   // Copy constructor
-  asymmetric_ptr_graph(const asymmetric_ptr_graph& other) {
+  asymmetric_ptr_graph(const asymmetric_ptr_graph &other) {
     n = other.n;
     m = other.m;
     vertices = gbbs::new_array_no_init<vertex>(n);
@@ -635,13 +639,13 @@ struct asymmetric_ptr_graph {
 
     size_t in_space = parlay::scan_inplace(make_slice(in_offsets));
     size_t out_space = parlay::scan_inplace(make_slice(out_offsets));
-    neighbor_type* inE = gbbs::new_array_no_init<neighbor_type>(in_space);
-    neighbor_type* outE = gbbs::new_array_no_init<neighbor_type>(out_space);
+    neighbor_type *inE = gbbs::new_array_no_init<neighbor_type>(in_space);
+    neighbor_type *outE = gbbs::new_array_no_init<neighbor_type>(out_space);
 
     parallel_for(0, n, [&](size_t i) {
       size_t out_offset = out_offsets[i];
       if (out_offsets[i + 1] != out_offset) {
-        auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
+        auto map_f = [&](const uintE &u, const uintE &v, const W &wgh,
                          size_t ind) {
           outE[out_offset + ind] = std::make_tuple(v, wgh);
         };
@@ -653,7 +657,7 @@ struct asymmetric_ptr_graph {
 
       size_t in_offset = in_offsets[i];
       if (in_offsets[i + 1] != in_offset) {
-        auto map_f = [&](const uintE& u, const uintE& v, const W& wgh,
+        auto map_f = [&](const uintE &u, const uintE &v, const W &wgh,
                          size_t ind) {
           inE[in_offset + ind] = std::make_tuple(v, wgh);
         };
@@ -684,11 +688,12 @@ struct asymmetric_ptr_graph {
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) const {
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   get_vertex(i).out_neighbors().map(f, parallel_inner_map);
-                 },
-                 1);
+    parallel_for(
+        0, n,
+        [&](size_t i) {
+          get_vertex(i).out_neighbors().map(f, parallel_inner_map);
+        },
+        1);
   }
 };
 
@@ -705,7 +710,7 @@ struct asymmetric_ptr_graph {
 //   auto G = sym_graph_from_edges<W>(coo1, get_u, get_v, get_w, 10, false);
 template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
 static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
-    EdgeSeq& A, size_t n, GetU&& get_u, GetV&& get_v, GetW&& get_w,
+    EdgeSeq &A, size_t n, GetU &&get_u, GetV &&get_v, GetW &&get_w,
     bool is_sorted = false) {
   using vertex = symmetric_vertex<Wgh>;
   using neighbor_type = typename vertex::neighbor_type;
@@ -714,8 +719,8 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   if (m == 0) {
     if (n == 0) {
       std::function<void()> del = []() {};
-      return symmetric_graph<symmetric_vertex, Wgh>(nullptr, 0, 0, std::move(del),
-                                                    nullptr);
+      return symmetric_graph<symmetric_vertex, Wgh>(nullptr, 0, 0,
+                                                    std::move(del), nullptr);
     } else {
       auto v_data = gbbs::new_array_no_init<vertex_data>(n);
       parallel_for(0, n, [&](size_t i) {
@@ -760,29 +765,30 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     v_data[i].offset = o;
     v_data[i].degree = (uintE)(((i == (n - 1)) ? m : starts[i + 1]) - o);
   });
-  return symmetric_graph<symmetric_vertex, Wgh>(v_data, n, m,
-                                                [=]() {
-                                                  gbbs::free_array(v_data, n);
-                                                  gbbs::free_array(edges, m);
-                                                },
-                                                (neighbor_type*)edges);
+  return symmetric_graph<symmetric_vertex, Wgh>(
+      v_data, n, m,
+      [=]() {
+        gbbs::free_array(v_data, n);
+        gbbs::free_array(edges, m);
+      },
+      (neighbor_type *)edges);
 }
 
 template <class Wgh>
 static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
-    sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
+    sequence<std::tuple<uintE, uintE, Wgh>> &A, size_t n,
     bool is_sorted = false) {
   using edge = std::tuple<uintE, uintE, Wgh>;
-  auto get_u = [&](const edge& e) { return std::get<0>(e); };
-  auto get_v = [&](const edge& e) { return std::get<1>(e); };
-  auto get_w = [&](const edge& e) { return std::get<2>(e); };
+  auto get_u = [&](const edge &e) { return std::get<0>(e); };
+  auto get_v = [&](const edge &e) { return std::get<1>(e); };
+  auto get_w = [&](const edge &e) { return std::get<2>(e); };
   return sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
 }
 
 template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
-std::tuple<uintE, Wgh>* get_edges(EdgeSeq& A, sequence<uintT>& starts, size_t m,
-                                  const GetU& get_u, const GetV& get_v,
-                                  const GetW& get_w) {
+std::tuple<uintE, Wgh> *get_edges(EdgeSeq &A, sequence<uintT> &starts, size_t m,
+                                  const GetU &get_u, const GetV &get_v,
+                                  const GetW &get_w) {
   using neighbor = std::tuple<uintE, Wgh>;
   auto edges = gbbs::new_array_no_init<neighbor>(m);
   parallel_for(0, m, [&](size_t i) {
@@ -819,7 +825,7 @@ std::tuple<uintE, Wgh>* get_edges(EdgeSeq& A, sequence<uintT>& starts, size_t m,
 //   auto G = asym_graph_from_edges<W>(coo1, get_u, get_v, get_w, 10, false);
 template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
 static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
-    EdgeSeq& A, size_t n, GetU&& get_u, GetV&& get_v, GetW&& get_w,
+    EdgeSeq &A, size_t n, GetU &&get_u, GetV &&get_v, GetW &&get_w,
     bool is_sorted = false) {
   using vertex = asymmetric_vertex<Wgh>;
   using neighbor_type = typename vertex::neighbor_type;
@@ -871,19 +877,20 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
 
   auto in_v_data = gbbs::new_array_no_init<vertex_data>(n);
   auto out_v_data = gbbs::new_array_no_init<vertex_data>(n);
-  parallel_for(0, n,
-               [&](size_t i) {
-                 uintT in_o = in_starts[i];
-                 in_v_data[i].offset = in_o;
-                 in_v_data[i].degree =
-                     (uintE)(((i == (n - 1)) ? m : in_starts[i + 1]) - in_o);
+  parallel_for(
+      0, n,
+      [&](size_t i) {
+        uintT in_o = in_starts[i];
+        in_v_data[i].offset = in_o;
+        in_v_data[i].degree =
+            (uintE)(((i == (n - 1)) ? m : in_starts[i + 1]) - in_o);
 
-                 uintT out_o = out_starts[i];
-                 out_v_data[i].offset = out_o;
-                 out_v_data[i].degree =
-                     (uintE)(((i == (n - 1)) ? m : out_starts[i + 1]) - out_o);
-               },
-               1024);
+        uintT out_o = out_starts[i];
+        out_v_data[i].offset = out_o;
+        out_v_data[i].degree =
+            (uintE)(((i == (n - 1)) ? m : out_starts[i + 1]) - out_o);
+      },
+      1024);
   return asymmetric_graph<asymmetric_vertex, Wgh>(
       out_v_data, in_v_data, n, m,
       [=]() {
@@ -892,17 +899,17 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
         gbbs::free_array(in_edges, m);
         gbbs::free_array(out_edges, m);
       },
-      (neighbor_type*)out_edges, (neighbor_type*)in_edges);
+      (neighbor_type *)out_edges, (neighbor_type *)in_edges);
 }
 
 template <class Wgh>
 static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
-    sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
+    sequence<std::tuple<uintE, uintE, Wgh>> &A, size_t n,
     bool is_sorted = false) {
   using edge = std::tuple<uintE, uintE, Wgh>;
-  auto get_u = [&](const edge& e) { return std::get<0>(e); };
-  auto get_v = [&](const edge& e) { return std::get<1>(e); };
-  auto get_w = [&](const edge& e) { return std::get<2>(e); };
+  auto get_u = [&](const edge &e) { return std::get<0>(e); };
+  auto get_v = [&](const edge &e) { return std::get<1>(e); };
+  auto get_w = [&](const edge &e) { return std::get<2>(e); };
   return asym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
 }
 
