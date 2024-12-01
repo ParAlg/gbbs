@@ -163,6 +163,7 @@ cc_library(
         ":macros",
         ":vertex",
         ":vertex_subset",
+        "//gbbs/helpers:undirected_edge",
     ],
 )
 

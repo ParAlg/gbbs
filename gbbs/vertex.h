@@ -69,13 +69,13 @@ inline iter<W> get_iter(std::tuple<uintE, W>* edges, uintE degree) {
 
 template <class W>
 struct uncompressed_neighbors {
-  using edge_type = std::tuple<uintE, W>;
+  using neighbor_type = std::tuple<uintE, W>;
 
   uintE id;              // this vertex's id
   uintE degree;          // this vertex's (in/out) degree
-  edge_type* neighbors;  // the (in/out) neighbors
+  neighbor_type* neighbors;  // the (in/out) neighbors
 
-  uncompressed_neighbors(uintE id, uintE degree, edge_type* neighbors)
+  uncompressed_neighbors(uintE id, uintE degree, neighbor_type* neighbors)
       : id(id), degree(degree), neighbors(neighbors) {}
 
   // move constructor
@@ -395,16 +395,16 @@ struct uncompressed_neighbors {
 template <class W>
 struct symmetric_vertex {
   using vertex = symmetric_vertex<W>;
-  using edge_type = std::tuple<uintE, W>;
+  using neighbor_type = std::tuple<uintE, W>;
 
   uintE id;
   uintE degree;
-  edge_type* neighbors;
+  neighbor_type* neighbors;
 
   symmetric_vertex()
       : id(std::numeric_limits<uintE>::max()), degree(0), neighbors(nullptr) {}
 
-  symmetric_vertex(edge_type* n, vertex_data vdata, uintE _id) {
+  symmetric_vertex(neighbor_type* n, vertex_data vdata, uintE _id) {
     neighbors = (n + vdata.offset);
     degree = vdata.degree;
     id = _id;
@@ -441,10 +441,10 @@ struct symmetric_vertex {
 template <class W>
 struct asymmetric_vertex {
   using vertex = asymmetric_vertex<W>;
-  using edge_type = std::tuple<uintE, W>;
+  using neighbor_type = std::tuple<uintE, W>;
 
-  edge_type* in_nghs;
-  edge_type* out_nghs;
+  neighbor_type* in_nghs;
+  neighbor_type* out_nghs;
 
   uintE in_deg;
   uintE out_deg;
@@ -458,8 +458,8 @@ struct asymmetric_vertex {
         out_deg(0),
         id(std::numeric_limits<uintE>::max()) {}
 
-  asymmetric_vertex(edge_type* out_neighbors_, vertex_data out_data,
-                    edge_type* in_neighbors_, vertex_data in_data, uintE _id) {
+  asymmetric_vertex(neighbor_type* out_neighbors_, vertex_data out_data,
+                    neighbor_type* in_neighbors_, vertex_data in_data, uintE _id) {
     in_nghs = in_neighbors_ + in_data.offset;
     out_nghs = out_neighbors_ + out_data.offset;
 

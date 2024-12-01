@@ -17,7 +17,7 @@ template <
     typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
 inline std::tuple<size_t, size_t, vertex_data*,
-                  typename symmetric_vertex<W>::edge_type*>
+                  typename symmetric_vertex<W>::neighbor_type*>
 filter_graph(Graph& G, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = G.num_vertices();

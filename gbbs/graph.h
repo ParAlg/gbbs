@@ -36,6 +36,7 @@
 #include "flags.h"
 #include "macros.h"
 #include "vertex.h"
+#include "gbbs/helpers/undirected_edge.h"
 
 namespace gbbs {
 
@@ -44,16 +45,17 @@ namespace gbbs {
 //  1) vertex_type: vertex template, parametrized by the weight type associated
 //  with each edge
 //  2) W: the edge weight template
-//  The graph is represented as an array of edges of type
-//  vertex_type::edge_type.
+//  The graph is represented as an array of edges to neighbors of type
+//  vertex_type::neighbor_type.
 //  For uncompressed vertices, this type is equal to tuple<uintE, W>.
 template <template <class W> class vertex_type, class W>
 struct symmetric_graph {
   using vertex = vertex_type<W>;
   using weight_type = W;
-  using edge_type = typename vertex::edge_type;
+  using neighbor_type = typename vertex::neighbor_type;
   using graph = symmetric_graph<vertex_type, W>;
   using vertex_weight_type = double;
+  using edge = std::tuple<uintE, uintE, W>;
 
   size_t num_vertices() const { return n; }
   size_t num_edges() const { return m; }
@@ -75,7 +77,7 @@ struct symmetric_graph {
 
   void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
 
-  sequence<std::tuple<uintE, uintE, W>> edges() const {
+  sequence<edge> edges() const {
     using g_edge = std::tuple<uintE, uintE, W>;
     auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
@@ -123,7 +125,7 @@ struct symmetric_graph {
         deletion_fn([]() {}) {}
 
   symmetric_graph(vertex_data* v_data, size_t n, size_t m,
-                  std::function<void()>&& _deletion_fn, edge_type* _e0,
+                  std::function<void()>&& _deletion_fn, neighbor_type* _e0,
                   vertex_weight_type* _vertex_weights = nullptr)
       : v_data(v_data),
         e0(_e0),
@@ -168,7 +170,7 @@ struct symmetric_graph {
     n = other.n;
     m = other.m;
     v_data = gbbs::new_array_no_init<vertex_data>(n);
-    e0 = gbbs::new_array_no_init<edge_type>(m);
+    e0 = gbbs::new_array_no_init<neighbor_type>(m);
     parallel_for(0, n, [&](size_t i) { v_data[i] = other.v_data[i]; });
     parallel_for(0, m, [&](size_t i) { e0[i] = other.e0[i]; });
     deletion_fn = [=]() {
@@ -193,7 +195,7 @@ struct symmetric_graph {
   // Graph Data
   vertex_data* v_data;
   // Pointer to edges
-  edge_type* e0;
+  neighbor_type* e0;
   // Pointer to vertex weights
   vertex_weight_type* vertex_weights;
 
@@ -213,7 +215,7 @@ template <template <class W> class vertex_type, class W>
 struct symmetric_ptr_graph {
   using vertex = vertex_type<W>;
   using weight_type = W;
-  using edge_type = typename vertex::edge_type;
+  using neighbor_type = typename vertex::neighbor_type;
   using graph = symmetric_ptr_graph<vertex_type, W>;
   using vertex_weight_type = double;
 
@@ -337,7 +339,7 @@ struct symmetric_ptr_graph {
     });
     offsets[n] = 0;
     size_t total_space = parlay::scan_inplace(make_slice(offsets));
-    edge_type* E = gbbs::new_array_no_init<edge_type>(total_space);
+    neighbor_type* E = gbbs::new_array_no_init<neighbor_type>(total_space);
 
     parallel_for(0, n, [&](size_t i) {
       size_t offset = offsets[i];
@@ -400,13 +402,13 @@ struct symmetric_ptr_graph {
  * 2) W: the edge weight template
  *
  * The graph is represented as an array of edges of type
- * vertex_type::edge_type, which is just a pair<uintE, W>.
+ * vertex_type::neighbor_type, which is just a pair<uintE, W>.
  * */
 template <template <class W> class vertex_type, class W>
 struct asymmetric_graph {
   using vertex = vertex_type<W>;
   using weight_type = W;
-  using edge_type = typename vertex::edge_type;
+  using neighbor_type = typename vertex::neighbor_type;
   using vertex_weight_type = double;
 
   // number of vertices in G
@@ -420,10 +422,10 @@ struct asymmetric_graph {
   vertex_data* v_in_data;
 
   // Pointer to out-edges
-  edge_type* out_edges;
+  neighbor_type* out_edges;
 
   // Pointer to in-edges
-  edge_type* in_edges;
+  neighbor_type* in_edges;
 
   // Pointer to vertex weights
   vertex_weight_type* vertex_weights;
@@ -444,7 +446,7 @@ struct asymmetric_graph {
 
   asymmetric_graph(vertex_data* v_out_data, vertex_data* v_in_data, size_t n,
                    size_t m, std::function<void()> _deletion_fn,
-                   edge_type* _out_edges, edge_type* _in_edges,
+                   neighbor_type* _out_edges, neighbor_type* _in_edges,
                    vertex_weight_type* _vertex_weights = nullptr)
       : n(n),
         m(m),
@@ -500,8 +502,8 @@ struct asymmetric_graph {
     m = other.m;
     v_out_data = gbbs::new_array_no_init<vertex_data>(n);
     v_in_data = gbbs::new_array_no_init<vertex_data>(n);
-    out_edges = gbbs::new_array_no_init<edge_type>(m);
-    in_edges = gbbs::new_array_no_init<edge_type>(m);
+    out_edges = gbbs::new_array_no_init<neighbor_type>(m);
+    in_edges = gbbs::new_array_no_init<neighbor_type>(m);
     parallel_for(0, n, [&](size_t i) { v_out_data[i] = other.v_out_data[i]; });
     parallel_for(0, n, [&](size_t i) { v_in_data[i] = other.v_in_data[i]; });
     parallel_for(0, m, [&](size_t i) { out_edges[i] = other.out_edges[i]; });
@@ -541,7 +543,7 @@ template <template <class W> class vertex_type, class W>
 struct asymmetric_ptr_graph {
   using vertex = vertex_type<W>;
   using weight_type = W;
-  using edge_type = typename vertex::edge_type;
+  using neighbor_type = typename vertex::neighbor_type;
   using vertex_weight_type = double;
 
   // number of vertices in G
@@ -617,8 +619,8 @@ struct asymmetric_ptr_graph {
 
     size_t in_space = parlay::scan_inplace(make_slice(in_offsets));
     size_t out_space = parlay::scan_inplace(make_slice(out_offsets));
-    edge_type* inE = gbbs::new_array_no_init<edge_type>(in_space);
-    edge_type* outE = gbbs::new_array_no_init<edge_type>(out_space);
+    neighbor_type* inE = gbbs::new_array_no_init<neighbor_type>(in_space);
+    neighbor_type* outE = gbbs::new_array_no_init<neighbor_type>(out_space);
 
     parallel_for(0, n, [&](size_t i) {
       size_t out_offset = out_offsets[i];
@@ -690,7 +692,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     EdgeSeq& A, size_t n, GetU&& get_u, GetV&& get_v, GetW&& get_w,
     bool is_sorted = false) {
   using vertex = symmetric_vertex<Wgh>;
-  using edge_type = typename vertex::edge_type;
+  using neighbor_type = typename vertex::neighbor_type;
   size_t m = A.size();
 
   if (m == 0) {
@@ -747,7 +749,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
                                                   gbbs::free_array(v_data, n);
                                                   gbbs::free_array(edges, m);
                                                 },
-                                                (edge_type*)edges);
+                                                (neighbor_type*)edges);
 }
 
 template <class Wgh>
@@ -804,7 +806,7 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
     EdgeSeq& A, size_t n, GetU&& get_u, GetV&& get_v, GetW&& get_w,
     bool is_sorted = false) {
   using vertex = asymmetric_vertex<Wgh>;
-  using edge_type = typename vertex::edge_type;
+  using neighbor_type = typename vertex::neighbor_type;
   size_t m = A.size();
 
   if (m == 0) {
@@ -874,7 +876,7 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
         gbbs::free_array(in_edges, m);
         gbbs::free_array(out_edges, m);
       },
-      (edge_type*)out_edges, (edge_type*)in_edges);
+      (neighbor_type*)out_edges, (neighbor_type*)in_edges);
 }
 
 template <class Wgh>

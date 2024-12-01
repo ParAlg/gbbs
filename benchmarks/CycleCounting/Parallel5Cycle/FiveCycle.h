@@ -362,7 +362,7 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V,
 template <class Graph>
 inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
+  // using edge = typename Graph::neighbor_type; //std::tuple<uintE, W>;
   std::cout << "INFO: testing resetting U instead of reallocating (parallel "
                "with scheduling)."
             << std::endl;
@@ -482,7 +482,7 @@ template <class Graph>
 inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0,
                                 double epsilon = 0.1) {
   using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
+  // using edge = typename Graph::neighbor_type; //std::tuple<uintE, W>;
 
   std::cout << "INFO: testing resetting U instead of reallocating."
             << std::endl;
@@ -540,7 +540,7 @@ template <class Graph>
 inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0,
                                        double epsilon = 0.1) {
   using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
+  // using edge = typename Graph::neighbor_type; //std::tuple<uintE, W>;
   std::cout << "INFO: testing resetting U instead of reallocating."
             << std::endl;
 
@@ -718,7 +718,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0,
                                 double epsilon = 0.1) {
   // std::cout << "JUST TO MAKE SURE I AM REALLY USING ESCAPE" << std::endl;
   using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
+  // using edge = typename Graph::neighbor_type; //std::tuple<uintE, W>;
 
   // auto GA2 = relabel_graph(GA, sequence<uintT>(GA.n, [&](size_t i){return
   // i;}));
@@ -893,7 +893,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0,
                                     double epsilon = 0.1) {
   // std::cout << "JUST TO MAKE SURE I AM REALLY USING ESCAPE" << std::endl;
   using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
+  // using edge = typename Graph::neighbor_type; //std::tuple<uintE, W>;
 
   // auto GA2 = relabel_graph(GA, sequence<uintT>(GA.n, [&](size_t i){return
   // i;}));

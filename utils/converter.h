@@ -933,7 +933,7 @@ void write_symmetric_graph_binary_format(Graph& GA, std::ofstream& out,
   size_t n = GA.n;
   size_t m = GA.m;
   using W = typename Graph::weight_type;
-  using edge_type = std::tuple<uintE, W>;
+  using neighbor_type = std::tuple<uintE, W>;
 
   // 1. Calculate total size
   auto offsets = parlay::sequence<uintT>(n + 1);
@@ -948,7 +948,7 @@ void write_symmetric_graph_binary_format(Graph& GA, std::ofstream& out,
   long* sizes = gbbs::new_array_no_init<long>(3);
   sizes[0] = GA.n;
   sizes[1] = GA.m;
-  sizes[2] = sizeof(long) * 3 + sizeof(uintT) * (n + 1) + sizeof(edge_type) * m;
+  sizes[2] = sizeof(long) * 3 + sizeof(uintT) * (n + 1) + sizeof(neighbor_type) * m;
   out.write((char*)sizes, sizeof(long) * 3);  // write n, m and space used
   out.write((char*)offsets.begin(), sizeof(uintT) * (n + 1));  // write offsets
 
@@ -965,7 +965,7 @@ void write_symmetric_graph_binary_format(Graph& GA, std::ofstream& out,
     size_t start_offset = offsets[start];
     size_t end_offset = offsets[end];
     size_t n_edges = end_offset - start_offset;
-    edge_type* edges = gbbs::new_array_no_init<edge_type>(n_edges);
+    neighbor_type* edges = gbbs::new_array_no_init<neighbor_type>(n_edges);
 
     parallel_for(start, end, [&](size_t i) {
       size_t our_offset = offsets[i] - start_offset;
@@ -978,7 +978,7 @@ void write_symmetric_graph_binary_format(Graph& GA, std::ofstream& out,
       GA.get_vertex(i).out_neighbors().copy(our_offset, map_f, write_f);
     });
 
-    size_t edge_space = sizeof(edge_type) * n_edges;
+    size_t edge_space = sizeof(neighbor_type) * n_edges;
     out.write((char*)edges, edge_space);  // write edges
 
     std::cout << "# finished writing vertices " << start << " to " << end
@@ -999,7 +999,7 @@ void write_asymmetric_graph_binary_format(Graph& GA, std::ofstream& out,
   size_t n = GA.n;
   size_t m = GA.m;
   using W = typename Graph::weight_type;
-  using edge_type = std::tuple<uintE, W>;
+  using neighbor_type = std::tuple<uintE, W>;
 
   auto get_outdegree = [&](size_t i) { return GA.get_vertex(i).out_degree(); };
   auto get_indegree = [&](size_t i) { return GA.get_vertex(i).in_degree(); };
@@ -1021,7 +1021,7 @@ void write_asymmetric_graph_binary_format(Graph& GA, std::ofstream& out,
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] =
-        sizeof(long) * 3 + sizeof(uintT) * (n + 1) + sizeof(edge_type) * m;
+        sizeof(long) * 3 + sizeof(uintT) * (n + 1) + sizeof(neighbor_type) * m;
     out.write((char*)sizes, sizeof(long) * 3);  // write n, m and space used
     out.write((char*)offsets.begin(), sizeof(uintT) * (n + 1));  // write
                                                                  // offsets
@@ -1039,7 +1039,7 @@ void write_asymmetric_graph_binary_format(Graph& GA, std::ofstream& out,
       size_t start_offset = offsets[start];
       size_t end_offset = offsets[end];
       size_t n_edges = end_offset - start_offset;
-      edge_type* edges = gbbs::new_array_no_init<edge_type>(n_edges);
+      neighbor_type* edges = gbbs::new_array_no_init<neighbor_type>(n_edges);
 
       parallel_for(start, end, [&](size_t i) {
         size_t our_offset = offsets[i] - start_offset;
@@ -1053,7 +1053,7 @@ void write_asymmetric_graph_binary_format(Graph& GA, std::ofstream& out,
         get_nghs(i).copy(our_offset, map_f, write_f);
       });
 
-      size_t edge_space = sizeof(edge_type) * n_edges;
+      size_t edge_space = sizeof(neighbor_type) * n_edges;
       out.write((char*)edges, edge_space);  // write edges
 
       std::cout << "# finished writing vertices " << start << " to " << end

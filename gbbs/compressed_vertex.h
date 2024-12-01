@@ -261,13 +261,13 @@ struct compressed_neighbors {
 template <class W, class C>
 struct compressed_symmetric_vertex {
   using vertex = compressed_symmetric_vertex<W, C>;
-  using edge_type = uchar;
+  using neighbor_type = uchar;
 
-  edge_type* neighbors;
+  neighbor_type* neighbors;
   uintE degree;
   uintE id;
 
-  compressed_symmetric_vertex(edge_type* n, vertex_data& vdata, uintE _id) {
+  compressed_symmetric_vertex(neighbor_type* n, vertex_data& vdata, uintE _id) {
     neighbors = n + vdata.offset;
     degree = vdata.degree;
     id = _id;
@@ -290,16 +290,16 @@ struct compressed_symmetric_vertex {
 template <class W, class C>
 struct compressed_asymmetric_vertex {
   using vertex = compressed_symmetric_vertex<W, C>;
-  using edge_type = uchar;
+  using neighbor_type = uchar;
 
-  edge_type* inNeighbors;
-  edge_type* outNeighbors;
+  neighbor_type* inNeighbors;
+  neighbor_type* outNeighbors;
   uintE outDegree;
   uintE inDegree;
   uintE id;
 
-  compressed_asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data,
-                               edge_type* in_neighbors, vertex_data& in_data,
+  compressed_asymmetric_vertex(neighbor_type* out_neighbors, vertex_data& out_data,
+                               neighbor_type* in_neighbors, vertex_data& in_data,
                                uintE _id) {
     inNeighbors = in_neighbors + in_data.offset;
     outNeighbors = out_neighbors + out_data.offset;

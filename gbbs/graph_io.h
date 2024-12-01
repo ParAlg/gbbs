@@ -368,7 +368,7 @@ std::vector<Edge<gbbs::empty>> read_unweighted_edge_list(const char* filename);
 template <class weight_type>
 asymmetric_graph<asymmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
     const std::vector<Edge<weight_type>>& edge_list) {
-  using edge_type = typename asymmetric_vertex<weight_type>::edge_type;
+  using neighbor_type = typename asymmetric_vertex<weight_type>::neighbor_type;
 
   if (edge_list.empty()) {
     return asymmetric_graph<asymmetric_vertex, weight_type>{};
@@ -394,8 +394,8 @@ asymmetric_graph<asymmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
   vertex_data* vertex_in_data =
       internal::sorted_edges_to_vertex_data_array(num_vertices, in_edges);
 
-  edge_type* out_edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
-  edge_type* in_edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
+  neighbor_type* out_edges_array = gbbs::new_array_no_init<neighbor_type>(num_edges);
+  neighbor_type* in_edges_array = gbbs::new_array_no_init<neighbor_type>(num_edges);
   parallel_for(0, num_edges, [&](const size_t i) {
     const Edge<weight_type>& out_edge = out_edges[i];
     out_edges_array[i] = std::make_tuple(out_edge.to, out_edge.weight);
@@ -424,7 +424,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
 template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
     const std::vector<Edge<weight_type>>& edge_list) {
-  using edge_type = typename symmetric_vertex<weight_type>::edge_type;
+  using neighbor_type = typename symmetric_vertex<weight_type>::neighbor_type;
 
   if (edge_list.empty()) {
     return symmetric_graph<symmetric_vertex, weight_type>{};
@@ -444,7 +444,7 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
   vertex_data* vertex_data =
       internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
-  edge_type* edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
+  neighbor_type* edges_array = gbbs::new_array_no_init<neighbor_type>(num_edges);
   parallel_for(0, num_edges, [&](const size_t i) {
     const Edge<weight_type>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
@@ -462,7 +462,7 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
 template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
     const edge_array<weight_type>& edge_list) {
-  using edge_type = typename symmetric_vertex<weight_type>::edge_type;
+  using neighbor_type = typename symmetric_vertex<weight_type>::neighbor_type;
   using Edge = gbbs_io::Edge<weight_type>;
 
   if (edge_list.E.size() == 0) {
@@ -484,7 +484,7 @@ symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
   vertex_data* vertex_data =
       internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
-  edge_type* edges_array = gbbs::new_array_no_init<edge_type>(num_edges);
+  neighbor_type* edges_array = gbbs::new_array_no_init<neighbor_type>(num_edges);
   parallel_for(0, num_edges, [&](const size_t i) {
     const Edge& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
