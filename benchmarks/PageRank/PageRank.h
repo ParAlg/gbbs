@@ -56,13 +56,19 @@ struct PR_Vertex_F {
   double addedConstant;
   double* p_curr;
   double* p_next;
-  PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intE n)
+  double dangling_sum;
+  double one_over_n;
+  PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intE n,
+              double _dangling_sum, double _one_over_n)
       : damping(_damping),
         addedConstant((1 - _damping) * (1 / (double)n)),
         p_curr(_p_curr),
-        p_next(_p_next) {}
+        p_next(_p_next),
+        dangling_sum(_dangling_sum),
+        one_over_n(_one_over_n) {}
   inline bool operator()(uintE i) {
-    p_next[i] = damping * p_next[i] + addedConstant;
+    p_next[i] += dangling_sum * one_over_n;
+    p_next[i] =  damping * p_next[i] + addedConstant;
     return 1;
   }
 };
@@ -86,23 +92,30 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
   double one_over_n = 1 / (double)n;
   auto p_curr = sequence<double>(n, one_over_n);
   auto p_next = sequence<double>(n, static_cast<double>(0));
+
   auto frontier = sequence<bool>(n, true);
-
-  // read from special array of just degrees
-
-  auto degrees = sequence<uintE>::from_function(
-      n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
-
   vertexSubset Frontier(n, n, std::move(frontier));
+
+  // Nodes with zero out-degree.
+  parlay::sequence<uintE> dangling_nodes = parlay::pack_index<uintE>(
+      parlay::delayed_seq<bool>(n, [&] (size_t i) {
+        return G.get_vertex(i).out_degree() == 0; }));
 
   size_t iter = 0;
   while (iter++ < max_iters) {
     gbbs_debug(timer t; t.start(););
+
+    double dangling_sum = parlay::reduce(
+      parlay::delayed_map(dangling_nodes, [&] (uintE v) {
+        return p_curr[v];
+    }));
+
     // SpMV
     edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G), 0,
             no_output);
     vertexMap(Frontier,
-              PR_Vertex_F(p_curr.begin(), p_next.begin(), damping, n));
+              PR_Vertex_F(p_curr.begin(), p_next.begin(), damping, n,
+                          dangling_sum, one_over_n));
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences = parlay::delayed_seq<double>(
@@ -135,14 +148,22 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
   auto p_next = sequence<double>(n, static_cast<double>(0));
   auto frontier = sequence<bool>(n, true);
   auto p_div = sequence<double>::from_function(n, [&](size_t i) -> double {
-    return one_over_n / static_cast<double>(G.get_vertex(i).out_degree());
+    return one_over_n / std::max(
+        double{1},
+        static_cast<double>(G.get_vertex(i).out_degree()));
   });
   auto p_div_next = sequence<double>(n);
 
   // read from special array of just degrees
-
   auto degrees = sequence<uintE>::from_function(
       n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
+
+  parlay::sequence<uintE> dangling_nodes = parlay::pack_index<uintE>(
+      parlay::delayed_seq<bool>(n, [&] (size_t i) {
+        return degrees[i] == 0;
+      }));
+
+  double dangling_sum{0};
 
   vertexSubset Frontier(n, n, std::move(frontier));
   auto EM = EdgeMap<double, Graph>(
@@ -157,15 +178,21 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
   auto reduce_f = [&](double l, double r) { return l + r; };
   auto apply_f = [&](
       std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, double>> {
-    const uintE& u = std::get<0>(k);
-    const double& contribution = std::get<1>(k);
+    uintE u = std::get<0>(k);
+    double contribution = std::get<1>(k);
+    contribution += dangling_sum * one_over_n;
     p_next[u] = damping * contribution + addedConstant;
-    p_div_next[u] = p_next[u] / static_cast<double>(degrees[u]);
+    p_div_next[u] = (p_next[u] / static_cast<double>(degrees[u]));
     return std::nullopt;
   };
 
   size_t iter = 0;
   while (iter++ < max_iters) {
+    dangling_sum = parlay::reduce(
+      parlay::delayed_map(dangling_nodes, [&] (uintE v) {
+        return p_curr[v];
+    }));
+
     timer t;
     t.start();
     // SpMV
