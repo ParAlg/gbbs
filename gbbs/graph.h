@@ -177,7 +177,7 @@ struct symmetric_graph {
         v_data, n, sym_m,
         [=]() {
           gbbs::free_array(v_data, n);
-          gbbs::free_array(neighbors, m);
+          gbbs::free_array(neighbors, sym_m);
         },
         (neighbor_type *)neighbors);
   }
@@ -393,7 +393,7 @@ struct symmetric_ptr_graph {
 
     return symmetric_ptr_graph<vertex_type, W>(n, sym_m, vertices, [=]() {
       gbbs::free_array(vertices, n);
-      gbbs::free_array(neighbors, m);
+      gbbs::free_array(neighbors, sym_m);
     });
   }
 

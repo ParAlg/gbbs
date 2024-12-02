@@ -25,7 +25,6 @@ symmetric_ptr_graph<symmetric_vertex, gbbs::empty>
 MakeUnweightedSymmetricPtrGraph(
     const uintE num_vertices, const std::unordered_set<UndirectedEdge>& edges) {
   using Edge = std::tuple<uintE, uintE, gbbs::empty>;
-  using Weight = gbbs::empty;
 
   constexpr gbbs::empty weight{};
   sequence<Edge> edge_sequence(edges.size());
