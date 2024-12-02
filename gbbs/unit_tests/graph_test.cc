@@ -17,10 +17,7 @@ static inline std::pair<symmetric_ptr_graph<symmetric_vertex, Wgh>,
 sym_ptr_graph_from_edges(sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
                          bool is_sorted = false) {
   using edge = std::tuple<uintE, uintE, Wgh>;
-  auto get_u = [&](const edge& e) { return std::get<0>(e); };
-  auto get_v = [&](const edge& e) { return std::get<1>(e); };
-  auto get_w = [&](const edge& e) { return std::get<2>(e); };
-  auto G = sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
+  auto G = symmetric_graph<symmetric_vertex, Wgh>::from_edges(A, n);
   using vertex = symmetric_vertex<Wgh>;
   vertex* vertices = gbbs::new_array_no_init<vertex>(G.n);
   for (size_t i = 0; i < G.n; i++) {
@@ -64,7 +61,7 @@ TEST(TestSymGraphFromEdges, TestBrokenPath) {
   edges[3] = std::make_tuple(last_vtx_id, 0, 1);
   edges[4] = std::make_tuple(1, last_vtx_id, 1);
   edges[5] = std::make_tuple(last_vtx_id, 1, 1);
-  auto G = sym_graph_from_edges(edges, n, /* is_sorted = */ false);
+  auto G = symmetric_graph<symmetric_vertex, int>::from_edges(edges, n);
 
   ASSERT_EQ(G.n, 11);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 2);
@@ -88,7 +85,7 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
-  auto graph = sym_graph_from_edges(edges, n);
+  auto graph = symmetric_graph<symmetric_vertex, int>::from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
   ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
@@ -105,7 +102,7 @@ TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
   sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
-  auto graph = sym_graph_from_edges(edges, n);
+  auto graph = symmetric_graph<symmetric_vertex, int>::from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
   ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);

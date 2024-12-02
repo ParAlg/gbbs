@@ -261,8 +261,9 @@ inline auto contract(Graph& GA, sequence<uintE>& clusters,
 
   edges.clear();
 
-  auto GC = sym_graph_from_edges<gbbs::empty>(/* edges = */ sym_edges,
-                                              /* n = */ num_ns_clusters);
+  auto GC = symmetric_graph<symmetric_vertex, gbbs::empty>::from_edges(
+              /* edges = */ sym_edges,
+              /* n = */ num_ns_clusters);
   return std::make_tuple(std::move(GC), std::move(flags), std::move(mapping));
 }
 

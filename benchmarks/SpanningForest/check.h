@@ -97,13 +97,14 @@ inline void check_spanning_forest(size_t n, sequence<edge>& correct,
   }
   /* convert to graphs, and check connectivity induced by edges */
 
+  using Graph = symmetric_graph<symmetric_vertex, gbbs::empty>;
   auto double_correct = double_edges(correct);
-  auto G_double = sym_graph_from_edges(double_correct, n);
+  auto G_double = Graph::from_edges(double_correct, n);
   auto conn_correct = workefficient_cc::CC(G_double);
   num_cc(conn_correct);
 
   auto double_check = double_edges(check);
-  auto G_check = sym_graph_from_edges(double_check, n);
+  auto G_check = Graph::from_edges(double_check, n);
   auto conn_check = workefficient_cc::CC(G_check);
   num_cc(conn_check);
 

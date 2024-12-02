@@ -35,7 +35,6 @@
 #include "compressed_vertex.h"
 #include "edge_array.h"
 #include "flags.h"
-#include "gbbs/helpers/undirected_edge.h"
 #include "macros.h"
 #include "vertex.h"
 
@@ -131,6 +130,49 @@ struct symmetric_graph {
         },
         1);
     return edges;
+  }
+
+  static symmetric_graph from_edges(const sequence<edge>& edges, size_t n = std::numeric_limits<size_t>::max()) {
+    size_t m = edges.size();
+    if (n == std::numeric_limits<size_t>::max()) {
+      n = 1 + parlay::reduce(parlay::delayed_seq<size_t>(edges.size(), [&] (size_t i) {
+        return std::max(std::get<0>(edges[i]), std::get<1>(edges[i]));
+      }));
+    }
+    if (m == 0) {
+      if (n == 0) {
+        std::function<void()> del = []() {};
+        return symmetric_graph<vertex_type, W>(nullptr, 0, 0,
+                                                      std::move(del), nullptr);
+      } else {
+        auto v_data = gbbs::new_array_no_init<vertex_data>(n);
+        parallel_for(0, n, [&](size_t i) {
+          v_data[i].offset = 0;
+          v_data[i].degree = 0;
+        });
+        return symmetric_graph<vertex_type, W>(
+            v_data, n, 0, [=]() { gbbs::free_array(v_data, n); }, nullptr);
+      }
+    }
+
+    auto symmetric_edges = EdgeUtils<W>::undirect_and_sort(edges);
+    auto offsets = EdgeUtils<W>::compute_offsets(n, symmetric_edges);
+    auto neighbors = EdgeUtils<W>::template get_neighbors<vertex>(symmetric_edges);
+    size_t sym_m = symmetric_edges.size();
+
+    auto v_data = gbbs::new_array_no_init<vertex_data>(n);
+    parallel_for(0, n, [&](size_t i) {
+      v_data[i].offset = offsets[i];
+      v_data[i].degree = ((i == n - 1) ? sym_m : offsets[i + 1]) - offsets[i];
+    });
+
+    return symmetric_graph<vertex_type, W>(
+        v_data, n, sym_m,
+        [=]() {
+          gbbs::free_array(v_data, n);
+          gbbs::free_array(neighbors, m);
+        },
+        (neighbor_type *)neighbors);
   }
 
   // ======================= Constructors and fields  ========================
@@ -697,93 +739,6 @@ struct asymmetric_ptr_graph {
   }
 };
 
-// Mutates (sorts) the underlying array A containing a black-box description of
-// an edge of typename A::value_type. The caller provides functions GetU, GetV,
-// and GetW which extract the u, v, and weight of a (u,v,w) edge respective (if
-// the edge is a std::tuple<uinte, uintE, W> this is just get<0>, ..<1>, ..<2>
-// respectively.
-// e.g.:
-//   using edge = std::tuple<uintE, uintE, W>;
-//   auto get_u = [&] (const edge& e) { return std::get<0>(e); };
-//   auto get_v = [&] (const edge& e) { return std::get<1>(e); };
-//   auto get_w = [&] (const edge& e) { return std::get<2>(e); };
-//   auto G = sym_graph_from_edges<W>(coo1, get_u, get_v, get_w, 10, false);
-template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
-static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
-    EdgeSeq &A, size_t n, GetU &&get_u, GetV &&get_v, GetW &&get_w,
-    bool is_sorted = false) {
-  using vertex = symmetric_vertex<Wgh>;
-  using neighbor_type = typename vertex::neighbor_type;
-  size_t m = A.size();
-
-  if (m == 0) {
-    if (n == 0) {
-      std::function<void()> del = []() {};
-      return symmetric_graph<symmetric_vertex, Wgh>(nullptr, 0, 0,
-                                                    std::move(del), nullptr);
-    } else {
-      auto v_data = gbbs::new_array_no_init<vertex_data>(n);
-      parallel_for(0, n, [&](size_t i) {
-        v_data[i].offset = 0;
-        v_data[i].degree = 0;
-      });
-      return symmetric_graph<symmetric_vertex, Wgh>(
-          v_data, n, 0, [=]() { gbbs::free_array(v_data, n); }, nullptr);
-    }
-  }
-
-  if (!is_sorted) {
-    parlay::integer_sort_inplace(make_slice(A), get_u);
-  }
-
-  auto starts = sequence<uintT>(n + 1, (uintT)0);
-
-  using neighbor = std::tuple<uintE, Wgh>;
-  auto edges = gbbs::new_array_no_init<neighbor>(m);
-  parallel_for(0, m, [&](size_t i) {
-    if (i == 0 || (get_u(A[i]) != get_u(A[i - 1]))) {
-      starts[get_u(A[i])] = i;
-    }
-    if (i != (m - 1)) {
-      uintE our_vtx = get_u(A[i]);
-      uintE next_vtx = get_u(A[i + 1]);
-      if (our_vtx != next_vtx && (our_vtx + 1 != next_vtx)) {
-        parallel_for(our_vtx + 1, next_vtx,
-                     [&](size_t k) { starts[k] = i + 1; });
-      }
-    }
-    if (i == (m - 1)) { /* last edge */
-      parallel_for(get_u(A[i]) + 1, starts.size(),
-                   [&](size_t j) { starts[j] = m; });
-    }
-    edges[i] = std::make_tuple(get_v(A[i]), get_w(A[i]));
-  });
-
-  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
-  parallel_for(0, n, [&](size_t i) {
-    uintT o = starts[i];
-    v_data[i].offset = o;
-    v_data[i].degree = (uintE)(((i == (n - 1)) ? m : starts[i + 1]) - o);
-  });
-  return symmetric_graph<symmetric_vertex, Wgh>(
-      v_data, n, m,
-      [=]() {
-        gbbs::free_array(v_data, n);
-        gbbs::free_array(edges, m);
-      },
-      (neighbor_type *)edges);
-}
-
-template <class Wgh>
-static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
-    sequence<std::tuple<uintE, uintE, Wgh>> &A, size_t n,
-    bool is_sorted = false) {
-  using edge = std::tuple<uintE, uintE, Wgh>;
-  auto get_u = [&](const edge &e) { return std::get<0>(e); };
-  auto get_v = [&](const edge &e) { return std::get<1>(e); };
-  auto get_w = [&](const edge &e) { return std::get<2>(e); };
-  return sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
-}
 
 template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
 std::tuple<uintE, Wgh> *get_edges(EdgeSeq &A, sequence<uintT> &starts, size_t m,

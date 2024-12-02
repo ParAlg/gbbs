@@ -28,6 +28,74 @@
 
 namespace gbbs {
 
+template <class W>
+struct EdgeUtils {
+  using weight_type = W;
+  using edge = std::tuple<uintE, uintE, W>;
+
+  // Given a set of edges (potentially asymmetric), ensure that each edge (u,v)
+  // in the input sequence appears as both (u,v) and (v,u). This function also
+  // sorts the output edges by id.
+  static parlay::sequence<edge> undirect_and_sort(const parlay::sequence<edge>& edges) {
+    // Duplicate the edges.
+    sequence<edge> edge_sequence(edges.size() * 2);
+    parlay::parallel_for(0, edges.size(), [&] (size_t i) {
+      auto [u, v, wgh] = edges[i];
+      edge_sequence[2 * i] = {u, v, wgh};
+      edge_sequence[2 * i + 1] = {v, u, wgh};
+    });
+    // Sort the edges.
+    parlay::sort_inplace(
+      parlay::make_slice(edge_sequence), [](const edge& left, const edge& right) {
+        return std::tie(std::get<0>(left), std::get<1>(left)) <
+               std::tie(std::get<0>(right), std::get<1>(right));
+      });
+    // Filter duplicates.
+    return filter_index(parlay::make_slice(edge_sequence), [&] (const edge& e, size_t i) {
+      return (i == 0) ||
+             (std::get<0>(edge_sequence[i-1]) != std::get<0>(e)) ||
+             (std::get<1>(edge_sequence[i-1]) != std::get<1>(e));
+    });
+  }
+
+  // Given a set of sorted edges as input, compute offsets to the first
+  // occurence of each vertex
+  static parlay::sequence<size_t> compute_offsets(size_t n, const parlay::sequence<edge>& edges) {
+    auto offsets = parlay::sequence<size_t>(n);
+    size_t m = edges.size();
+    parlay::parallel_for(0, m, [&](size_t i) {
+      if (i == 0 || (std::get<0>(edges[i]) != std::get<0>(edges[i - 1]))) {
+        offsets[std::get<0>(edges[i])] = i;
+      }
+      if (i != (m - 1)) {
+        size_t our_vtx = std::get<0>(edges[i]);
+        size_t next_vtx = std::get<0>(edges[i + 1]);
+        if (our_vtx != next_vtx && (our_vtx + 1 != next_vtx)) {
+          parlay::parallel_for(our_vtx + 1, next_vtx,
+             [&](size_t k) { offsets[k] = i + 1; });
+        }
+      }
+      if (i == (m - 1)) { /* last edge */
+        parlay::parallel_for(std::get<0>(edges[i]) + 1, offsets.size(),
+           [&](size_t j) { offsets[j] = m; });
+      }
+    });
+    return offsets;
+  }
+
+  template <class vertex>
+  static typename vertex::neighbor_type* get_neighbors(const parlay::sequence<edge>& edges) {
+    using neighbor_type = typename vertex::neighbor_type;
+    size_t m = edges.size();
+    auto neighbors = gbbs::new_array_no_init<neighbor_type>(m);
+    parlay::parallel_for(0, m, [&] (size_t i) {
+      neighbors[i] = {std::get<1>(edges[i]), std::get<2>(edges[i])};
+    });
+    return neighbors;
+  }
+
+};
+
 // Edge Array Representation
 template <class W>
 struct edge_array {

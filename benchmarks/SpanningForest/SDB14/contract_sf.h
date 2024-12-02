@@ -219,7 +219,7 @@ inline auto contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters,
             }
           });
 
-  auto GC = sym_graph_from_edges<gbbs::empty>(sym_edges, num_ns_clusters);
+  auto GC = symmetric_graph<symmetric_vertex, gbbs::empty>::from_edges(sym_edges, num_ns_clusters);
 
   gbbs_debug(std::cout << "table.size = " << table.m << std::endl;);
   auto ret_table =

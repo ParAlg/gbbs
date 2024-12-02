@@ -39,7 +39,7 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   };
   auto edges = filter_edges(GA, pack_predicate);
   auto edges_seq = edges.to_seq();
-  return sym_graph_from_edges(edges_seq, n);
+  return symmetric_graph<symmetric_vertex, gbbs::empty>::from_edges(edges_seq, n);
 }
 
 template <class Graph>
