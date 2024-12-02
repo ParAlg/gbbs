@@ -132,18 +132,22 @@ struct symmetric_graph {
     return edges;
   }
 
-  static symmetric_graph from_edges(const sequence<edge>& edges, size_t n = std::numeric_limits<size_t>::max()) {
+  static symmetric_graph from_edges(
+      const sequence<edge> &edges,
+      size_t n = std::numeric_limits<size_t>::max()) {
     size_t m = edges.size();
     if (n == std::numeric_limits<size_t>::max()) {
-      n = 1 + parlay::reduce(parlay::delayed_seq<size_t>(edges.size(), [&] (size_t i) {
-        return std::max(std::get<0>(edges[i]), std::get<1>(edges[i]));
-      }));
+      n = 1 +
+          parlay::reduce(
+              parlay::delayed_seq<size_t>(edges.size(), [&](size_t i) {
+                return std::max(std::get<0>(edges[i]), std::get<1>(edges[i]));
+              }));
     }
     if (m == 0) {
       if (n == 0) {
         std::function<void()> del = []() {};
-        return symmetric_graph<vertex_type, W>(nullptr, 0, 0,
-                                                      std::move(del), nullptr);
+        return symmetric_graph<vertex_type, W>(nullptr, 0, 0, std::move(del),
+                                               nullptr);
       } else {
         auto v_data = gbbs::new_array_no_init<vertex_data>(n);
         parallel_for(0, n, [&](size_t i) {
@@ -157,7 +161,8 @@ struct symmetric_graph {
 
     auto symmetric_edges = EdgeUtils<W>::undirect_and_sort(edges);
     auto offsets = EdgeUtils<W>::compute_offsets(n, symmetric_edges);
-    auto neighbors = EdgeUtils<W>::template get_neighbors<vertex>(symmetric_edges);
+    auto neighbors =
+        EdgeUtils<W>::template get_neighbors<vertex>(symmetric_edges);
     size_t sym_m = symmetric_edges.size();
 
     auto v_data = gbbs::new_array_no_init<vertex_data>(n);
@@ -738,7 +743,6 @@ struct asymmetric_ptr_graph {
         1);
   }
 };
-
 
 template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
 std::tuple<uintE, Wgh> *get_edges(EdgeSeq &A, sequence<uintT> &starts, size_t m,
