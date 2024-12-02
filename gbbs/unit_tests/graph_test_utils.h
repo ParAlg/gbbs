@@ -8,6 +8,7 @@
 
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
+#include "gbbs/helpers/directed_edge.h"
 #include "gbbs/helpers/undirected_edge.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
@@ -37,6 +38,10 @@ symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
 // Make an undirected, unweighted _ptr_graph from a list of edges.
 symmetric_ptr_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricPtrGraph(
     const uintE num_vertices, const std::unordered_set<UndirectedEdge>& edges);
+
+// Make an directed, unweighted graph from a list of edges.
+asymmetric_graph<asymmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
+    const uintE num_vertices, const std::unordered_set<DirectedEdge>& edges);
 
 
 // Check that vertex has `expected_neighbors` as its out-neighbors. Does not

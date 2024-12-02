@@ -29,6 +29,15 @@ cc_library(
 )
 
 cc_library(
+    name = "directed_edge",
+    srcs = ["directed_edge.cc"],
+    hdrs = ["directed_edge.h"],
+    deps = [
+        "//gbbs:macros",
+    ],
+)
+
+cc_library(
     name = "dyn_arr",
     hdrs = ["dyn_arr.h"],
     deps = ["//gbbs:bridge"],

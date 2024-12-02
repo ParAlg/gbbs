@@ -45,6 +45,7 @@ cc_library(
         "//gbbs:graph",
         "//gbbs:macros",
         "//gbbs:vertex",
+        "//gbbs/helpers:directed_edge",
         "//gbbs/helpers:undirected_edge",
         "@googletest//:gtest",
     ],

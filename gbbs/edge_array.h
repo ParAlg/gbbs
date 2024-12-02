@@ -33,6 +33,34 @@ struct EdgeUtils {
   using weight_type = W;
   using edge = std::tuple<uintE, uintE, W>;
 
+  // Flips the orientation of every edge.
+  template <class Seq>
+  static parlay::sequence<edge> transpose(Seq&& edges) {
+    // Duplicate the edges.
+    sequence<edge> rev_edges(edges.size());
+    parlay::parallel_for(0, edges.size(), [&] (size_t i) {
+      auto [u, v, wgh] = edges[i];
+      rev_edges[i] = {v, u, wgh};
+    });
+    return rev_edges;
+  }
+
+  static void sort_edges_inplace(parlay::sequence<edge>& edges) {
+    parlay::sort_inplace(
+      parlay::make_slice(edges), [](const edge& left, const edge& right) {
+        return std::tie(std::get<0>(left), std::get<1>(left)) <
+               std::tie(std::get<0>(right), std::get<1>(right));
+      });
+  }
+
+  static sequence<edge> sort_edges(const parlay::sequence<edge>& edges) {
+    return parlay::sort(
+      parlay::make_slice(edges), [](const edge& left, const edge& right) {
+        return std::tie(std::get<0>(left), std::get<1>(left)) <
+               std::tie(std::get<0>(right), std::get<1>(right));
+      });
+  }
+
   // Given a set of edges (potentially asymmetric), ensure that each edge (u,v)
   // in the input sequence appears as both (u,v) and (v,u). This function also
   // sorts the output edges by id.
@@ -45,11 +73,7 @@ struct EdgeUtils {
       edge_sequence[2 * i + 1] = {v, u, wgh};
     });
     // Sort the edges.
-    parlay::sort_inplace(
-      parlay::make_slice(edge_sequence), [](const edge& left, const edge& right) {
-        return std::tie(std::get<0>(left), std::get<1>(left)) <
-               std::tie(std::get<0>(right), std::get<1>(right));
-      });
+    sort_edges_inplace(edge_sequence);
     // Filter duplicates.
     return filter_index(parlay::make_slice(edge_sequence), [&] (const edge& e, size_t i) {
       return (i == 0) ||
@@ -60,7 +84,8 @@ struct EdgeUtils {
 
   // Given a set of sorted edges as input, compute offsets to the first
   // occurence of each vertex
-  static parlay::sequence<size_t> compute_offsets(size_t n, const parlay::sequence<edge>& edges) {
+  template <class Seq>
+  static parlay::sequence<size_t> compute_offsets(size_t n, const Seq& edges) {
     auto offsets = parlay::sequence<size_t>(n);
     size_t m = edges.size();
     parlay::parallel_for(0, m, [&](size_t i) {
@@ -83,8 +108,8 @@ struct EdgeUtils {
     return offsets;
   }
 
-  template <class vertex>
-  static typename vertex::neighbor_type* get_neighbors(const parlay::sequence<edge>& edges) {
+  template <class vertex, class Seq>
+  static typename vertex::neighbor_type* get_neighbors(const Seq& edges) {
     using neighbor_type = typename vertex::neighbor_type;
     size_t m = edges.size();
     auto neighbors = gbbs::new_array_no_init<neighbor_type>(m);
@@ -93,6 +118,16 @@ struct EdgeUtils {
     });
     return neighbors;
   }
+
+  template <class Seq>
+  static void sort_neighbors_inplace(Seq&& neighbors) {
+    using neighbor = std::tuple<uintE, W>;
+    parlay::sort_inplace(
+      parlay::make_slice(neighbors), [](const neighbor& left, const neighbor& right) {
+        return std::get<0>(left) < std::get<0>(right);
+      });
+  }
+
 
 };
 
