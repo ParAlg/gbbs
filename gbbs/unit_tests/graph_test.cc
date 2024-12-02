@@ -1,10 +1,10 @@
 #include "gbbs/graph.h"
-#include "parlay/primitives.h"
 
 #include <atomic>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "parlay/primitives.h"
 
 namespace gbbs {
 
@@ -22,7 +22,8 @@ ThreeNodeSymPtrGraphFromEdges() {
   edges[1] = std::make_tuple(1, 0, 2);
   edges[2] = std::make_tuple(1, 2, 3);
   edges[3] = std::make_tuple(2, 1, 3);
-  return gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, int>::from_edges(edges, n);
+  return gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, int>::from_edges(
+      edges, n);
 }
 
 }  // namespace
@@ -363,7 +364,6 @@ TEST(TestAsymGraphCopy, TestCopyGraphWithSingletons) {
   ASSERT_EQ(G.get_vertex(4).in_degree(), 0);
 }
 
-
 TEST(TestAsymPtrGraphFromEdges, TestPath) {
   using edge = std::tuple<uintE, uintE, int>;
   uintE n = 11;
@@ -410,7 +410,8 @@ TEST(TestAsymPtrGraphFromEdges, TestGraphWithSingletons) {
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   edges[2] = std::make_tuple(4, 3, 1);
-  auto graph = asymmetric_ptr_graph<asymmetric_vertex, int>::from_edges(edges, n);
+  auto graph =
+      asymmetric_ptr_graph<asymmetric_vertex, int>::from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
   ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
@@ -435,7 +436,8 @@ TEST(TestAsymPtrGraphCopy, TestCopyGraphWithSingletons) {
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   edges[2] = std::make_tuple(4, 3, 1);
-  auto graph = asymmetric_ptr_graph<asymmetric_vertex, int>::from_edges(edges, n);
+  auto graph =
+      asymmetric_ptr_graph<asymmetric_vertex, int>::from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
   ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
@@ -465,6 +467,5 @@ TEST(TestAsymPtrGraphCopy, TestCopyGraphWithSingletons) {
   ASSERT_EQ(G.get_vertex(3).in_degree(), 1);
   ASSERT_EQ(G.get_vertex(4).in_degree(), 0);
 }
-
 
 }  // namespace gbbs

@@ -362,7 +362,8 @@ struct symmetric_ptr_graph {
     if (m == 0) {
       if (n == 0) {
         std::function<void()> del = []() {};
-        return symmetric_ptr_graph<vertex_type, W>(0, 0, nullptr, std::move(del));
+        return symmetric_ptr_graph<vertex_type, W>(0, 0, nullptr,
+                                                   std::move(del));
       } else {
         auto vertices = gbbs::new_array_no_init<vertex>(n);
         parallel_for(0, n, [&](size_t i) {
@@ -390,15 +391,11 @@ struct symmetric_ptr_graph {
       vertices[i] = vertex(neighbors, v_data, i);
     });
 
-    return symmetric_ptr_graph<vertex_type, W>(
-        n, sym_m,
-        vertices,
-        [=]() {
-          gbbs::free_array(vertices, n);
-          gbbs::free_array(neighbors, m);
-        });
+    return symmetric_ptr_graph<vertex_type, W>(n, sym_m, vertices, [=]() {
+      gbbs::free_array(vertices, n);
+      gbbs::free_array(neighbors, m);
+    });
   }
-
 
   // ======================= Constructors and fields  ========================
   symmetric_ptr_graph()
@@ -707,32 +704,31 @@ struct asymmetric_graph {
     auto out_offsets = EdgeUtils<W>::compute_offsets(n, all_out_edges);
     auto in_offsets = EdgeUtils<W>::compute_offsets(n, all_in_edges);
 
-    auto out_edges = EdgeUtils<W>::template get_neighbors<vertex>(all_out_edges);
+    auto out_edges =
+        EdgeUtils<W>::template get_neighbors<vertex>(all_out_edges);
     auto in_edges = EdgeUtils<W>::template get_neighbors<vertex>(all_in_edges);
 
     auto in_v_data = gbbs::new_array_no_init<vertex_data>(n);
     auto out_v_data = gbbs::new_array_no_init<vertex_data>(n);
 
-    parlay::parallel_for(
-      0, n,
-      [&](size_t i) {
-        in_v_data[i].offset = in_offsets[i];
-        in_v_data[i].degree =
-            (uintE)(((i == (n - 1)) ? m : in_offsets[i + 1]) - in_offsets[i]);
+    parlay::parallel_for(0, n, [&](size_t i) {
+      in_v_data[i].offset = in_offsets[i];
+      in_v_data[i].degree =
+          (uintE)(((i == (n - 1)) ? m : in_offsets[i + 1]) - in_offsets[i]);
 
-        out_v_data[i].offset = out_offsets[i];
-        out_v_data[i].degree =
-            (uintE)(((i == (n - 1)) ? m : out_offsets[i + 1]) - out_offsets[i]);
+      out_v_data[i].offset = out_offsets[i];
+      out_v_data[i].degree =
+          (uintE)(((i == (n - 1)) ? m : out_offsets[i + 1]) - out_offsets[i]);
     });
-  return asymmetric_graph<asymmetric_vertex, W>(
-      out_v_data, in_v_data, n, m,
-      [=]() {
-        gbbs::free_array(in_v_data, n);
-        gbbs::free_array(out_v_data, n);
-        gbbs::free_array(in_edges, m);
-        gbbs::free_array(out_edges, m);
-      },
-      (neighbor_type *)out_edges, (neighbor_type *)in_edges);
+    return asymmetric_graph<asymmetric_vertex, W>(
+        out_v_data, in_v_data, n, m,
+        [=]() {
+          gbbs::free_array(in_v_data, n);
+          gbbs::free_array(out_v_data, n);
+          gbbs::free_array(in_edges, m);
+          gbbs::free_array(out_edges, m);
+        },
+        (neighbor_type *)out_edges, (neighbor_type *)in_edges);
   }
 };
 
@@ -904,11 +900,7 @@ struct asymmetric_ptr_graph {
           data.degree = 0;
           vertices[i] = vertex(nullptr, data, nullptr, data, i);
         });
-        return graph(
-            n, 0, vertices,
-            [=]() {
-              gbbs::free_array(vertices, n);
-            });
+        return graph(n, 0, vertices, [=]() { gbbs::free_array(vertices, n); });
       }
     }
 
@@ -919,162 +911,30 @@ struct asymmetric_ptr_graph {
     auto out_offsets = EdgeUtils<W>::compute_offsets(n, all_out_edges);
     auto in_offsets = EdgeUtils<W>::compute_offsets(n, all_in_edges);
 
-    auto out_edges = EdgeUtils<W>::template get_neighbors<vertex>(all_out_edges);
+    auto out_edges =
+        EdgeUtils<W>::template get_neighbors<vertex>(all_out_edges);
     auto in_edges = EdgeUtils<W>::template get_neighbors<vertex>(all_in_edges);
 
     auto vertices = gbbs::new_array_no_init<vertex>(n);
 
-    parlay::parallel_for(
-      0, n,
-      [&](size_t i) {
-        vertex_data in_v_data;
-        vertex_data out_v_data;
-        in_v_data.offset = in_offsets[i];
-        in_v_data.degree =
-            (uintE)(((i == (n - 1)) ? m : in_offsets[i + 1]) - in_offsets[i]);
-        out_v_data.offset = out_offsets[i];
-        out_v_data.degree =
-            (uintE)(((i == (n - 1)) ? m : out_offsets[i + 1]) - out_offsets[i]);
+    parlay::parallel_for(0, n, [&](size_t i) {
+      vertex_data in_v_data;
+      vertex_data out_v_data;
+      in_v_data.offset = in_offsets[i];
+      in_v_data.degree =
+          (uintE)(((i == (n - 1)) ? m : in_offsets[i + 1]) - in_offsets[i]);
+      out_v_data.offset = out_offsets[i];
+      out_v_data.degree =
+          (uintE)(((i == (n - 1)) ? m : out_offsets[i + 1]) - out_offsets[i]);
 
-        vertices[i] = vertex(out_edges, out_v_data, in_edges, in_v_data, i);
+      vertices[i] = vertex(out_edges, out_v_data, in_edges, in_v_data, i);
     });
-  return graph(
-      n, m, vertices,
-      [=]() {
-        gbbs::free_array(vertices, n);
-        gbbs::free_array(in_edges, m);
-        gbbs::free_array(out_edges, m);
-      });
+    return graph(n, m, vertices, [=]() {
+      gbbs::free_array(vertices, n);
+      gbbs::free_array(in_edges, m);
+      gbbs::free_array(out_edges, m);
+    });
   }
-
 };
-
-template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
-std::tuple<uintE, Wgh> *get_edges(EdgeSeq &A, sequence<uintT> &starts, size_t m,
-                                  const GetU &get_u, const GetV &get_v,
-                                  const GetW &get_w) {
-  using neighbor = std::tuple<uintE, Wgh>;
-  auto edges = gbbs::new_array_no_init<neighbor>(m);
-  parallel_for(0, m, [&](size_t i) {
-    if (i == 0 || (get_u(A[i]) != get_u(A[i - 1]))) {
-      starts[get_u(A[i])] = i;
-    }
-    if (i != (m - 1)) {
-      uintE our_vtx = get_u(A[i]);
-      uintE next_vtx = get_u(A[i + 1]);
-      if (our_vtx != next_vtx && (our_vtx + 1 != next_vtx)) {
-        parallel_for(our_vtx + 1, next_vtx,
-                     [&](size_t k) { starts[k] = i + 1; });
-      }
-    }
-    if (i == (m - 1)) { /* last edge */
-      parallel_for(get_u(A[i]) + 1, starts.size(),
-                   [&](size_t j) { starts[j] = m; });
-    }
-    edges[i] = std::make_tuple(get_v(A[i]), get_w(A[i]));
-  });
-  return edges;
-}
-
-// Mutates (sorts) the underlying array A containing a black-box description of
-// an edge of typename A::value_type. The caller provides functions GetU, GetV,
-// and GetW which extract the u, v, and weight of a (u,v,w) edge respective (if
-// the edge is a std::tuple<uinte, uintE, W> this is just get<0>, ..<1>, ..<2>
-// respectively.
-// e.g.:
-//   using edge = std::tuple<uintE, uintE, W>;
-//   auto get_u = [&] (const edge& e) { return std::get<0>(e); };
-//   auto get_v = [&] (const edge& e) { return std::get<1>(e); };
-//   auto get_w = [&] (const edge& e) { return std::get<2>(e); };
-//   auto G = asym_graph_from_edges<W>(coo1, get_u, get_v, get_w, 10, false);
-template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
-static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
-    EdgeSeq &A, size_t n, GetU &&get_u, GetV &&get_v, GetW &&get_w,
-    bool is_sorted = false) {
-  using vertex = asymmetric_vertex<Wgh>;
-  using neighbor_type = typename vertex::neighbor_type;
-  size_t m = A.size();
-
-  if (m == 0) {
-    if (n == 0) {
-      std::function<void()> del = []() {};
-      return asymmetric_graph<asymmetric_vertex, Wgh>(nullptr, nullptr, 0, 0,
-                                                      del, nullptr, nullptr);
-    } else {
-      auto v_in_data = gbbs::new_array_no_init<vertex_data>(n);
-      auto v_out_data = gbbs::new_array_no_init<vertex_data>(n);
-      parallel_for(0, n, [&](size_t i) {
-        v_in_data[i].offset = 0;
-        v_in_data[i].degree = 0;
-
-        v_out_data[i].offset = 0;
-        v_out_data[i].degree = 0;
-      });
-      return asymmetric_graph<asymmetric_vertex, Wgh>(
-          v_out_data, v_in_data, n, 0,
-          [=]() {
-            gbbs::free_array(v_out_data, n);
-            gbbs::free_array(v_in_data, n);
-          },
-          nullptr, nullptr);
-    }
-  }
-
-  // flip to create the in-edges
-  auto I = sequence<typename EdgeSeq::value_type>::from_function(
-      A.size(), [&](size_t i) {
-        using T = typename EdgeSeq::value_type;
-        auto e = A[i];
-        return T(get_v(e), get_u(e), get_w(e));
-      });
-
-  if (!is_sorted) {
-    parlay::integer_sort_inplace(make_slice(A), get_u);
-    parlay::integer_sort_inplace(make_slice(I), get_u);
-  }
-
-  auto in_starts = sequence<uintT>(n + 1, (uintT)0);
-  auto out_starts = sequence<uintT>(n + 1, (uintT)0);
-
-  auto in_edges = get_edges<Wgh>(I, in_starts, m, get_u, get_v, get_w);
-  auto out_edges = get_edges<Wgh>(A, out_starts, m, get_u, get_v, get_w);
-
-  auto in_v_data = gbbs::new_array_no_init<vertex_data>(n);
-  auto out_v_data = gbbs::new_array_no_init<vertex_data>(n);
-  parallel_for(
-      0, n,
-      [&](size_t i) {
-        uintT in_o = in_starts[i];
-        in_v_data[i].offset = in_o;
-        in_v_data[i].degree =
-            (uintE)(((i == (n - 1)) ? m : in_starts[i + 1]) - in_o);
-
-        uintT out_o = out_starts[i];
-        out_v_data[i].offset = out_o;
-        out_v_data[i].degree =
-            (uintE)(((i == (n - 1)) ? m : out_starts[i + 1]) - out_o);
-      },
-      1024);
-  return asymmetric_graph<asymmetric_vertex, Wgh>(
-      out_v_data, in_v_data, n, m,
-      [=]() {
-        gbbs::free_array(in_v_data, n);
-        gbbs::free_array(out_v_data, n);
-        gbbs::free_array(in_edges, m);
-        gbbs::free_array(out_edges, m);
-      },
-      (neighbor_type *)out_edges, (neighbor_type *)in_edges);
-}
-
-template <class Wgh>
-static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
-    sequence<std::tuple<uintE, uintE, Wgh>> &A, size_t n,
-    bool is_sorted = false) {
-  using edge = std::tuple<uintE, uintE, Wgh>;
-  auto get_u = [&](const edge &e) { return std::get<0>(e); };
-  auto get_v = [&](const edge &e) { return std::get<1>(e); };
-  auto get_w = [&](const edge &e) { return std::get<2>(e); };
-  return asym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
-}
 
 }  // namespace gbbs

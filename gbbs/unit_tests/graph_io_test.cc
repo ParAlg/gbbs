@@ -25,7 +25,8 @@ TEST(EdgeListToAsymmetricGraph, DuplicateEdges) {
   // Graph diagram:
   // 0 --> 1
   const std::vector<gi::Edge<NoWeight>> kEdges{
-      {0, 1}, {0, 1},
+      {0, 1},
+      {0, 1},
   };
   auto graph{gi::edge_list_to_asymmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 2);
@@ -160,7 +161,9 @@ TEST(EdgeListToSymmetricGraph, DuplicateEdges) {
   // Graph diagram:
   // 0 --- 1
   const std::vector<gi::Edge<NoWeight>> kEdges{
-      {0, 1}, {1, 0}, {0, 1},
+      {0, 1},
+      {1, 0},
+      {0, 1},
   };
   auto graph{gi::edge_list_to_symmetric_graph(kEdges)};
   EXPECT_EQ(graph.n, 2);

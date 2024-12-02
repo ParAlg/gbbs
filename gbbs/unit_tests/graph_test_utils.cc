@@ -13,14 +13,16 @@ symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
   sequence<Edge> edge_sequence(edges.size());
   auto edges_it{edges.cbegin()};
   for (size_t i = 0; i < edges.size(); i++) {
-    edge_sequence[i] = std::make_tuple(
-        edges_it->endpoints().first, edges_it->endpoints().second, weight);
+    edge_sequence[i] = std::make_tuple(edges_it->endpoints().first,
+                                       edges_it->endpoints().second, weight);
     ++edges_it;
   }
-  return symmetric_graph<symmetric_vertex, gbbs::empty>::from_edges(edge_sequence, num_vertices);
+  return symmetric_graph<symmetric_vertex, gbbs::empty>::from_edges(
+      edge_sequence, num_vertices);
 }
 
-symmetric_ptr_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricPtrGraph(
+symmetric_ptr_graph<symmetric_vertex, gbbs::empty>
+MakeUnweightedSymmetricPtrGraph(
     const uintE num_vertices, const std::unordered_set<UndirectedEdge>& edges) {
   using Edge = std::tuple<uintE, uintE, gbbs::empty>;
   using Weight = gbbs::empty;
@@ -29,12 +31,13 @@ symmetric_ptr_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricPtrGra
   sequence<Edge> edge_sequence(edges.size());
   auto edges_it{edges.cbegin()};
   for (size_t i = 0; i < edges.size(); i++) {
-    edge_sequence[i] = std::make_tuple(
-        edges_it->endpoints().first, edges_it->endpoints().second, weight);
+    edge_sequence[i] = std::make_tuple(edges_it->endpoints().first,
+                                       edges_it->endpoints().second, weight);
     ++edges_it;
   }
 
-  return symmetric_ptr_graph<symmetric_vertex, gbbs::empty>::from_edges(edge_sequence, num_vertices);
+  return symmetric_ptr_graph<symmetric_vertex, gbbs::empty>::from_edges(
+      edge_sequence, num_vertices);
 }
 
 asymmetric_graph<asymmetric_vertex, gbbs::empty> MakeUnweightedAsymmetricGraph(
@@ -45,11 +48,12 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> MakeUnweightedAsymmetricGraph(
   sequence<Edge> edge_sequence(edges.size());
   auto edges_it{edges.cbegin()};
   for (size_t i = 0; i < edges.size(); i++) {
-    edge_sequence[i] = std::make_tuple(
-        edges_it->endpoints().first, edges_it->endpoints().second, weight);
+    edge_sequence[i] = std::make_tuple(edges_it->endpoints().first,
+                                       edges_it->endpoints().second, weight);
     ++edges_it;
   }
-  return asymmetric_graph<asymmetric_vertex, gbbs::empty>::from_edges(edge_sequence, num_vertices);
+  return asymmetric_graph<asymmetric_vertex, gbbs::empty>::from_edges(
+      edge_sequence, num_vertices);
 }
 
 }  // namespace graph_test
