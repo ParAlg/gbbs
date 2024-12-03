@@ -20,6 +20,34 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+//
+// This file provides several different implementations of a power-iteration
+// kernel for computing PageRank.
+//
+// All implementations work for both undirected and directed graphs. The
+// implementations are:
+// 1. PageRank_edgeMap
+// 2. PageRank
+// 3. delta::PageRankDelta
+//
+// The codes handle vertices with zero out-degree by giving them (implicit)
+// out-edges to every other vertex. The implementation sums up the mass of the
+// zero out-degree vertices in each iteration and spreads a 1/n fraction to
+// every vertex.
+//
+// The difference between implementations (1) and (2) are some optimizations
+// used to speed up how the matrix-vector product works. We should carefully
+// benchmark the two implementations again, but from a few years ago (~2020),
+// the PageRank code was consistently faster than PageRank_edgeMap by 20--30% on
+// the WDC2012 graph.
+//
+// TODOs:
+// - There are unit tests for the first two implementations, but unit tests need
+//   to be added for PageRankDelta (TODO(laxmand)).
+// - PageRankDelta needs to be updated to handle dangling edges.
+// - Benchmark PageRank_edgeMap and PageRank and update the performance numbers
+//   above.
+
 #pragma once
 
 #include "gbbs/edge_map_reduce.h"
