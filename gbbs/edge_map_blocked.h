@@ -296,7 +296,6 @@ struct emhelper {
     auto& vec = perthread_blocks[group_id * kThreadBlockStride];
     if (vec.size() == 0) {  // alloc new
       block_ptr = gbbs::new_array_no_init<em_data_block>(1);
-      std::cout << "Allocating!" << std::endl;
       vec.emplace_back(block_ptr);
       block_ptr->block_size = 0;
     } else {

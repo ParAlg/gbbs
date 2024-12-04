@@ -17,14 +17,16 @@ namespace gbbs {
 
 struct PageRank_ligra {
   template <class Graph>
-  static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
+  static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001,
+                                           size_t max_iters = 100) {
     return PageRank_edgeMap(G, eps, max_iters);
   }
 };
 
 struct PageRank_opt {
   template <class Graph>
-  static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
+  static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001,
+                                           size_t max_iters = 100) {
     return PageRank(G, eps, max_iters);
   }
 };
@@ -45,7 +47,7 @@ TYPED_TEST(PageRankFixture, EdgelessGraph) {
 
   using Impl = typename TestFixture::Impl;
   const sequence<double> result = Impl::compute_pagerank(graph);
-  EXPECT_THAT(result, ElementsAre(1.0/3, 1.0/3, 1.0/3));
+  EXPECT_THAT(result, ElementsAre(1.0 / 3, 1.0 / 3, 1.0 / 3));
 }
 
 TYPED_TEST(PageRankFixture, Cycle) {
@@ -61,8 +63,7 @@ TYPED_TEST(PageRankFixture, Cycle) {
 
   {
     const sequence<double> result{Impl::compute_pagerank(graph)};
-    EXPECT_THAT(result,
-                ElementsAre(0.2, 0.2, 0.2, 0.2, 0.2));
+    EXPECT_THAT(result, ElementsAre(0.2, 0.2, 0.2, 0.2, 0.2));
   }
 }
 
@@ -72,7 +73,8 @@ TYPED_TEST(PageRankFixture, Path) {
   //
   constexpr uintE kNumVertices{3};
   const std::unordered_set<UndirectedEdge> kEdges{
-      {0, 1}, {1, 2},
+      {0, 1},
+      {1, 2},
   };
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   using Impl = typename TestFixture::Impl;
@@ -80,7 +82,8 @@ TYPED_TEST(PageRankFixture, Path) {
   {
     const sequence<double> result{Impl::compute_pagerank(graph)};
     const sequence<double> expected{0.2567570878, 0.4864858243, 0.2567570878};
-    EXPECT_THAT(result, testing::Pointwise(testing::DoubleNear(1e-4), expected));
+    EXPECT_THAT(result,
+                testing::Pointwise(testing::DoubleNear(1e-4), expected));
   }
 }
 
@@ -98,9 +101,12 @@ TYPED_TEST(PageRankFixture, BasicUndirected) {
 
   {
     const sequence<double> result{Impl::compute_pagerank(graph)};
-    const sequence<double> expected{0.1428571429, 0.1428571429, 0.0802049539, 0.2074472351, 0.1389813363, 0.2074472351, 0.0802049539};
+    const sequence<double> expected{0.1428571429, 0.1428571429, 0.0802049539,
+                                    0.2074472351, 0.1389813363, 0.2074472351,
+                                    0.0802049539};
 
-    EXPECT_THAT(result, testing::Pointwise(testing::DoubleNear(1e-4), expected));
+    EXPECT_THAT(result,
+                testing::Pointwise(testing::DoubleNear(1e-4), expected));
   }
 }
 
