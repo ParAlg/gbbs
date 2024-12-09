@@ -113,7 +113,7 @@ struct PR_Vertex_Reset {
 
 template <class Graph>
 sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
-                                  size_t max_iters = 100) {
+                                  size_t max_iters = 100, gbbs::flags flags = 0) {
   const uintE n = G.n;
   const double damping = 0.85;
 
@@ -140,27 +140,31 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
 
     // SpMV
     edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G), 0,
-            no_output);
+            no_output | flags);
     vertexMap(Frontier,
               PR_Vertex_F(p_curr.begin(), p_next.begin(), damping, n,
                           dangling_sum, one_over_n));
 
-    // Check convergence: compute L1-norm between p_curr and p_next
+    // Check convergence: compute L1-norm between p_curr and p_next.
     auto differences = parlay::delayed_seq<double>(
         n, [&](size_t i) { return fabs(p_curr[i] - p_next[i]); });
     double L1_norm = parlay::reduce(differences);
-    if (L1_norm < eps) break;
+
+    // Swap p_curr and p_next. The final vector returned will be p_curr.
+    std::swap(p_curr, p_next);
+    if (L1_norm < eps) {
+      break;
+    }
 
     gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
     // Reset p_curr
-    parallel_for(0, n, [&](size_t i) { p_curr[i] = static_cast<double>(0); });
-    std::swap(p_curr, p_next);
+    parallel_for(0, n, [&](size_t i) { p_next[i] = static_cast<double>(0); });
 
     gbbs_debug(t.stop(); t.next("iteration time"););
   }
-  auto max_pr = parlay::reduce_max(p_next);
+  auto max_pr = parlay::reduce_max(p_curr);
   std::cout << "max_pr = " << max_pr << std::endl;
-  return p_next;
+  return p_curr;
 }
 
 template <class Graph>
@@ -227,7 +231,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
     timer tt;
     tt.start();
     EM.template edgeMapReduce_dense<double, double>(
-        Frontier, cond_f, map_f, reduce_f, apply_f, 0.0, no_output);
+        Frontier, cond_f, map_f, reduce_f, apply_f, 0.0, no_output | in_edges);
     tt.stop();
     tt.next("em time");
 
