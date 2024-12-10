@@ -27,7 +27,7 @@ struct PageRank_opt {
   template <class Graph>
   static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001,
                                            size_t max_iters = 100) {
-    return PageRank(G, eps, max_iters);
+    return PageRank_edgeMapReduce(G, eps, max_iters);
   }
 };
 
