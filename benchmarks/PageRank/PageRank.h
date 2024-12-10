@@ -112,6 +112,16 @@ struct PR_Vertex_Reset {
   }
 };
 
+// Power iteration implementation of PageRank that uses Ligra's edgeMap
+// functionality to perform sparse matrix-vector (SpMV) products. The dense
+// implementation of edgeMap should be called in every iteration, which will
+// require the in-edges of the graph being materialized (this expectation is met
+// if using an undirected graph, or if the directed graph has both
+// in-/out-edges materialized.
+//
+// If you are using a directed graph *without* in-edges being materialized, you
+// must pass the flag gbbs::dense_forward, which ensures that edgeMap does not
+// use the in-edges of the graph.
 template <class Graph>
 sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
                                   size_t max_iters = 100, gbbs::flags flags = 0) {
