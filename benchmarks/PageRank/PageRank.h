@@ -27,7 +27,7 @@
 // All implementations work for both undirected and directed graphs. The
 // implementations are:
 // 1. PageRank_edgeMap
-// 2. PageRank
+// 2. PageRank_edgeMapReduce
 // 3. delta::PageRankDelta
 //
 // The codes handle vertices with zero out-degree by giving them (implicit)
@@ -41,12 +41,13 @@
 // the PageRank code was consistently faster than PageRank_edgeMap by 20--30% on
 // the WDC2012 graph.
 //
-// TODOs:
+// TODOs(laxmand):
 // - There are unit tests for the first two implementations, but unit tests need
-//   to be added for PageRankDelta (TODO(laxmand)).
+//   to be added for PageRankDelta.
 // - PageRankDelta needs to be updated to handle dangling edges.
-// - Benchmark PageRank_edgeMap and PageRank and update the performance numbers
-//   above.
+// - Add support for weighted graphs.
+// - Benchmark PageRank_edgeMap and PageRank_edgeMapReduce and update the
+//   performance numbers above.
 
 #pragma once
 
@@ -167,8 +168,16 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
   return p_curr;
 }
 
+// This version of PageRank uses edgeMapReduce_dense, an implementation
+// which reduces over the in-neighbors of every vertex and aggregates the
+// incoming contributions to each vertex in parallel.
+//
+// The key difference between PageRank_edgeMapReduce and PageRank_edgeMap
+// (above) is that PageRank_edgeMap will *sequentially* aggregate the incoming
+// contributions to a vertex, whereas PageRank_edgeMapReduce will do this
+// reduction in parallel.
 template <class Graph>
-sequence<double> PageRank(Graph& G, double eps = 0.000001,
+sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
                           size_t max_iters = 100) {
   using W = typename Graph::weight_type;
   const uintE n = G.n;
@@ -205,7 +214,6 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
   auto cond_f = [&](const uintE& v) { return true; };
   auto map_f = [&](const uintE& d, const uintE& s, const W& wgh) -> double {
     return p_div[s];
-    //    return p_curr[s] / degrees[s];
   };
   auto reduce_f = [&](double l, double r) { return l + r; };
   auto apply_f = [&](
@@ -230,6 +238,7 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
     // SpMV
     timer tt;
     tt.start();
+    // Ensure we map over the in-edges here.
     EM.template edgeMapReduce_dense<double, double>(
         Frontier, cond_f, map_f, reduce_f, apply_f, 0.0, no_output | in_edges);
     tt.stop();
@@ -242,18 +251,20 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001,
       return fabs(d - p_next[i]);
     });
     double L1_norm = parlay::reduce(differences, parlay::plus<double>());
-    if (L1_norm < eps) break;
+    std::swap(p_curr, p_next);
+    // Reset p_curr and p_div.
+    std::swap(p_div, p_div_next);
+    if (L1_norm < eps) {
+      break;
+    }
     gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
-    // Reset p_curr and p_div
-    std::swap(p_curr, p_next);
-    std::swap(p_div, p_div_next);
     t.stop();
     t.next("iteration time");
   }
-  auto max_pr = parlay::reduce_max(p_next);
+  auto max_pr = parlay::reduce_max(p_curr);
   std::cout << "max_pr = " << max_pr << std::endl;
-  return p_next;
+  return p_curr;
 }
 
 namespace delta {
