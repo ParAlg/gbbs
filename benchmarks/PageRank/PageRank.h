@@ -119,12 +119,13 @@ struct PR_Vertex_Reset {
 // if using an undirected graph, or if the directed graph has both
 // in-/out-edges materialized.
 //
-// If you are using a directed graph *without* in-edges being materialized, you
-// must pass the flag gbbs::dense_forward, which ensures that edgeMap does not
-// use the in-edges of the graph.
+// The last argument should only be set to false if the graph you are using does
+// not have its in-edges materialized.
 template <class Graph>
-sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
-                                  size_t max_iters = 100, gbbs::flags flags = 0) {
+sequence<double> PageRank_edgeMap(Graph& G,
+                                  double eps = 0.000001,
+                                  size_t max_iters = 100,
+                                  bool has_in_edges=true) {
   const uintE n = G.n;
   const double damping = 0.85;
 
@@ -140,6 +141,12 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
       parlay::delayed_seq<bool>(n, [&] (size_t i) {
         return G.get_vertex(i).out_degree() == 0; }));
 
+  // If the graph does not have in-edges materialized, use the dense-forward
+  // setting.
+  gbbs::flags flags = (!has_in_edges) ? gbbs::dense_forward : 0;
+  // edgeMap does not require returning an output vertex subset.
+  flags |= gbbs::no_output;
+
   size_t iter = 0;
   while (iter++ < max_iters) {
     gbbs_debug(timer t; t.start(););
@@ -151,7 +158,7 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001,
 
     // SpMV
     edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G), 0,
-            no_output | flags);
+            flags);
     vertexMap(Frontier,
               PR_Vertex_F(p_curr.begin(), p_next.begin(), damping, n,
                           dangling_sum, one_over_n));

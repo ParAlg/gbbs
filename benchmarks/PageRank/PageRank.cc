@@ -56,7 +56,7 @@ double PageRank_runner(Graph& G, commandLine P) {
   } else if (P.getOptionValue("-delta")) {
     auto ret = delta::PageRankDelta(G, eps, local_eps, iters);
   } else {
-    auto ret = PageRank(G, eps, iters);
+    auto ret = PageRank_edgeMapReduce(G, eps, iters);
   }
   double tt = t.stop();
 
