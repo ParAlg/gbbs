@@ -94,8 +94,7 @@ label_type compute_new_color(Graph& G,
 template <class Graph>
 parlay::sequence<label_type> LabelPropagation(
     Graph& G, const parlay::sequence<label_type>& initial_labels,
-    size_t max_iters = 100,
-    bool use_async = true,
+    size_t max_iters = 100, bool use_async = true,
     bool use_graph_coloring = false) {
   const uintE n = G.n;
   using Weight = typename Graph::weight_type;
@@ -119,7 +118,8 @@ parlay::sequence<label_type> LabelPropagation(
     use_async = true;
     coloring = Coloring(G);
     color_and_node = parlay::tabulate<std::pair<color, gbbs::uintE>>(
-        coloring.size(), [&](gbbs::uintE i) { return std::make_pair(coloring[i], i); });
+        coloring.size(),
+        [&](gbbs::uintE i) { return std::make_pair(coloring[i], i); });
     parlay::sort_inplace(coloring);
     color_starts = parlay::pack_index(
         parlay::delayed_seq<bool>(color_and_node.size(), [&](size_t i) {
