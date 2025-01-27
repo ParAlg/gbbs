@@ -153,8 +153,8 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
                  [&](size_t i) {
                    if (cond_f(i)) {
                      auto neighbors = (fl & in_edges)
-                                          ? GA.get_vertex(i).in_neighbors()
-                                          : GA.get_vertex(i).out_neighbors();
+                                          ? GA.get_vertex(i).out_neighbors()
+                                          : GA.get_vertex(i).in_neighbors();
                      size_t count = neighbors.count(count_f);
 
                      auto tup = std::make_tuple(i, count);
@@ -171,8 +171,8 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
                  [&](size_t i) {
                    if (cond_f(i)) {
                      auto neighbors = (fl & in_edges)
-                                          ? GA.get_vertex(i).in_neighbors()
-                                          : GA.get_vertex(i).out_neighbors();
+                                          ? GA.get_vertex(i).out_neighbors()
+                                          : GA.get_vertex(i).in_neighbors();
                      size_t count = neighbors.count(count_f);
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
@@ -338,8 +338,8 @@ struct EdgeMap {
                    [&](size_t i) {
                      if (cond_f(i)) {
                        auto neighbors = (fl & in_edges)
-                                            ? G.get_vertex(i).in_neighbors()
-                                            : G.get_vertex(i).out_neighbors();
+                                            ? G.get_vertex(i).out_neighbors()
+                                            : G.get_vertex(i).in_neighbors();
                        M reduced_val = neighbors.reduce(map_f, red_monoid);
                        auto tup = std::make_tuple(i, reduced_val);
                        apply_f(tup);
@@ -360,8 +360,8 @@ struct EdgeMap {
                      }
                      if (cond_f(i)) {
                        auto neighbors = (fl & in_edges)
-                                            ? G.get_vertex(i).in_neighbors()
-                                            : G.get_vertex(i).out_neighbors();
+                                            ? G.get_vertex(i).out_neighbors()
+                                            : G.get_vertex(i).in_neighbors();
                        M reduced_val = neighbors.reduce(map_f, red_monoid);
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);
@@ -469,8 +469,8 @@ struct EdgeMap {
       parallel_for(0, n,
                    [&](size_t i) {
                      auto neighbors = (fl & in_edges)
-                                          ? G.get_vertex(i).in_neighbors()
-                                          : G.get_vertex(i).out_neighbors();
+                                          ? G.get_vertex(i).out_neighbors()
+                                          : G.get_vertex(i).in_neighbors();
                      size_t count = neighbors.count(count_f);
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
@@ -484,8 +484,8 @@ struct EdgeMap {
       parallel_for(0, n,
                    [&](size_t i) {
                      auto neighbors = (fl & in_edges)
-                                          ? G.get_vertex(i).in_neighbors()
-                                          : G.get_vertex(i).out_neighbors();
+                                          ? G.get_vertex(i).out_neighbors()
+                                          : G.get_vertex(i).in_neighbors();
                      size_t count = neighbors.count(count_f);
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
