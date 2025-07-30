@@ -1,3 +1,5 @@
+// TODO: Add tests for `PageRank_edgeMap` with `has_in_edges = false`.
+
 #include "benchmarks/PageRank/PageRank.h"
 
 #include <cstddef>
@@ -8,18 +10,20 @@
 #include "gtest/gtest.h"
 #include "benchmarks/PageRank/PageRank_edgeMapReduce.h"
 #include "gbbs/bridge.h"
+#include "gbbs/graph.h"
 #include "gbbs/helpers/undirected_edge.h"
 #include "gbbs/macros.h"
 #include "gbbs/unit_tests/graph_test_utils.h"
+#include "gbbs/vertex.h"
 
+using ::testing::DoubleNear;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
+using ::testing::Pointwise;
 
 namespace gbbs {
 
-// TODO: add tests for directed graphs.
-
-struct PageRank_ligra {
+struct PageRank_edgeMapFunctor {
   template <class Graph>
   static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001,
                                            std::vector<uintE> sources = {},
@@ -29,7 +33,7 @@ struct PageRank_ligra {
   }
 };
 
-struct PageRank_opt {
+struct PageRank_edgeMapReduceFunctor {
   template <class Graph>
   static sequence<double> compute_pagerank(Graph& G, double eps = 0.000001,
                                            std::vector<uintE> sources = {},
@@ -45,7 +49,8 @@ class PageRankFixture : public testing::Test {
   using Impl = T;
 };
 
-using Implementations = ::testing::Types<PageRank_ligra, PageRank_opt>;
+using Implementations =
+    ::testing::Types<PageRank_edgeMapFunctor, PageRank_edgeMapReduceFunctor>;
 TYPED_TEST_SUITE(PageRankFixture, Implementations);
 
 TYPED_TEST(PageRankFixture, EmptyGraph) {
@@ -116,7 +121,7 @@ TYPED_TEST(PageRankFixture, Path) {
     const sequence<double> result{Impl::compute_pagerank(graph)};
     const sequence<double> expected{0.2567570878, 0.4864858243, 0.2567570878};
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 }
 
@@ -139,7 +144,7 @@ TYPED_TEST(PageRankFixture, BasicUndirected) {
                                     0.0802049539};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 }
 
@@ -165,7 +170,7 @@ TYPED_TEST(PageRankFixture, TwoSources) {
                                     0.0384308511};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 }
 
@@ -187,7 +192,7 @@ TYPED_TEST(PageRankFixture, AllButOneSource) {
                                     0.1707678884, 0.2009045292};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 }
 
@@ -204,7 +209,7 @@ TYPED_TEST(PageRankFixture, TwoNodesNoEdges) {
     const sequence<double> expected{0.5, 0.5};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 
   {
@@ -214,7 +219,7 @@ TYPED_TEST(PageRankFixture, TwoNodesNoEdges) {
     const sequence<double> expected{1.0, 0};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 }
 
@@ -233,7 +238,7 @@ TYPED_TEST(PageRankFixture, TwoNodesOneEdge) {
     const sequence<double> expected{0.5, 0.5};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 
   {
@@ -248,7 +253,7 @@ TYPED_TEST(PageRankFixture, TwoNodesOneEdge) {
     const sequence<double> expected{0.5405409317, 0.4594590684};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 }
 
@@ -275,7 +280,7 @@ TYPED_TEST(PageRankFixture, FourNodePathOneSource) {
                                     0.32456143941137061, 0.17543856058862931};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 
   {
@@ -293,7 +298,7 @@ TYPED_TEST(PageRankFixture, FourNodePathOneSource) {
                                     0.1012846445};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
 
   {
@@ -311,8 +316,78 @@ TYPED_TEST(PageRankFixture, FourNodePathOneSource) {
                                     0.2017542424};
 
     EXPECT_THAT(result,
-                testing::Pointwise(testing::DoubleNear(1e-4), expected));
+                Pointwise(DoubleNear(1e-4), expected));
   }
+}
+
+TEST(PageRankEdgeMapFunctorTest, WeightedDigraph) {
+  // Graph diagram (each number wrapped in parentheses denotes the weight of its
+  // nearest edge):
+  //
+  //            3
+  //           ^ |
+  //       (3) | | (4)
+  //           | v
+  //   0 ---->  1  <---- 2
+  //      (1)   |    (2)
+  //            | (5)
+  //            v
+  //            4
+  //
+
+  using WeightedDigraph = asymmetric_graph<asymmetric_vertex, float>;
+  sequence<WeightedDigraph::edge> edges(
+      {{0, 1, 1.0}, {1, 3, 3.0}, {1, 4, 5.0}, {2, 1, 2.0}, {3, 1, 4.0}});
+  WeightedDigraph graph = WeightedDigraph::from_edges(edges, /*n=*/5);
+
+  // The values below can be verified as being stationary for the following
+  // equations:
+  //
+  // P[0] = (0.15 + 0.85 * P[4]) / 5
+  // P[1] = (0.15 + 0.85 * P[4]) / 5
+  //        + 0.85 * (P[0] * 1/1 + P[2] * 2/2 + P[3] * 4/4)
+  // P[2] = (0.15 + 0.85 * P[4]) / 5
+  // P[3] = (0.15 + 0.85 * P[4]) / 5 + 0.85 * (P[1] * 3/8)
+  // P[4] = (0.15 + 0.85 * P[4]) / 5 + 0.85 * (P[1] * 5/8)
+  EXPECT_THAT(PageRank_edgeMapFunctor::compute_pagerank(graph),
+              Pointwise(DoubleNear(1e-4),
+                        {2333.0 / 30348.0, 11360.0 / 30348.0, 2333.0 / 30348.0,
+                         5954.0 / 30348.0, 8368.0 / 30348.0}));
+}
+
+// Tests the case where a node (in this case, node 2) does have some outgoing
+// edges, but they all have weight zero. An implementation that doesn't handle
+// that case carefully could end up producing NaNs due to computing the ratio
+// 0/0.
+TEST(PageRankEdgeMapFunctorTest, NodeWithAllOutgoingEdgesHavingZeroWeight) {
+  // Graph diagram (each number wrapped in parentheses denotes the weight of its
+  // nearest edge):
+  //
+  //        (1)
+  //     0 -----> 3
+  //     |        ^
+  // (2) |        | (0)
+  //     v  (1)   |
+  //     1 -----> 2
+  //       <-----
+  //         (0)
+  //
+
+  using WeightedDigraph = asymmetric_graph<asymmetric_vertex, float>;
+  sequence<WeightedDigraph::edge> edges(
+      {{0, 1, 2.0}, {0, 3, 1.0}, {1, 2, 1.0}, {2, 1, 0.0}, {2, 3, 0.0}});
+  WeightedDigraph graph = WeightedDigraph::from_edges(edges, /*n=*/4);
+
+  // The values below can be verified as being stationary for the following
+  // equations:
+  //
+  // P[0] = (0.15 + 0.85 * P[2] + 0.85 * P[3]) / 4
+  // P[1] = (0.15 + 0.85 * P[2] + 0.85 * P[3]) / 4 + 0.85 * (P[0] * 2/3)
+  // P[2] = (0.15 + 0.85 * P[2] + 0.85 * P[3]) / 4 + 0.85 * (P[1] * 1/1)
+  // P[3] = (0.15 + 0.85 * P[2] + 0.85 * P[3]) / 4 + 0.85 * (P[0] * 1/3)
+  EXPECT_THAT(PageRank_edgeMapFunctor::compute_pagerank(graph),
+              Pointwise(DoubleNear(1e-4), {600.0 / 3709.0, 940.0 / 3709.0,
+                                           1399.0 / 3709.0, 770.0 / 3709.0}));
 }
 
 template <typename T>

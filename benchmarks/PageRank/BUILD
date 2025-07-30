@@ -12,7 +12,6 @@ cc_library(
     deps = [
         "//gbbs:bridge",
         "//gbbs:edge_map_data",
-        "//gbbs:edge_map_reduce",
         "//gbbs:flags",
         "//gbbs:macros",
         "//gbbs:vertex_subset",
@@ -46,6 +45,7 @@ gbbs_cc_test(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
+        "//gbbs:vertex",
         "//gbbs/helpers:undirected_edge",
         "//gbbs/unit_tests:graph_test_utils",
         "@googletest//:gtest_main",

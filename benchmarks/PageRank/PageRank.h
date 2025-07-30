@@ -25,10 +25,11 @@
 // computing PageRank. The implementation works on both undirected and directed
 // graphs.
 //
-// The code handles vertices with zero out-degree by giving them (implicit)
-// out-edges to every other vertex. The implementation sums up the mass of the
-// zero out-degree vertices in each iteration and spreads a 1/n fraction to
-// every vertex.
+// The code handles vertices with zero weighted out-degree by giving them
+// (implicit) out-edges to all source nodes (by default, all nodes are
+// considered source nodes). The implementation sums up the mass of the zero
+// weighted out-degree vertices in each iteration and spreads it evenly across
+// all source nodes.
 //
 // Note that we provide some alternate implementations of the same algorithm in
 // other files in this package (PageRank_edgeMapReduce and PageRank_delta). The
@@ -41,9 +42,6 @@
 // implementations again, but from a few years ago (~2020), the PageRank code
 // was consistently faster than PageRank_edgeMap by 20--30% on the WDC2012
 // graph.
-//
-// TODOs(laxmand):
-// - Add and test support for weighted graphs.
 
 #pragma once
 
@@ -51,15 +49,13 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
-#include <optional>
-#include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "gbbs/bridge.h"
 #include "gbbs/edge_map_data.h"
-#include "gbbs/edge_map_reduce.h"
 #include "gbbs/flags.h"
 #include "gbbs/helpers/assert.h"
 #include "gbbs/macros.h"
@@ -75,36 +71,67 @@ inline void ValidatePageRankParameters(const double eps,
                                        const double damping_factor) {
   ASSERT(eps >= 0.0);
   ASSERT(0.0 <= damping_factor && damping_factor < 1.0);
-}  
-  
 }
 
+// Returns a boolean indicating whether `Graph` is weighted.
+template <class Graph>
+constexpr bool IsWeighted() {
+  return !std::is_same_v<typename Graph::weight_type, gbbs::empty>;
+}
+
+}  // namespace pagerank_utils
+
 // edgeMap struct used for distributing `_p_curr[s]`, for each vertex `s` in the
-// considered subset, uniformly to the `_p_next` values of its out-neighbors.
-// Assumes that each such node `s` has at least one outgoing edge.
+// considered subset of nodes (which is assumed to contain only nodes with
+// non-zero weighted out-degree) to the `_p_next` values of its out-neighbors.
+// The amount distributed to each out-neighbor is proportional to the weight of
+// the edge from `s` to the out-neighbor. For unweighted graphs, we treat all
+// edges as having weight 1.
 template <class Graph>
 struct PR_F {
   using W = typename Graph::weight_type;
   const double* p_curr;
   double* p_next;
-  const Graph& G;
+  const Graph& graph;
+  const double* weighted_out_degrees;  // Used only if `Graph` is weighted.
 
-  // `_p_curr` and `_p_next` must have size equal to `G.n`.
-  PR_F(const double* _p_curr, double* _p_next, const Graph& G)
-      : p_curr(_p_curr), p_next(_p_next), G(G) {}
+  // `_p_curr` and `_p_next` must have size equal to `G.n`. The same applies to
+  // `weighted_out_degrees` if `Graph` is weighted; otherwise,
+  // `weighted_out_degrees` is ignored.
+  PR_F(const double* _p_curr, double* _p_next, const Graph& graph,
+       const double* weighted_out_degrees)
+      : p_curr(_p_curr),
+        p_next(_p_next),
+        graph(graph),
+        weighted_out_degrees(weighted_out_degrees) {}
 
   inline bool update(
       const uintE& s, const uintE& d,
       const W& wgh) {  // update function applies PageRank equation
-    p_next[d] += p_curr[s] / G.get_vertex(s).out_degree();
-    return 1;
+    p_next[d] += ContributionFromInNeighbor(s, wgh);
+    return true;
   }
+
   inline bool updateAtomic(const uintE& s, const uintE& d,
                            const W& wgh) {  // atomic Update
-    gbbs::fetch_and_add(&p_next[d], p_curr[s] / G.get_vertex(s).out_degree());
-    return 1;
+    gbbs::fetch_and_add(&p_next[d], ContributionFromInNeighbor(s, wgh));
+    return true;
   }
+
   inline bool cond(intT d) { return cond_true(d); }
+
+ private:
+  // Returns the amount of mass that node `s` sends over an out-edge with weight
+  // `wgh`.
+  inline double ContributionFromInNeighbor(const uintE& s, const W& wgh) {
+    // Note: the (unweighted or weighted) out-degree of `s` is assumed be
+    // non-zero, so the division below is safe.
+    if constexpr (pagerank_utils::IsWeighted<Graph>()) {
+      return p_curr[s] * (wgh / weighted_out_degrees[s]);
+    } else {
+      return p_curr[s] / graph.get_vertex(s).out_degree();
+    }
+  }
 };
 
 // Power iteration implementation of PageRank that uses Ligra's edgeMap
@@ -142,12 +169,13 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
   if (n == 0) return sequence<double>();
 
   double one_over_num_sources = 1 / (double)n;
+  // Current PageRank values.
   sequence<double> p_curr;
 
-  // If the source set is non-empty, we need to set the initial mass over only
-  // the sources.
   absl::flat_hash_set<uintE> sources_set(sources.begin(), sources.end());
   if (!sources.empty()) {
+    // If the source set is non-empty, we need to set the initial mass over only
+    // the sources.
     one_over_num_sources = 1 / (double)sources.size();
     p_curr = parlay::sequence<double>(n);
     parlay::parallel_for(0, sources.size(), [&](size_t i) {
@@ -156,18 +184,37 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
   } else {
     p_curr = sequence<double>(n, one_over_num_sources);
   }
+
   // Tentative PageRank values for the next iteration.
   auto p_next = sequence<double>(n, 0.0);
 
-  auto frontier = sequence<bool>(n, true);
-  // Nodes that will propagate weight to their out-neighbors in the next
-  // iteration.
-  vertexSubset Frontier(n, n, std::move(frontier));
+  // Compute the weighted out-degrees if the graph is weighted.
+  sequence<double> weighted_out_degrees;
+  if constexpr (pagerank_utils::IsWeighted<Graph>()) {
+    auto get_edge_weight = [](uintE unused_source_id, uintE unused_target_id,
+                              const typename Graph::weight_type weight) {
+      return double{weight};
+    };
+    weighted_out_degrees =
+        sequence<double>::from_function(n, [&](const size_t i) {
+          return G.get_vertex(i).out_neighbors().reduce(get_edge_weight,
+                                                        parlay::plus<double>());
+        });
+  }
 
-  // Nodes with zero out-degree.
+  auto is_non_dangling_node = sequence<bool>::from_function(n, [&](uintE v) {
+    if constexpr (pagerank_utils::IsWeighted<Graph>()) {
+      return weighted_out_degrees.at(v) != 0.0;
+    } else {
+      return G.get_vertex(v).out_degree() != 0;
+    }
+  });
+  // Nodes with zero (weighted) out-degree.
   parlay::sequence<uintE> dangling_nodes =
       parlay::pack_index<uintE>(parlay::delayed_seq<bool>(
-          n, [&](size_t i) { return G.get_vertex(i).out_degree() == 0; }));
+          n, [&](size_t i) { return !is_non_dangling_node.at(i); }));
+  // Nodes that will propagate weight to their out-neighbors at each iteration.
+  vertexSubset Frontier(n, n, std::move(is_non_dangling_node));
 
   // If the graph does not have in-edges materialized, use the dense-forward
   // setting.
@@ -180,12 +227,14 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
   for (size_t iter = 0; iter < max_iters; ++iter) {
     gbbs_debug(timer t; t.start(););
 
-    // Sum of the PageRank values of the nodes with zero out-degree.
+    // Sum of the PageRank values of the dangling nodes.
     double dangling_sum = parlay::reduce(parlay::delayed_map(
         dangling_nodes, [&](uintE v) { return p_curr[v]; }));
 
     // SpMV
-    edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G),
+    edgeMap(G, Frontier,
+            PR_F<Graph>(p_curr.begin(), p_next.begin(), G,
+                        weighted_out_degrees.data()),
             /*threshold=*/0, flags);
     if (sources.empty()) {
       // Updates p_next by assuming each node has an equal probability being
