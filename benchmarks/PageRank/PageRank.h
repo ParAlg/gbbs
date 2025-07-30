@@ -51,20 +51,46 @@
 
 #pragma once
 
-#include "gbbs/edge_map_reduce.h"
-#include "gbbs/gbbs.h"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <optional>
+#include <tuple>
+#include <utility>
 
-#include <math.h>
+#include "gbbs/bridge.h"
+#include "gbbs/edge_map_data.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/flags.h"
+#include "gbbs/helpers/assert.h"
+#include "gbbs/macros.h"
+#include "gbbs/vertex_subset.h"
+#include "parlay/monoid.h"
+#include "parlay/sequence.h"
 
 namespace gbbs {
 
+inline void ValidatePageRankParameters(const double eps,
+                                       const double damping_factor) {
+  ASSERT(eps >= 0.0);
+  ASSERT(0.0 <= damping_factor && damping_factor < 1.0);
+}
+
+// edgeMap struct used for distributing `_p_curr[s]`, for each vertex `s` in the
+// considered subset, uniformly to the `_p_next` values of its out-neighbors.
+// Assumes that each such node `s` has at least one outgoing edge.
 template <class Graph>
 struct PR_F {
   using W = typename Graph::weight_type;
-  double *p_curr, *p_next;
-  Graph& G;
-  PR_F(double* _p_curr, double* _p_next, Graph& G)
+  const double* p_curr;
+  double* p_next;
+  const Graph& G;
+
+  // `_p_curr` and `_p_next` must have size equal to `G.n`.
+  PR_F(const double* _p_curr, double* _p_next, const Graph& G)
       : p_curr(_p_curr), p_next(_p_next), G(G) {}
+
   inline bool update(
       const uintE& s, const uintE& d,
       const W& wgh) {  // update function applies PageRank equation
@@ -79,35 +105,30 @@ struct PR_F {
   inline bool cond(intT d) { return cond_true(d); }
 };
 
-// vertex map function to update its p value according to PageRank equation
+// Vertex map function to update its p value according to PageRank equation.
+// Also takes into account the contribution from nodes with no outgoing edges.
 struct PR_Vertex_F {
-  double damping;
-  double addedConstant;
-  double* p_curr;
+  const double damping_factor;
+  const double addedConstant;
+  const double* p_curr;
   double* p_next;
-  double dangling_sum;
-  double one_over_n;
-  PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intE n,
-              double _dangling_sum, double _one_over_n)
-      : damping(_damping),
-        addedConstant((1 - _damping) * (1 / (double)n)),
+  const double dangling_sum;
+  const double one_over_n;
+
+  // `_p_curr` and `_p_next` must have size equal to `n`, which must be
+  // positive. `_dangling_sum` is the sum of the `_p_curr` values of the nodes
+  // with no outgoing edges.
+  PR_Vertex_F(const double* _p_curr, double* _p_next, double _damping_factor,
+              intE n, double _dangling_sum, double _one_over_n)
+      : damping_factor(_damping_factor),
+        addedConstant((1 - _damping_factor) * _one_over_n),
         p_curr(_p_curr),
         p_next(_p_next),
         dangling_sum(_dangling_sum),
         one_over_n(_one_over_n) {}
   inline bool operator()(uintE i) {
     p_next[i] += dangling_sum * one_over_n;
-    p_next[i] =  damping * p_next[i] + addedConstant;
-    return 1;
-  }
-};
-
-// resets p
-struct PR_Vertex_Reset {
-  double* p_curr;
-  PR_Vertex_Reset(double* _p_curr) : p_curr(_p_curr) {}
-  inline bool operator()(uintE i) {
-    p_curr[i] = 0.0;
+    p_next[i] = damping_factor * p_next[i] + addedConstant;
     return 1;
   }
 };
@@ -121,19 +142,30 @@ struct PR_Vertex_Reset {
 //
 // The last argument should only be set to false if the graph you are using does
 // not have its in-edges materialized.
+//
+// The convergence threshold `eps` must be nonnegative. The algorithm stops when
+// the L1 distance between the PageRank values (seen as a vector with one entry
+// per vertex) in two consecutive iterations becomes smaller than `eps`, or when
+// `max_iters` iterations have been executed (whichever comes first).
+// `damping_factor` must be in the range [0, 1).
 template <class Graph>
-sequence<double> PageRank_edgeMap(Graph& G,
-                                  double eps = 0.000001,
+sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
+                                  double damping_factor = 0.85,
                                   size_t max_iters = 100,
-                                  bool has_in_edges=true) {
+                                  bool has_in_edges = true) {
+  ValidatePageRankParameters(eps, damping_factor);
   const uintE n = G.n;
-  const double damping = 0.85;
+  if (n == 0) return sequence<double>();
 
   double one_over_n = 1 / (double)n;
+  // Current PageRank values.
   auto p_curr = sequence<double>(n, one_over_n);
-  auto p_next = sequence<double>(n, static_cast<double>(0));
+  // Tentative PageRank values for the next iteration.
+  auto p_next = sequence<double>(n, 0.0);
 
   auto frontier = sequence<bool>(n, true);
+  // Nodes that will propagate weight to their out-neighbors in the next
+  // iteration.
   vertexSubset Frontier(n, n, std::move(frontier));
 
   // Nodes with zero out-degree.
@@ -147,20 +179,22 @@ sequence<double> PageRank_edgeMap(Graph& G,
   // edgeMap does not require returning an output vertex subset.
   flags |= gbbs::no_output;
 
-  size_t iter = 0;
-  while (iter++ < max_iters) {
+  // Each iteration uses `p_curr` to compute `p_next`, then swaps `p_curr` and
+  // `p_next`, and sets `p_next` to zero in preparation for the next iteration.
+  for (size_t iter = 0; iter < max_iters; ++iter) {
     gbbs_debug(timer t; t.start(););
 
+    // Sum of the PageRank values of the nodes with zero out-degree.
     double dangling_sum = parlay::reduce(
       parlay::delayed_map(dangling_nodes, [&] (uintE v) {
         return p_curr[v];
     }));
 
     // SpMV
-    edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G), 0,
-            flags);
+    edgeMap(G, Frontier, PR_F<Graph>(p_curr.begin(), p_next.begin(), G),
+            /*threshold=*/0, flags);
     vertexMap(Frontier,
-              PR_Vertex_F(p_curr.begin(), p_next.begin(), damping, n,
+              PR_Vertex_F(p_curr.begin(), p_next.begin(), damping_factor, n,
                           dangling_sum, one_over_n));
 
     // Check convergence: compute L1-norm between p_curr and p_next.
@@ -176,12 +210,12 @@ sequence<double> PageRank_edgeMap(Graph& G,
 
     gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
     // Reset p_curr
-    parallel_for(0, n, [&](size_t i) { p_next[i] = static_cast<double>(0); });
+    parallel_for(0, n, [&](size_t i) { p_next[i] = 0.0; });
 
     gbbs_debug(t.stop(); t.next("iteration time"););
   }
-  auto max_pr = parlay::reduce_max(p_curr);
-  std::cout << "max_pr = " << max_pr << std::endl;
+  gbbs_debug(auto max_pr = parlay::reduce_max(p_curr);
+             std::cout << "max_pr = " << max_pr << std::endl;);
   return p_curr;
 }
 
@@ -195,11 +229,14 @@ sequence<double> PageRank_edgeMap(Graph& G,
 // reduction in parallel.
 template <class Graph>
 sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
-                          size_t max_iters = 100) {
+                                        double damping_factor = 0.85,
+                                        size_t max_iters = 100) {
+  ValidatePageRankParameters(eps, damping_factor);
   using W = typename Graph::weight_type;
   const uintE n = G.n;
-  const double damping = 0.85;
-  const double addedConstant = (1 - damping) * (1 / static_cast<double>(n));
+  if (n == 0) return sequence<double>();
+  const double addedConstant =
+      (1 - damping_factor) * (1 / static_cast<double>(n));
 
   double one_over_n = 1 / (double)n;
   auto p_curr = sequence<double>(n, one_over_n);
@@ -238,13 +275,12 @@ sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
     uintE u = std::get<0>(k);
     double contribution = std::get<1>(k);
     contribution += dangling_sum * one_over_n;
-    p_next[u] = damping * contribution + addedConstant;
+    p_next[u] = damping_factor * contribution + addedConstant;
     p_div_next[u] = (p_next[u] / static_cast<double>(degrees[u]));
     return std::nullopt;
   };
 
-  size_t iter = 0;
-  while (iter++ < max_iters) {
+  for (size_t iter = 0; iter < max_iters; ++iter) {
     dangling_sum = parlay::reduce(
       parlay::delayed_map(dangling_nodes, [&] (uintE v) {
         return p_curr[v];
@@ -279,8 +315,8 @@ sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
     t.stop();
     t.next("iteration time");
   }
-  auto max_pr = parlay::reduce_max(p_curr);
-  std::cout << "max_pr = " << max_pr << std::endl;
+  gbbs_debug(auto max_pr = parlay::reduce_max(p_curr);
+             std::cout << "max_pr = " << max_pr << std::endl;);
   return p_curr;
 }
 
@@ -294,10 +330,10 @@ struct delta_and_degree {
 template <class Graph>
 struct PR_Delta_F {
   using W = typename Graph::weight_type;
-  Graph& G;
-  delta_and_degree* Delta;
+  const Graph& G;
+  const delta_and_degree* Delta;
   double* nghSum;
-  PR_Delta_F(Graph& G, delta_and_degree* _Delta, double* _nghSum)
+  PR_Delta_F(const Graph& G, const delta_and_degree* _Delta, double* _nghSum)
       : G(G), Delta(_Delta), nghSum(_nghSum) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
     double oldVal = nghSum[d];
@@ -317,8 +353,9 @@ struct PR_Delta_F {
 };
 
 template <class Graph, class E>
-void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier,
-                     delta_and_degree* Delta, double* nghSum, const flags fl) {
+void sparse_or_dense(const Graph& G, E& EM, vertexSubset& Frontier,
+                     const delta_and_degree* Delta, double* nghSum,
+                     const flags fl) {
   using W = typename Graph::weight_type;
 
   if (Frontier.size() > G.n / 5) {
@@ -359,16 +396,17 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier,
 
 template <class G>
 struct PR_Vertex_F_FirstRound {
-  double damping, addedConstant, one_over_n, epsilon2;
+  const double damping_factor, addedConstant, one_over_n, epsilon2;
   double* p;
   delta_and_degree* Delta;
-  double* nghSum;
-  G& get_degree;
-  PR_Vertex_F_FirstRound(double* _p, delta_and_degree* _Delta, double* _nghSum,
-                         double _damping, double _one_over_n, double _epsilon2,
-                         G& get_degree)
-      : damping(_damping),
-        addedConstant((1 - _damping) * _one_over_n),
+  const double* nghSum;
+  const G& get_degree;
+  PR_Vertex_F_FirstRound(double* _p, delta_and_degree* _Delta,
+                         const double* _nghSum, double _damping_factor,
+                         double _one_over_n, double _epsilon2,
+                         const G& get_degree)
+      : damping_factor(_damping_factor),
+        addedConstant((1 - _damping_factor) * _one_over_n),
         one_over_n(_one_over_n),
         epsilon2(_epsilon2),
         p(_p),
@@ -376,7 +414,7 @@ struct PR_Vertex_F_FirstRound {
         nghSum(_nghSum),
         get_degree(get_degree) {}
   inline bool operator()(uintE i) {
-    double pre_init = damping * nghSum[i] + addedConstant;
+    double pre_init = damping_factor * nghSum[i] + addedConstant;
     p[i] += pre_init;
     double new_delta =
         pre_init - one_over_n;  // subtract off delta from initialization
@@ -388,53 +426,58 @@ struct PR_Vertex_F_FirstRound {
 
 template <class G>
 auto make_PR_Vertex_F_FirstRound(double* p, delta_and_degree* delta,
-                                 double* nghSum, double damping,
+                                 const double* nghSum, double damping_factor,
                                  double one_over_n, double epsilon2,
-                                 G& get_degree) {
-  return PR_Vertex_F_FirstRound<G>(p, delta, nghSum, damping, one_over_n,
+                                 const G& get_degree) {
+  return PR_Vertex_F_FirstRound<G>(p, delta, nghSum, damping_factor, one_over_n,
                                    epsilon2, get_degree);
 }
 
 template <class G>
 struct PR_Vertex_F {
-  double damping, epsilon2;
+  const double damping_factor, epsilon2;
   double* p;
   delta_and_degree* Delta;
-  double* nghSum;
-  G& get_degree;
-  PR_Vertex_F(double* _p, delta_and_degree* _Delta, double* _nghSum,
-              double _damping, double _epsilon2, G& get_degree)
-      : damping(_damping),
+  const double* nghSum;
+  const G& get_degree;
+  PR_Vertex_F(double* _p, delta_and_degree* _Delta, const double* _nghSum,
+              double _damping_factor, double _epsilon2, const G& get_degree)
+      : damping_factor(_damping_factor),
         epsilon2(_epsilon2),
         p(_p),
         Delta(_Delta),
         nghSum(_nghSum),
         get_degree(get_degree) {}
   inline bool operator()(uintE i) {
-    double new_delta = nghSum[i] * damping;
+    double new_delta = nghSum[i] * damping_factor;
     Delta[i].delta = new_delta;
     Delta[i].delta_over_degree = new_delta / get_degree(i);
 
     if (fabs(Delta[i].delta) > epsilon2 * p[i]) {
       p[i] += new_delta;
       return 1;
-    } else
+    } else {
       return 0;
+    }
   }
 };
 
 template <class G>
-auto make_PR_Vertex_F(double* p, delta_and_degree* delta, double* nghSum,
-                      double damping, double epsilon2, G& get_degree) {
-  return PR_Vertex_F<G>(p, delta, nghSum, damping, epsilon2, get_degree);
+auto make_PR_Vertex_F(double* p, delta_and_degree* delta, const double* nghSum,
+                      double damping_factor, double epsilon2,
+                      const G& get_degree) {
+  return PR_Vertex_F<G>(p, delta, nghSum, damping_factor, epsilon2, get_degree);
 }
 
 template <class Graph>
 sequence<double> PageRankDelta(Graph& G, double eps = 0.000001,
                                double local_eps = 0.01,
+                               double damping_factor = 0.85,
                                size_t max_iters = 100) {
-  const long n = G.n;
-  const double damping = 0.85;
+  ValidatePageRankParameters(eps, damping_factor);
+  ASSERT(local_eps >= 0.0);
+  const uintE n = G.n;
+  if (n == 0) return sequence<double>();
 
   double one_over_n = 1 / (double)n;
   auto p = sequence<double>(n);
@@ -464,12 +507,13 @@ sequence<double> PageRankDelta(Graph& G, double eps = 0.000001,
     sparse_or_dense(G, EM, Frontier, Delta.begin(), nghSum.begin(), no_output);
     vertexSubset active =
         (round == 1)
-            ? vertexFilter(All, delta::make_PR_Vertex_F_FirstRound(
-                                    p.begin(), Delta.begin(), nghSum.begin(),
-                                    damping, one_over_n, local_eps, get_degree))
+            ? vertexFilter(
+                  All, delta::make_PR_Vertex_F_FirstRound(
+                           p.begin(), Delta.begin(), nghSum.begin(),
+                           damping_factor, one_over_n, local_eps, get_degree))
             : vertexFilter(All, delta::make_PR_Vertex_F(
                                     p.begin(), Delta.begin(), nghSum.begin(),
-                                    damping, local_eps, get_degree));
+                                    damping_factor, local_eps, get_degree));
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences = parlay::delayed_seq<double>(
@@ -484,12 +528,10 @@ sequence<double> PageRankDelta(Graph& G, double eps = 0.000001,
     Frontier = std::move(active);
     gbbs_debug(t.stop(); t.next("iteration time"););
   }
-  auto max_pr = parlay::reduce_max(p);
-  std::cout << "max_pr = " << max_pr << std::endl;
-
-  std::cout << "Num rounds = " << round << std::endl;
+  gbbs_debug(auto max_pr = parlay::reduce_max(p);
+             std::cout << "max_pr = " << max_pr << std::endl;
+             std::cout << "Num rounds = " << round << std::endl;);
   return p;
 }
 }  // namespace delta
-
 }  // namespace gbbs

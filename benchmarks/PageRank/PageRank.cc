@@ -26,12 +26,22 @@
 // flags:
 //   optional:
 //     -eps : the epsilon to use for convergence (1e-6 by default)
-//     -rounds : the number of times to run the algorithm
+//     -l_eps : the local epsilon to use for convergence (1e-2 by default);
+//      used by PageRankDelta only
+//     -damping_factor : the damping factor used in the PageRank updates (0.85
+//      by default)
 //     -c : indicate that the graph is compressed
 //     -m : indicate that the graph should be mmap'd
 //     -s : indicate that the graph is symmetric
 
 #include "PageRank.h"
+
+#include <cstddef>
+#include <iostream>
+
+#include "gbbs/benchmark.h"
+#include "gbbs/bridge.h"
+#include "gbbs/helpers/parse_command_line.h"
 
 namespace gbbs {
 
@@ -44,19 +54,24 @@ double PageRank_runner(Graph& G, commandLine P) {
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001)
             << std::endl;
+  std::cout << "### Params: -leps = " << P.getOptionDoubleValue("-leps", 0.01)
+            << std::endl;
+  std::cout << "### Params: -damping_factor = "
+            << P.getOptionDoubleValue("-damping_factor", 0.85) << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   timer t;
   t.start();
   double eps = P.getOptionDoubleValue("-eps", 0.000001);
   double local_eps = P.getOptionDoubleValue("-leps", 0.01);
+  double damping_factor = P.getOptionDoubleValue("-damping_factor", 0.85);
   size_t iters = P.getOptionLongValue("-iters", 100);
   if (P.getOptionValue("-em")) {
-    auto ret = PageRank_edgeMap(G, eps, iters);
+    auto ret = PageRank_edgeMap(G, eps, damping_factor, iters);
   } else if (P.getOptionValue("-delta")) {
-    auto ret = delta::PageRankDelta(G, eps, local_eps, iters);
+    auto ret = delta::PageRankDelta(G, eps, local_eps, damping_factor, iters);
   } else {
-    auto ret = PageRank_edgeMapReduce(G, eps, iters);
+    auto ret = PageRank_edgeMapReduce(G, eps, damping_factor, iters);
   }
   double tt = t.stop();
 

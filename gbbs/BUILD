@@ -11,7 +11,6 @@ cc_library(
     deps = [
         ":benchmark",
         ":bridge",
-        ":flags",
         ":graph",
         ":interface",
         ":macros",
@@ -36,7 +35,6 @@ cc_library(
     hdrs = ["bridge.h"],
     linkopts = ["-pthread"],
     deps = [
-        "@parlaylib//parlay:delayed",
         "@parlaylib//parlay:delayed_sequence",
         "@parlaylib//parlay:io",
         "@parlaylib//parlay:monoid",
@@ -48,12 +46,7 @@ cc_library(
         "@parlaylib//parlay:slice",
         "@parlaylib//parlay:utilities",
         "@parlaylib//parlay/internal:binary_search",
-        "@parlaylib//parlay/internal:file_map",
         "@parlaylib//parlay/internal:get_time",
-        "@parlaylib//parlay/internal:group_by",
-        "@parlaylib//parlay/internal:heap_tree",
-        "@parlaylib//parlay/internal/posix:file_map_impl_posix",
-        "@parlaylib//parlay/internal/delayed:zip",
     ],
 )
 
@@ -113,8 +106,6 @@ cc_library(
     deps = [
         ":bridge",
         ":macros",
-        ":vertex",
-        ":vertex_subset",
     ],
 )
 
@@ -140,11 +131,9 @@ cc_library(
     hdrs = ["edge_map_data.h"],
     deps = [
         ":bridge",
-        ":compressed_vertex",
         ":edge_map_blocked",
         ":edge_map_utils",
         ":flags",
-        ":vertex",
         ":vertex_subset",
     ],
 )
@@ -156,13 +145,9 @@ cc_library(
         ":bridge",
         ":compressed_vertex",
         ":edge_array",
-        ":edge_map_data",
-        ":edge_map_reduce",
         ":flags",
-        ":graph_mutation",
         ":macros",
         ":vertex",
-        ":vertex_subset",
     ],
 )
 
@@ -185,9 +170,7 @@ cc_library(
     name = "contract",
     hdrs = ["contract.h"],
     deps = [
-        ":bridge",
         ":graph",
-        ":vertex",
         "//gbbs/helpers:sparse_table",
     ],
 )
