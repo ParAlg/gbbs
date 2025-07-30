@@ -39,7 +39,7 @@ struct vertexSubsetData {
   using D = std::tuple<bool, data>;
 
   // Move constructor
-  vertexSubsetData<data>(vertexSubsetData<data>&& other) noexcept {
+  vertexSubsetData(vertexSubsetData<data>&& other) noexcept {
     n = other.n;
     m = other.m;
     s = std::move(other.s);
@@ -204,7 +204,7 @@ struct vertexSubsetData<gbbs::empty> {
   using D = bool;
 
   // Move constructor
-  vertexSubsetData<gbbs::empty>(
+  vertexSubsetData(
       vertexSubsetData<gbbs::empty>&& other) noexcept {
     n = other.n;
     m = other.m;
@@ -229,14 +229,14 @@ struct vertexSubsetData<gbbs::empty> {
   }
 
   // An empty vertex set.
-  vertexSubsetData<gbbs::empty>(size_t _n)
+  vertexSubsetData(size_t _n)
       : n(_n),
         m(0),
         isDense(0),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset with a single vertex.
-  vertexSubsetData<gbbs::empty>(size_t _n, uintE v)
+  vertexSubsetData(size_t _n, uintE v)
       : n(_n),
         m(1),
         isDense(0),
@@ -246,14 +246,14 @@ struct vertexSubsetData<gbbs::empty> {
   }
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, sequence<S>&& A)
+  vertexSubsetData(size_t _n, size_t _m, sequence<S>&& A)
       : n(_n),
         m(_m),
         s(std::move(A)),
         isDense(0),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
-  vertexSubsetData<gbbs::empty>(size_t n, sequence<S>&& A)
+  vertexSubsetData(size_t n, sequence<S>&& A)
       : n(n),
         m(A.size()),
         s(std::move(A)),
@@ -261,7 +261,7 @@ struct vertexSubsetData<gbbs::empty> {
         sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from boolean array giving number of true values.
-  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, sequence<D>&& A)
+  vertexSubsetData(size_t _n, size_t _m, sequence<D>&& A)
       : n(_n),
         m(_m),
         d(std::move(A)),
@@ -270,7 +270,7 @@ struct vertexSubsetData<gbbs::empty> {
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData<gbbs::empty>(size_t _n, sequence<D>&& A)
+  vertexSubsetData(size_t _n, sequence<D>&& A)
       : n(_n),
         d(std::move(A)),
         isDense(1),
