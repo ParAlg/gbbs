@@ -1,5 +1,7 @@
 licenses(["notice"])
 
+load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -60,6 +62,41 @@ cc_library(
 )
 
 cc_library(
+    name = "progress_reporting",
+    srcs = ["progress_reporting.cc"],
+    hdrs = ["progress_reporting.h"],
+    deps = [
+        "@abseil-cpp//absl/functional:any_invocable",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+gbbs_cc_test(
+    name = "progress_reporting_test",
+    srcs = ["progress_reporting_test.cc"],
+    deps = [
+        ":progress_reporting",
+        ":progress_reporting_mock",
+        ":status_macros",
+        "@abseil-cpp//absl/status",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "progress_reporting_mock",
+    testonly = True,
+    hdrs = ["progress_reporting_mock.h"],
+    deps = [
+        ":progress_reporting",
+        "@abseil-cpp//absl/base:core_headers",
+    ],
+)
+
+
+cc_library(
     name = "resizable_table",
     hdrs = ["resizable_table.h"],
     deps = ["//gbbs:bridge"],
@@ -91,6 +128,18 @@ cc_library(
     hdrs = ["speculative_for.h"],
     deps = [
         "//gbbs:bridge",
+    ],
+)
+
+cc_library(
+    name = "status_macros",
+    srcs = ["status_macros.cc"],
+    hdrs = ["status_macros.h"],
+    deps = [
+        "@googletest//:gtest",
+        "@abseil-cpp//absl/log:absl_log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
