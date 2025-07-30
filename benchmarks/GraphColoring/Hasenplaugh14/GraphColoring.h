@@ -117,11 +117,11 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     // LLF heuristic
     auto P = parlay::random_permutation<uintE>(n);
     parallel_for(0, n, 1, [&](size_t i) {
-      uintE our_deg = parlay::log2_up(G.get_vertex(i).out_degree());
+      uintE our_deg = parlay::log2_up(1 + G.get_vertex(i).out_degree());
       uintE i_p = P[i];
       // breaks ties using P
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = parlay::log2_up(G.get_vertex(ngh).out_degree());
+        uintE ngh_deg = parlay::log2_up(1 + G.get_vertex(ngh).out_degree());
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
       priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
