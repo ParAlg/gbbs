@@ -35,9 +35,12 @@
 //     -s : indicate that the graph is symmetric
 
 #include "PageRank.h"
+#include "PageRank_delta.h"
+#include "PageRank_edgeMapReduce.h"
 
 #include <cstddef>
 #include <iostream>
+
 
 #include "gbbs/benchmark.h"
 #include "gbbs/bridge.h"
@@ -67,11 +70,11 @@ double PageRank_runner(Graph& G, commandLine P) {
   double damping_factor = P.getOptionDoubleValue("-damping_factor", 0.85);
   size_t iters = P.getOptionLongValue("-iters", 100);
   if (P.getOptionValue("-em")) {
-    auto ret = PageRank_edgeMap(G, eps, damping_factor, iters);
+    auto ret = PageRank_edgeMap(G, eps, /*sources=*/{}, damping_factor, iters);
   } else if (P.getOptionValue("-delta")) {
     auto ret = delta::PageRankDelta(G, eps, local_eps, damping_factor, iters);
   } else {
-    auto ret = PageRank_edgeMapReduce(G, eps, damping_factor, iters);
+    auto ret = PageRank_edgeMapReduce(G, eps, /*sources=*/{}, damping_factor, iters);
   }
   double tt = t.stop();
 
