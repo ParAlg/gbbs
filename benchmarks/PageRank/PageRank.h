@@ -146,8 +146,9 @@ struct PR_F {
 //
 // The convergence threshold `eps` must be nonnegative. The algorithm stops when
 // the L1 distance between the PageRank values (seen as a vector with one entry
-// per node) in two consecutive iterations becomes smaller than `eps`, or when
-// `max_iters` iterations have been executed (whichever comes first).
+// per node) in two consecutive iterations becomes smaller than `eps * (number
+// of nodes in G)`, or when `max_iters` iterations have been executed (whichever
+// comes first).
 // `damping_factor` must be in the range [0, 1).
 //
 // If the source vector has non-zero length, the algorithm:
@@ -270,7 +271,7 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
 
     // Swap p_curr and p_next. The final vector returned will be p_curr.
     std::swap(p_curr, p_next);
-    if (L1_norm < eps) {
+    if (L1_norm < eps * n) {
       break;
     }
 

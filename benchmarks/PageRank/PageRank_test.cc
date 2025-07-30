@@ -2,6 +2,7 @@
 
 #include "benchmarks/PageRank/PageRank.h"
 
+#include <cmath>
 #include <cstddef>
 #include <unordered_set>
 #include <vector>
@@ -18,6 +19,7 @@
 
 using ::testing::DoubleNear;
 using ::testing::ElementsAre;
+using ::testing::ElementsAreArray;
 using ::testing::IsEmpty;
 using ::testing::Pointwise;
 
@@ -122,6 +124,59 @@ TYPED_TEST(PageRankFixture, Path) {
     const sequence<double> expected{0.2567570878, 0.4864858243, 0.2567570878};
     EXPECT_THAT(result,
                 Pointwise(DoubleNear(1e-4), expected));
+  }
+}
+
+TYPED_TEST(PageRankFixture, RespectsEps) {
+  // Graph diagram:
+  //     0 - 1 - 2
+  //
+  constexpr uintE kNumVertices{3};
+  const std::unordered_set<UndirectedEdge> kEdges{
+      {0, 1},
+      {1, 2},
+  };
+  auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
+  using Impl = typename TestFixture::Impl;
+
+  {
+    // Between iterations 4 and 5 and between iterations 5 and 6, the L1
+    // distance between the PageRank values are approximately 0.295804 and
+    // 0.251433 respectively. The next lines verify that assumption.
+    const sequence<double> result_with_4_iterations =
+        Impl::compute_pagerank(graph, /*eps=*/1e-6, /*sources=*/{},
+                               /*damping_factor=*/0.85, /*max_iters=*/4);
+    const sequence<double> result_with_5_iterations =
+        Impl::compute_pagerank(graph, /*eps=*/1e-6, /*sources=*/{},
+                               /*damping_factor=*/0.85, /*max_iters=*/5);
+    const sequence<double> result_with_6_iterations =
+        Impl::compute_pagerank(graph, /*eps=*/1e-6, /*sources=*/{},
+                               /*damping_factor=*/0.85, /*max_iters=*/6);
+
+    double l1_distance_iteration_4_to_5 = 0.0;
+    for (int i = 0; i < 3; ++i) {
+      l1_distance_iteration_4_to_5 +=
+          fabs(result_with_4_iterations[i] - result_with_5_iterations[i]);
+    }
+    ASSERT_GT(l1_distance_iteration_4_to_5, 0.28);
+    ASSERT_LT(l1_distance_iteration_4_to_5, 0.3);
+
+    double l1_distance_iteration_5_to_6 = 0.0;
+    for (int i = 0; i < 3; ++i) {
+      l1_distance_iteration_5_to_6 +=
+          fabs(result_with_5_iterations[i] - result_with_6_iterations[i]);
+    }
+    ASSERT_GT(l1_distance_iteration_5_to_6, 0.24);
+    ASSERT_LT(l1_distance_iteration_5_to_6, 0.26);
+
+    // Run the algorithm with `eps` small enough to reach iteration 5, but not
+    // iteration 6.
+    EXPECT_THAT(Impl::compute_pagerank(graph, /*eps=*/0.31 / 3),
+                ElementsAreArray(result_with_5_iterations));
+    // Run the algorithm with `eps` small enough to reach iteration 6, but not
+    // iteration 7.
+    EXPECT_THAT(Impl::compute_pagerank(graph, /*eps=*/0.27 / 3),
+                ElementsAreArray(result_with_6_iterations));
   }
 }
 

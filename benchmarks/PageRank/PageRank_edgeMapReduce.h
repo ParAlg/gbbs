@@ -1,6 +1,3 @@
-#ifndef THIRD_PARTY_GBBS_BENCHMARKS_PAGERANK_PAGERANK_EDGEMAPREDUCE_H_
-#define THIRD_PARTY_GBBS_BENCHMARKS_PAGERANK_PAGERANK_EDGEMAPREDUCE_H_
-
 // This code is part of the project "Theoretically Efficient Parallel Graph
 // Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
 // in Algorithms and Architectures, 2018.
@@ -25,7 +22,7 @@
 // SOFTWARE.
 //
 // This file provides an alternate implementation of computing PageRank. Please
-// see PageRank.h for comments that also apply to this file. The difference 
+// see PageRank.h for comments that also apply to this file. The difference
 // between this implementation and the one in PageRank.h is some optimizations
 // used to speed up how the matrix-vector product works. We should carefully
 // benchmark the two implementations again, but from a few years ago (~2020),
@@ -70,9 +67,9 @@ inline void ValidatePageRankParameters(const double eps,
                                        const double damping_factor) {
   ASSERT(eps >= 0.0);
   ASSERT(0.0 <= damping_factor && damping_factor < 1.0);
-}  
-  
 }
+
+}  // namespace pagerank_edgemapreduce_utils
 
 // This version of PageRank uses edgeMapReduce_dense, an implementation
 // which reduces over the in-neighbors of every vertex and aggregates the
@@ -203,7 +200,7 @@ sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
     std::swap(p_curr, p_next);
     // Reset p_curr and p_div.
     std::swap(p_div, p_div_next);
-    if (L1_norm < eps) {
+    if (L1_norm < eps * n) {
       break;
     }
     gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
@@ -216,8 +213,4 @@ sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
   return p_curr;
 }
 
-
-  
-}
-
-#endif  // THIRD_PARTY_GBBS_BENCHMARKS_PAGERANK_PAGERANK_EDGEMAPREDUCE_H_
+}  // namespace gbbs

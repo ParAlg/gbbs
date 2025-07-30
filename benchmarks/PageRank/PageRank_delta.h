@@ -1,6 +1,3 @@
-#ifndef THIRD_PARTY_GBBS_BENCHMARKS_PAGERANK_PAGERANK_DELTA_H_
-#define THIRD_PARTY_GBBS_BENCHMARKS_PAGERANK_PAGERANK_DELTA_H_
-
 // This code is part of the project "Theoretically Efficient Parallel Graph
 // Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
 // in Algorithms and Architectures, 2018.
@@ -259,7 +256,7 @@ sequence<double> PageRankDelta(Graph& G, double eps = 0.000001,
     auto differences = parlay::delayed_seq<double>(
         n, [&](size_t i) { return fabs(Delta[i].delta); });
     double L1_norm = parlay::reduce(differences, parlay::plus<double>());
-    if (L1_norm < eps) break;
+    if (L1_norm < eps * n) break;
     gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset
@@ -277,5 +274,3 @@ sequence<double> PageRankDelta(Graph& G, double eps = 0.000001,
 
 }  // namespace delta
 }  // namespace gbbs
-
-#endif  // THIRD_PARTY_GBBS_BENCHMARKS_PAGERANK_PAGERANK_DELTA_H_

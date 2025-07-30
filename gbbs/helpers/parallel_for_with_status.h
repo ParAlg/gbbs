@@ -1,5 +1,4 @@
-#ifndef THIRD_PARTY_GBBS_GBBS_HELPERS_PARALLEL_FOR_WITH_STATUS_H_
-#define THIRD_PARTY_GBBS_GBBS_HELPERS_PARALLEL_FOR_WITH_STATUS_H_
+#pragma once
 
 #include <cstddef>
 
@@ -41,5 +40,3 @@ absl::Status parallel_for_with_status(
 }
 
 }  // namespace gbbs
-
-#endif  // THIRD_PARTY_GBBS_GBBS_HELPERS_PARALLEL_FOR_WITH_STATUS_H_
