@@ -1,0 +1,23 @@
+## MODULE.bazel
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "parlaylib",
+    sha256 = "57c177c860c5daaf963fbca9dff9d5172ec73fcdad16a713cc1af6b151c84640",
+    strip_prefix = "parlaylib-bzlmod-2025/include/",
+    urls = ["https://github.com/ParAlg/parlaylib/archive/refs/tags/bzlmod-2025.tar.gz"],
+)
+
+bazel_dep(
+    name = "googletest",
+    version = "1.11.0",
+    repo_name = "googletest",
+)
+
+bazel_dep(name = "abseil-cpp", version = "20240116.2")
+
+# -- bazel_dep definitions -- #
+
+# -- use_repo_rule statements -- #
+
+# -- repo definitions -- #
