@@ -53,11 +53,14 @@
 #include <utility>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "gbbs/bridge.h"
 #include "gbbs/edge_map_data.h"
 #include "gbbs/flags.h"
 #include "gbbs/helpers/assert.h"
+#include "gbbs/helpers/progress_reporting.h"
+#include "gbbs/helpers/status_macros.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex_subset.h"
 #include "parlay/monoid.h"
@@ -159,15 +162,21 @@ struct PR_F {
 //
 // If the source vector is empty, the algorithm sets the teleportation
 // probabilities and the initial PageRank values to 1/n for each node.
+//
+// If provided,`report_progress` will be called periodically to report the
+// progress of the computation.
 template <class Graph>
-sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
-                                  absl::Span<const uintE> sources = {},
-                                  double damping_factor = 0.85,
-                                  size_t max_iters = 100,
-                                  bool has_in_edges = true) {
+absl::StatusOr<sequence<double>> PageRank_edgeMap(
+    const Graph& G, double eps = 0.000001, absl::Span<const uintE> sources = {},
+    double damping_factor = 0.85, size_t max_iters = 100,
+    bool has_in_edges = true,
+    std::optional<ReportProgressCallback> report_progress = std::nullopt) {
   pagerank_utils::ValidatePageRankParameters(eps, damping_factor);
   const uintE n = G.n;
-  if (n == 0) return sequence<double>();
+  if (n == 0) {
+    if (report_progress.has_value()) (*report_progress)(1.0);
+    return sequence<double>();
+  }
 
   double one_over_num_sources = 1 / (double)n;
   // Current PageRank values.
@@ -223,6 +232,14 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
   // edgeMap does not require returning an output vertex subset.
   flags |= gbbs::no_output;
 
+  std::optional<gbbs::IterationProgressReporter> progress_reporter;
+  if (report_progress.has_value()) {
+    progress_reporter.emplace(
+        gbbs::IterationProgressReporter(*std::move(report_progress), max_iters,
+                                        /*has_preprocessing=*/true));
+    RETURN_IF_ERROR(progress_reporter->PreprocessingComplete());
+  }
+
   // Each iteration uses `p_curr` to compute `p_next`, then swaps `p_curr` and
   // `p_next`, and sets `p_next` to zero in preparation for the next iteration.
   for (size_t iter = 0; iter < max_iters; ++iter) {
@@ -272,6 +289,9 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
     // Swap p_curr and p_next. The final vector returned will be p_curr.
     std::swap(p_curr, p_next);
     if (L1_norm < eps * n) {
+      if (progress_reporter.has_value()) {
+        RETURN_IF_ERROR(progress_reporter->IterationsDoneEarly());
+      }
       break;
     }
 
@@ -280,6 +300,9 @@ sequence<double> PageRank_edgeMap(const Graph& G, double eps = 0.000001,
     parallel_for(0, n, [&](size_t i) { p_next[i] = 0.0; });
 
     gbbs_debug(t.stop(); t.next("iteration time"););
+    if (progress_reporter.has_value()) {
+      RETURN_IF_ERROR(progress_reporter->IterationComplete(iter));
+    }
   }
   gbbs_debug(auto max_pr = parlay::reduce_max(p_curr);
              std::cout << "max_pr = " << max_pr << std::endl;);

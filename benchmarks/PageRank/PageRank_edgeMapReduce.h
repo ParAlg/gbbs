@@ -50,10 +50,13 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/statusor.h"
 #include "gbbs/bridge.h"
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/flags.h"
 #include "gbbs/helpers/assert.h"
+#include "gbbs/helpers/progress_reporting.h"
+#include "gbbs/helpers/status_macros.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex_subset.h"
 #include "parlay/monoid.h"
@@ -76,18 +79,24 @@ inline void ValidatePageRankParameters(const double eps,
 // incoming contributions to each vertex in parallel.
 //
 // The key difference between PageRank_edgeMapReduce and PageRank_edgeMap
-// (above) is that PageRank_edgeMap will *sequentially* aggregate the incoming
-// contributions to a vertex, whereas PageRank_edgeMapReduce will do this
-// reduction in parallel.
+// (in PageRank.h) is that PageRank_edgeMap will *sequentially* aggregate the
+// incoming contributions to a vertex, whereas PageRank_edgeMapReduce will do
+// this reduction in parallel.
+//
+// If provided,`report_progress` will be called periodically to report the
+// progress of the computation.
 template <class Graph>
-sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
-                                        std::vector<uintE> sources = {},
-                                        double damping_factor = 0.85,
-                                        size_t max_iters = 100) {
+absl::StatusOr<sequence<double>> PageRank_edgeMapReduce(
+    Graph& G, double eps = 0.000001, std::vector<uintE> sources = {},
+    double damping_factor = 0.85, size_t max_iters = 100,
+    std::optional<ReportProgressCallback> report_progress = std::nullopt) {
   pagerank_edgemapreduce_utils::ValidatePageRankParameters(eps, damping_factor);
   using W = typename Graph::weight_type;
   const uintE n = G.n;
-  if (n == 0) return sequence<double>();
+  if (n == 0) {
+    if (report_progress.has_value()) (*report_progress)(1.0);
+    return sequence<double>();
+  }
   double added_constant;
   if (sources.empty()) {
     added_constant = (1 - damping_factor) * (1 / static_cast<double>(n));
@@ -168,6 +177,14 @@ sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
     return std::nullopt;
   };
 
+  std::optional<gbbs::IterationProgressReporter> progress_reporter;
+  if (report_progress.has_value()) {
+    progress_reporter.emplace(
+        gbbs::IterationProgressReporter(*std::move(report_progress), max_iters,
+                                        /*has_preprocessing=*/true));
+    RETURN_IF_ERROR(progress_reporter->PreprocessingComplete());
+  }
+
   for (size_t iter = 0; iter < max_iters; ++iter) {
     dangling_sum = parlay::reduce(parlay::delayed_map(
         dangling_nodes, [&](uintE v) { return p_curr[v]; }));
@@ -201,12 +218,18 @@ sequence<double> PageRank_edgeMapReduce(Graph& G, double eps = 0.000001,
     // Reset p_curr and p_div.
     std::swap(p_div, p_div_next);
     if (L1_norm < eps * n) {
+      if (progress_reporter.has_value()) {
+        RETURN_IF_ERROR(progress_reporter->IterationsDoneEarly());
+      }
       break;
     }
     gbbs_debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     t.stop();
     t.next("iteration time");
+    if (progress_reporter.has_value()) {
+      RETURN_IF_ERROR(progress_reporter->IterationComplete(iter));
+    }
   }
   gbbs_debug(auto max_pr = parlay::reduce_max(p_curr);
              std::cout << "max_pr = " << max_pr << std::endl;);
