@@ -25,7 +25,7 @@ namespace gbbs {
 // a value of 0.0 (at the very beginning of the execution of the algorithm), and
 // the final one reporting a value of 1.0 (at the very end of the execution of
 // the algorithm).
-using ReportProgressT = absl::AnyInvocable<void(float progress)>;
+using ReportProgressCallback = absl::AnyInvocable<void(float progress)>;
 
 // Wrapper for a `ReportProgress` instance that's useful for algorithms with the
 // following structure:
@@ -50,8 +50,8 @@ class IterationProgressReporter {
   //   step.
   // * `has_postprocessing`: indicates whether the algorithm has a
   //   postprocessing step.
-  IterationProgressReporter(ReportProgressT report_progress, int num_iterations,
-                            bool has_preprocessing = false,
+  IterationProgressReporter(ReportProgressCallback report_progress,
+                            int num_iterations, bool has_preprocessing = false,
                             bool has_postprocessing = false)
       : report_progress_(std::move(report_progress)),
         num_iterations_(num_iterations),
@@ -92,7 +92,7 @@ class IterationProgressReporter {
   absl::Status PostprocessingComplete();
 
  private:
-  /*const*/ ReportProgressT report_progress_;
+  /*const*/ ReportProgressCallback report_progress_;
   const int num_iterations_;
   const bool has_preprocessing_;
   const bool has_postprocessing_;

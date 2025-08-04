@@ -17,11 +17,10 @@ test --test_strategy=standalone
 # This is needed so Bazel starts with the base workspace in its
 # package path.
 
-
 # By default build in C++17 mode using the Homegrown scheduler for parallelism.
 #build --repo_env=CC=clang++-12
 build --repo_env=CC=g++
-build --cxxopt=-std=c++17
+build --cxxopt=-std=c++20
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
 build --cxxopt=-DLONG        # use 8 byte vertex identifiers

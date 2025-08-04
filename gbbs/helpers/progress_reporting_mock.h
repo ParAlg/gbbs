@@ -17,21 +17,21 @@ namespace gbbs {
 //
 // TEST_F(MyAlgorithmTest, DoesFoo) {
 //   // Invoke method under test.
-//   EXPECT_THAT(clusterer_.Cluster(..., MockReportProgress()),
+//   EXPECT_THAT(clusterer_.Cluster(..., MockReportProgressCallback()),
 //               IsOkAndHolds(...));
 //   // Check that the progress reports were as expected.
 //   EXPECT_THAT(GetProgressReports(), ElementsAre(0.0, 1.0));
 // }
 //
-// Note that because `MockReportProgress()` clears any previous progress
-// reports, multiple `MockReportProgress()` ... `GetProgressReports()` call
+// Note that because `MockReportProgressCallback()` clears any previous progress
+// reports, multiple `MockReportProgressCallback()` ... `GetProgressReports()` call
 // pairs can be used in a single test.
 class ReportProgressMock {
  public:
   // Returns a new ReportProgress `AnyInvocable` that records its successive
   // arguments in `progress_reports_`. Any previously recorded progress reports
   // are cleared.
-  ReportProgressT MockReportProgress() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ReportProgressCallback MockReportProgressCallback() ABSL_ATTRIBUTE_LIFETIME_BOUND {
     progress_reports_.clear();
     return [this](float progress) {
       this->progress_reports_.push_back(progress);
