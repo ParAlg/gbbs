@@ -156,6 +156,15 @@ struct uncompressed_neighbors {
                  granularity);
   }
 
+  // F (...) -> bool
+  template <class F>
+  inline void map_seq(F f) {
+    for (size_t i=0; i < degree; ++i) {
+      const std::tuple<uintE, W>& neighbor = neighbors[i];
+      if (!f(id, std::get<0>(neighbor), std::get<1>(neighbor))) break;
+    }
+  }
+
   // Applies `f` to neighbors of vertex `v`. The difference between this and
   // `map` is that `f` takes an additional argument: the index of the neighbor
   // in `v`'s neighbor list.
