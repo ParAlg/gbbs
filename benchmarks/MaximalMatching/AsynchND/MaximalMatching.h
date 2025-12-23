@@ -28,6 +28,37 @@
 
 namespace gbbs {
 
+class PerWorkerStats {
+ private:
+  // Define the cache line size as requested.
+  // 128 bytes is a common L2 cache line size and a safe bet.
+  static constexpr size_t CACHE_LINE_SIZE = 128;
+
+  struct alignas(CACHE_LINE_SIZE) PaddedCounter {
+    size_t count = 0;
+  };
+
+  size_t num_workers;
+  std::unique_ptr<PaddedCounter[]> per_worker_storage;
+
+ public:
+  PerWorkerStats() : num_workers(parlay::num_workers()) {
+    per_worker_storage = std::make_unique<PaddedCounter[]>(num_workers);
+  }
+
+  void increment() {
+    size_t id = parlay::worker_id();
+    per_worker_storage[id].count++;
+  }
+
+  size_t finalize() {
+    size_t total_count = 0;
+    for (size_t i = 0; i < num_workers; ++i) {
+      total_count += per_worker_storage[i].count;
+    }
+    return total_count;
+  }
+};
 
 template <typename T>
 class PerWorkerBag {
@@ -153,20 +184,22 @@ public:
 
 
 template <class W, class Bag>
-uintE HelpMatch(Bag& bag, uintE* P, uintE v, uintE c) {
+uintE HelpMatch(Bag& bag, PerWorkerStats& stats, uintE* P, uintE v, uintE c) {
   while (true) {
     auto p_v = P[v];
     if (p_v < v) return p_v;
-    if (gbbs::atomic_compare_and_swap(&P[p_v], p_v, v)) {
+    if (P[p_v] == p_v && gbbs::atomic_compare_and_swap(&P[p_v], p_v, v)) {
       bag.add(std::make_tuple(v, p_v, W{}));
       return p_v;
     }
-    auto r = HelpMatch<W, Bag>(bag, P, p_v, v);
+    stats.increment();
+    auto r = HelpMatch<W, Bag>(bag, stats, P, p_v, v);
     if (r == v) return p_v;
-    if (gbbs::atomic_compare_and_swap(&P[v], p_v, c)) {
+    if (P[v] == p_v && gbbs::atomic_compare_and_swap(&P[v], p_v, c)) {
       bag.add(std::make_tuple(v, c, W{}));
       return c;
     }
+    stats.increment();
   }
 };
 
@@ -179,6 +212,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   auto P = sequence<uintE>::from_function(G.n, [&](uintE i) { return i; });
 
   PerWorkerBag<edge> bag;
+  PerWorkerStats stats;
+  PerWorkerStats help_matches;
 
   parlay::parallel_for(0, G.n, [&] (uintE v) {
     uintE prev = v;
@@ -186,19 +221,28 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
       if (v < x) { // higher neighbor; try to match
         // if we fail the next CAS, we must be matched (and the edge
         // is already added).
-        //std::cout << "P[v] = " << P[v] << std::endl;
-        if (!gbbs::atomic_compare_and_swap(&P[v], prev, x)) return false;
+        if (P[v] != prev) {
+          return false;
+        }
+        if (!gbbs::atomic_compare_and_swap(&P[v], prev, x)) {
+          stats.increment();
+          return false;
+        }
 
         // If we succeed for the next CAS, we matched x to us. Add the
         // edge to the bag.
-        if (gbbs::atomic_compare_and_swap(&P[x], x, v)) {
+        if (P[x] == x && gbbs::atomic_compare_and_swap(&P[x], x, v)) {
           bag.add(std::make_tuple(x, v, W{}));
           return false;  // don't continue looping
         }
+        stats.increment();
 
         // Otherwise, x is trying to match with someone else. Go help
         // it.
-        if (HelpMatch<W>(bag, P.begin(), x, v) == v) return false;
+        help_matches.increment();
+        if (HelpMatch<W>(bag, stats, P.begin(), x, v) == v) {
+          return false;
+        }
         prev = x;
       }
       // Continue looping over the edges.
@@ -206,6 +250,9 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     };
     G.get_vertex(v).out_neighbors().map_seq(map_f);
   });
+
+  std::cout << "Failed CASes: " << stats.finalize() << "\n";
+  std::cout << "Num help matches: " << help_matches.finalize() << "\n";
 
   return bag.finalize();
 }
