@@ -184,18 +184,22 @@ public:
 
 
 template <class W, class Bag>
-uintE HelpMatch(Bag& bag, PerWorkerStats& stats, uintE* P, uintE v, uintE c) {
+uintE HelpMatch(Bag& bag, PerWorkerStats& stats, uintE* P, uintE v, uintE c, parlay::sequence<std::atomic<bool>>& matched) {
   while (true) {
     auto p_v = P[v];
-    if (p_v < v) return p_v;
+    if (p_v > v) return p_v;
     if (P[p_v] == p_v && gbbs::atomic_compare_and_swap(&P[p_v], p_v, v)) {
+      matched[v] = true;
+      matched[p_v] = true;
       bag.add(std::make_tuple(v, p_v, W{}));
       return p_v;
     }
     stats.increment();
-    auto r = HelpMatch<W, Bag>(bag, stats, P, p_v, v);
+    auto r = HelpMatch<W, Bag>(bag, stats, P, p_v, v, matched);
     if (r == v) return p_v;
     if (P[v] == p_v && gbbs::atomic_compare_and_swap(&P[v], p_v, c)) {
+      matched[v] = true;
+      matched[c] = true;
       bag.add(std::make_tuple(v, c, W{}));
       return c;
     }
@@ -214,33 +218,45 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   PerWorkerBag<edge> bag;
   PerWorkerStats stats;
   PerWorkerStats help_matches;
+  PerWorkerStats attempts;
+
+  parlay::sequence<std::atomic<bool>> matched(G.n);
 
   parlay::parallel_for(0, G.n, [&] (uintE v) {
     uintE prev = v;
     auto map_f = [&](const uintE& v, const uintE& x, const W& wgh) {
-      if (v < x) { // higher neighbor; try to match
+      if (v > x) { // lower neighbor; try to match
         // if we fail the next CAS, we must be matched (and the edge
         // is already added).
         if (P[v] != prev) {
           return false;
         }
+
+        // Early terminate.
+        if (matched[x]) { return true; }
+
         if (!gbbs::atomic_compare_and_swap(&P[v], prev, x)) {
           stats.increment();
           return false;
         }
+        attempts.increment();
 
         // If we succeed for the next CAS, we matched x to us. Add the
         // edge to the bag.
         if (P[x] == x && gbbs::atomic_compare_and_swap(&P[x], x, v)) {
           bag.add(std::make_tuple(x, v, W{}));
+          matched[x] = true;
+          matched[v] = true;
           return false;  // don't continue looping
         }
         stats.increment();
 
+
+
         // Otherwise, x is trying to match with someone else. Go help
         // it.
         help_matches.increment();
-        if (HelpMatch<W>(bag, stats, P.begin(), x, v) == v) {
+        if (HelpMatch<W>(bag, stats, P.begin(), x, v, matched) == v) {
           return false;
         }
         prev = x;
@@ -253,6 +269,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
 
   std::cout << "Failed CASes: " << stats.finalize() << "\n";
   std::cout << "Num help matches: " << help_matches.finalize() << "\n";
+  std::cout << "Num vertex attempts: " << attempts.finalize() << std::endl;
 
   return bag.finalize();
 }
