@@ -218,17 +218,21 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
 
     std::cout << "Round " << round << ": Got " << edges.size() << " edges " << std::endl;
 
+    edges = parlay::random_shuffle(parlay::make_slice(edges));
+
     auto matched_edge =
         sequence<bool>::from_function(edges.size(), [](size_t) { return false; });
     mm::matchStep<W> mStep(edges.begin(), R.begin(), matched.begin(), matched_edge.begin());
     eff.start();
-    eff_for<size_t>(mStep, 0, edges.size(), 50, 0, G.n);
+    size_t total_processed = eff_for<size_t>(mStep, 0, edges.size(), 50, 0, G.n);
     eff.stop();
     gete.next("Match Time");
 
     auto e_added = parlay::pack(parlay::make_slice(edges), matched_edge);
 
-    std::cout << "Round " << round << ": Matched " << e_added.size() << " edges" << std::endl;
+    std::cout << "Round " << round << ": Matched " << e_added.size() << " edges"
+              << ". Started with: " << edges.size() << " edges and (total_processed=" << total_processed << ", wasted="
+              << (total_processed - e_added.size()) << ")" << std::endl;
     matching.append(parlay::make_slice(e_added));
 
     round++;
