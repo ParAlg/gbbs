@@ -293,9 +293,10 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   });
   assert(valid == true);
 
-  // Check maximality of the matching
+  // Check maximality of the matching (skip self-loops: can't match a vertex
+  // with itself)
   auto map2_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    if (!matched[src] && !matched[ngh]) {
+    if (src != ngh && !matched[src] && !matched[ngh]) {
       // could have added this edge, increasing the size of the matching
       ok[src] = 0;
       ok[ngh] = 0;

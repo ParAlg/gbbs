@@ -29,42 +29,40 @@
 namespace gbbs {
 namespace mm {
 
-constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
-constexpr uintE VAL_MASK = INT_E_MAX;
 constexpr size_t n_filter_steps = 5;
 
 template <class W>
 struct matchStep {
   using edge = std::tuple<uintE, uintE, W>;
   edge* E;
-  uintE* R;
+  size_t* R;
   bool* matched;
-  matchStep(edge* _E, uintE* _R, bool* m) : E(_E), R(_R), matched(m) {}
+  bool* matched_edge;
+  matchStep(edge* _E, size_t* _R, bool* m, bool* me)
+      : E(_E), R(_R), matched(m), matched_edge(me) {}
 
-  bool reserve(uintE i) {
+  bool reserve(size_t i) {
     uintE u = std::get<0>(E[i]);
     uintE v = std::get<1>(E[i]);
     if (matched[u] || matched[v] || (u == v)) return 0;
-    reserveLoc<uintE>(&R[u], i);
-    reserveLoc<uintE>(&R[v], i);
+    reserveLoc<size_t>(&R[u], i);
+    reserveLoc<size_t>(&R[v], i);
     return 1;
   }
 
-  bool commit(uintE i) {
+  bool commit(size_t i) {
     uintE u = std::get<0>(E[i]);
     uintE v = std::get<1>(E[i]);
     if (R[v] == i) {
-      R[v] = UINT_E_MAX;
+      R[v] = std::numeric_limits<size_t>::max();
       if (R[u] == i) {
         matched[u] = matched[v] = 1;
-        R[u] = UINT_E_MAX;
-        // mark edge
-        E[i] = std::make_tuple(std::get<0>(E[i]) |= TOP_BIT, std::get<1>(E[i]),
-                               std::get<2>(E[i]));
+        R[u] = std::numeric_limits<size_t>::max();
+        matched_edge[i] = true;
         return 1;
       }
     } else if (R[u] == i)
-      R[u] = UINT_E_MAX;
+      R[u] = std::numeric_limits<size_t>::max();
     return 0;
   }
 };
@@ -93,10 +91,10 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
     }
     return degree;
   });
-  gbbs_debug(tt.next("live degree time"););
+  tt.next("live degree time");
 
   size_t tot = parlay::scan_inplace(parlay::make_slice(live_degree));
-  gbbs_debug(std::cout << "tot = " << tot << std::endl;);
+  std::cout << "tot = " << tot << std::endl;
 
   parlay::sequence<size_t> indices;
   parlay::sequence<edge> out;
@@ -104,28 +102,29 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
   if (tot < k) {
     indices = parlay::tabulate(tot, [&](size_t i) { return i; });
     out = parlay::sequence<edge>(tot);
-    gbbs_debug(tt.next("permutation time"););
+    tt.next("permutation time");
     k = tot;
   } else {
     indices = sample_indices(k, tot, r);
-    gbbs_debug(tt.next("permutation time"););
+    tt.next("permutation time");
     parlay::sort_inplace(indices);
-    gbbs_debug(tt.next("sort time"););
+    tt.next("sort time");
     out = parlay::sequence<edge>(k);
   }
 
   constexpr size_t kBlockSize = 1 << 16;
   size_t num_blocks = parlay::num_blocks(k, kBlockSize);
-  gbbs_debug(std::cout << "k = " << k << " num_blocks = " << num_blocks
-                  << std::endl;);
+  std::cout << "k = " << k << " num_blocks = " << num_blocks << std::endl;
   parlay::parallel_for(0, num_blocks, [&](size_t b) {
     size_t start = b * kBlockSize;
     size_t end = std::min(k, (b + 1) * kBlockSize);
 
     size_t i = start;
     size_t idx = indices[i];
+    size_t n = G.num_vertices();
     auto cur_id = parlay::binary_search(parlay::make_slice(live_degree), idx,
                                         std::less<size_t>());
+    if (cur_id >= n) cur_id = n - 1;
 
     while (i < end) {
       idx = indices[i];
@@ -133,19 +132,22 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
           parlay::make_slice(live_degree).cut(cur_id, live_degree.size()), idx,
           std::less<size_t>());
       cur_id += incr;
+      if (cur_id >= n) cur_id = n - 1;
       if (live_degree[cur_id] > idx) cur_id--;
 
       size_t our_edge_start = live_degree[cur_id];
       size_t our_edge_end =
-          ((idx == G.num_vertices() - 1) ? tot : live_degree[cur_id + 1]);
+          ((cur_id == n - 1) ? tot : live_degree[cur_id + 1]);
       size_t our_degree = our_edge_end - our_edge_start;
       while (our_degree == 0) {
         cur_id++;
+        if (cur_id >= n) break;
         our_edge_start = live_degree[cur_id];
         our_edge_end =
-            ((idx == G.num_vertices() - 1) ? tot : live_degree[cur_id + 1]);
+            ((cur_id == n - 1) ? tot : live_degree[cur_id + 1]);
         our_degree = our_edge_end - our_edge_start;
       }
+      if (cur_id >= n) break;
 
       // detect first edge for vertex
       bool is_first_edge = (i == 0) || (indices[i - 1] < our_edge_start);
@@ -176,7 +178,7 @@ inline parlay::sequence<std::tuple<uintE, uintE, W>> get_edges(symmetric_graph<v
     }
   }, 1);
 
-  gbbs_debug(tt.next("extract edges time"););
+  tt.next("extract edges time");
 
   return out;
 }
@@ -197,7 +199,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   auto r = parlay::random();
 
   auto R =
-      sequence<uintE>::from_function(n, [&](size_t i) { return UINT_E_MAX; });
+      sequence<size_t>::from_function(n, [&](size_t i) { return std::numeric_limits<size_t>::max(); });
   auto matched =
       sequence<bool>::from_function(n, [&](size_t i) { return false; });
 
@@ -212,37 +214,33 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     auto edges = mm::get_edges(G, k, matched.begin(), round, r);
 
     if (edges.size() == 0) break;
-    gbbs_debug(gete.next("Get Edges Time"););
+    gete.next("Get Edges Time");
 
-    gbbs_debug(std::cout << "Got: " << edges.size() << " edges " << std::endl;);
+    std::cout << "Round " << round << ": Got " << edges.size() << " edges " << std::endl;
 
-    mm::matchStep<W> mStep(edges.begin(), R.begin(), matched.begin());
+    auto matched_edge =
+        sequence<bool>::from_function(edges.size(), [](size_t) { return false; });
+    mm::matchStep<W> mStep(edges.begin(), R.begin(), matched.begin(), matched_edge.begin());
     eff.start();
-    eff_for<uintE>(mStep, 0, edges.size(), 50, 0, G.n);
+    eff_for<size_t>(mStep, 0, edges.size(), 50, 0, G.n);
     eff.stop();
-    gbbs_debug(gete.next("Match Time"););
+    gete.next("Match Time");
 
-    auto e_added = parlay::filter(
-        parlay::make_slice(edges), [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
+    auto e_added = parlay::pack(parlay::make_slice(edges), matched_edge);
 
+    std::cout << "Round " << round << ": Matched " << e_added.size() << " edges" << std::endl;
     matching.append(parlay::make_slice(e_added));
 
     round++;
     r = r.next();
   }
   std::cout << "matching size = " << matching.size() << "\n";
-  auto output = sequence<edge>::from_function(matching.size(), [&](size_t i) {
-    uintE u, v;
-    W wgh;
-    std::tie(u, v, wgh) = matching[i];
-    return edge(u & mm::VAL_MASK, v & mm::VAL_MASK, wgh);
-  });  // allocated
+
   mt.stop();
-  gbbs_debug(
   eff.next("eff for time");
   gete.next("get edges time");
-  mt.next("Matching time"););
-  return output;
+  mt.next("Matching time");
+  return matching;
 }
 
 template <template <class W> class vertex, class W, class Seq>
@@ -264,9 +262,10 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   });
   assert(valid == true);
 
-  // Check maximality of the matching
+  // Check maximality of the matching (skip self-loops: can't match a vertex
+  // with itself)
   auto map2_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    if (!matched[src] && !matched[ngh]) {
+    if (src != ngh && !matched[src] && !matched[ngh]) {
       // could have added this edge, increasing the size of the matching
       ok[src] = 0;
       ok[ngh] = 0;

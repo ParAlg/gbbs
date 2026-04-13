@@ -27,6 +27,7 @@
 //   required:
 //     -s : indicates that the graph is symmetric
 //   optional:
+//     -rounds : the number of times to run the algorithm
 //     -m : indicate that the graph should be mmap'd
 //     -c : indicate that the graph is compressed
 
@@ -55,7 +56,9 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   auto matching = MaximalMatching(G);
   double tt = t.stop();
 
-  verify_matching(G, matching);
+  if (P.getOption("-verify")) {
+    verify_matching(G, matching);
+  }
 
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;

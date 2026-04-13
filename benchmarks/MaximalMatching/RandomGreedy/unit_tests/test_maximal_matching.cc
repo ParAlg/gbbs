@@ -37,9 +37,9 @@ inline void CheckMatching(symmetric_graph<vertex, W>& G, Seq& matching) {
 
   parallel_for(0, n, [&](size_t i) { EXPECT_LE(matched[i], 1); });
 
-  // Check maximality of the matching
+  // Check maximality of the matching (skip self-loops)
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    EXPECT_FALSE(!matched[src] && !matched[ngh]);
+    EXPECT_FALSE(src != ngh && !matched[src] && !matched[ngh]);
   };
   parallel_for(0, n,
                [&](size_t i) { G.get_vertex(i).out_neighbors().map(map_f); });
