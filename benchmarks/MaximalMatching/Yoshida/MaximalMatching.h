@@ -30,6 +30,19 @@
 
 namespace gbbs {
 
+// Returns true if edge (a, n_a) should be skipped when processing query edge
+// (u,v), i.e., its priority is not strictly lower than (u,v)'s.
+inline bool skip_edge_pri(uintE u, uintE v, size_t our_pri,
+                          uintE a, uintE n_a) {
+  size_t ep = get_edge_pri(a, n_a);
+  if (ep > our_pri) return true;
+  if (ep == our_pri) {
+    if (a == u && n_a == v) return true;  // the query edge itself
+    if (std::make_pair(u, v) <= std::make_pair(a, n_a)) return true;
+  }
+  return false;
+}
+
 enum mm_status { in, out, unknown };
 
 /* returns pair of (in_matching, query_work) */
@@ -158,6 +171,111 @@ std::pair<mm_status, size_t> mm_query_cached(
   gbbs::atomic_compare_and_swap(&matched_to[u], (uintE)UINT_E_MAX, v);
   gbbs::atomic_compare_and_swap(&matched_to[v], (uintE)UINT_E_MAX, u);
   return std::make_pair(in, work);
+}
+
+// No-orient version of mm_query. Works directly on the original graph without
+// reordering neighbor lists. Scans all neighbors of u and v, skipping edges
+// whose priority is not strictly lower than (u,v).
+template <class Graph>
+std::pair<mm_status, size_t> mm_query_no_orient(uintE u, uintE v, Graph& G,
+                                                size_t work_so_far,
+                                                size_t query_cutoff) {
+  assert(u < v);
+  size_t our_pri = get_edge_pri(u, v);
+  mm_status result = in;
+  size_t work = work_so_far;
+
+  auto scan_f = [&](const uintE& src, const uintE& w, const auto& wgh) {
+    if (work == query_cutoff) {
+      result = unknown;
+      work = query_cutoff;
+      return false;
+    }
+    uintE a = std::min(src, w);
+    uintE n_a = std::max(src, w);
+    if (skip_edge_pri(u, v, our_pri, a, n_a)) return true;  // continue
+
+    work++;
+    auto [status, rec_work] = mm_query_no_orient(a, n_a, G, work, query_cutoff);
+    work = rec_work;
+    if (status == in) {
+      result = out;
+      return false;  // early exit
+    } else if (status == unknown) {
+      result = unknown;
+      return false;  // early exit
+    }
+    return true;  // continue
+  };
+
+  G.get_vertex(u).out_neighbors().map_seq(scan_f);
+  if (result == in) {
+    G.get_vertex(v).out_neighbors().map_seq(scan_f);
+  }
+
+  return std::make_pair(result, work);
+}
+
+// Cache-optimized no-orient version of mm_query.
+template <class Graph>
+std::pair<mm_status, size_t> mm_query_no_orient_cached(
+    uintE u, uintE v, Graph& G,
+    size_t work_so_far, size_t query_cutoff,
+    sequence<uintE>& matched_to) {
+  assert(u < v);
+
+  // Check the cache before doing any work.
+  uintE mu = matched_to[u];
+  uintE mv = matched_to[v];
+  if (mu == v || mv == u) {
+    return std::make_pair(in, work_so_far);
+  }
+  if (mu != UINT_E_MAX) {
+    return std::make_pair(out, work_so_far);
+  }
+  if (mv != UINT_E_MAX) {
+    return std::make_pair(out, work_so_far);
+  }
+
+  size_t our_pri = get_edge_pri(u, v);
+  mm_status result = in;
+  size_t work = work_so_far;
+
+  auto scan_f = [&](const uintE& src, const uintE& w, const auto& wgh) {
+    if (work == query_cutoff) {
+      result = unknown;
+      work = query_cutoff;
+      return false;
+    }
+    uintE a = std::min(src, w);
+    uintE n_a = std::max(src, w);
+    if (skip_edge_pri(u, v, our_pri, a, n_a)) return true;
+
+    work++;
+    auto [status, rec_work] =
+        mm_query_no_orient_cached(a, n_a, G, work, query_cutoff, matched_to);
+    work = rec_work;
+    if (status == in) {
+      result = out;
+      return false;
+    } else if (status == unknown) {
+      result = unknown;
+      return false;
+    }
+    return true;
+  };
+
+  G.get_vertex(u).out_neighbors().map_seq(scan_f);
+  if (result == in) {
+    G.get_vertex(v).out_neighbors().map_seq(scan_f);
+  }
+
+  if (result == in) {
+    // Cache before returning.
+    gbbs::atomic_compare_and_swap(&matched_to[u], (uintE)UINT_E_MAX, v);
+    gbbs::atomic_compare_and_swap(&matched_to[v], (uintE)UINT_E_MAX, u);
+  }
+  return std::make_pair(result, work);
 }
 
 template <class Graph>
@@ -291,4 +409,116 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
 
   return std::make_tuple(max_query_length, tot_work, fraction_covered);
 }
+
+// No-orient version with caching. Works directly on G, no reorder.
+template <class Graph>
+auto MaximalMatchingNoOrientCached(Graph& G, size_t query_cutoff) {
+  using W = typename Graph::weight_type;
+
+  size_t m = G.m;
+  size_t n = G.n;
+
+  auto matched_to = sequence<uintE>(n, (uintE)UINT_E_MAX);
+
+  size_t max_query_length = 0;
+  auto matching_cts = sequence<uintE>(n, (uintE)0);
+  auto total_work = sequence<size_t>(n, (size_t)0);
+  auto got_answer = sequence<size_t>(n, (size_t)0);
+  auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+    if (u < v) {
+      auto [in_mm, work] =
+          mm_query_no_orient_cached(u, v, G, 0, query_cutoff, matched_to);
+      gbbs::write_add(&total_work[v], work);
+      gbbs::write_max(&max_query_length, work, std::less<size_t>());
+      if (in_mm == in) {
+        gbbs::write_add(&matching_cts[u], 1);
+        gbbs::write_add(&matching_cts[v], 1);
+      }
+      if (in_mm == in || in_mm == out) {
+        gbbs::write_add(&got_answer[u], 1);
+      }
+    }
+  };
+  G.mapEdges(map_f);
+  size_t tot_work = parlay::reduce(make_slice(total_work));
+  double fraction_covered =
+      (static_cast<double>(parlay::reduce(make_slice(got_answer))) /
+       (static_cast<double>(m) / 2));
+  std::cout << "# Max query length = " << max_query_length << std::endl;
+  std::cout << "# Total work = " << tot_work << std::endl;
+  std::cout << "# Answers for: " << fraction_covered << " fraction of edges"
+            << std::endl;
+
+  if (query_cutoff == std::numeric_limits<size_t>::max()) {
+    for (size_t i = 0; i < n; i++) {
+      if (matching_cts[i] > 1) {
+        std::cout << "mct = " << matching_cts[i] << " i = " << i
+                  << " deg = " << G.get_vertex(i).out_degree() << std::endl;
+      }
+      assert(matching_cts[i] <= 1);
+    }
+
+    auto verify_f = [&](const uintE u, const uintE& v, const W& wgh) {
+      assert(u == v || !(matching_cts[u] == 0 && matching_cts[v] == 0));
+    };
+    G.mapEdges(verify_f);
+  }
+
+  return std::make_tuple(max_query_length, tot_work, fraction_covered);
+}
+
+// No-orient version without caching. Works directly on G, no reorder.
+template <class Graph>
+auto MaximalMatchingNoOrient(Graph& G, size_t query_cutoff) {
+  using W = typename Graph::weight_type;
+
+  size_t m = G.m;
+  size_t n = G.n;
+
+  size_t max_query_length = 0;
+  auto matching_cts = sequence<uintE>(n, (uintE)0);
+  auto total_work = sequence<size_t>(n, (size_t)0);
+  auto got_answer = sequence<size_t>(n, (size_t)0);
+  auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+    if (u < v) {
+      auto [in_mm, work] = mm_query_no_orient(u, v, G, 0, query_cutoff);
+      gbbs::write_add(&total_work[v], work);
+      gbbs::write_max(&max_query_length, work, std::less<size_t>());
+      if (in_mm == in) {
+        gbbs::write_add(&matching_cts[u], 1);
+        gbbs::write_add(&matching_cts[v], 1);
+      }
+      if (in_mm == in || in_mm == out) {
+        gbbs::write_add(&got_answer[u], 1);
+      }
+    }
+  };
+  G.mapEdges(map_f);
+  size_t tot_work = parlay::reduce(make_slice(total_work));
+  double fraction_covered =
+      (static_cast<double>(parlay::reduce(make_slice(got_answer))) /
+       (static_cast<double>(m) / 2));
+  std::cout << "# Max query length = " << max_query_length << std::endl;
+  std::cout << "# Total work = " << tot_work << std::endl;
+  std::cout << "# Answers for: " << fraction_covered << " fraction of edges"
+            << std::endl;
+
+  if (query_cutoff == std::numeric_limits<size_t>::max()) {
+    for (size_t i = 0; i < n; i++) {
+      if (matching_cts[i] > 1) {
+        std::cout << "mct = " << matching_cts[i] << " i = " << i
+                  << " deg = " << G.get_vertex(i).out_degree() << std::endl;
+      }
+      assert(matching_cts[i] <= 1);
+    }
+
+    auto verify_f = [&](const uintE u, const uintE& v, const W& wgh) {
+      assert(u == v || !(matching_cts[u] == 0 && matching_cts[v] == 0));
+    };
+    G.mapEdges(verify_f);
+  }
+
+  return std::make_tuple(max_query_length, tot_work, fraction_covered);
+}
+
 }  // namespace gbbs

@@ -62,6 +62,7 @@ double MaximalMatching_runner(Graph& G, commandLine P) {
   size_t query_cutoff =
       P.getOptionLongValue("-query_cutoff", std::numeric_limits<size_t>::max());
   bool use_caching = P.getOptionValue("-use_caching");
+  bool no_orient = P.getOptionValue("-no_orient");
   std::cout
       << "### Application: Maximal Matching (Yoshida). Status=Experimental"
       << std::endl;
@@ -71,14 +72,17 @@ double MaximalMatching_runner(Graph& G, commandLine P) {
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -query_cutoff = " << query_cutoff << std::endl;
   std::cout << "### Params: -use_caching = " << use_caching << std::endl;
+  std::cout << "### Params: -no_orient = " << no_orient << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   timer t;
   t.start();
   auto[max_query_length, total_work, fraction_covered] =
-      use_caching ? MaximalMatchingCached(G, query_cutoff)
-                  : MaximalMatching(G, query_cutoff);
+      no_orient ? (use_caching ? MaximalMatchingNoOrientCached(G, query_cutoff)
+                               : MaximalMatchingNoOrient(G, query_cutoff))
+                : (use_caching ? MaximalMatchingCached(G, query_cutoff)
+                               : MaximalMatching(G, query_cutoff));
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
   print_stats(P, query_cutoff, max_query_length, total_work, fraction_covered,

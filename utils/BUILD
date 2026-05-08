@@ -56,3 +56,24 @@ cc_library(
     ],
     deps = ["//gbbs"],
 )
+
+cc_library(
+    name = "graph_writer",
+    hdrs = ["graph_writer.h"],
+    deps = [
+        "//gbbs",
+        "//gbbs:graph_io",
+        "//gbbs/encodings:byte_pd_amortized",
+    ],
+)
+
+cc_binary(
+    name = "add_weights",
+    srcs = ["add_weights.cc"],
+    deps = [
+        ":graph_writer",
+        "//gbbs",
+        "//gbbs:graph_io",
+        "//gbbs/helpers:parse_command_line",
+    ],
+)
