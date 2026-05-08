@@ -183,20 +183,43 @@ public:
 };
 
 
-template <class W, class Bag>
-uintE HelpMatch(Bag& bag, PerWorkerStats& stats, uintE* P, uintE v, uintE c, parlay::sequence<std::atomic<bool>>& matched) {
+constexpr uintE kNoReservation = UINT_E_MAX;
+
+template <bool UseReservations, class W, class Bag>
+uintE HelpMatch(Bag& bag, PerWorkerStats& stats, uintE* P, uintE v, uintE c,
+                 parlay::sequence<std::atomic<bool>>& matched,
+                 std::atomic<uintE>* reserve) {
+  if constexpr (UseReservations) {
+    uintE expected = kNoReservation;
+    reserve[v].compare_exchange_strong(expected, c);
+    if (expected != kNoReservation && expected != c) {
+      return kNoReservation;
+    }
+  }
+
   while (true) {
     auto p_v = P[v];
     if (p_v > v) return p_v;
-    if (P[p_v] == p_v && gbbs::atomic_compare_and_swap(&P[p_v], p_v, v)) {
-      matched[v] = true;
-      matched[p_v] = true;
-      bag.add(std::make_tuple(v, p_v, W{}));
-      return p_v;
+
+    bool can_help = true;
+    if constexpr (UseReservations) {
+      uintE expected = kNoReservation;
+      reserve[p_v].compare_exchange_strong(expected, v);
+      can_help = (expected == kNoReservation || expected == v);
     }
-    stats.increment();
-    auto r = HelpMatch<W, Bag>(bag, stats, P, p_v, v, matched);
-    if (r == v) return p_v;
+
+    if (can_help) {
+      if (P[p_v] == p_v && gbbs::atomic_compare_and_swap(&P[p_v], p_v, v)) {
+        matched[v] = true;
+        matched[p_v] = true;
+        bag.add(std::make_tuple(v, p_v, W{}));
+        return p_v;
+      }
+      stats.increment();
+      auto r = HelpMatch<UseReservations, W>(bag, stats, P, p_v, v, matched, reserve);
+      if (r == v) return p_v;
+    }
+
     if (P[v] == p_v && gbbs::atomic_compare_and_swap(&P[v], p_v, c)) {
       matched[v] = true;
       matched[c] = true;
@@ -208,10 +231,9 @@ uintE HelpMatch(Bag& bag, PerWorkerStats& stats, uintE* P, uintE v, uintE c, par
 };
 
 
-template <template <class W> class vertex, class W>
+template <template <class W> class vertex, class W, bool UseReservations = false>
 inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<vertex, W>& G) {
   using edge = std::tuple<uintE, uintE, W>;
-  parlay::sequence<std::tuple<uintE, uintE, W>> output;
 
   auto P = sequence<uintE>::from_function(G.n, [&](uintE i) { return i; });
 
@@ -222,17 +244,23 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
 
   parlay::sequence<std::atomic<bool>> matched(G.n);
 
+  parlay::sequence<std::atomic<uintE>> reserve(UseReservations ? G.n : 0);
+  std::atomic<uintE>* reserve_ptr = nullptr;
+  if constexpr (UseReservations) {
+    parlay::parallel_for(0, G.n, [&](uintE i) {
+      reserve[i].store(kNoReservation, std::memory_order_relaxed);
+    });
+    reserve_ptr = &reserve[0];
+  }
+
   parlay::parallel_for(0, G.n, [&] (uintE v) {
     uintE prev = v;
     auto map_f = [&](const uintE& v, const uintE& x, const W& wgh) {
-      if (v > x) { // lower neighbor; try to match
-        // if we fail the next CAS, we must be matched (and the edge
-        // is already added).
+      if (v > x) {
         if (P[v] != prev) {
           return false;
         }
 
-        // Early terminate.
         if (matched[x]) { return true; }
 
         if (!gbbs::atomic_compare_and_swap(&P[v], prev, x)) {
@@ -241,27 +269,36 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
         }
         attempts.increment();
 
-        // If we succeed for the next CAS, we matched x to us. Add the
-        // edge to the bag.
-        if (P[x] == x && gbbs::atomic_compare_and_swap(&P[x], x, v)) {
-          bag.add(std::make_tuple(x, v, W{}));
-          matched[x] = true;
-          matched[v] = true;
-          return false;  // don't continue looping
+        bool can_help = true;
+        if constexpr (UseReservations) {
+          uintE expected = kNoReservation;
+          reserve_ptr[x].compare_exchange_strong(expected, v);
+          can_help = (expected == kNoReservation || expected == v);
         }
-        stats.increment();
 
+        if (can_help) {
+          if (P[x] == x && gbbs::atomic_compare_and_swap(&P[x], x, v)) {
+            bag.add(std::make_tuple(x, v, W{}));
+            matched[x] = true;
+            matched[v] = true;
+            return false;
+          }
+          stats.increment();
 
-
-        // Otherwise, x is trying to match with someone else. Go help
-        // it.
-        help_matches.increment();
-        if (HelpMatch<W>(bag, stats, P.begin(), x, v, matched) == v) {
-          return false;
+          help_matches.increment();
+          if (HelpMatch<UseReservations, W>(bag, stats, P.begin(), x, v, matched, reserve_ptr) == v) {
+            return false;
+          }
         }
+
+        if constexpr (UseReservations) {
+          if (reserve_ptr[v].load() != kNoReservation) {
+            return false;
+          }
+        }
+
         prev = x;
       }
-      // Continue looping over the edges.
       return true;
     };
     G.get_vertex(v).out_neighbors().map_seq(map_f);

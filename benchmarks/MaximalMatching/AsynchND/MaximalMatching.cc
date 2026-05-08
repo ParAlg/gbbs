@@ -47,13 +47,19 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: (n/a)" << std::endl;
+  bool use_reservations = P.getOption("-reservations");
+  std::cout << "### Params: reservations=" << (use_reservations ? "true" : "false") << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));  // input graph must be symmetric
 
   timer t;
   t.start();
-  auto matching = MaximalMatching(G);
+  sequence<std::tuple<uintE, uintE, W>> matching;
+  if (use_reservations) {
+    matching = MaximalMatching<vertex, W, true>(G);
+  } else {
+    matching = MaximalMatching<vertex, W, false>(G);
+  }
   double tt = t.stop();
 
   if (P.getOption("-verify")) {
