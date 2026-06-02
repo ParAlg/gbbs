@@ -1,0 +1,48 @@
+### Sweep: 16 graphs x 3 algorithms, 5 rounds each
+
+>>> youtube :: HaMIS
+    n=1138499 m=5980886 mis_size=738853 best=0.001260s times=[0.061776, 0.004739, 0.005891, 0.001399, 0.00126] wall=0.2s
+
+>>> youtube :: RG-rootset
+    n=1138499 m=5980886 mis_size=802780 best=0.006596s times=[0.020858, 0.010282, 0.00737, 0.006596, 0.006998] wall=0.2s
+
+>>> youtube :: RG-specfor
+    n=1138499 m=5980886 mis_size=738853 best=0.017373s times=[0.065308, 0.017986, 0.017735, 0.017373, 0.017655] wall=0.3s
+
+>>> dblp :: HaMIS
+    n=425957 m=2099732 mis_size=218344 best=0.002748s times=[0.057231, 0.003942, 0.004598, 0.004728, 0.002748] wall=0.2s
+
+>>> dblp :: RG-rootset
+    n=425957 m=2099732 mis_size=242480 best=0.005012s times=[0.009063, 0.006536, 0.006044, 0.005811, 0.005012] wall=0.1s
+
+>>> dblp :: RG-specfor
+    n=425957 m=2099732 mis_size=218344 best=0.015010s times=[0.01501, 0.016127, 0.017248, 0.017471, 0.016744] wall=0.2s
+
+>>> livejournal :: HaMIS
+    n=4847571 m=85702474 mis_size=2116798 best=0.003516s times=[0.103806, 0.009928, 0.005461, 0.003516, 0.003585] wall=1.0s
+
+>>> livejournal :: RG-rootset
+    n=4847571 m=85702474 mis_size=2316617 best=0.018950s times=[0.067363, 0.020002, 0.019907, 0.019354, 0.01895] wall=1.0s
+
+>>> livejournal :: RG-specfor
+    n=4847571 m=85702474 mis_size=2116798 best=0.033949s times=[0.085686, 0.035333, 0.045707, 0.035404, 0.033949] wall=1.1s
+
+>>> orkut :: HaMIS
+    n=3072627 m=234370166 mis_size=555394 best=0.003487s times=[0.063548, 0.00671, 0.008153, 0.003557, 0.003487] wall=2.3s
+
+>>> orkut :: RG-rootset
+    n=3072627 m=234370166 mis_size=651901 best=0.032608s times=[0.099355, 0.033322, 0.032608, 0.043698, 0.033588] wall=2.5s
+
+>>> orkut :: RG-specfor
+    n=3072627 m=234370166 mis_size=555394 best=0.029425s times=[0.134508, 0.030268, 0.029425, 0.029504, 0.030967] wall=2.6s
+
+>>> twitter :: HaMIS
+    n=41652231 m=2405026092 mis_size=26999019 best=0.063742s times=[0.107193, 0.074069, 0.071025, 0.0713, 0.063742] wall=23.7s
+
+>>> twitter :: RG-rootset
+    n=41652231 m=2405026092 mis_size=26564540 best=0.213654s times=[0.281514, 0.218151, 0.213654, 0.215781, 0.217728] wall=24.8s
+
+>>> twitter :: RG-specfor
+    n=41652231 m=2405026092 mis_size=26999019 best=0.118492s times=[0.214894, 0.118492, 0.12328, 0.123642, 0.121384] wall=24.9s
+
+>>> friendster :: HaMIS
