@@ -180,7 +180,7 @@ inline uintE AssignSmallestAvailableColor(Graph& G, uintE v,
       neighbor_colors_used[neighbor_color] = true;
     }
   };
-  G.get_vertex(v).out_neighbors().map(mark_neighbor_color);
+  G.get_vertex(v).out_neighbors().map(mark_neighbor_color, /*parallel=*/false);
 
   uintE smallest_available = UINT_E_MAX;
   for (size_t i = 0; i < deg; ++i) {
