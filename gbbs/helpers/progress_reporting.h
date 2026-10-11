@@ -9,6 +9,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
 
 namespace gbbs {
 
@@ -78,7 +79,45 @@ class IterationProgressReporter {
   // preprocessing was indicated but `PreprocessingComplete()` has not been
   // called, or if successive calls of this method do not pass monotonically
   // ascending `iteration` values of 0, 1, 2, ..., `num_iterations` - 1.
+  //
+  // Example usage:
+  //   int64_t n = 100;  // Number of iterations.
+  //   gbbs::IterationProgressReporter iter_reporter(report_progress, n);
+  //   for (int i = 0; i < n; ++i) {
+  //     // ... do work here for the ith iteration ...
+  //     ABSL_CHECK_OK(iter_reporter.IterationComplete(i));
+  //   }
+  //
+  // Note: Use of this method is intended for cases within sequential "for"
+  // loops where the `iteration` value is increasing sequentially. For use
+  // within `parlay::parallel_for()` loops, you must use
+  // `ThreadSafeIterationComplete()` instead.
   absl::Status IterationComplete(int64_t iteration);
+
+  // Indicates that one of the iterations has completed. This a convenience
+  // method intended for use at the end of a `parlay::parallel_for()` loop,
+  // where the iteration counter is not sequentially increasing. In particular,
+  // the `iteration` value passed to this method will be generally increasing
+  // but not sequentially or even monotonically so (because the parallel threads
+  // will complete their work at different rates).
+  //
+  // Returns an error status if preprocessing was indicated but
+  // `PreprocessingComplete()` has not been called, or if this method has been
+  // called more than the `num_iterations` value passed to the constructor.
+  //
+  // Example usage:
+  //   int64_t n = 100;  // Number of iterations.
+  //   gbbs::IterationProgressReporter iter_reporter(report_progress, n);
+  //   parlay::parallel_for(0, n, [&](size_t i) {
+  //     // ... do work here for the ith iteration ...
+  //     ABSL_CHECK_OK(iter_reporter.ThreadSafeIterationComplete(i));
+  //   });
+  //
+  // Note: This method is not intended for use within a sequential "for" loop
+  // because the `iteration` value will be sequentially increasing. Instead, you
+  // should use `IterationComplete()` which expects a sequentially increasing
+  // `iteration` value.
+  absl::Status ThreadSafeIterationComplete(int64_t iteration);
 
   // Indicates that all iterations are complete. This is equivalent to calling
   // `IterationComplete(num_iterations)`, but can be used in cases where the
@@ -101,6 +140,8 @@ class IterationProgressReporter {
   const bool has_preprocessing_;
   const bool has_postprocessing_;
   const int64_t total_steps_;
+  absl::Mutex mu_;  // Guards `num_steps_completed_` in
+                    // `ThreadSafeIterationComplete()`.
   int64_t num_steps_completed_ = 0;
 
   // Invokes the `report_progress_` callback so as to reflect

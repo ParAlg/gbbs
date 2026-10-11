@@ -4,6 +4,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/synchronization/mutex.h"
 
 namespace gbbs {
 
@@ -45,6 +46,26 @@ absl::Status IterationProgressReporter::IterationComplete(int64_t iteration) {
                      expected_iteration, " but got ", iteration, "."));
   }
 
+  ++num_steps_completed_;
+  ReportProgress();
+  return absl::OkStatus();
+}
+
+absl::Status IterationProgressReporter::ThreadSafeIterationComplete(
+    int64_t /*iteration*/) {
+  absl::MutexLock lock(mu_);
+  if (has_preprocessing_ && num_steps_completed_ == 0) {
+    return absl::FailedPreconditionError(
+        "'PreprocessingComplete()' must be called before any call of "
+        "'ThreadSafeIterationComplete()'.");
+  }
+  const int64_t sequential_iteration =
+      num_steps_completed_ - (has_preprocessing_ ? 1 : 0);
+  if (sequential_iteration >= num_iterations_) {
+    return absl::InvalidArgumentError(
+        "'ThreadSafeIterationComplete()' (and possibly 'IterationComplete()') "
+        "called more than 'num_iterations' times.");
+  }
   ++num_steps_completed_;
   ReportProgress();
   return absl::OkStatus();

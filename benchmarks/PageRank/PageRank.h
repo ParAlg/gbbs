@@ -231,9 +231,8 @@ absl::StatusOr<sequence<double>> PageRank_edgeMap(
 
   std::optional<gbbs::IterationProgressReporter> progress_reporter;
   if (report_progress.has_value()) {
-    progress_reporter.emplace(
-        gbbs::IterationProgressReporter(*std::move(report_progress), max_iters,
-                                        /*has_preprocessing=*/true));
+    progress_reporter.emplace(*std::move(report_progress), max_iters,
+                              /*has_preprocessing=*/true);
     RETURN_IF_ERROR(progress_reporter->PreprocessingComplete());
   }
 

@@ -101,6 +101,7 @@ cc_library(
         "@abseil-cpp//absl/log:absl_check",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/synchronization",
     ],
 )
 
@@ -113,6 +114,7 @@ gbbs_cc_test(
         ":status_macros",
         "@abseil-cpp//absl/status",
         "@googletest//:gtest_main",
+        "@parlaylib//parlay:parallel",
     ],
 )
 
