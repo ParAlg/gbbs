@@ -1,5 +1,7 @@
 #include "gbbs/helpers/progress_reporting.h"
 
+#include <cstdint>
+
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 
@@ -20,7 +22,7 @@ absl::Status IterationProgressReporter::PreprocessingComplete() {
   return absl::OkStatus();
 }
 
-absl::Status IterationProgressReporter::IterationComplete(int iteration) {
+absl::Status IterationProgressReporter::IterationComplete(int64_t iteration) {
   if (has_preprocessing_ && num_steps_completed_ == 0) {
     return absl::FailedPreconditionError(
         "'PreprocessingComplete()' must be called before any call of "
@@ -35,7 +37,7 @@ absl::Status IterationProgressReporter::IterationComplete(int iteration) {
         "'iteration' must be in the half-open interval [0, num_iterations).");
   }
 
-  const int expected_iteration =
+  const int64_t expected_iteration =
       num_steps_completed_ - (has_preprocessing_ ? 1 : 0);
   if (iteration != expected_iteration) {
     return absl::InvalidArgumentError(

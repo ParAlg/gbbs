@@ -3,6 +3,8 @@
 // This library contains utilities for reporting the progress of the execution
 // of an algorithm.
 
+#include <cstdint>
+
 #include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/function_ref.h"
@@ -52,7 +54,8 @@ class IterationProgressReporter {
   //   postprocessing step.
   IterationProgressReporter(absl::FunctionRef<void(float)> report_progress
                                 ABSL_ATTRIBUTE_LIFETIME_BOUND,
-                            int num_iterations, bool has_preprocessing = false,
+                            int64_t num_iterations,
+                            bool has_preprocessing = false,
                             bool has_postprocessing = false)
       : report_progress_(report_progress),
         num_iterations_(num_iterations),
@@ -68,14 +71,14 @@ class IterationProgressReporter {
 
   // Indicates that the `iteration`-th iteration is complete. The `iteration`
   // value must be in the half-open interval [0, `num_iterations_`) (i.e.,
-  // iteration indices are 0-based). At least one call of
-  // this method (with argument 0) must be made.
+  // iteration indices are 0-based). At least one call of this method (with
+  // argument 0) must be made.
   //
   // Returns an error status if `num_iterations` is non-positive, if
   // preprocessing was indicated but `PreprocessingComplete()` has not been
   // called, or if successive calls of this method do not pass monotonically
-  // ascending `iteration` values of 1, 2, ..., `num_iterations`.
-  absl::Status IterationComplete(int iteration);
+  // ascending `iteration` values of 0, 1, 2, ..., `num_iterations` - 1.
+  absl::Status IterationComplete(int64_t iteration);
 
   // Indicates that all iterations are complete. This is equivalent to calling
   // `IterationComplete(num_iterations)`, but can be used in cases where the
@@ -94,11 +97,11 @@ class IterationProgressReporter {
 
  private:
   /*const*/ ReportProgressCallback report_progress_;
-  const int num_iterations_;
+  const int64_t num_iterations_;
   const bool has_preprocessing_;
   const bool has_postprocessing_;
-  const int total_steps_;
-  int num_steps_completed_ = 0;
+  const int64_t total_steps_;
+  int64_t num_steps_completed_ = 0;
 
   // Invokes the `report_progress_` callback so as to reflect
   // `num_steps_completed_` worth of progress out of `total_steps_`.
