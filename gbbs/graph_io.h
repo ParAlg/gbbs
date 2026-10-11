@@ -700,10 +700,10 @@ sequence<Edge<weight_type>> sort_and_dedupe(sequence<Edge<weight_type>> edges) {
   parlay::sample_sort_inplace(make_slice(edges), compare_endpoints);
   return parlay::pack(
       edges, parlay::delayed_seq<bool>(edges.size(), [&](const size_t i) {
-        const auto edge{edges[i]};
-        const bool is_self_loop{edge.from == edge.to};
+        const auto e{edges[i]};
+        const bool is_self_loop{e.from == e.to};
         return !is_self_loop &&
-               (i == 0 || unequal_endpoints(edges[i - 1], edge));
+               (i == 0 || unequal_endpoints(edges[i - 1], e));
       }));
 }
 
