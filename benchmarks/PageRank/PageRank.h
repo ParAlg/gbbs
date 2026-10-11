@@ -139,20 +139,17 @@ struct PR_F {
 
 // Power iteration implementation of PageRank that uses Ligra's edgeMap
 // functionality to perform sparse matrix-vector (SpMV) products. The dense
-// implementation of edgeMap should be called in every iteration, which will
-// require the in-edges of the graph being materialized (this expectation is met
-// if using an undirected graph, or if the directed graph has both
-// in-/out-edges materialized.
+// implementation of edgeMap should be called in every iteration.
 //
-// The last argument should only be set to false if the graph you are using does
-// not have its in-edges materialized.
+// The argument `has_in_edges` should only be set to false if the graph you are
+// using does not have its in-edges materialized. Note that in this case, the
+// algorithm is likely to be significantly slower.
 //
 // The convergence threshold `eps` must be nonnegative. The algorithm stops when
 // the L1 distance between the PageRank values (seen as a vector with one entry
 // per node) in two consecutive iterations becomes smaller than `eps * (number
 // of nodes in G)`, or when `max_iters` iterations have been executed (whichever
-// comes first).
-// `damping_factor` must be in the range [0, 1).
+// comes first). `damping_factor` must be in the range [0, 1).
 //
 // If the source vector has non-zero length, the algorithm:
 // (1) sets the teleportation probabilities (i.e., the personalization vector)
