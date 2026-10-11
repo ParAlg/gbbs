@@ -35,7 +35,24 @@ TEST_F(CompleteLifecycleTest, NoPreprocessingOrPostprocessing) {
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
 }
 
-TEST_F(CompleteLifecycleTest, NoPreprocessingOrPostprocessingWithThreadSafety) {
+TEST_F(CompleteLifecycleTest,
+       NoPreprocessingOrPostprocessing_PeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/30,
+                                     /*has_preprocessing=*/false,
+                                     /*has_postprocessing=*/false,
+                                     /*max_iteration_callbacks=*/4);
+  for (int iteration = 0; iteration < 30; ++iteration) {
+    EXPECT_OK(reporter.IterationComplete(iteration));
+  }
+  EXPECT_THAT(GetProgressReports(),
+              ElementsAre(8.0 / 30.0, 16.0 / 30.0, 24.0 / 30.0, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest,
+       NoPreprocessingOrPostprocessing_WithThreadSafety) {
   ReportProgressCallback mock_report_progress_callback =
       MockReportProgressCallback();
   IterationProgressReporter reporter(mock_report_progress_callback,
@@ -46,6 +63,22 @@ TEST_F(CompleteLifecycleTest, NoPreprocessingOrPostprocessingWithThreadSafety) {
     EXPECT_OK(reporter.ThreadSafeIterationComplete(i));
   });
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest,
+       NoPreprocessingOrPostprocessing_WithThreadSafetyAndPeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/30,
+                                     /*has_preprocessing=*/false,
+                                     /*has_postprocessing=*/false,
+                                     /*max_iteration_callbacks=*/4);
+  parlay::parallel_for(0, 30, [&](size_t i) {
+    EXPECT_OK(reporter.ThreadSafeIterationComplete(i));
+  });
+  EXPECT_THAT(GetProgressReports(),
+              ElementsAre(8.0 / 30.0, 16.0 / 30.0, 24.0 / 30.0, 1.0));
 }
 
 TEST_F(CompleteLifecycleTest, NoPreprocessing) {
@@ -62,7 +95,23 @@ TEST_F(CompleteLifecycleTest, NoPreprocessing) {
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
 }
 
-TEST_F(CompleteLifecycleTest, NoPreprocessingWithThreadSafety) {
+TEST_F(CompleteLifecycleTest, NoPreprocessing_PeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/29,
+                                     /*has_preprocessing=*/false,
+                                     /*has_postprocessing=*/true,
+                                     /*max_iteration_callbacks=*/4);
+  for (int iteration = 0; iteration < 29; ++iteration) {
+    EXPECT_OK(reporter.IterationComplete(iteration));
+  }
+  EXPECT_OK(reporter.PostprocessingComplete());
+  EXPECT_THAT(GetProgressReports(), ElementsAre(8.0 / 30.0, 16.0 / 30.0,
+                                                24.0 / 30.0, 29.0 / 30.0, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest, NoPreprocessing_WithThreadSafety) {
   ReportProgressCallback mock_report_progress_callback =
       MockReportProgressCallback();
   IterationProgressReporter reporter(mock_report_progress_callback,
@@ -74,6 +123,23 @@ TEST_F(CompleteLifecycleTest, NoPreprocessingWithThreadSafety) {
   });
   EXPECT_OK(reporter.PostprocessingComplete());
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest,
+       NoPreprocessing_WithThreadSafetyAndPeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/29,
+                                     /*has_preprocessing=*/false,
+                                     /*has_postprocessing=*/true,
+                                     /*max_iteration_callbacks=*/4);
+  parlay::parallel_for(0, 29, [&](size_t i) {
+    EXPECT_OK(reporter.ThreadSafeIterationComplete(i));
+  });
+  EXPECT_OK(reporter.PostprocessingComplete());
+  EXPECT_THAT(GetProgressReports(), ElementsAre(8.0 / 30.0, 16.0 / 30.0,
+                                                24.0 / 30.0, 29.0 / 30.0, 1.0));
 }
 
 TEST_F(CompleteLifecycleTest, NoPostprocessing) {
@@ -90,7 +156,23 @@ TEST_F(CompleteLifecycleTest, NoPostprocessing) {
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
 }
 
-TEST_F(CompleteLifecycleTest, NoPostprocessingWithThreadSafety) {
+TEST_F(CompleteLifecycleTest, NoPostprocessing_PeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/29,
+                                     /*has_preprocessing=*/true,
+                                     /*has_postprocessing=*/false,
+                                     /*max_iteration_callbacks=*/4);
+  EXPECT_OK(reporter.PreprocessingComplete());
+  for (int iteration = 0; iteration < 29; ++iteration) {
+    EXPECT_OK(reporter.IterationComplete(iteration));
+  }
+  EXPECT_THAT(GetProgressReports(), ElementsAre(1.0 / 30.0, 9.0 / 30.0,
+                                                17.0 / 30.0, 25.0 / 30.0, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest, NoPostprocessing_WithThreadSafety) {
   ReportProgressCallback mock_report_progress_callback =
       MockReportProgressCallback();
   IterationProgressReporter reporter(mock_report_progress_callback,
@@ -102,6 +184,23 @@ TEST_F(CompleteLifecycleTest, NoPostprocessingWithThreadSafety) {
     EXPECT_OK(reporter.ThreadSafeIterationComplete(i));
   });
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest,
+       NoPostprocessing_WithThreadSafetyAndPeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/29,
+                                     /*has_preprocessing=*/true,
+                                     /*has_postprocessing=*/false,
+                                     /*max_iteration_callbacks=*/4);
+  EXPECT_OK(reporter.PreprocessingComplete());
+  parlay::parallel_for(0, 29, [&](size_t i) {
+    EXPECT_OK(reporter.ThreadSafeIterationComplete(i));
+  });
+  EXPECT_THAT(GetProgressReports(), ElementsAre(1.0 / 30.0, 9.0 / 30.0,
+                                                17.0 / 30.0, 25.0 / 30.0, 1.0));
 }
 
 TEST_F(CompleteLifecycleTest, WithPreprocessingAndPostprocessing) {
@@ -120,7 +219,26 @@ TEST_F(CompleteLifecycleTest, WithPreprocessingAndPostprocessing) {
 }
 
 TEST_F(CompleteLifecycleTest,
-       WithPreprocessingAndPostprocessingAndThreadSafety) {
+       WithPreprocessingAndPostprocessing_PeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/28,
+                                     /*has_preprocessing=*/true,
+                                     /*has_postprocessing=*/true,
+                                     /*max_iteration_callbacks=*/4);
+  EXPECT_OK(reporter.PreprocessingComplete());
+  for (int iteration = 0; iteration < 28; ++iteration) {
+    EXPECT_OK(reporter.IterationComplete(iteration));
+  }
+  EXPECT_OK(reporter.PostprocessingComplete());
+  EXPECT_THAT(GetProgressReports(),
+              ElementsAre(1.0 / 30.0, 8.0 / 30.0, 15.0 / 30.0, 22.0 / 30.0,
+                          29.0 / 30.0, 1.0));
+}
+
+TEST_F(CompleteLifecycleTest,
+       WithPreprocessingAndPostprocessing_WithThreadSafety) {
   ReportProgressCallback mock_report_progress_callback =
       MockReportProgressCallback();
   IterationProgressReporter reporter(mock_report_progress_callback,
@@ -133,6 +251,26 @@ TEST_F(CompleteLifecycleTest,
   });
   EXPECT_OK(reporter.PostprocessingComplete());
   EXPECT_THAT(GetProgressReports(), ElementsAre(0.25, 0.5, 0.75, 1.0));
+}
+
+TEST_F(
+    CompleteLifecycleTest,
+    WithPreprocessingAndPostprocessing_WithThreadSafetyAndPeriodicCallbacks) {
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
+                                     /*num_iterations=*/28,
+                                     /*has_preprocessing=*/true,
+                                     /*has_postprocessing=*/true,
+                                     /*max_iteration_callbacks=*/4);
+  EXPECT_OK(reporter.PreprocessingComplete());
+  parlay::parallel_for(0, 28, [&](size_t i) {
+    EXPECT_OK(reporter.ThreadSafeIterationComplete(i));
+  });
+  EXPECT_OK(reporter.PostprocessingComplete());
+  EXPECT_THAT(GetProgressReports(),
+              ElementsAre(1.0 / 30.0, 8.0 / 30.0, 15.0 / 30.0, 22.0 / 30.0,
+                          29.0 / 30.0, 1.0));
 }
 
 // Tests that `IterationProgressReporter` supports alternating sequential

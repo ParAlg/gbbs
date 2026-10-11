@@ -53,17 +53,16 @@ class IterationProgressReporter {
   //   step.
   // * `has_postprocessing`: indicates whether the algorithm has a
   //   postprocessing step.
+  // * `max_iteration_callbacks`: the maximum number of times the
+  //   `report_progress` callback will be invoked when reporting completed
+  //   iterations (must be strictly positive); the minimum number of callbacks
+  //   will be `min(num_iterations, max_iteration_callbacks / 2)`.
   IterationProgressReporter(absl::FunctionRef<void(float)> report_progress
                                 ABSL_ATTRIBUTE_LIFETIME_BOUND,
                             int64_t num_iterations,
                             bool has_preprocessing = false,
-                            bool has_postprocessing = false)
-      : report_progress_(report_progress),
-        num_iterations_(num_iterations),
-        has_preprocessing_(has_preprocessing),
-        has_postprocessing_(has_postprocessing),
-        total_steps_(num_iterations + (has_preprocessing ? 1 : 0) +
-                     (has_postprocessing ? 1 : 0)) {}
+                            bool has_postprocessing = false,
+                            int64_t max_iteration_callbacks = 200);
 
   // Indicate that the preprocessing step is complete. Returns an error status
   // if `has_preprocessing_` is false or if any call of `IterationComplete()`
@@ -135,14 +134,30 @@ class IterationProgressReporter {
   absl::Status PostprocessingComplete();
 
  private:
+  // Constructor arguments.
   /*const*/ ReportProgressCallback report_progress_;
   const int64_t num_iterations_;
   const bool has_preprocessing_;
   const bool has_postprocessing_;
+
+  // The total number of steps (including pre- and post-processing steps).
   const int64_t total_steps_;
-  absl::Mutex mu_;  // Guards `num_steps_completed_` in
-                    // `ThreadSafeIterationComplete()`.
+
+  // Report progress every `callback_period_` steps (or on the final iterative
+  // step).
+  const int64_t callback_period_;
+
+  // Guards `num_steps_completed_` in `ThreadSafeIterationComplete()`.
+  absl::Mutex mu_;
+
+  // Records the total number of steps completed, including pre- and post-
+  // processing steps.
   int64_t num_steps_completed_ = 0;
+
+  // Returns true if and only if the callback should be performed for the
+  // `completed_iterations`-th iteration. The argument should be 0-based
+  // iteration index.
+  bool PerformCallback(int64_t iteration_num) const;
 
   // Invokes the `report_progress_` callback so as to reflect
   // `num_steps_completed_` worth of progress out of `total_steps_`.
