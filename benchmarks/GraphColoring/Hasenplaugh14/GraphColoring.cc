@@ -39,8 +39,12 @@
 
 #include "GraphColoring.h"
 
+#include <cstddef>
 #include <fstream>
 #include <iostream>
+
+#include "gbbs/benchmark.h"
+#include "gbbs/helpers/parse_command_line.h"
 
 namespace gbbs {
 template <class Graph>
@@ -62,7 +66,12 @@ double Coloring_runner(Graph& G, commandLine P) {
     std::cout << "num_colors = " << parlay::reduce_max(colors) << "\n";
   }
   if (P.getOption("-verify)")) {
-    verify_coloring(G, colors);
+    size_t violations = coloring::CountColoringViolations(G, colors);
+    if (violations > 0) {
+      std::cout << "Invalid coloring: " << violations << " violations\n";
+    } else {
+      std::cout << "Valid coloring\n";
+    }
   }
 
   std::cout << "### Running Time: " << tt << std::endl;

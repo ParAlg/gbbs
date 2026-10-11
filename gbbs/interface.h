@@ -1,3 +1,5 @@
+#pragma once
+
 #include "edge_array.h"
 #include "edge_map_data.h"
 #include "edge_map_reduce.h"

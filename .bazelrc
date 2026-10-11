@@ -21,6 +21,11 @@ test --test_strategy=standalone
 #build --repo_env=CC=clang++-12
 build --repo_env=CC=g++
 build --cxxopt=-std=c++20
+build --host_cxxopt=-std=c++20
+build --conlyopt=-x
+build --conlyopt=c
+build --host_conlyopt=-x
+build --host_conlyopt=c
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
 build --cxxopt=-DLONG        # use 8 byte vertex identifiers

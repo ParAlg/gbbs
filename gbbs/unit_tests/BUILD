@@ -27,6 +27,16 @@ gbbs_cc_test(
 )
 
 gbbs_cc_test(
+    name = "graph_generator_test",
+    srcs = ["graph_generator_test.cc"],
+    deps = [
+        "//gbbs:graph_generator",
+        "//gbbs:macros",
+        "@googletest//:gtest_main",
+    ],
+)
+
+gbbs_cc_test(
     name = "undirected_edge_test",
     srcs = ["undirected_edge_test.cc"],
     deps = [

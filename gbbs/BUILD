@@ -152,6 +152,17 @@ cc_library(
 )
 
 cc_library(
+    name = "graph_generator",
+    hdrs = ["graph_generator.h"],
+    deps = [
+        ":bridge",
+        ":graph",
+        ":macros",
+        ":vertex",
+    ],
+)
+
+cc_library(
     name = "interface",
     hdrs = ["interface.h"],
     deps = [
