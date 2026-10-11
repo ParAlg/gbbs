@@ -20,7 +20,9 @@ class IterationProgressReporterTest : public ::testing::Test,
 using CompleteLifecycleTest = IterationProgressReporterTest;
 
 TEST_F(CompleteLifecycleTest, NoPreprocessingOrPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/4,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/4,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -31,7 +33,9 @@ TEST_F(CompleteLifecycleTest, NoPreprocessingOrPostprocessing) {
 }
 
 TEST_F(CompleteLifecycleTest, NoPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/3,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/3,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -42,7 +46,9 @@ TEST_F(CompleteLifecycleTest, NoPreprocessing) {
 }
 
 TEST_F(CompleteLifecycleTest, NoPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/3,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/3,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -53,7 +59,9 @@ TEST_F(CompleteLifecycleTest, NoPostprocessing) {
 }
 
 TEST_F(CompleteLifecycleTest, WithPreprocessingAndPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/2,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/2,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -68,7 +76,9 @@ TEST_F(CompleteLifecycleTest, WithPreprocessingAndPostprocessing) {
 using CompleteLifecycleEarlyTerminationTest = IterationProgressReporterTest;
 
 TEST_F(CompleteLifecycleEarlyTerminationTest, NoPreprocessingOrPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/8,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/8,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -80,7 +90,9 @@ TEST_F(CompleteLifecycleEarlyTerminationTest, NoPreprocessingOrPostprocessing) {
 }
 
 TEST_F(CompleteLifecycleEarlyTerminationTest, NoPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/7,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/7,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -94,7 +106,9 @@ TEST_F(CompleteLifecycleEarlyTerminationTest, NoPreprocessing) {
 }
 
 TEST_F(CompleteLifecycleEarlyTerminationTest, NoPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/7,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/7,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -107,7 +121,9 @@ TEST_F(CompleteLifecycleEarlyTerminationTest, NoPostprocessing) {
 
 TEST_F(CompleteLifecycleEarlyTerminationTest,
        WithPreprocessingAndePostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/6,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/6,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -125,7 +141,9 @@ TEST_F(CompleteLifecycleEarlyTerminationTest,
 using CompleteLifecycleDoneImmediatelyTest = IterationProgressReporterTest;
 
 TEST_F(CompleteLifecycleDoneImmediatelyTest, NoPreprocessingOrPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/8,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/8,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.IterationsDoneEarly());
@@ -133,7 +151,9 @@ TEST_F(CompleteLifecycleDoneImmediatelyTest, NoPreprocessingOrPostprocessing) {
 }
 
 TEST_F(CompleteLifecycleDoneImmediatelyTest, NoPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/7,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/7,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.IterationsDoneEarly());
@@ -142,7 +162,9 @@ TEST_F(CompleteLifecycleDoneImmediatelyTest, NoPreprocessing) {
 }
 
 TEST_F(CompleteLifecycleDoneImmediatelyTest, NoPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/7,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/7,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -152,7 +174,9 @@ TEST_F(CompleteLifecycleDoneImmediatelyTest, NoPostprocessing) {
 
 TEST_F(CompleteLifecycleDoneImmediatelyTest,
        WithPreprocessingAndPostprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/6,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/6,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -168,7 +192,9 @@ using IterationsDoneEarlyTest = IterationProgressReporterTest;
 using PostprocessingCompleteTest = IterationProgressReporterTest;
 
 TEST_F(ProcessCompleteTest, Disallowed) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/false);
   EXPECT_THAT(reporter.PreprocessingComplete(),
               StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -177,7 +203,9 @@ TEST_F(ProcessCompleteTest, Disallowed) {
 }
 
 TEST_F(ProcessCompleteTest, CalledMultipleTimes) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/true);
   EXPECT_OK(reporter.PreprocessingComplete());
   EXPECT_THAT(reporter.PreprocessingComplete(),
@@ -186,7 +214,9 @@ TEST_F(ProcessCompleteTest, CalledMultipleTimes) {
 }
 
 TEST_F(IterationCompleteTest, PreprocessingCompleteNotCalled) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/true);
   EXPECT_THAT(
       reporter.IterationComplete(0),
@@ -196,7 +226,9 @@ TEST_F(IterationCompleteTest, PreprocessingCompleteNotCalled) {
 }
 
 TEST_F(IterationCompleteTest, NegativeNumIterations) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/-1,
                                      /*has_preprocessing=*/false);
   EXPECT_THAT(
@@ -206,7 +238,9 @@ TEST_F(IterationCompleteTest, NegativeNumIterations) {
 }
 
 TEST_F(IterationCompleteTest, ZeroNumIterations) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/0,
                                      /*has_preprocessing=*/false);
   EXPECT_THAT(
@@ -216,7 +250,9 @@ TEST_F(IterationCompleteTest, ZeroNumIterations) {
 }
 
 TEST_F(IterationCompleteTest, IterationTooSmall) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/1,
                                      /*has_preprocessing=*/false);
   EXPECT_THAT(reporter.IterationComplete(-1),
@@ -226,7 +262,9 @@ TEST_F(IterationCompleteTest, IterationTooSmall) {
 }
 
 TEST_F(IterationCompleteTest, IterationTooLarge) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/2,
                                      /*has_preprocessing=*/false);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -239,7 +277,9 @@ TEST_F(IterationCompleteTest, IterationTooLarge) {
 }
 
 TEST_F(IterationCompleteTest, InvalidIterationValueNoPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/5,
                                      /*has_preprocessing=*/false);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -251,7 +291,9 @@ TEST_F(IterationCompleteTest, InvalidIterationValueNoPreprocessing) {
 }
 
 TEST_F(IterationCompleteTest, InvalidIterationValueWithPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/5,
                                      /*has_preprocessing=*/true);
   EXPECT_OK(reporter.PreprocessingComplete());
@@ -264,7 +306,9 @@ TEST_F(IterationCompleteTest, InvalidIterationValueWithPreprocessing) {
 }
 
 TEST_F(IterationsDoneEarlyTest, NegativeNumIterations) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/-1,
                                      /*has_preprocessing=*/false);
   EXPECT_THAT(
@@ -274,7 +318,9 @@ TEST_F(IterationsDoneEarlyTest, NegativeNumIterations) {
 }
 
 TEST_F(IterationsDoneEarlyTest, ZeroNumIterations) {
-  IterationProgressReporter reporter(MockReportProgressCallback(),
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback,
                                      /*num_iterations=*/0,
                                      /*has_preprocessing=*/false);
   EXPECT_THAT(
@@ -284,7 +330,9 @@ TEST_F(IterationsDoneEarlyTest, ZeroNumIterations) {
 }
 
 TEST_F(IterationsDoneEarlyTest, PreprocessingCompleteNotCalled) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/true);
   EXPECT_THAT(
       reporter.IterationsDoneEarly(),
@@ -294,7 +342,9 @@ TEST_F(IterationsDoneEarlyTest, PreprocessingCompleteNotCalled) {
 }
 
 TEST_F(PostprocessingCompleteTest, Disallowed) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/false);
   EXPECT_OK(reporter.IterationComplete(0));
@@ -305,7 +355,9 @@ TEST_F(PostprocessingCompleteTest, Disallowed) {
 }
 
 TEST_F(PostprocessingCompleteTest, CalledTooEarlyNoPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/false,
                                      /*has_postprocessing=*/true);
   EXPECT_THAT(reporter.PostprocessingComplete(),
@@ -315,7 +367,9 @@ TEST_F(PostprocessingCompleteTest, CalledTooEarlyNoPreprocessing) {
 }
 
 TEST_F(PostprocessingCompleteTest, CalledTooEarlyWithPreprocessing) {
-  IterationProgressReporter reporter(MockReportProgressCallback(), /*num_iterations=*/1,
+  ReportProgressCallback mock_report_progress_callback =
+      MockReportProgressCallback();
+  IterationProgressReporter reporter(mock_report_progress_callback, /*num_iterations=*/1,
                                      /*has_preprocessing=*/true,
                                      /*has_postprocessing=*/true);
   EXPECT_OK(reporter.PreprocessingComplete());

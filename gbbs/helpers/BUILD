@@ -95,7 +95,9 @@ cc_library(
     srcs = ["progress_reporting.cc"],
     hdrs = ["progress_reporting.h"],
     deps = [
+        "@abseil-cpp//absl/base:core_headers",
         "@abseil-cpp//absl/functional:any_invocable",
+        "@abseil-cpp//absl/functional:function_ref",
         "@abseil-cpp//absl/log:absl_check",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",

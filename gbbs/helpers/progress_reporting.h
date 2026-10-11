@@ -3,9 +3,9 @@
 // This library contains utilities for reporting the progress of the execution
 // of an algorithm.
 
-#include <utility>
-
+#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
 
 namespace gbbs {
@@ -50,10 +50,11 @@ class IterationProgressReporter {
   //   step.
   // * `has_postprocessing`: indicates whether the algorithm has a
   //   postprocessing step.
-  IterationProgressReporter(ReportProgressCallback report_progress,
+  IterationProgressReporter(absl::FunctionRef<void(float)> report_progress
+                                ABSL_ATTRIBUTE_LIFETIME_BOUND,
                             int num_iterations, bool has_preprocessing = false,
                             bool has_postprocessing = false)
-      : report_progress_(std::move(report_progress)),
+      : report_progress_(report_progress),
         num_iterations_(num_iterations),
         has_preprocessing_(has_preprocessing),
         has_postprocessing_(has_postprocessing),
