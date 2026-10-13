@@ -139,7 +139,8 @@ inline parlay::sequence<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
 
     // 3. sets -> elements (count and add to cover if enough elms were won)
     const size_t low_threshold =
-        std::max((size_t)ceil(pow(1.0 + sc::epsilon, cur_bkt - 1)), (size_t)1);
+        (cur_bkt == 0) ? (size_t)1
+                       : std::max((size_t)ceil(pow(1.0 + sc::epsilon, cur_bkt - 1)), (size_t)1);
     auto won_ngh_f = [&](const uintE& u, const uintE& v, const W& wgh) -> bool {
       return Elms[v] == perm[u];
     };
