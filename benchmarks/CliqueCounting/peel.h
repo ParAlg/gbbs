@@ -81,7 +81,7 @@ inline size_t triUpdate_serial(Graph& G, Graph2& DG, F get_active,
   auto update_d = [&](uintE vtx, size_t count) {
     size_t ct = per_processor_counts[vtx];
     per_processor_counts[vtx] += count;
-    if (ct == 0) {
+    if (ct == 0 && count > 0) {
       update_idxs[num_updates] = vtx;
       num_updates++;
     }
@@ -324,7 +324,7 @@ inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k,
   auto update_d = [&](uintE vtx, size_t count) {
     size_t ct = per_processor_counts[vtx];
     per_processor_counts[vtx] += count;
-    if (ct == 0) {
+    if (ct == 0 && count > 0) {
       update_idxs[num_updates] = vtx;
       num_updates++;
     }
