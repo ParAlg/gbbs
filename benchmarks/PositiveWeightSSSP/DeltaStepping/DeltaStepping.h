@@ -63,10 +63,12 @@ struct Visit_F {
       n_dist = dists[s].first + w;
     }
     if (n_dist < dist) {
+      // Claim before publishing any decrease, so the winner reports the
+      // round-start distance used to locate the previous bucket.
+      bool first = !dists[d].second &&
+                   gbbs::atomic_compare_and_swap(&dists[d].second, false, true);
       gbbs::write_min(&(dists[d].first), n_dist);
-      if (!dists[d].second &&
-          gbbs::atomic_compare_and_swap(&dists[d].second, false,
-                                        true)) {  // First visitor
+      if (first) {  // First visitor
         return std::optional<Distance>(dist);
       }
     }
