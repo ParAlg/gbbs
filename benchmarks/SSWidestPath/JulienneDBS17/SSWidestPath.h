@@ -125,7 +125,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     uintE new_width = width[v] & widestpath::VAL_MASK;
     width[v] = new_width;  // Remove the TOP_BIT in the distance.
     // Compute the previous bucket and new bucket for the vertex.
-    uintE prev_bkt = get_bkt(old_width);
+    uintE prev_bkt = old_width == 0 ? UINT_E_MAX : get_bkt(old_width);
     uintE new_bkt = get_bkt(new_width);
     uintE dest_bkt = b.get_bucket(prev_bkt, new_bkt);
     old_width = dest_bkt;  // write back
