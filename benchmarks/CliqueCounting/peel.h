@@ -576,7 +576,8 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques,
     };
     auto degree_seq =
         parlay::delayed_seq<size_t>(vtxs_remaining.size(), degree_f);
-    long edges_remaining = parlay::reduce(degree_seq);
+    // Each clique contributes to the count of all k+1 of its vertices.
+    long edges_remaining = parlay::reduce(degree_seq) / (long)(k + 1);
 
     // Update density
     double current_density =
